@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,25 +11,37 @@ interface SignInFormProps {
   onToggleMode: () => void;
 }
 
+function isStrongPassword(password: string) {
+  const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+[\]{};':"\\|,.<>/?]).{8,}$/;
+  return regex.test(password);
+}
+
 export function SignInForm({ onToggleMode }: SignInFormProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
+
+    if (!isStrongPassword(password)) {
+      setError('Password must be at least 8 characters and include uppercase, lowercase, number, and special character.');
+      return;
+    }
+
     setIsLoading(true);
     
     // Simulate API call
     setTimeout(() => {
       setIsLoading(false);
       console.log('Sign in:', { email, password });
+      navigate('/dashboard');
     }, 1000);
-    
-    navigate('/dashboard');
   };
 
   const handleGoogleSignIn = () => {
@@ -80,6 +91,8 @@ export function SignInForm({ onToggleMode }: SignInFormProps) {
             </Button>
           </div>
         </div>
+
+        {error && <p className="text-sm text-red-500">{error}</p>}
 
         <Button 
           type="submit" 

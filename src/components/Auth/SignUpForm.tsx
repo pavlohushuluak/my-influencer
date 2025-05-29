@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,9 +6,15 @@ import { Separator } from '@/components/ui/separator';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Mail, Lock, Eye, EyeOff, User } from 'lucide-react';
 import { FcGoogle } from 'react-icons/fc';
+import { toast } from 'sonner';
 
 interface SignUpFormProps {
   onToggleMode: () => void;
+}
+
+function isStrongPassword(password: string): boolean {
+  const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+[\]{};':"\\|,.<>/?]).{8,}$/;
+  return regex.test(password);
 }
 
 export function SignUpForm({ onToggleMode }: SignUpFormProps) {
@@ -23,20 +28,35 @@ export function SignUpForm({ onToggleMode }: SignUpFormProps) {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [errors, setErrors] = useState<{ password?: string; confirmPassword?: string }>({});
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (formData.password !== formData.confirmPassword) {
-      alert('Passwords do not match');
-      return;
+    const newErrors: typeof errors = {};
+
+    if (!isStrongPassword(formData.password)) {
+      newErrors.password =
+        'Password must be at least 8 characters and include uppercase, lowercase, number, and special character.';
     }
+
+    if (formData.password !== formData.confirmPassword) {
+      newErrors.confirmPassword = 'Passwords do not match.';
+    }
+
     if (!acceptTerms) {
-      alert('Please accept the terms and conditions');
+      toast.error('Please accept the terms and conditions.');
+      // alert('Please accept the terms and conditions.');
       return;
     }
 
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+
+    setErrors({});
     setIsLoading(true);
-    
+
     // Simulate API call
     setTimeout(() => {
       setIsLoading(false);
@@ -49,7 +69,7 @@ export function SignUpForm({ onToggleMode }: SignUpFormProps) {
   };
 
   const updateFormData = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   return (
@@ -110,6 +130,9 @@ export function SignUpForm({ onToggleMode }: SignUpFormProps) {
               {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </Button>
           </div>
+          {errors.password && (
+            <p className="text-sm text-red-500">{errors.password}</p>
+          )}
         </div>
 
         <div className="space-y-2">
@@ -135,6 +158,9 @@ export function SignUpForm({ onToggleMode }: SignUpFormProps) {
               {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </Button>
           </div>
+          {errors.confirmPassword && (
+            <p className="text-sm text-red-500">{errors.confirmPassword}</p>
+          )}
         </div>
 
         <div className="flex items-center space-x-2">

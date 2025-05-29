@@ -21,7 +21,6 @@ export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
             <h1 className="text-2xl font-bold bg-ai-gradient bg-clip-text text-transparent">
               AI Influence
             </h1>
-            <p className="text-sm text-muted-foreground">Creative Studio</p>
           </div>
         </div>
 

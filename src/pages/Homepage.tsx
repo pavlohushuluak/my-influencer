@@ -1,17 +1,18 @@
-
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '@/store/store';
 import { toggleTheme } from '@/store/slices/uiSlice';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Star, User, Image, Zap, Shield, TrendingUp, Moon, Sun } from 'lucide-react';
+import { Star, User, Image, Zap, Shield, TrendingUp, Moon, Sun, Menu, Settings } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import { useState, useEffect } from 'react';
 
 export default function Homepage() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { theme } = useSelector((state: RootState) => state.ui);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const features = [
     {
@@ -38,13 +39,18 @@ export default function Homepage() {
       icon: TrendingUp,
       title: 'Analytics',
       description: 'Track performance and optimize your content strategy with detailed insights'
+    },
+    {
+      icon: Settings,
+      title: 'Customization',
+      description: 'Tailor AI outputs to match your brand voice, style, and specific requirements'
     }
   ];
 
   return (
     <div className={cn("min-h-screen bg-gradient-to-br from-background via-background to-muted", theme)}>
       {/* Header */}
-      <header className="border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
+      <header className="border-b border-border bg-white/70 dark:bg-black/40 backdrop-blur-md sticky top-0 z-50 shadow-sm">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-ai-gradient rounded-lg flex items-center justify-center shadow-lg">
@@ -54,38 +60,68 @@ export default function Homepage() {
               <h1 className="font-bold text-xl bg-ai-gradient bg-clip-text text-transparent">
                 AI Influence
               </h1>
-              <p className="text-xs text-muted-foreground">Creative Studio</p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            {/* Theme toggle */}
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => dispatch(toggleTheme())}
-              className="w-9 h-9 hover:bg-accent transition-colors"
-            >
-              {theme === 'dark' ? (
-                <Sun className="w-4 h-4 text-foreground" />
-              ) : (
-                <Moon className="w-4 h-4 text-foreground" />
-              )}
-            </Button>
-            <Button 
-              variant="ghost" 
-              onClick={() => navigate('/signin')}
-              className="hover:bg-accent transition-colors"
-            >
-              Sign In
-            </Button>
-            <Button 
-              className="bg-ai-gradient hover:opacity-90 transition-opacity shadow-lg" 
-              onClick={() => navigate('/signup')}
-            >
-              Get Started
-            </Button>
+
+          <div className='flex justify-center'>
+            <div className='flex flex-col justify-center items-center'>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => dispatch(toggleTheme())}
+                className="w-9 h-9 hover:bg-accent transition-colors mr-3 items-center"
+              >
+                {theme === 'dark' ? (
+                  <Sun className="w-6 h-6 text-foreground" />
+                ) : (
+                  <Moon className="w-6 h-6 text-foreground" />
+                )}
+              </Button>
+            </div>
+            <div className="lg:hidden">
+              <Button variant="ghost" size="icon" onClick={() => setIsMenuOpen(!isMenuOpen)}>
+                <Menu className="w-6 h-6 text-foreground" />
+              </Button>
+            </div>
+
+            <div className="hidden lg:flex items-center gap-3">
+              <Button
+                onClick={() => navigate('/signin')}
+                className="border border-neutral-300 dark:border-neutral-600 text-neutral-800 dark:text-neutral-100 bg-transparent hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors shadow-sm px-5 py-2 rounded-xl"
+              >
+                Sign In
+              </Button>
+              <Button
+                onClick={() => navigate('/signup')}
+                className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-semibold hover:brightness-110 transition-all shadow-md px-5 py-2 rounded-xl"
+              >
+                Get Started
+              </Button>
+            </div>
           </div>
         </div>
+
+        {/* Mobile Menu */}
+        {isMenuOpen && (
+          <div className="fixed w-full lg:hidden bg-white/95 dark:bg-black/95 border-t rounded-lg border-border px-4 p-4">
+            <div
+              className="flex flex-col gap-3"
+            >
+              <Button
+                onClick={() => navigate('/signin')}
+                className="w-full border border-neutral-300 dark:border-neutral-600 text-neutral-800 dark:text-neutral-100 bg-transparent hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors shadow-sm rounded-xl"
+              >
+                Sign In
+              </Button>
+              <Button
+                onClick={() => navigate('/signup')}
+                className="w-full bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-semibold hover:brightness-110 transition-all shadow-md rounded-xl"
+              >
+                Get Started
+              </Button>
+            </div>
+          </div>
+        )}
       </header>
 
       {/* Hero Section */}
@@ -99,17 +135,17 @@ export default function Homepage() {
               Transform your creative vision into reality with AI-powered content generation
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button 
-                size="lg" 
+              <Button
+                size="lg"
                 className="bg-ai-gradient hover:opacity-90 text-lg px-8 py-3 shadow-lg transition-all hover:shadow-xl"
                 onClick={() => navigate('/dashboard')}
               >
                 Start Creating
               </Button>
-              <Button 
-                size="lg" 
-                variant="outline" 
-                className="text-lg px-8 py-3 border-border hover:bg-accent transition-colors"
+              <Button
+                size="lg"
+                variant="outline"
+                className="text-lg px-8 py-3 border-border border-neutral-300 hover:bg-accent dark:border-neutral-600 text-neutral-800 dark:text-neutral-100 bg-transparent hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
                 onClick={() => navigate('/signin')}
               >
                 View Demo
@@ -132,14 +168,14 @@ export default function Homepage() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {features.map((feature, index) => (
-              <Card 
-                key={index} 
-                className="group hover:shadow-lg transition-all duration-300 border-border/50 hover:border-primary/20 bg-card/50 backdrop-blur"
+              <Card
+                key={index}
+                className="group hover:shadow-lg transition-all duration-300 border-border/50 hover:border-primary/20 bg-card/50 backdrop-blur cursor-pointer"
               >
-                <CardHeader>
-                  <feature.icon className="w-12 h-12 text-primary group-hover:text-primary/80 transition-colors mb-4" />
+                <CardContent className='flex items-center p-6 pb-0'>
+                  <feature.icon className="w-12 h-12 text-purple-500 dark:text-amber-500 transition-colors mb-4 mr-3" />
                   <CardTitle className="text-xl text-card-foreground">{feature.title}</CardTitle>
-                </CardHeader>
+                </CardContent>
                 <CardContent>
                   <p className="text-muted-foreground leading-relaxed">{feature.description}</p>
                 </CardContent>
@@ -159,8 +195,8 @@ export default function Homepage() {
             <p className="text-xl text-muted-foreground mb-8 leading-relaxed">
               Join thousands of creators who are already building their AI influencer networks
             </p>
-            <Button 
-              size="lg" 
+            <Button
+              size="lg"
               className="bg-ai-gradient hover:opacity-90 text-lg px-8 py-3 shadow-lg transition-all hover:shadow-xl"
               onClick={() => navigate('/signup')}
             >
@@ -182,7 +218,7 @@ export default function Homepage() {
             </span>
           </div>
           <p className="text-muted-foreground">
-            © 2024 AI Influence Creative Studio. All rights reserved.
+            © {new Date().getFullYear()} AI Influence. All rights reserved.
           </p>
         </div>
       </footer>

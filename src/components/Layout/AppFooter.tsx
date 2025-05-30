@@ -84,34 +84,12 @@ export function AppFooter() {
                 <h2 className="font-bold text-xl bg-ai-gradient bg-clip-text text-transparent">
                   AI Influence
                 </h2>
-                <p className="text-sm text-muted-foreground">Creative Studio</p>
               </div>
             </div>
             <p className="text-muted-foreground text-sm leading-relaxed mb-6">
               Transform your creative vision into reality with AI-powered content generation. 
               Create unique AI influencers and build your digital empire.
             </p>
-            
-            {/* Newsletter Signup */}
-            <div className="space-y-3">
-              <h3 className="font-medium text-foreground">Stay updated</h3>
-              <form onSubmit={handleNewsletterSubmit} className="flex flex-col sm:flex-row gap-2">
-                <input 
-                  type="email" 
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Enter your email" 
-                  className="flex-1 px-3 py-2 text-sm bg-background border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary/20"
-                  required
-                />
-                <Button type="submit" size="sm" className="bg-ai-gradient hover:opacity-90 w-full sm:w-auto">
-                  Subscribe
-                </Button>
-              </form>
-              {isSubscribed && (
-                <p className="text-sm text-green-600">Thank you for subscribing!</p>
-              )}
-            </div>
           </div>
 
           {/* Product Links */}
@@ -169,7 +147,7 @@ export function AppFooter() {
         {/* Bottom Section */}
         <div className="pt-6 sm:pt-8 border-t border-border flex flex-col sm:flex-row justify-between items-center gap-4">
           <p className="text-sm text-muted-foreground text-center sm:text-left">
-            © 2024 AI Influence Creative Studio. All rights reserved.
+            © {new Date().getFullYear()} AI Influence. All rights reserved.
           </p>
           
           {/* Social Links */}

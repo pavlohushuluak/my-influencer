@@ -55,7 +55,6 @@ export function AppHeader({ showAuthButtons = true }: AppHeaderProps) {
             <h1 className="font-bold text-lg sm:text-xl bg-ai-gradient bg-clip-text text-transparent">
               AI Influence
             </h1>
-            <p className="text-xs text-muted-foreground">Creative Studio</p>
           </div>
         </div>
 

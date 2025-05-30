@@ -58,7 +58,7 @@ export function AppHeader({ showAuthButtons = true }: AppHeaderProps) {
         </div>
 
         {/* Desktop Navigation */}
-        {!isMobile && (
+        {!isMobile && showAuthButtons && (
           <nav className="hidden md:flex items-center gap-6">
             {navigationItems.map((item) => (
               <button
@@ -90,15 +90,15 @@ export function AppHeader({ showAuthButtons = true }: AppHeaderProps) {
             </Button>
             {showAuthButtons && (
               <>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   onClick={() => navigate('/signin')}
                   className="px-8 py-3 border-border border-neutral-300 hover:bg-accent dark:border-neutral-600 text-neutral-800 dark:text-neutral-100 bg-transparent hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
                 >
                   Sign In
                 </Button>
-                <Button 
-                  className="bg-ai-gradient hover:opacity-90 transition-opacity shadow-lg" 
+                <Button
+                  className="bg-ai-gradient hover:opacity-90 transition-opacity shadow-lg"
                   onClick={() => navigate('/signup')}
                 >
                   Get Started
@@ -123,64 +123,64 @@ export function AppHeader({ showAuthButtons = true }: AppHeaderProps) {
                 <Moon className="w-4 h-4 text-foreground" />
               )}
             </Button>
-            <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="w-9 h-9">
-                  <Menu className="w-5 h-5 text-foreground" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent className="w-[280px] sm:w-[300px]">
-                <SheetHeader>
-                  <SheetTitle className="flex items-center gap-2">
-                    <div className="w-8 h-8 bg-ai-gradient rounded-lg flex items-center justify-center">
-                      <Star className="w-4 h-4 text-white" />
-                    </div>
-                    <span className="bg-ai-gradient bg-clip-text text-transparent">AI Influence</span>
-                  </SheetTitle>
-                </SheetHeader>
-                
-                <div className="flex flex-col gap-6 mt-8">
+            {
+              showAuthButtons &&
+              (
+                <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+                  <SheetTrigger asChild>
+                    <Button variant="ghost" size="icon" className="w-9 h-9">
+                      <Menu className="w-5 h-5 text-foreground" />
+                    </Button>
+                  </SheetTrigger>
+                  <SheetContent className="w-[280px] sm:w-[300px]">
+                    <SheetHeader>
+                      <SheetTitle className="flex items-center gap-2">
+                        <div className="w-8 h-8 bg-ai-gradient rounded-lg flex items-center justify-center">
+                          <Star className="w-4 h-4 text-white" />
+                        </div>
+                        <span className="bg-ai-gradient bg-clip-text text-transparent">AI Influence</span>
+                      </SheetTitle>
+                    </SheetHeader>
 
-                  {/* Navigation */}
-                  <nav className="flex flex-col gap-3">
-                    {navigationItems.map((item) => (
-                      <button
-                        key={item.name}
-                        onClick={() => handleNavigation(item.href)}
-                        className="text-sm font-medium text-foreground hover:text-primary transition-colors py-2 px-3 rounded-md hover:bg-accent text-left"
-                      >
-                        {item.name}
-                      </button>
-                    ))}
-                  </nav>
+                    <div className="flex flex-col gap-6 mt-8">
 
-                  {/* Auth Buttons */}
-                  {showAuthButtons && (
-                    <div className="flex flex-col gap-3 pt-4 border-t border-border">
-                      <Button 
-                        variant="outline" 
-                        onClick={() => {
-                          navigate('/signin');
-                          setIsSheetOpen(false);
-                        }}
-                        className="w-full"
-                      >
-                        Sign In
-                      </Button>
-                      <Button 
-                        className="w-full bg-ai-gradient hover:opacity-90 transition-opacity" 
-                        onClick={() => {
-                          navigate('/signup');
-                          setIsSheetOpen(false);
-                        }}
-                      >
-                        Get Started
-                      </Button>
+                      {/* Navigation */}
+                      <nav className="flex flex-col gap-3">
+                        {navigationItems.map((item) => (
+                          <button
+                            key={item.name}
+                            onClick={() => handleNavigation(item.href)}
+                            className="text-sm font-medium text-foreground hover:text-primary transition-colors py-2 px-3 rounded-md hover:bg-accent text-left"
+                          >
+                            {item.name}
+                          </button>
+                        ))}
+                      </nav>
+                      <div className="flex flex-col gap-3 pt-4 border-t border-border">
+                        <Button
+                          variant="outline"
+                          onClick={() => {
+                            navigate('/signin');
+                            setIsSheetOpen(false);
+                          }}
+                          className="w-full"
+                        >
+                          Sign In
+                        </Button>
+                        <Button
+                          className="w-full bg-ai-gradient hover:opacity-90 transition-opacity"
+                          onClick={() => {
+                            navigate('/signup');
+                            setIsSheetOpen(false);
+                          }}
+                        >
+                          Get Started
+                        </Button>
+                      </div>
                     </div>
-                  )}
-                </div>
-              </SheetContent>
-            </Sheet>
+                  </SheetContent>
+                </Sheet>
+              )}
           </div>
         )}
       </div>

@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -5,15 +6,10 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { FcGoogle } from 'react-icons/fc';
-import { useNavigate } from 'react-router-dom';
+import { cn } from '@/lib/utils';
 
 interface SignInFormProps {
   onToggleMode: () => void;
-}
-
-function isStrongPassword(password: string) {
-  const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+[\]{};':"\\|,.<>/?]).{8,}$/;
-  return regex.test(password);
 }
 
 export function SignInForm({ onToggleMode }: SignInFormProps) {
@@ -21,26 +17,42 @@ export function SignInForm({ onToggleMode }: SignInFormProps) {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [errors, setErrors] = useState({ email: '', password: '' });
 
-  const navigate = useNavigate();
+  const validateEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-
-    if (!isStrongPassword(password)) {
-      setError('Password must be at least 8 characters and include uppercase, lowercase, number, and special character.');
+    
+    const newErrors = { email: '', password: '' };
+    
+    if (!email) {
+      newErrors.email = 'Email is required';
+    } else if (!validateEmail(email)) {
+      newErrors.email = 'Please enter a valid email address';
+    }
+    
+    if (!password) {
+      newErrors.password = 'Password is required';
+    } else if (password.length < 6) {
+      newErrors.password = 'Password must be at least 6 characters';
+    }
+    
+    setErrors(newErrors);
+    
+    if (newErrors.email || newErrors.password) {
       return;
     }
-
+    
     setIsLoading(true);
     
     // Simulate API call
     setTimeout(() => {
       setIsLoading(false);
       console.log('Sign in:', { email, password });
-      navigate('/dashboard');
     }, 1000);
   };
 
@@ -60,11 +72,20 @@ export function SignInForm({ onToggleMode }: SignInFormProps) {
               type="email"
               placeholder="Enter your email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="pl-10 bg-background border-border text-foreground placeholder:text-muted-foreground"
+              onChange={(e) => {
+                setEmail(e.target.value);
+                if (errors.email) setErrors(prev => ({ ...prev, email: '' }));
+              }}
+              className={cn(
+                "pl-10 bg-background border-border text-foreground placeholder:text-muted-foreground",
+                errors.email && "border-red-500"
+              )}
               required
             />
           </div>
+          {errors.email && (
+            <p className="text-xs text-red-500">{errors.email}</p>
+          )}
         </div>
 
         <div className="space-y-2">
@@ -76,8 +97,14 @@ export function SignInForm({ onToggleMode }: SignInFormProps) {
               type={showPassword ? 'text' : 'password'}
               placeholder="Enter your password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="pl-10 pr-10 bg-background border-border text-foreground placeholder:text-muted-foreground"
+              onChange={(e) => {
+                setPassword(e.target.value);
+                if (errors.password) setErrors(prev => ({ ...prev, password: '' }));
+              }}
+              className={cn(
+                "pl-10 pr-10 bg-background border-border text-foreground placeholder:text-muted-foreground",
+                errors.password && "border-red-500"
+              )}
               required
             />
             <Button
@@ -90,9 +117,18 @@ export function SignInForm({ onToggleMode }: SignInFormProps) {
               {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </Button>
           </div>
+          {errors.password && (
+            <p className="text-xs text-red-500">{errors.password}</p>
+          )}
         </div>
 
-        {error && <p className="text-sm text-red-500">{error}</p>}
+        <div className="flex items-center justify-between">
+          <div className="text-sm">
+            <a href="#" className="text-ai-purple-500 hover:text-ai-purple-600 underline">
+              Forgot your password?
+            </a>
+          </div>
+        </div>
 
         <Button 
           type="submit" 

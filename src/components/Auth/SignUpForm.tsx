@@ -1,20 +1,18 @@
+
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Mail, Lock, Eye, EyeOff, User } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
+import { Mail, Lock, Eye, EyeOff, User, AlertCircle, CheckCircle } from 'lucide-react';
 import { FcGoogle } from 'react-icons/fc';
-import { toast } from 'sonner';
+import { validatePassword, getStrengthColor, getStrengthProgress } from '@/utils/passwordValidation';
+import { cn } from '@/lib/utils';
 
 interface SignUpFormProps {
   onToggleMode: () => void;
-}
-
-function isStrongPassword(password: string): boolean {
-  const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+[\]{};':"\\|,.<>/?]).{8,}$/;
-  return regex.test(password);
 }
 
 export function SignUpForm({ onToggleMode }: SignUpFormProps) {
@@ -28,35 +26,36 @@ export function SignUpForm({ onToggleMode }: SignUpFormProps) {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [errors, setErrors] = useState<{ password?: string; confirmPassword?: string }>({});
+  const [touched, setTouched] = useState({
+    password: false,
+    confirmPassword: false
+  });
+
+  const passwordValidation = validatePassword(formData.password);
+  const passwordsMatch = formData.password === formData.confirmPassword;
+  const showPasswordErrors = touched.password && formData.password.length > 0;
+  const showConfirmPasswordError = touched.confirmPassword && formData.confirmPassword.length > 0 && !passwordsMatch;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const newErrors: typeof errors = {};
-
-    if (!isStrongPassword(formData.password)) {
-      newErrors.password =
-        'Password must be at least 8 characters and include uppercase, lowercase, number, and special character.';
+    
+    if (!passwordValidation.isValid) {
+      setTouched({ password: true, confirmPassword: true });
+      return;
     }
-
-    if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = 'Passwords do not match.';
+    
+    if (!passwordsMatch) {
+      setTouched(prev => ({ ...prev, confirmPassword: true }));
+      return;
     }
-
+    
     if (!acceptTerms) {
-      toast.error('Please accept the terms and conditions.');
-      // alert('Please accept the terms and conditions.');
+      alert('Please accept the terms and conditions');
       return;
     }
 
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
-      return;
-    }
-
-    setErrors({});
     setIsLoading(true);
-
+    
     // Simulate API call
     setTimeout(() => {
       setIsLoading(false);
@@ -69,7 +68,15 @@ export function SignUpForm({ onToggleMode }: SignUpFormProps) {
   };
 
   const updateFormData = (field: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handlePasswordBlur = () => {
+    setTouched(prev => ({ ...prev, password: true }));
+  };
+
+  const handleConfirmPasswordBlur = () => {
+    setTouched(prev => ({ ...prev, confirmPassword: true }));
   };
 
   return (
@@ -117,7 +124,11 @@ export function SignUpForm({ onToggleMode }: SignUpFormProps) {
               placeholder="Create a password"
               value={formData.password}
               onChange={(e) => updateFormData('password', e.target.value)}
-              className="pl-10 pr-10 bg-background border-border text-foreground placeholder:text-muted-foreground"
+              onBlur={handlePasswordBlur}
+              className={cn(
+                "pl-10 pr-10 bg-background border-border text-foreground placeholder:text-muted-foreground",
+                showPasswordErrors && !passwordValidation.isValid && "border-red-500"
+              )}
               required
             />
             <Button
@@ -130,8 +141,33 @@ export function SignUpForm({ onToggleMode }: SignUpFormProps) {
               {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </Button>
           </div>
-          {errors.password && (
-            <p className="text-sm text-red-500">{errors.password}</p>
+          
+          {/* Password Strength Indicator */}
+          {formData.password.length > 0 && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">Password strength:</span>
+                <span className={cn("text-xs font-medium capitalize", getStrengthColor(passwordValidation.strength))}>
+                  {passwordValidation.strength}
+                </span>
+              </div>
+              <Progress 
+                value={getStrengthProgress(passwordValidation.strength)} 
+                className="h-2"
+              />
+            </div>
+          )}
+          
+          {/* Password Validation Errors */}
+          {showPasswordErrors && passwordValidation.errors.length > 0 && (
+            <div className="space-y-1">
+              {passwordValidation.errors.map((error, index) => (
+                <div key={index} className="flex items-center gap-2 text-xs text-red-500">
+                  <AlertCircle className="h-3 w-3" />
+                  <span>{error}</span>
+                </div>
+              ))}
+            </div>
           )}
         </div>
 
@@ -145,7 +181,12 @@ export function SignUpForm({ onToggleMode }: SignUpFormProps) {
               placeholder="Confirm your password"
               value={formData.confirmPassword}
               onChange={(e) => updateFormData('confirmPassword', e.target.value)}
-              className="pl-10 pr-10 bg-background border-border text-foreground placeholder:text-muted-foreground"
+              onBlur={handleConfirmPasswordBlur}
+              className={cn(
+                "pl-10 pr-10 bg-background border-border text-foreground placeholder:text-muted-foreground",
+                showConfirmPasswordError && "border-red-500",
+                touched.confirmPassword && passwordsMatch && formData.confirmPassword.length > 0 && "border-green-500"
+              )}
               required
             />
             <Button
@@ -158,8 +199,22 @@ export function SignUpForm({ onToggleMode }: SignUpFormProps) {
               {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </Button>
           </div>
-          {errors.confirmPassword && (
-            <p className="text-sm text-red-500">{errors.confirmPassword}</p>
+          
+          {/* Confirm Password Validation */}
+          {touched.confirmPassword && formData.confirmPassword.length > 0 && (
+            <div className="flex items-center gap-2 text-xs">
+              {passwordsMatch ? (
+                <>
+                  <CheckCircle className="h-3 w-3 text-green-500" />
+                  <span className="text-green-500">Passwords match</span>
+                </>
+              ) : (
+                <>
+                  <AlertCircle className="h-3 w-3 text-red-500" />
+                  <span className="text-red-500">Passwords do not match</span>
+                </>
+              )}
+            </div>
           )}
         </div>
 
@@ -184,7 +239,7 @@ export function SignUpForm({ onToggleMode }: SignUpFormProps) {
         <Button 
           type="submit" 
           className="w-full bg-ai-gradient hover:bg-ai-gradient-dark text-white"
-          disabled={isLoading}
+          disabled={isLoading || !passwordValidation.isValid || !passwordsMatch || !acceptTerms}
         >
           {isLoading ? 'Creating account...' : 'Create account'}
         </Button>

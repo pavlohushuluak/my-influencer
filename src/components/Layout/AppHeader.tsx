@@ -93,9 +93,9 @@ export function AppHeader({ showAuthButtons = true }: AppHeaderProps) {
             {showAuthButtons && (
               <>
                 <Button 
-                  variant="ghost" 
+                  variant="outline" 
                   onClick={() => navigate('/signin')}
-                  className="hover:bg-accent transition-colors"
+                  className="px-8 py-3 border-border border-neutral-300 hover:bg-accent dark:border-neutral-600 text-neutral-800 dark:text-neutral-100 bg-transparent hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
                 >
                   Sign In
                 </Button>
@@ -112,11 +112,23 @@ export function AppHeader({ showAuthButtons = true }: AppHeaderProps) {
 
         {/* Mobile Menu */}
         {isMobile && (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleThemeToggle}
+              className="w-9 h-9 hover:bg-accent transition-colors"
+            >
+              {theme === 'dark' ? (
+                <Sun className="w-4 h-4 text-foreground" />
+              ) : (
+                <Moon className="w-4 h-4 text-foreground" />
+              )}
+            </Button>
             <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
               <SheetTrigger asChild>
                 <Button variant="ghost" size="icon" className="w-9 h-9">
-                  <Menu className="w-5 h-5" />
+                  <Menu className="w-5 h-5 text-foreground" />
                 </Button>
               </SheetTrigger>
               <SheetContent className="w-[280px] sm:w-[300px]">
@@ -130,22 +142,6 @@ export function AppHeader({ showAuthButtons = true }: AppHeaderProps) {
                 </SheetHeader>
                 
                 <div className="flex flex-col gap-6 mt-8">
-                  {/* Theme Toggle */}
-                  <div className="flex items-center justify-between py-2 px-3">
-                    <span className="text-sm font-medium text-foreground">Theme</span>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={handleThemeToggle}
-                      className="w-8 h-8 hover:bg-accent transition-colors"
-                    >
-                      {theme === 'dark' ? (
-                        <Sun className="w-4 h-4 text-foreground" />
-                      ) : (
-                        <Moon className="w-4 h-4 text-foreground" />
-                      )}
-                    </Button>
-                  </div>
 
                   {/* Navigation */}
                   <nav className="flex flex-col gap-3">

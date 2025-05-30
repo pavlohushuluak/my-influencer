@@ -75,8 +75,6 @@ export default function Homepage() {
         'Advanced Analytics',
         'Priority Support',
         'Fast Processing Speed',
-        'Custom Presets',
-        'Team Collaboration'
       ],
       popular: true
     },
@@ -91,9 +89,6 @@ export default function Homepage() {
         'Enterprise Analytics',
         '24/7 Dedicated Support',
         'Lightning Processing Speed',
-        'White-label Solutions',
-        'API Access',
-        'Custom Integrations'
       ],
       popular: false
     }

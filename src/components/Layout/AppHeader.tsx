@@ -48,14 +48,13 @@ export function AppHeader({ showAuthButtons = true }: AppHeaderProps) {
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         {/* Logo */}
         <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/')}>
-          <div className="w-8 h-8 sm:w-10 sm:h-10 bg-ai-gradient rounded-lg flex items-center justify-center shadow-lg">
-            <Star className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
-          </div>
-          <div className="hidden sm:block">
-            <h1 className="font-bold text-lg sm:text-xl bg-ai-gradient bg-clip-text text-transparent">
-              AI Influence
-            </h1>
-          </div>
+          {
+            theme === 'dark' ? (
+              <img src='/logo_dark.png' alt='logo' />
+            ) : (
+              <img src='/logo_light.png' alt='logo' />
+            )
+          }
         </div>
 
         {/* Desktop Navigation */}

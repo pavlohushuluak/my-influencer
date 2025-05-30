@@ -10,6 +10,8 @@ import { Mail, Lock, Eye, EyeOff, User, AlertCircle, CheckCircle } from 'lucide-
 import { FcGoogle } from 'react-icons/fc';
 import { validatePassword, getStrengthColor, getStrengthProgress } from '@/utils/passwordValidation';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
 
 interface SignUpFormProps {
   onToggleMode: () => void;
@@ -35,6 +37,7 @@ export function SignUpForm({ onToggleMode }: SignUpFormProps) {
   const passwordsMatch = formData.password === formData.confirmPassword;
   const showPasswordErrors = touched.password && formData.password.length > 0;
   const showConfirmPasswordError = touched.confirmPassword && formData.confirmPassword.length > 0 && !passwordsMatch;
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,6 +63,9 @@ export function SignUpForm({ onToggleMode }: SignUpFormProps) {
     setTimeout(() => {
       setIsLoading(false);
       console.log('Sign up:', formData);
+      toast.success('Account created successfully');
+      // onToggleMode();
+      navigate('/dashboard');
     }, 1000);
   };
 

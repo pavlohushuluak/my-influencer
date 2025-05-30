@@ -22,18 +22,6 @@ export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
       
       <div className="flex items-center justify-center py-12 px-4">
         <div className="w-full max-w-md space-y-6">
-          {/* Logo */}
-          <div className="flex flex-col items-center text-center space-y-2">
-            <div className="w-16 h-16 bg-ai-gradient rounded-2xl flex items-center justify-center">
-              <Star className="w-8 h-8 text-white" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold bg-ai-gradient bg-clip-text text-transparent">
-                AI Influence
-              </h1>
-              <p className="text-sm text-muted-foreground">Creative Studio</p>
-            </div>
-          </div>
 
           {/* Auth Card */}
           <Card className="border-border bg-card">

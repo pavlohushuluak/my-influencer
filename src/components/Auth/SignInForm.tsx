@@ -7,7 +7,8 @@ import { Separator } from '@/components/ui/separator';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { FcGoogle } from 'react-icons/fc';
 import { cn } from '@/lib/utils';
-
+import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
 interface SignInFormProps {
   onToggleMode: () => void;
 }
@@ -18,6 +19,7 @@ export function SignInForm({ onToggleMode }: SignInFormProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState({ email: '', password: '' });
+  const navigate = useNavigate();
 
   const validateEmail = (email: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -53,6 +55,8 @@ export function SignInForm({ onToggleMode }: SignInFormProps) {
     setTimeout(() => {
       setIsLoading(false);
       console.log('Sign in:', { email, password });
+      toast.success('Sign in successful');
+      navigate('/dashboard');
     }, 1000);
   };
 

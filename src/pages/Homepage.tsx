@@ -7,6 +7,8 @@ import { Star, User, Image, Zap, Shield, TrendingUp, Moon, Sun, Menu, Settings }
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useState, useEffect } from 'react';
+import { AppHeader } from '@/components/Layout/AppHeader';
+import { AppFooter } from '@/components/Layout/AppFooter';
 
 export default function Homepage() {
   const navigate = useNavigate();
@@ -47,82 +49,60 @@ export default function Homepage() {
     }
   ];
 
+  const pricingPlans = [
+    {
+      name: 'Starter',
+      price: '$19',
+      period: '/month',
+      description: 'Perfect for individuals getting started',
+      features: [
+        '3 AI Influencers',
+        '100 Content Generations/month',
+        'Basic Analytics',
+        'Email Support',
+        'Standard Processing Speed'
+      ],
+      popular: false
+    },
+    {
+      name: 'Professional',
+      price: '$49',
+      period: '/month',
+      description: 'Best for growing creators and agencies',
+      features: [
+        '10 AI Influencers',
+        '500 Content Generations/month',
+        'Advanced Analytics',
+        'Priority Support',
+        'Fast Processing Speed',
+        'Custom Presets',
+        'Team Collaboration'
+      ],
+      popular: true
+    },
+    {
+      name: 'Enterprise',
+      price: '$149',
+      period: '/month',
+      description: 'For large teams and businesses',
+      features: [
+        'Unlimited AI Influencers',
+        'Unlimited Content Generations',
+        'Enterprise Analytics',
+        '24/7 Dedicated Support',
+        'Lightning Processing Speed',
+        'White-label Solutions',
+        'API Access',
+        'Custom Integrations'
+      ],
+      popular: false
+    }
+  ];
+
   return (
     <div className={cn("min-h-screen bg-gradient-to-br from-background via-background to-muted", theme)}>
       {/* Header */}
-      <header className="border-b border-border bg-white/70 dark:bg-black/40 backdrop-blur-md sticky top-0 z-50 shadow-sm">
-        <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-ai-gradient rounded-lg flex items-center justify-center shadow-lg">
-              <Star className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h1 className="font-bold text-xl bg-ai-gradient bg-clip-text text-transparent">
-                AI Influence
-              </h1>
-            </div>
-          </div>
-
-          <div className='flex justify-center'>
-            <div className='flex flex-col justify-center items-center'>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => dispatch(toggleTheme())}
-                className="w-9 h-9 hover:bg-accent transition-colors mr-3 items-center"
-              >
-                {theme === 'dark' ? (
-                  <Sun className="w-6 h-6 text-foreground" />
-                ) : (
-                  <Moon className="w-6 h-6 text-foreground" />
-                )}
-              </Button>
-            </div>
-            <div className="lg:hidden">
-              <Button variant="ghost" size="icon" onClick={() => setIsMenuOpen(!isMenuOpen)}>
-                <Menu className="w-6 h-6 text-foreground" />
-              </Button>
-            </div>
-
-            <div className="hidden lg:flex items-center gap-3">
-              <Button
-                onClick={() => navigate('/signin')}
-                className="border border-neutral-300 dark:border-neutral-600 text-neutral-800 dark:text-neutral-100 bg-transparent hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors shadow-sm px-5 py-2 rounded-xl"
-              >
-                Sign In
-              </Button>
-              <Button
-                onClick={() => navigate('/signup')}
-                className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-semibold hover:brightness-110 transition-all shadow-md px-5 py-2 rounded-xl"
-              >
-                Get Started
-              </Button>
-            </div>
-          </div>
-        </div>
-
-        {/* Mobile Menu */}
-        {isMenuOpen && (
-          <div className="fixed w-full lg:hidden bg-white/95 dark:bg-black/95 border-t rounded-lg border-border px-4 p-4">
-            <div
-              className="flex flex-col gap-3"
-            >
-              <Button
-                onClick={() => navigate('/signin')}
-                className="w-full border border-neutral-300 dark:border-neutral-600 text-neutral-800 dark:text-neutral-100 bg-transparent hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors shadow-sm rounded-xl"
-              >
-                Sign In
-              </Button>
-              <Button
-                onClick={() => navigate('/signup')}
-                className="w-full bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-semibold hover:brightness-110 transition-all shadow-md rounded-xl"
-              >
-                Get Started
-              </Button>
-            </div>
-          </div>
-        )}
-      </header>
+      <AppHeader />
 
       {/* Hero Section */}
       <section className="py-20 px-4">

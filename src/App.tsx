@@ -10,6 +10,8 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Homepage from '@/pages/Homepage';
 import Dashboard from '@/pages/Dashboard';
 import Auth from '@/pages/Auth';
+import Account from '@/pages/Account';
+import { MainLayout } from '@/components/Layout/MainLayout';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -33,7 +35,10 @@ const App = () => {
                 <Route path="/signin" element={<Auth />} />
                 <Route path="/signup" element={<Auth />} />
                 <Route path="/" element={<Homepage />} />
-                <Route path="/dashboard" element={<Dashboard />} />
+                <Route element={<MainLayout />}>
+                  <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/account" element={<Account />} />
+                </Route>
               </Routes>
             </div>
           </BrowserRouter>

@@ -50,7 +50,38 @@ export function AnalyticsChart() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          coming soon...
+          <ChartContainer config={chartConfig}>
+            <AreaChart data={contentData}>
+              <XAxis
+                dataKey="month"
+                axisLine={false}
+                tickLine={false}
+                tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+              />
+              <YAxis
+                axisLine={false}
+                tickLine={false}
+                tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+              />
+              <ChartTooltip content={<ChartTooltipContent />} />
+              <Area
+                type="monotone"
+                dataKey="generated"
+                stroke="hsl(var(--primary))"
+                fill="hsl(var(--primary))"
+                fillOpacity={0.1}
+                strokeWidth={2}
+              />
+              <Area
+                type="monotone"
+                dataKey="enhanced"
+                stroke="hsl(var(--muted-foreground))"
+                fill="hsl(var(--muted-foreground))"
+                fillOpacity={0.1}
+                strokeWidth={2}
+              />
+            </AreaChart>
+          </ChartContainer>
         </CardContent>
       </Card>
 
@@ -63,7 +94,27 @@ export function AnalyticsChart() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          coming soon...
+          <ChartContainer config={chartConfig}>
+            <BarChart data={creditsData}>
+              <XAxis
+                dataKey="day"
+                axisLine={false}
+                tickLine={false}
+                tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+              />
+              <YAxis
+                axisLine={false}
+                tickLine={false}
+                tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+              />
+              <ChartTooltip content={<ChartTooltipContent />} />
+              <Bar
+                dataKey="used"
+                fill="hsl(var(--primary))"
+                radius={[4, 4, 0, 0]}
+              />
+            </BarChart>
+          </ChartContainer>
         </CardContent>
       </Card>
     </div>

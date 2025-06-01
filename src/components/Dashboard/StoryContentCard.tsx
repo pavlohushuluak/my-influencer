@@ -2,28 +2,44 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Edit, Settings } from 'lucide-react';
+import { Edit, Settings, Calendar, Instagram, Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface StoryContentCardProps {
   id: string;
   title: string;
-  caption: string;
+  format: string;
+  setting: string;
+  seo: string;
+  instagramStatus: string;
+  fanvueSchedule: string;
   images: string[];
   totalImages: number;
   className?: string;
+  onEdit?: (id: string) => void;
 }
 
 export function StoryContentCard({ 
   id,
   title, 
-  caption, 
+  format,
+  setting,
+  seo,
+  instagramStatus,
+  fanvueSchedule,
   images, 
   totalImages,
-  className 
+  className,
+  onEdit
 }: StoryContentCardProps) {
   const displayImages = images.slice(0, 6);
   const remainingImages = totalImages - displayImages.length;
+
+  const handleEdit = () => {
+    if (onEdit) {
+      onEdit(id);
+    }
+  };
 
   return (
     <Card className={cn("group hover:shadow-lg transition-all duration-300", className)}>
@@ -41,9 +57,41 @@ export function StoryContentCard({
           </div>
         </div>
 
-        {/* Caption */}
-        <div className="mb-4">
-          <p className="text-sm text-muted-foreground line-clamp-2">{caption}</p>
+        {/* Content Details */}
+        <div className="space-y-3 mb-4">
+          <div>
+            <span className="text-xs font-medium text-muted-foreground">Format:</span>
+            <p className="text-sm text-foreground">{format}</p>
+          </div>
+          
+          <div>
+            <span className="text-xs font-medium text-muted-foreground">Setting:</span>
+            <p className="text-sm text-foreground line-clamp-2">{setting}</p>
+          </div>
+          
+          <div>
+            <span className="text-xs font-medium text-muted-foreground">SEO:</span>
+            <p className="text-sm text-foreground line-clamp-2">{seo}</p>
+          </div>
+        </div>
+
+        {/* Schedule Status */}
+        <div className="mb-4 space-y-2">
+          <div className="flex items-center gap-2">
+            <Instagram className="w-4 h-4 text-pink-500" />
+            <span className="text-sm text-foreground">Instagram:</span>
+            <Badge variant="outline" className="text-xs">
+              {instagramStatus}
+            </Badge>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <Star className="w-4 h-4 text-purple-500" />
+            <span className="text-sm text-foreground">Fanvue:</span>
+            <Badge variant="secondary" className="text-xs bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
+              {fanvueSchedule}
+            </Badge>
+          </div>
         </div>
 
         {/* Images Grid */}
@@ -86,7 +134,7 @@ export function StoryContentCard({
               </Button>
             )}
           </div>
-          <Button size="sm" variant="outline">
+          <Button size="sm" variant="outline" onClick={handleEdit}>
             <Edit className="w-4 h-4 mr-2" />
             Edit
           </Button>

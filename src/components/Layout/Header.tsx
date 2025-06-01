@@ -73,7 +73,7 @@ export function Header() {
     <>
       {/* Main Header */}
       <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container mx-auto flex h-14 items-center justify-between px-4">
+        <div className="mx-auto flex h-14 items-center justify-between px-12">
           {/* Left side - Sidebar Toggle + Logo */}
           <div className="flex items-center gap-4">
             <SidebarTrigger className="h-8 w-8 hover:bg-accent transition-colors" />

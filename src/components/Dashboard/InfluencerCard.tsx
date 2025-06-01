@@ -14,6 +14,9 @@ interface InfluencerCardProps {
   imageUrl?: string;
   isCreateCard?: boolean;
   className?: string;
+  onEdit?: (id: string) => void;
+  onUse?: (id: string) => void;
+  onCreate?: () => void;
 }
 
 export function InfluencerCard({ 
@@ -24,11 +27,35 @@ export function InfluencerCard({
   type, 
   imageUrl, 
   isCreateCard = false,
-  className 
+  className,
+  onEdit,
+  onUse,
+  onCreate
 }: InfluencerCardProps) {
+  const handleEdit = () => {
+    if (id && onEdit) {
+      onEdit(id);
+    }
+  };
+
+  const handleUse = () => {
+    if (id && onUse) {
+      onUse(id);
+    }
+  };
+
+  const handleCreate = () => {
+    if (onCreate) {
+      onCreate();
+    }
+  };
+
   if (isCreateCard) {
     return (
-      <Card className={cn("group hover:shadow-lg transition-all duration-300 cursor-pointer border-2 border-dashed border-muted-foreground/30 hover:border-purple-400", className)}>
+      <Card 
+        className={cn("group hover:shadow-lg transition-all duration-300 cursor-pointer border-2 border-dashed border-muted-foreground/30 hover:border-purple-400", className)}
+        onClick={handleCreate}
+      >
         <CardContent className="p-6 flex flex-col items-center justify-center h-80">
           <div className="w-16 h-16 bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/50 dark:to-blue-900/50 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
             <Plus className="w-8 h-8 text-purple-600 dark:text-purple-400" />
@@ -85,11 +112,11 @@ export function InfluencerCard({
           
           {/* Actions */}
           <div className="flex gap-2">
-            <Button size="sm" variant="outline" className="flex-1">
+            <Button size="sm" variant="outline" className="flex-1" onClick={handleEdit}>
               <Edit className="w-4 h-4 mr-2" />
               Edit
             </Button>
-            <Button size="sm" className="flex-1 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700">
+            <Button size="sm" className="flex-1 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700" onClick={handleUse}>
               <Play className="w-4 h-4 mr-2" />
               Use
             </Button>

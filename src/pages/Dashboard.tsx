@@ -1,3 +1,8 @@
+
+import { useSelector } from 'react-redux';
+import { RootState } from '@/store/store';
+import { InfluencerCard } from '@/components/Dashboard/InfluencerCard';
+import { StoryContentCard } from '../components/Dashboard/StoryContentCard';
 import { ScheduleCard } from '@/components/Dashboard/ScheduleCard';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -5,6 +10,13 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { MoreHorizontal, Filter } from 'lucide-react';
 
 export default function Dashboard() {
+  const { influencers } = useSelector((state: RootState) => state.influencers);
+  const { contentLibrary } = useSelector((state: RootState) => state.content);
+  const { credits } = useSelector((state: RootState) => state.user);
+
+  const totalContent = contentLibrary.length;
+  const vaultItems = contentLibrary.filter(item => item.inVault).length;
+
   // Mock data for influencers
   const mockInfluencers = [
     {
@@ -39,7 +51,7 @@ export default function Dashboard() {
       id: '1',
       title: 'Summer Beach Vibes',
       caption: 'Experience the perfect summer day with stunning beach photography and lifestyle content that captures the essence of relaxation.',
-      images: ['/placeholder.svg', '/placeholder.svg', '/placeholder.svg', '/placeholder.svg', '/placeholder.svg', '/placeholder.svg'],
+      images: ['/placeholder.svg', '/placeholder.svg', '/placeholder.svg', '/placeholder.svg', '/placeholder.svg', '/placeholder.svg', , '/placeholder.svg'],
       totalImages: 12
     },
     {
@@ -67,7 +79,18 @@ export default function Dashboard() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            Coming soon...
+            <InfluencerCard isCreateCard={true} />
+            {mockInfluencers.map((influencer) => (
+              <InfluencerCard
+                key={influencer.id}
+                id={influencer.id}
+                name={influencer.name}
+                age={influencer.age}
+                lifecycle={influencer.lifecycle}
+                type={influencer.type}
+                imageUrl={influencer.imageUrl}
+              />
+            ))}
           </div>
         </CardContent>
       </Card>
@@ -101,7 +124,18 @@ export default function Dashboard() {
             </div>
           </CardHeader>
           <CardContent>
-            Coming soon...
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {mockStoryContent.map((content) => (
+                <StoryContentCard
+                  key={content.id}
+                  id={content.id}
+                  title={content.title}
+                  caption={content.caption}
+                  images={content.images}
+                  totalImages={content.totalImages}
+                />
+              ))}
+            </div>
           </CardContent>
         </Card>
       </div>

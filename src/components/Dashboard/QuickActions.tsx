@@ -14,7 +14,7 @@ export function QuickActions() {
       description: 'Design your next AI personality',
       icon: User,
       gradient: 'from-ai-purple-500 to-ai-blue-500',
-      onClick: () => navigate('/create')
+      onClick: () => navigate('/influencer/create')
     },
     {
       id: 'generate-content',

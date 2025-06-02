@@ -1,29 +1,18 @@
-
-import { useSelector } from 'react-redux';
-import { RootState } from '@/store/store';
-import { StatsCard } from '@/components/Dashboard/StatsCard';
-import { QuickActions } from '@/components/Dashboard/QuickActions';
-import { RecentActivity } from '@/components/Dashboard/RecentActivity';
-import { AnalyticsChart } from '@/components/Dashboard/AnalyticsChart';
 import { InfluencerCard } from '@/components/Dashboard/InfluencerCard';
 import { StoryContentCard } from '@/components/Dashboard/StoryContentCard';
 import { ScheduleCard } from '@/components/Dashboard/ScheduleCard';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { User, Image, Star, Calendar, MoreHorizontal, Filter, Plus } from 'lucide-react';
+import { MoreHorizontal, Filter } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 
 export default function Dashboard() {
-  const { influencers } = useSelector((state: RootState) => state.influencers);
-  const { contentLibrary } = useSelector((state: RootState) => state.content);
-  const { credits } = useSelector((state: RootState) => state.user);
+  const navigate = useNavigate();
 
   const [showAllInfluencers, setShowAllInfluencers] = useState(false);
   const [showAllStoryContent, setShowAllStoryContent] = useState(false);
-
-  const totalContent = contentLibrary.length;
-  const vaultItems = contentLibrary.filter(item => item.inVault).length;
 
   // Mock data for influencers
   const mockInfluencers = [
@@ -152,7 +141,7 @@ export default function Dashboard() {
 
   // Handler functions
   const handleCreateInfluencer = () => {
-    console.log('Create new influencer');
+    navigate('/influencer/create');
     // Navigate to create influencer page or open modal
   };
 
@@ -187,7 +176,7 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="space-y-8 animate-fade-in">
+    <div className="container space-y-8 animate-fade-in">
       {/* My Influencers Container */}
       <Card>
         <CardHeader>
@@ -200,7 +189,7 @@ export default function Dashboard() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
             <InfluencerCard
               isCreateCard={true}
               onCreate={handleCreateInfluencer}

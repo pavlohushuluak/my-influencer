@@ -49,7 +49,7 @@ const menuItems = [
     title: "Influencer",
     icon: User,
     items: [
-      { title: "Create", url: "/create", icon: Plus },
+      { title: "Create", url: "/influencer/create", icon: Plus },
       { title: "My Influencers", url: "/influencers", icon: User },
       { title: "Templates", url: "/presets", icon: BookOpen },
     ]

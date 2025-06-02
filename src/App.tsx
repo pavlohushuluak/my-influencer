@@ -11,6 +11,8 @@ import Homepage from '@/pages/Homepage';
 import Dashboard from '@/pages/Dashboard';
 import Auth from '@/pages/Auth';
 import Account from '@/pages/Account';
+import CreateInfluencer from '@/pages/CreateInfluencer';
+import NotFound from '@/pages/NotFound';
 import { MainLayout } from '@/components/Layout/MainLayout';
 
 const queryClient = new QueryClient({
@@ -38,7 +40,9 @@ const App = () => {
                 <Route element={<MainLayout />}>
                   <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/account" element={<Account />} />
+                  <Route path='/influencer/create' element={<CreateInfluencer />} />
                 </Route>
+                <Route path="*" element={<NotFound />} />
               </Routes>
             </div>
           </BrowserRouter>

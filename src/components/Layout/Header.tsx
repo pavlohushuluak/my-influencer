@@ -32,7 +32,7 @@ export function Header() {
       // Custom labels for specific routes
       const customLabels: { [key: string]: string } = {
         'influencers': 'My Influencers',
-        'create': 'Create Influencer',
+        'create': 'Create New',
         'content': 'Content Library',
         'presets': 'Templates',
         'vault': 'Vault',

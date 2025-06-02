@@ -48,13 +48,7 @@ export function AppHeader({ showAuthButtons = true }: AppHeaderProps) {
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         {/* Logo */}
         <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/')}>
-          {
-            theme === 'dark' ? (
-              <img src='/logo_dark.png' alt='logo' />
-            ) : (
-              <img src='/logo_light.png' alt='logo' />
-            )
-          }
+        <img src='/logo.jpg' alt='logo' className='h-10 rounded-xl' />
         </div>
 
         {/* Desktop Navigation */}

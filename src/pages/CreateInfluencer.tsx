@@ -177,7 +177,7 @@ export default function CreateInfluencer() {
 
   const handleTemplateUse = (template: typeof INFLUENCER_TEMPLATES[0]) => {
     // Navigate to edit component with template data
-    navigate('/influencer/create', { state: { template } });
+    navigate('/influencers/create', { state: { template } });
   };
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {

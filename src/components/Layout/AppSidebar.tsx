@@ -32,6 +32,7 @@ import {
   Clock,
   Layers,
   Settings,
+  Play,
   ChevronRight
 } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -49,9 +50,10 @@ const menuItems = [
     title: "Influencer",
     icon: User,
     items: [
-      { title: "Create", url: "/influencer/create", icon: Plus },
-      { title: "My Influencers", url: "/influencers", icon: User },
-      { title: "Templates", url: "/presets", icon: BookOpen },
+      { title: "Create", url: "/influencers/create", icon: Plus },
+      { title: "Edit", url: "/influencers/edit", icon: Edit },
+      { title: "Use", url: "/influencers/use", icon: Play },
+      { title: "Templates", url: "/influencers/templates", icon: BookOpen },
     ]
   },
   {

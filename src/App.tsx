@@ -40,7 +40,7 @@ const App = () => {
                 <Route element={<MainLayout />}>
                   <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/account" element={<Account />} />
-                  <Route path='/influencer/create' element={<CreateInfluencer />} />
+                  <Route path='/influencers/create' element={<CreateInfluencer />} />
                 </Route>
                 <Route path="*" element={<NotFound />} />
               </Routes>

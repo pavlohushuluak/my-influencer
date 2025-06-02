@@ -141,7 +141,7 @@ export default function Dashboard() {
 
   // Handler functions
   const handleCreateInfluencer = () => {
-    navigate('/influencer/create');
+    navigate('/influencers/create');
     // Navigate to create influencer page or open modal
   };
 

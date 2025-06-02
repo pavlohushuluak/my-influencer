@@ -13,6 +13,7 @@ import Auth from '@/pages/Auth';
 import Account from '@/pages/Account';
 import CreateInfluencer from '@/pages/CreateInfluencer';
 import InfluencerTemplates from '@/pages/InfluencerTemplates';
+import InfluencerEdit from '@/pages/InfluencerEdit';
 import NotFound from '@/pages/NotFound';
 import { MainLayout } from '@/components/Layout/MainLayout';
 
@@ -43,6 +44,7 @@ const App = () => {
                   <Route path="/account" element={<Account />} />
                   <Route path='/influencers/create' element={<CreateInfluencer />} />
                   <Route path='/influencers/templates' element={<InfluencerTemplates />} />
+                  <Route path='/influencers/edit' element={<InfluencerEdit />} />
                 </Route>
                 <Route path="*" element={<NotFound />} />
               </Routes>

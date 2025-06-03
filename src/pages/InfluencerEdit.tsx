@@ -12,7 +12,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { ArrowLeft, Save, Crown } from 'lucide-react';
+import { ArrowLeft, Save, Crown, Edit, Calendar, BarChart3 } from 'lucide-react';
 
 export default function InfluencerEdit() {
   const navigate = useNavigate();
@@ -20,6 +20,7 @@ export default function InfluencerEdit() {
   const dispatch = useDispatch();
   const { influencers } = useSelector((state: RootState) => state.influencers);
   
+  const [selectedInfluencer, setSelectedInfluencer] = useState<string | null>(null);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [editingField, setEditingField] = useState('');
   const [formData, setFormData] = useState({
@@ -75,61 +76,72 @@ export default function InfluencerEdit() {
   ];
 
   useEffect(() => {
-    // Load data from location state or find influencer by ID
+    // Check if we have a specific influencer to edit from navigation state
     const influencerData = location.state?.influencerData;
+    const influencerId = location.state?.influencerId;
+    
     if (influencerData) {
       setFormData(influencerData);
-    } else {
-      // Fallback - load first influencer or redirect
-      if (influencers.length > 0) {
-        const firstInfluencer = influencers[0];
-        // Convert influencer to edit format
-        const editData = {
-          id: firstInfluencer.id,
-          name_first: firstInfluencer.name.split(' ')[0] || '',
-          name_last: firstInfluencer.name.split(' ')[1] || '',
-          influencer_type: firstInfluencer.tags[0] || '',
-          sex: 'Woman',
-          cultural_background: 'North American',
-          hair_length: 'Medium',
-          hair_color: 'Brown',
-          hair_style: 'Natural',
-          eye_color: 'Brown',
-          lip_style: 'Natural',
-          nose_style: 'Natural',
-          face_shape: 'Oval',
-          facial_features: 'Natural',
-          skin_tone: 'Medium',
-          body_type: 'Average',
-          clothing_style_everyday: 'Casual',
-          clothing_style_occasional: 'Smart',
-          clothing_style_home: 'Comfortable',
-          clothing_style_sports: 'Athletic',
-          clothing_style_sexy_dress: 'Elegant',
-          home_environment: 'Modern',
-          age_lifestyle: '25-30',
-          origin_birth: 'Unknown',
-          origin_residence: 'Unknown',
-          job_area: 'Creative',
-          job_title: 'Influencer',
-          job_vibe: 'Creative',
-          social_circle: 'Creative professionals',
-          color_palette: ['Neutral'],
-          content_focus: firstInfluencer.tags,
-          content_focus_areas: firstInfluencer.tags,
-          hobbies: ['Social Media'],
-          strengths: ['Creative'],
-          weaknesses: ['Perfectionist'],
-          speech_style: ['Friendly'],
-          humor: ['Light'],
-          core_values: ['Authenticity'],
-          current_goals: ['Growth'],
-          background_elements: ['Social Media']
-        };
-        setFormData(editData);
+      setSelectedInfluencer(influencerData.id);
+    } else if (influencerId) {
+      const influencer = influencers.find(inf => inf.id === influencerId);
+      if (influencer) {
+        loadInfluencerData(influencer);
+        setSelectedInfluencer(influencerId);
       }
     }
   }, [location.state, influencers]);
+
+  const loadInfluencerData = (influencer: any) => {
+    const editData = {
+      id: influencer.id,
+      name_first: influencer.name.split(' ')[0] || '',
+      name_last: influencer.name.split(' ')[1] || '',
+      influencer_type: influencer.tags[0] || 'Lifestyle',
+      sex: 'Woman',
+      cultural_background: 'North American',
+      hair_length: 'Medium',
+      hair_color: 'Brown',
+      hair_style: 'Natural',
+      eye_color: 'Brown',
+      lip_style: 'Natural',
+      nose_style: 'Natural',
+      face_shape: 'Oval',
+      facial_features: 'Natural',
+      skin_tone: 'Medium',
+      body_type: 'Average',
+      clothing_style_everyday: 'Casual',
+      clothing_style_occasional: 'Smart',
+      clothing_style_home: 'Comfortable',
+      clothing_style_sports: 'Athletic',
+      clothing_style_sexy_dress: 'Elegant',
+      home_environment: 'Modern',
+      age_lifestyle: '25-30',
+      origin_birth: 'Unknown',
+      origin_residence: 'Unknown',
+      job_area: 'Creative',
+      job_title: 'Influencer',
+      job_vibe: 'Creative',
+      social_circle: 'Creative professionals',
+      color_palette: ['Neutral'],
+      content_focus: influencer.tags,
+      content_focus_areas: influencer.tags,
+      hobbies: ['Social Media'],
+      strengths: ['Creative'],
+      weaknesses: ['Perfectionist'],
+      speech_style: ['Friendly'],
+      humor: ['Light'],
+      core_values: ['Authenticity'],
+      current_goals: ['Growth'],
+      background_elements: ['Social Media']
+    };
+    setFormData(editData);
+  };
+
+  const handleInfluencerSelect = (influencer: any) => {
+    loadInfluencerData(influencer);
+    setSelectedInfluencer(influencer.id);
+  };
 
   const handleFieldChange = (field: string, value: any) => {
     if (premiumFields.includes(field) && subscriptionLevel === 'basic') {
@@ -170,6 +182,52 @@ export default function InfluencerEdit() {
     navigate('/influencers');
   };
 
+  const handleBackToList = () => {
+    setSelectedInfluencer(null);
+    setFormData({
+      id: '',
+      name_first: '',
+      name_last: '',
+      influencer_type: '',
+      sex: '',
+      cultural_background: '',
+      hair_length: '',
+      hair_color: '',
+      hair_style: '',
+      eye_color: '',
+      lip_style: '',
+      nose_style: '',
+      face_shape: '',
+      facial_features: '',
+      skin_tone: '',
+      body_type: '',
+      clothing_style_everyday: '',
+      clothing_style_occasional: '',
+      clothing_style_home: '',
+      clothing_style_sports: '',
+      clothing_style_sexy_dress: '',
+      home_environment: '',
+      age_lifestyle: '',
+      origin_birth: '',
+      origin_residence: '',
+      job_area: '',
+      job_title: '',
+      job_vibe: '',
+      social_circle: '',
+      color_palette: [],
+      content_focus: [],
+      content_focus_areas: [],
+      hobbies: [],
+      strengths: [],
+      weaknesses: [],
+      speech_style: [],
+      humor: [],
+      core_values: [],
+      current_goals: [],
+      background_elements: []
+    });
+  };
+
   const renderFieldWithUpgrade = (field: string, children: React.ReactNode) => {
     const isLocked = premiumFields.includes(field) && subscriptionLevel === 'basic';
     
@@ -188,11 +246,103 @@ export default function InfluencerEdit() {
     );
   };
 
+  // If no influencer is selected, show the list
+  if (!selectedInfluencer) {
+    return (
+      <div className="p-6 space-y-6 animate-fade-in">
+        {/* Header */}
+        <div className="flex items-center gap-4">
+          <Button variant="outline" size="icon" onClick={() => navigate(-1)}>
+            <ArrowLeft className="w-4 h-4" />
+          </Button>
+          <div className="flex-1">
+            <h1 className="text-3xl font-bold tracking-tight bg-ai-gradient bg-clip-text text-transparent">
+              Edit Influencer
+            </h1>
+            <p className="text-muted-foreground">
+              Select an influencer to edit their details
+            </p>
+          </div>
+        </div>
+
+        {/* Influencers Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {influencers.map((influencer) => (
+            <Card key={influencer.id} className="group hover:shadow-lg transition-all duration-300">
+              <CardContent className="p-6">
+                <div className="space-y-4">
+                  <div className="w-full h-48 bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg overflow-hidden">
+                    <img 
+                      src={influencer.image} 
+                      alt={influencer.name}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="font-semibold text-lg">{influencer.name}</h3>
+                      <Badge variant={influencer.status === 'active' ? 'default' : 'secondary'}>
+                        {influencer.status}
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground mb-2">{influencer.description}</p>
+                    <p className="text-xs text-muted-foreground mb-3">{influencer.personality}</p>
+                    
+                    <div className="flex items-center gap-4 text-xs text-muted-foreground mb-3">
+                      <div className="flex items-center gap-1">
+                        <Calendar className="w-3 h-3" />
+                        {influencer.createdAt}
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <BarChart3 className="w-3 h-3" />
+                        {influencer.generatedContent} posts
+                      </div>
+                    </div>
+                    
+                    <div className="flex flex-wrap gap-1 mb-3">
+                      {influencer.tags.map((tag, index) => (
+                        <Badge key={index} variant="outline" className="text-xs">
+                          {tag}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  <Button 
+                    onClick={() => handleInfluencerSelect(influencer)}
+                    className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                  >
+                    <Edit className="w-4 h-4 mr-2" />
+                    Edit
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {influencers.length === 0 && (
+          <div className="text-center py-12">
+            <p className="text-muted-foreground">No influencers found. Create your first influencer to get started.</p>
+            <Button 
+              onClick={() => navigate('/create')}
+              className="mt-4 bg-ai-gradient hover:opacity-90"
+            >
+              Create Influencer
+            </Button>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Show the edit form for selected influencer
   return (
     <div className="p-6 space-y-6 animate-fade-in">
       {/* Header */}
       <div className="flex items-center gap-4">
-        <Button variant="outline" size="icon" onClick={() => navigate(-1)}>
+        <Button variant="outline" size="icon" onClick={handleBackToList}>
           <ArrowLeft className="w-4 h-4" />
         </Button>
         <div className="flex-1">

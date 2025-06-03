@@ -137,20 +137,19 @@ export default function CreateInfluencer() {
   const [uploadedImage, setUploadedImage] = useState<string>('');
 
   const handleScratchUse = () => {
-    const newInfluencer = {
+    // Create a new scratch template with unique ID
+    const scratchData = {
+      ...SCRATCH_TEMPLATE,
       id: Date.now().toString(),
-      name: `${SCRATCH_TEMPLATE.name_first} ${SCRATCH_TEMPLATE.name_last}`,
-      image: uploadedImage || 'https://images.unsplash.com/photo-1649972904349-6e44c42644a7?w=400&h=400&fit=crop&crop=face',
-      description: `${SCRATCH_TEMPLATE.influencer_type} Influencer`,
-      personality: SCRATCH_TEMPLATE.speech_style.join(', '),
-      createdAt: new Date().toISOString().split('T')[0],
-      generatedContent: 0,
-      status: 'active' as const,
-      tags: SCRATCH_TEMPLATE.content_focus
+      name_first: 'New',
+      name_last: 'Influencer'
     };
     
-    dispatch(addInfluencer(newInfluencer));
-    navigate('/influencers');
+    navigate('/influencers/edit', { 
+      state: { 
+        influencerData: scratchData
+      }
+    });
   };
 
   const handleWizardUse = () => {
@@ -176,8 +175,51 @@ export default function CreateInfluencer() {
   };
 
   const handleTemplateUse = (template: typeof INFLUENCER_TEMPLATES[0]) => {
-    // Navigate to edit component with template data
-    navigate('/influencers/create', { state: { template } });
+    // Create template data structure and navigate to edit
+    const templateData = {
+      id: Date.now().toString(),
+      name_first: template.name.split(' ')[0],
+      name_last: template.name.split(' ')[1] || '',
+      influencer_type: template.type,
+      sex: 'Woman',
+      cultural_background: 'North American',
+      hair_length: 'Medium',
+      hair_color: 'Brown (#8B4513)',
+      hair_style: 'Natural',
+      eye_color: 'Brown (#654321)',
+      lip_style: 'Natural',
+      nose_style: 'Natural',
+      face_shape: 'Oval',
+      facial_features: 'Natural',
+      skin_tone: 'Medium (#C68E17)',
+      body_type: 'Average',
+      color_palette: ['Neutral Tones (#D2B48C, #808080)'],
+      clothing_style_everyday: 'Casual',
+      clothing_style_occasional: 'Smart',
+      clothing_style_home: 'Comfortable',
+      clothing_style_sports: 'Athletic',
+      clothing_style_sexy_dress: 'Elegant',
+      home_environment: 'Modern',
+      age_lifestyle: `${template.age}, ${template.lifecycle}`,
+      origin_birth: 'Unknown',
+      origin_residence: 'Unknown',
+      content_focus: [template.type],
+      content_focus_areas: [template.type],
+      job_area: 'Creative',
+      job_title: 'Influencer',
+      job_vibe: 'Creative',
+      hobbies: ['Social Media'],
+      social_circle: 'Creative professionals',
+      strengths: ['Creative'],
+      weaknesses: ['Perfectionist'],
+      speech_style: ['Friendly'],
+      humor: ['Light'],
+      core_values: ['Authenticity'],
+      current_goals: ['Growth'],
+      background_elements: ['Social Media']
+    };
+    
+    navigate('/influencers/edit', { state: { influencerData: templateData } });
   };
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -192,7 +234,7 @@ export default function CreateInfluencer() {
   };
 
   return (
-    <div className="container mx-auto p-6 space-y-6 animate-fade-in">
+    <div className="p-6 space-y-6 animate-fade-in">
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold tracking-tight bg-ai-gradient bg-clip-text text-transparent">
@@ -204,7 +246,7 @@ export default function CreateInfluencer() {
       </div>
 
       {/* Cards Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {/* From Scratch Card */}
         <Card className="group hover:shadow-lg transition-all duration-300 border-2 border-dashed border-purple-200 hover:border-purple-400">
           <CardContent className="p-6">

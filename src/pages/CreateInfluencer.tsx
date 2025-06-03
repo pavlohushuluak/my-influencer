@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
@@ -218,6 +217,19 @@ export default function CreateInfluencer() {
       current_goals: ['Growth'],
       background_elements: ['Social Media']
     };
+    
+    // Add to store and navigate to edit
+    dispatch(addInfluencer({
+      id: templateData.id,
+      name: `${templateData.name_first} ${templateData.name_last}`,
+      image: template.image,
+      description: `${templateData.influencer_type} Influencer`,
+      personality: templateData.speech_style.join(', '),
+      createdAt: new Date().toISOString().split('T')[0],
+      generatedContent: 0,
+      status: 'active' as const,
+      tags: templateData.content_focus
+    }));
     
     navigate('/influencers/edit', { state: { influencerData: templateData } });
   };

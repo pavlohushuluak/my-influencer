@@ -52,7 +52,7 @@ const menuItems = [
     items: [
       { title: "Create", url: "/influencers/create", icon: Plus },
       { title: "Edit", url: "/influencers/edit", icon: Edit },
-      { title: "Use", url: "/influencers/use", icon: Play },
+      { title: "Use", url: "/influencers", icon: Play },
       { title: "Templates", url: "/influencers/templates", icon: BookOpen },
     ]
   },
@@ -70,7 +70,7 @@ const menuItems = [
     title: "Content",
     icon: Image,
     items: [
-      { title: "Vault", url: "/vault", icon: Layers },
+      { title: "Vault", url: "/content/vault", icon: Layers },
       { title: "Create", url: "/content/create", icon: Plus },
       { title: "Enhance", url: "/content/enhance", icon: Wand2 },
       { title: "Edit", url: "/content/edit", icon: Edit },

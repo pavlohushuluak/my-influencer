@@ -1,13 +1,16 @@
-
 import { useSelector } from 'react-redux';
 import { RootState } from '@/store/store';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { useState } from 'react';
-import { Search, MessageCircle, Instagram, Send } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Search, MessageCircle, Instagram, Send, X, Filter, Tag } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
+import { useDebounce } from '@/hooks/useDebounce';
 
 const PLATFORMS = [
   {
@@ -33,17 +36,51 @@ const PLATFORMS = [
   }
 ];
 
+const SEARCH_FIELDS = [
+  { id: 'all', label: 'All Fields' },
+  { id: 'name', label: 'Name' },
+  { id: 'description', label: 'Description' },
+  { id: 'tags', label: 'Tags' },
+  { id: 'personality', label: 'Personality' }
+];
+
 export default function InfluencerUse() {
   const { influencers } = useSelector((state: RootState) => state.influencers);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedInfluencer, setSelectedInfluencer] = useState<string>('');
   const [selectedPlatform, setSelectedPlatform] = useState<string>('');
   const [showPlatformModal, setShowPlatformModal] = useState(false);
+  const [selectedSearchField, setSelectedSearchField] = useState(SEARCH_FIELDS[0]);
+  const [showSearchSuggestions, setShowSearchSuggestions] = useState(false);
+  const [openFilter, setOpenFilter] = useState(false);
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
-  const filteredInfluencers = influencers.filter(influencer =>
-    influencer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    influencer.description.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Get unique tags from all influencers for suggestions
+  const allTags = Array.from(new Set(influencers.flatMap(inf => inf.tags)));
+
+  const filteredInfluencers = influencers.filter(influencer => {
+    if (!debouncedSearchTerm) return true;
+
+    const searchLower = debouncedSearchTerm.toLowerCase();
+    
+    switch (selectedSearchField.id) {
+      case 'name':
+        return influencer.name.toLowerCase().includes(searchLower);
+      case 'description':
+        return influencer.description.toLowerCase().includes(searchLower);
+      case 'tags':
+        return influencer.tags.some(tag => tag.toLowerCase().includes(searchLower));
+      case 'personality':
+        return influencer.personality.toLowerCase().includes(searchLower);
+      default:
+        return (
+          influencer.name.toLowerCase().includes(searchLower) ||
+          influencer.description.toLowerCase().includes(searchLower) ||
+          influencer.tags.some(tag => tag.toLowerCase().includes(searchLower)) ||
+          influencer.personality.toLowerCase().includes(searchLower)
+        );
+    }
+  });
 
   const handleUseInfluencer = (influencerId: string) => {
     setSelectedInfluencer(influencerId);
@@ -55,12 +92,24 @@ export default function InfluencerUse() {
     const platform = PLATFORMS.find(p => p.id === platformId);
     
     if (influencer && platform) {
-      // Here you would navigate to content creation with the selected influencer and platform
       console.log(`Creating content for ${influencer.name} on ${platform.name}`);
       setShowPlatformModal(false);
-      // Navigate to content creation page with context
-      // navigate('/content/create', { state: { influencer, platform } });
     }
+  };
+
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value);
+    setShowSearchSuggestions(true);
+  };
+
+  const handleSearchClear = () => {
+    setSearchTerm('');
+    setShowSearchSuggestions(false);
+  };
+
+  const handleTagClick = (tag: string) => {
+    setSearchTerm(tag);
+    setShowSearchSuggestions(false);
   };
 
   const selectedInfluencerData = influencers.find(inf => inf.id === selectedInfluencer);
@@ -70,22 +119,95 @@ export default function InfluencerUse() {
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold tracking-tight bg-ai-gradient bg-clip-text text-transparent">
-          Use Influencers
+          Use Influencer
         </h1>
         <p className="text-muted-foreground">
-          Select an influencer to create content for different platforms
+          Select an influencer and platform to create content.
         </p>
       </div>
 
-      {/* Search */}
-      <div className="relative max-w-md">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-        <Input
-          placeholder="Search influencers..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-10"
-        />
+      {/* Search Section */}
+      <div className="space-y-4">
+        <div className="flex gap-4">
+          <div className="relative flex-1">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+              <Input
+                type="text"
+                placeholder="Search influencers..."
+                value={searchTerm}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                className="pl-10 pr-10"
+              />
+              {searchTerm && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
+                  onClick={handleSearchClear}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+            
+            {/* Search Suggestions */}
+            {showSearchSuggestions && searchTerm && (
+              <div className="absolute z-10 w-full mt-1 bg-popover rounded-md shadow-md border">
+                <div className="p-2">
+                  <div className="text-sm font-medium text-muted-foreground mb-2">Popular Tags</div>
+                  <div className="flex flex-wrap gap-2">
+                    {allTags
+                      .filter(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
+                      .slice(0, 5)
+                      .map((tag, index) => (
+                        <Badge
+                          key={index}
+                          variant="secondary"
+                          className="cursor-pointer hover:bg-secondary/80"
+                          onClick={() => handleTagClick(tag)}
+                        >
+                          <Tag className="h-3 w-3 mr-1" />
+                          {tag}
+                        </Badge>
+                      ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+          
+          <Popover open={openFilter} onOpenChange={setOpenFilter}>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="gap-2">
+                <Filter className="h-4 w-4" />
+                {selectedSearchField.label}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[200px] p-0">
+              <Command>
+                <CommandList>
+                  {SEARCH_FIELDS.map((field) => (
+                    <CommandItem
+                      key={field.id}
+                      onSelect={() => {
+                        setSelectedSearchField(field);
+                        setOpenFilter(false);
+                      }}
+                    >
+                      {field.label}
+                    </CommandItem>
+                  ))}
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
+        </div>
+
+        {/* Search Results Count */}
+        <div className="text-sm text-muted-foreground">
+          Found {filteredInfluencers.length} influencer{filteredInfluencers.length !== 1 ? 's' : ''}
+        </div>
       </div>
 
       {/* Influencers Grid */}
@@ -113,6 +235,11 @@ export default function InfluencerUse() {
                         {tag}
                       </Badge>
                     ))}
+                    {influencer.tags.length > 3 && (
+                      <Badge variant="outline" className="text-xs">
+                        +{influencer.tags.length - 3} more
+                      </Badge>
+                    )}
                   </div>
 
                   <div className="flex items-center justify-between text-sm text-muted-foreground mb-4">
@@ -133,23 +260,11 @@ export default function InfluencerUse() {
         ))}
       </div>
 
-      {filteredInfluencers.length === 0 && (
-        <div className="text-center py-12">
-          <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
-            <Search className="w-8 h-8 text-muted-foreground" />
-          </div>
-          <h3 className="text-lg font-semibold mb-2">No influencers found</h3>
-          <p className="text-muted-foreground">
-            {searchTerm ? 'Try adjusting your search criteria' : 'Create your first influencer to get started'}
-          </p>
-        </div>
-      )}
-
       {/* Platform Selection Modal */}
       <Dialog open={showPlatformModal} onOpenChange={setShowPlatformModal}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Choose Platform</DialogTitle>
+            <DialogTitle>Select Platform</DialogTitle>
           </DialogHeader>
           
           {selectedInfluencerData && (

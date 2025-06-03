@@ -252,9 +252,6 @@ export default function InfluencerEdit() {
       <div className="p-6 space-y-6 animate-fade-in">
         {/* Header */}
         <div className="flex items-center gap-4">
-          <Button variant="outline" size="icon" onClick={() => navigate(-1)}>
-            <ArrowLeft className="w-4 h-4" />
-          </Button>
           <div className="flex-1">
             <h1 className="text-3xl font-bold tracking-tight bg-ai-gradient bg-clip-text text-transparent">
               Edit Influencer

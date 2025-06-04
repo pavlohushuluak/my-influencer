@@ -6,6 +6,7 @@ import userReducer from './slices/userSlice';
 import uiReducer from './slices/uiSlice';
 import clothingReducer from './slices/clothingSlice';
 import locationReducer from './slices/locationSlice';
+import posesReducer from './slices/posesSlice';
 
 export const store = configureStore({
   reducer: {
@@ -15,6 +16,7 @@ export const store = configureStore({
     ui: uiReducer,
     clothing: clothingReducer,
     location: locationReducer,
+    poses: posesReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

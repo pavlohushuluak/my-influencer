@@ -4,6 +4,7 @@ import influencersReducer from './slices/influencersSlice';
 import contentReducer from './slices/contentSlice';
 import userReducer from './slices/userSlice';
 import uiReducer from './slices/uiSlice';
+import clothingReducer from './slices/clothingSlice';
 
 export const store = configureStore({
   reducer: {
@@ -11,6 +12,7 @@ export const store = configureStore({
     content: contentReducer,
     user: userReducer,
     ui: uiReducer,
+    clothing: clothingReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

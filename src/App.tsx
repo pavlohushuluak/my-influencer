@@ -15,6 +15,7 @@ import CreateInfluencer from '@/pages/CreateInfluencer';
 import InfluencerTemplates from '@/pages/InfluencerTemplates';
 import InfluencerEdit from '@/pages/InfluencerEdit';
 import InfluencerUse from '@/pages/InfluencerUse';
+import Clothing from '@/pages/Clothing';
 import NotFound from '@/pages/NotFound';
 import { MainLayout } from '@/components/Layout/MainLayout';
 
@@ -47,6 +48,7 @@ const App = () => {
                   <Route path='/influencers/templates' element={<InfluencerTemplates />} />
                   <Route path='/influencers/edit' element={<InfluencerEdit />} />
                   <Route path='/influencers' element={<InfluencerUse />} />
+                  <Route path='/catalog/clothing' element={<Clothing />} />
                 </Route>
                 <Route path="*" element={<NotFound />} />
               </Routes>

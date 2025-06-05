@@ -1,4 +1,3 @@
-
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
 export interface Influencer {
@@ -11,6 +10,7 @@ export interface Influencer {
   generatedContent: number;
   status: 'active' | 'inactive';
   tags: string[];
+  type: 'free' | 'premium';
 }
 
 interface InfluencersState {
@@ -31,7 +31,8 @@ const initialState: InfluencersState = {
       createdAt: '2024-01-15',
       generatedContent: 127,
       status: 'active',
-      tags: ['Fashion', 'Lifestyle', 'Beauty']
+      tags: ['Fashion', 'Lifestyle', 'Beauty'],
+      type: 'premium'
     },
     {
       id: '2',
@@ -42,7 +43,8 @@ const initialState: InfluencersState = {
       createdAt: '2024-02-03',
       generatedContent: 89,
       status: 'active',
-      tags: ['Technology', 'Innovation', 'Education']
+      tags: ['Technology', 'Innovation', 'Education'],
+      type: 'free'
     }
   ],
   selectedInfluencer: null,

@@ -51,44 +51,48 @@ export default function Homepage() {
 
   const pricingPlans = [
     {
-      name: 'Starter',
-      price: '$19',
-      period: '/month',
-      description: 'Perfect for individuals getting started',
+      name: 'Free',
+      price: '$0',
+      period: '',
+      description: 'Perfect for trying out the platform',
       features: [
-        '3 AI Influencers',
-        '100 Content Generations/month',
-        'Basic Analytics',
-        'Email Support',
-        'Standard Processing Speed'
+        'Basic influencer information',
+        'Limited appearance customization',
+        'Basic style options',
+        'Community support',
+        'Standard processing speed'
       ],
       popular: false
     },
     {
       name: 'Professional',
-      price: '$49',
+      price: '$19.99',
       period: '/month',
       description: 'Best for growing creators and agencies',
       features: [
-        '10 AI Influencers',
-        '500 Content Generations/month',
-        'Advanced Analytics',
-        'Priority Support',
-        'Fast Processing Speed',
+        'All Free features',
+        'Advanced appearance customization',
+        'Detailed personality traits',
+        'Style & environment options',
+        'Content focus customization',
+        'Priority support',
+        'Fast processing speed'
       ],
       popular: true
     },
     {
       name: 'Enterprise',
-      price: '$149',
+      price: '$49.99',
       period: '/month',
       description: 'For large teams and businesses',
       features: [
-        'Unlimited AI Influencers',
-        'Unlimited Content Generations',
-        'Enterprise Analytics',
-        '24/7 Dedicated Support',
-        'Lightning Processing Speed',
+        'All Professional features',
+        'Unlimited customization',
+        'Priority support',
+        'Advanced analytics',
+        'API access',
+        '24/7 dedicated support',
+        'Lightning processing speed'
       ],
       popular: false
     }

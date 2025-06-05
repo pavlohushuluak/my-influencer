@@ -1,4 +1,3 @@
-
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
 interface UserState {
@@ -6,7 +5,7 @@ interface UserState {
   email: string | null;
   name: string | null;
   credits: number;
-  subscription: 'free' | 'pro' | 'enterprise';
+  subscription: 'free' | 'professional' | 'enterprise';
   isAuthenticated: boolean;
 }
 
@@ -15,7 +14,7 @@ const initialState: UserState = {
   email: 'user@example.com',
   name: 'Demo User',
   credits: 150,
-  subscription: 'pro',
+  subscription: 'free',
   isAuthenticated: true,
 };
 

@@ -1,4 +1,3 @@
-
 import { useSelector, useDispatch } from 'react-redux';
 import { useLocation } from 'react-router-dom';
 import { RootState } from '@/store/store';
@@ -15,7 +14,7 @@ export function Header() {
   const dispatch = useDispatch();
   const location = useLocation();
   const { theme } = useSelector((state: RootState) => state.ui);
-  const { name, email, credits } = useSelector((state: RootState) => state.user);
+  const { name, email, credits, subscription } = useSelector((state: RootState) => state.user);
 
   // Generate breadcrumbs based on current path
   const generateBreadcrumbs = () => {
@@ -88,7 +87,7 @@ export function Header() {
             </div>
 
             {/* User Level Badge */}
-            <UserLevelBadge level="free" />
+            <UserLevelBadge level={subscription} />
 
             {/* Theme toggle */}
             <Button

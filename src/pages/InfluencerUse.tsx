@@ -5,12 +5,14 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { useState, useEffect, useCallback } from 'react';
-import { Search, MessageCircle, Instagram, Send, X, Filter, Tag } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Search, MessageCircle, Instagram, Send, X, Filter, Tag, Crown } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import { useDebounce } from '@/hooks/useDebounce';
+import { useNavigate } from 'react-router-dom';
+import { Influencer } from '@/store/slices/influencersSlice';
 
 const PLATFORMS = [
   {
@@ -46,6 +48,7 @@ const SEARCH_FIELDS = [
 
 export default function InfluencerUse() {
   const { influencers } = useSelector((state: RootState) => state.influencers);
+  const { subscription } = useSelector((state: RootState) => state.user);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedInfluencer, setSelectedInfluencer] = useState<string>('');
   const [selectedPlatform, setSelectedPlatform] = useState<string>('');
@@ -54,6 +57,9 @@ export default function InfluencerUse() {
   const [showSearchSuggestions, setShowSearchSuggestions] = useState(false);
   const [openFilter, setOpenFilter] = useState(false);
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
+  const [selectedInfluencerData, setSelectedInfluencerData] = useState<Influencer | null>(null);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const navigate = useNavigate();
 
   // Get unique tags from all influencers for suggestions
   const allTags = Array.from(new Set(influencers.flatMap(inf => inf.tags)));
@@ -83,7 +89,16 @@ export default function InfluencerUse() {
   });
 
   const handleUseInfluencer = (influencerId: string) => {
-    setSelectedInfluencer(influencerId);
+    const influencer = influencers.find(i => i.id === influencerId);
+    if (!influencer) return;
+
+    // Check if user has required subscription level
+    if (subscription === 'free' && influencer.type === 'premium') {
+      setShowUpgradeModal(true);
+      return;
+    }
+
+    setSelectedInfluencerData(influencer);
     setShowPlatformModal(true);
   };
 
@@ -111,8 +126,6 @@ export default function InfluencerUse() {
     setSearchTerm(tag);
     setShowSearchSuggestions(false);
   };
-
-  const selectedInfluencerData = influencers.find(inf => inf.id === selectedInfluencer);
 
   return (
     <div className="p-6 space-y-6 animate-fade-in">
@@ -302,6 +315,53 @@ export default function InfluencerUse() {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Upgrade Modal */}
+      <Dialog open={showUpgradeModal} onOpenChange={setShowUpgradeModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Crown className="w-5 h-5 text-purple-600" />
+              Upgrade Required
+            </DialogTitle>
+            <DialogDescription>
+              This influencer is only available with a Professional or Enterprise subscription.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-6">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-semibold">Professional Plan</h3>
+                  <p className="text-sm text-muted-foreground">$19.99/month</p>
+                </div>
+                <Button
+                  variant="default"
+                  className="bg-gradient-to-r from-purple-600 to-blue-600"
+                  onClick={() => navigate('/pricing')}
+                >
+                  Upgrade
+                </Button>
+              </div>
+              <ul className="text-sm text-muted-foreground space-y-1">
+                <li className="flex items-center gap-2">
+                  <div className="w-1 h-1 rounded-full bg-purple-600" />
+                  Access to premium influencers
+                </li>
+                <li className="flex items-center gap-2">
+                  <div className="w-1 h-1 rounded-full bg-purple-600" />
+                  Advanced customization options
+                </li>
+                <li className="flex items-center gap-2">
+                  <div className="w-1 h-1 rounded-full bg-purple-600" />
+                  Priority support
+                </li>
+              </ul>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

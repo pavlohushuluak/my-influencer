@@ -19,6 +19,7 @@ import Clothing from '@/pages/Clothing';
 import Location from '@/pages/Location';
 import Poses from '@/pages/Poses';
 import Accessories from '@/pages/Accessories';
+import Vault from '@/pages/Vault';
 import NotFound from '@/pages/NotFound';
 import { MainLayout } from '@/components/Layout/MainLayout';
 
@@ -55,6 +56,7 @@ const App = () => {
                   <Route path='/catalog/location' element={<Location />} />
                   <Route path='/catalog/poses' element={<Poses />} />
                   <Route path='/catalog/accessories' element={<Accessories />} />
+                  <Route path='/content/vault' element={<Vault />} />
                 </Route>
                 <Route path="*" element={<NotFound />} />
               </Routes>

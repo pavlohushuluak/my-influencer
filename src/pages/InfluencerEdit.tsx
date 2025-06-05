@@ -11,8 +11,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { updateInfluencer } from '@/store/slices/influencersSlice';
-import { X, Plus, Save } from 'lucide-react';
+import { X, Plus, Save, Crown, Lock } from 'lucide-react';
 
 const HAIR_LENGTHS = ['Short', 'Medium', 'Long', 'Shoulder-Length'];
 const HAIR_COLORS = ['Black', 'Brown', 'Blonde', 'Red', 'Dark Blonde', 'Light Brown'];
@@ -29,10 +30,81 @@ const JOB_AREAS = ['Creative', 'Corporate', 'Tech', 'Healthcare', 'Education', '
 const SPEECH_STYLES = ['Friendly', 'Professional', 'Casual', 'Formal', 'Energetic', 'Calm'];
 const HUMOR_STYLES = ['Witty', 'Sarcastic', 'Dry', 'Playful', 'Absurd'];
 
+// Subscription level features
+const SUBSCRIPTION_FEATURES = {
+  free: {
+    name: 'Free',
+    price: '$0',
+    features: [
+      'Basic influencer information',
+      'Limited appearance customization',
+      'Basic style options'
+    ]
+  },
+  professional: {
+    name: 'Professional',
+    price: '$19.99/month',
+    features: [
+      'All Free features',
+      'Advanced appearance customization',
+      'Detailed personality traits',
+      'Style & environment options',
+      'Content focus customization'
+    ]
+  },
+  enterprise: {
+    name: 'Enterprise',
+    price: '$49.99/month',
+    features: [
+      'All Professional features',
+      'Unlimited customization',
+      'Priority support',
+      'Advanced analytics',
+      'API access'
+    ]
+  }
+};
+
+// Feature restrictions by subscription level
+const FEATURE_RESTRICTIONS = {
+  free: [
+    'cultural_background',
+    'hair_color',
+    'eye_color',
+    'skin_tone',
+    'color_palette',
+    'clothing_style_occasional',
+    'clothing_style_sexy_dress',
+    'home_environment',
+    'content_focus',
+    'content_focus_areas',
+    'job_vibe',
+    'social_circle',
+    'speech_style',
+    'humor',
+    'core_values',
+    'current_goals',
+    'background_elements'
+  ],
+  professional: [
+    'content_focus_areas',
+    'job_vibe',
+    'social_circle',
+    'background_elements'
+  ],
+  enterprise: []
+};
+
 export default function InfluencerEdit() {
   const navigate = useNavigate();
   const location = useLocation();
   const dispatch = useDispatch();
+  
+  // Mock subscription level - in real app this would come from user state
+  const [subscriptionLevel, setSubscriptionLevel] = useState<'free' | 'professional' | 'enterprise'>('free');
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [lockedFeature, setLockedFeature] = useState<string | null>(null);
+
   const [influencerData, setInfluencerData] = useState(location.state?.influencerData || {
     influencer_type: '',
     name_first: '',
@@ -78,7 +150,17 @@ export default function InfluencerEdit() {
   const [newTag, setNewTag] = useState('');
   const [activeTab, setActiveTab] = useState('basic');
 
+  const isFeatureLocked = (feature: string) => {
+    return FEATURE_RESTRICTIONS[subscriptionLevel].includes(feature);
+  };
+
   const handleInputChange = (field: string, value: string) => {
+    if (isFeatureLocked(field)) {
+      setLockedFeature(field);
+      setShowUpgradeModal(true);
+      return;
+    }
+    
     setInfluencerData(prev => ({
       ...prev,
       [field]: value
@@ -96,6 +178,12 @@ export default function InfluencerEdit() {
   };
 
   const handleAddTag = (field: string) => {
+    if (isFeatureLocked(field)) {
+      setLockedFeature(field);
+      setShowUpgradeModal(true);
+      return;
+    }
+
     if (newTag && !influencerData[field].includes(newTag)) {
       setInfluencerData(prev => ({
         ...prev,
@@ -115,6 +203,24 @@ export default function InfluencerEdit() {
   const handleSave = () => {
     dispatch(updateInfluencer(influencerData));
     navigate('/influencers');
+  };
+
+  const renderFieldWithUpgrade = (field: string, children: React.ReactNode) => {
+    const isLocked = isFeatureLocked(field);
+    
+    return (
+      <div className="relative">
+        {children}
+        {isLocked && (
+          <div className="absolute inset-0 bg-gradient-to-r from-purple-100/80 to-blue-100/80 dark:from-purple-900/80 dark:to-blue-900/80 backdrop-blur-sm rounded-md flex items-center justify-center">
+            <div className="flex items-center gap-2 text-purple-700 dark:text-purple-300">
+              <Lock className="w-4 h-4" />
+              <span className="text-sm font-medium">Upgrade Required</span>
+            </div>
+          </div>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -204,14 +310,16 @@ export default function InfluencerEdit() {
                       placeholder="e.g., 25, Young Professional"
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label>Cultural Background</Label>
-                    <Input
-                      value={influencerData.cultural_background}
-                      onChange={(e) => handleInputChange('cultural_background', e.target.value)}
-                      placeholder="e.g., North American, European"
-                    />
-                  </div>
+                  {renderFieldWithUpgrade('cultural_background',
+                    <div className="space-y-2">
+                      <Label>Cultural Background</Label>
+                      <Input
+                        value={influencerData.cultural_background}
+                        onChange={(e) => handleInputChange('cultural_background', e.target.value)}
+                        placeholder="e.g., North American, European"
+                      />
+                    </div>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -259,22 +367,24 @@ export default function InfluencerEdit() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="space-y-2">
-                    <Label>Hair Color</Label>
-                    <Select
-                      value={influencerData.hair_color}
-                      onValueChange={(value) => handleInputChange('hair_color', value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select hair color" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {HAIR_COLORS.map(color => (
-                          <SelectItem key={color} value={color}>{color}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  {renderFieldWithUpgrade('hair_color',
+                    <div className="space-y-2">
+                      <Label>Hair Color</Label>
+                      <Select
+                        value={influencerData.hair_color}
+                        onValueChange={(value) => handleInputChange('hair_color', value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select hair color" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {HAIR_COLORS.map(color => (
+                            <SelectItem key={color} value={color}>{color}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -707,6 +817,51 @@ export default function InfluencerEdit() {
           </TabsContent>
         </ScrollArea>
       </Tabs>
+
+      <Dialog open={showUpgradeModal} onOpenChange={setShowUpgradeModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Crown className="w-5 h-5 text-purple-600" />
+              Upgrade Required
+            </DialogTitle>
+            <DialogDescription>
+              This feature requires a higher subscription level. Choose a plan that fits your needs.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-6">
+            {Object.entries(SUBSCRIPTION_FEATURES).map(([level, plan]) => (
+              <div key={level} className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-semibold">{plan.name}</h3>
+                    <p className="text-sm text-muted-foreground">{plan.price}</p>
+                  </div>
+                  <Button
+                    variant={level === subscriptionLevel ? "outline" : "default"}
+                    className={level === subscriptionLevel ? "" : "bg-gradient-to-r from-purple-600 to-blue-600"}
+                    onClick={() => {
+                      setSubscriptionLevel(level as 'free' | 'professional' | 'enterprise');
+                      setShowUpgradeModal(false);
+                    }}
+                  >
+                    {level === subscriptionLevel ? "Current Plan" : "Upgrade"}
+                  </Button>
+                </div>
+                <ul className="text-sm text-muted-foreground space-y-1">
+                  {plan.features.map((feature, index) => (
+                    <li key={index} className="flex items-center gap-2">
+                      <div className="w-1 h-1 rounded-full bg-purple-600" />
+                      {feature}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

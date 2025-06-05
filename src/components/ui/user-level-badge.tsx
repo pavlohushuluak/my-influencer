@@ -1,10 +1,9 @@
-
 import { Badge } from '@/components/ui/badge';
 import { Star, Zap, Crown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface UserLevelBadgeProps {
-  level: 'free' | 'pro' | 'elite';
+  level: 'free' | 'professional' | 'enterprise';
   size?: 'sm' | 'md' | 'lg';
   showIcon?: boolean;
   className?: string;
@@ -17,16 +16,16 @@ const levelConfig = {
     className: 'bg-gray-500 hover:bg-gray-600 text-white',
     iconClassName: 'text-white'
   },
-  pro: {
+  professional: {
     name: 'Pro',
     icon: Zap,
-    className: 'bg-primary hover:bg-primary/90 text-primary-foreground',
-    iconClassName: 'text-primary-foreground'
+    className: 'bg-gradient-to-r from-purple-600 to-blue-600 hover:opacity-90 text-white',
+    iconClassName: 'text-white'
   },
-  elite: {
-    name: 'Elite',
+  enterprise: {
+    name: 'Enterprise',
     icon: Crown,
-    className: 'bg-amber-500 hover:bg-amber-600 text-white',
+    className: 'bg-gradient-to-r from-amber-500 to-orange-600 hover:opacity-90 text-white',
     iconClassName: 'text-white'
   }
 };

@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '@/store/store';
@@ -10,9 +9,67 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Star, Search, Download, Share, Trash2, Filter, Calendar, Image, Video, SortAsc, SortDesc } from 'lucide-react';
 
+// Example vault items
+const exampleVaultItems = [
+  {
+    id: '1',
+    title: 'Summer Beach Collection',
+    type: 'image',
+    platform: 'instagram',
+    url: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&h=600&fit=crop',
+    tags: ['summer', 'beach', 'fashion', 'lifestyle'],
+    createdAt: '2024-03-15T10:30:00Z'
+  },
+  {
+    id: '2',
+    title: 'Tech Review Video',
+    type: 'video',
+    platform: 'tiktok',
+    url: 'https://images.unsplash.com/photo-1498049794561-7780e7231661?w=800&h=600&fit=crop',
+    tags: ['tech', 'review', 'gadgets', 'tutorial'],
+    createdAt: '2024-03-14T15:45:00Z'
+  },
+  {
+    id: '3',
+    title: 'Fitness Motivation',
+    type: 'image',
+    platform: 'fanvue',
+    url: 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=800&h=600&fit=crop',
+    tags: ['fitness', 'motivation', 'health', 'lifestyle'],
+    createdAt: '2024-03-13T09:15:00Z'
+  },
+  {
+    id: '4',
+    title: 'Cooking Tutorial',
+    type: 'video',
+    platform: 'instagram',
+    url: 'https://images.unsplash.com/photo-1495521821757-a1efb6729352?w=800&h=600&fit=crop',
+    tags: ['cooking', 'food', 'tutorial', 'recipe'],
+    createdAt: '2024-03-12T14:20:00Z'
+  },
+  {
+    id: '5',
+    title: 'Travel Vlog',
+    type: 'video',
+    platform: 'tiktok',
+    url: 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=800&h=600&fit=crop',
+    tags: ['travel', 'vlog', 'adventure', 'explore'],
+    createdAt: '2024-03-11T11:10:00Z'
+  },
+  {
+    id: '6',
+    title: 'Product Showcase',
+    type: 'image',
+    platform: 'general',
+    url: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=800&h=600&fit=crop',
+    tags: ['product', 'showcase', 'marketing', 'brand'],
+    createdAt: '2024-03-10T16:30:00Z'
+  }
+];
+
 export default function Vault() {
   const dispatch = useDispatch();
-  const { vaultItems } = useSelector((state: RootState) => state.content);
+  const { vaultItems = exampleVaultItems } = useSelector((state: RootState) => state.content);
   const [searchTerm, setSearchTerm] = useState('');
   const [platformFilter, setPlatformFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
@@ -193,7 +250,10 @@ export default function Vault() {
       {filteredAndSortedItems.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredAndSortedItems.map((item) => (
-            <Card key={item.id} className="group hover:shadow-lg transition-all duration-300 border-border/50 hover:border-yellow-500/20 bg-gradient-to-br from-yellow-50/30 to-orange-50/30 dark:from-yellow-950/10 dark:to-orange-950/10">
+            <Card 
+              key={item.id} 
+              className="group hover:shadow-lg transition-all duration-300 border-border/50 hover:border-yellow-500/20 bg-gradient-to-br from-yellow-50/30 to-orange-50/30 dark:from-yellow-950/10 dark:to-orange-950/10"
+            >
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -222,17 +282,46 @@ export default function Vault() {
                 <CardTitle className="text-lg">{item.title}</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="w-full h-32 bg-gradient-to-br from-yellow-500/20 to-orange-500/20 rounded-lg mb-4 flex items-center justify-center overflow-hidden">
+                <div className="relative w-full h-48 bg-gradient-to-br from-yellow-500/20 to-orange-500/20 rounded-lg mb-4 overflow-hidden group-hover:shadow-md transition-all duration-300">
                   {item.url ? (
-                    <img src={item.url} alt={item.title} className="w-full h-full object-cover" />
+                    <img 
+                      src={item.url} 
+                      alt={item.title} 
+                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" 
+                    />
                   ) : (
-                    <Star className="w-8 h-8 text-yellow-500" />
+                    <div className="w-full h-full flex items-center justify-center">
+                      <Star className="w-8 h-8 text-yellow-500" />
+                    </div>
                   )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                  <div className="absolute bottom-0 left-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="secondary" className="flex-1">
+                        <Download className="w-3 h-3 mr-1" />
+                        Download
+                      </Button>
+                      <Button size="sm" variant="secondary">
+                        <Share className="w-3 h-3" />
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant="destructive"
+                        onClick={() => handleRemoveFromVault(item.id)}
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  </div>
                 </div>
                 <div className="space-y-3">
                   <div className="flex flex-wrap gap-1">
                     {item.tags.map((tag, index) => (
-                      <Badge key={index} variant="outline" className="text-xs">
+                      <Badge 
+                        key={index} 
+                        variant="outline" 
+                        className="text-xs hover:bg-yellow-500/10 transition-colors cursor-pointer"
+                      >
                         {tag}
                       </Badge>
                     ))}
@@ -241,23 +330,6 @@ export default function Vault() {
                     <Calendar className="w-3 h-3" />
                     Added {new Date(item.createdAt).toLocaleDateString()}
                   </div>
-                  <div className="flex gap-2">
-                    <Button size="sm" variant="outline" className="flex-1">
-                      <Download className="w-3 h-3 mr-1" />
-                      Download
-                    </Button>
-                    <Button size="sm" variant="outline">
-                      <Share className="w-3 h-3" />
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      variant="outline" 
-                      className="text-red-500 hover:text-red-600"
-                      onClick={() => handleRemoveFromVault(item.id)}
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </Button>
-                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -265,27 +337,11 @@ export default function Vault() {
         </div>
       ) : (
         <div className="text-center py-12">
-          <div className="w-16 h-16 bg-yellow-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Star className="w-8 h-8 text-yellow-500" />
-          </div>
-          <h3 className="text-lg font-semibold mb-2">
-            {vaultItems.length === 0 ? 'Your Vault is Empty' : 'No Results Found'}
-          </h3>
-          <p className="text-muted-foreground mb-4">
-            {vaultItems.length === 0 
-              ? 'Save your best content to the vault for permanent storage'
-              : 'Try adjusting your search or filter criteria'
-            }
+          <Star className="w-12 h-12 text-yellow-500/50 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold mb-2">No items found</h3>
+          <p className="text-muted-foreground">
+            Try adjusting your search or filters to find what you're looking for.
           </p>
-          {vaultItems.length === 0 ? (
-            <Button className="bg-ai-gradient hover:opacity-90">
-              Browse Content Library
-            </Button>
-          ) : (
-            <Button variant="outline" onClick={clearFilters}>
-              Clear All Filters
-            </Button>
-          )}
         </div>
       )}
     </div>

@@ -69,7 +69,8 @@ const exampleVaultItems = [
 
 export default function Vault() {
   const dispatch = useDispatch();
-  const { vaultItems = exampleVaultItems } = useSelector((state: RootState) => state.content);
+  const vaultItemsFromStore = useSelector((state: RootState) => state.content.vaultItems);
+  const vaultItems = vaultItemsFromStore?.length ? vaultItemsFromStore : exampleVaultItems;
   const [searchTerm, setSearchTerm] = useState('');
   const [platformFilter, setPlatformFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
@@ -269,7 +270,7 @@ export default function Vault() {
                       variant="outline"
                       className={`text-xs ${
                         item.platform === 'instagram' ? 'border-pink-500 text-pink-700' :
-                        item.platform === 'tiktok' ? 'border-black text-black' :
+                        item.platform === 'tiktok' ? 'border-amber text-amber' :
                         item.platform === 'fanvue' ? 'border-purple-500 text-purple-700' :
                         'border-gray-500 text-gray-700'
                       }`}

@@ -7,6 +7,7 @@ import uiReducer from './slices/uiSlice';
 import clothingReducer from './slices/clothingSlice';
 import locationReducer from './slices/locationSlice';
 import posesReducer from './slices/posesSlice';
+import accessoriesReducer from './slices/accessoriesSlice';
 
 export const store = configureStore({
   reducer: {
@@ -17,6 +18,7 @@ export const store = configureStore({
     clothing: clothingReducer,
     location: locationReducer,
     poses: posesReducer,
+    accessories: accessoriesReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

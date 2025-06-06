@@ -233,10 +233,6 @@ export default function InfluencerEdit() {
     }
   };
 
-  const handleGenerateContent = (id: string) => {
-    navigate(`/influencers/generate/${id}`);
-  };
-
   const handleCreateNew = () => {
     setInfluencerData({
       influencer_type: '',
@@ -310,14 +306,62 @@ export default function InfluencerEdit() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {influencers.map((influencer) => (
-            <InfluencerCard
-              key={influencer.id}
-              influencer={influencer}
-              onGenerateContent={handleGenerateContent}
-              onEditInfluencer={handleEditInfluencer}
-            />
+            <Card key={influencer.id} className="group hover:shadow-lg transition-all duration-300 border-border/50 hover:border-ai-purple-500/20">
+              <CardContent className="p-6">
+                <div className="space-y-4">
+                  <div className="w-full h-48 bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg overflow-hidden">
+                    <img 
+                      src={influencer.image} 
+                      alt={influencer.name}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="font-semibold text-lg group-hover:text-ai-purple-500 transition-colors">
+                        {influencer.name}
+                      </h3>
+                      <Badge variant="secondary">
+                        {influencer.status}
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground mb-2">
+                      {influencer.description}
+                    </p>
+                    <p className="text-xs text-muted-foreground mb-3">
+                      {influencer.personality}
+                    </p>
+                    
+                    <div className="flex flex-wrap gap-1 mb-4">
+                      {influencer.tags.map((tag) => (
+                        <Badge key={tag} variant="outline" className="text-xs">
+                          {tag}
+                        </Badge>
+                      ))}
+                    </div>
+                    
+                    <div className="flex items-center justify-between text-sm text-muted-foreground mb-4">
+                      <span>{influencer.generatedContent} content items</span>
+                    </div>
+                    
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleEditInfluencer(influencer.id)}
+                        className="flex-1 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                      >
+                        <Settings className="w-4 h-4 mr-2" />
+                        Edit
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           ))}
         </div>
       </div>

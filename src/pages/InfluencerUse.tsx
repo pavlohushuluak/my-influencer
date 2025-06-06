@@ -93,7 +93,7 @@ export default function InfluencerUse() {
     if (!influencer) return;
 
     // Check if user has required subscription level
-    if (subscription === 'free' && influencer.type === 'premium') {
+    if (subscription === 'free') {
       setShowUpgradeModal(true);
       return;
     }

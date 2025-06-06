@@ -21,6 +21,9 @@ import Poses from '@/pages/Poses';
 import Accessories from '@/pages/Accessories';
 import Vault from '@/pages/Vault';
 import ContentCreate from '@/pages/ContentCreate';
+import ContentEnhance from '@/pages/ContentEnhance';
+import ContentEdit from './pages/ContentEdit';
+import ContentStory from './pages/ContentStory';
 import NotFound from '@/pages/NotFound';
 import { MainLayout } from '@/components/Layout/MainLayout';
 
@@ -59,6 +62,9 @@ const App = () => {
                   <Route path='/catalog/accessories' element={<Accessories />} />
                   <Route path='/content/vault' element={<Vault />} />
                   <Route path='/content/create' element={<ContentCreate />} />
+                  <Route path='/content/enhance' element={<ContentEnhance />} />
+                  <Route path='/content/edit' element={<ContentEdit />} />
+                  <Route path='/content/story' element={<ContentStory />} />
                 </Route>
                 <Route path="*" element={<NotFound />} />
               </Routes>

@@ -4,6 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { addInfluencer } from '@/store/slices/influencersSlice';
+import { Plus } from 'lucide-react';
 
 const INFLUENCER_TEMPLATES = [
   {
@@ -253,7 +254,7 @@ export default function InfluencerTemplates() {
       {/* Templates Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {INFLUENCER_TEMPLATES.map((template) => (
-          <Card key={template.id} className="group hover:shadow-lg transition-all duration-300">
+          <Card key={template.id} className="group hover:shadow-lg transition-all duration-300 border-border/50 hover:border-ai-purple-500/20">
             <CardContent className="p-6">
               <div className="space-y-4">
                 <div className="w-full h-48 bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg overflow-hidden">
@@ -266,26 +267,30 @@ export default function InfluencerTemplates() {
                 
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <h3 className="font-semibold text-lg">{template.name}</h3>
-                    <Badge variant="secondary">Template</Badge>
+                    <h3 className="font-semibold text-lg group-hover:text-ai-purple-500 transition-colors">
+                      {template.name}
+                    </h3>
                   </div>
-                  <p className="text-sm text-muted-foreground mb-1">{template.age}, {template.lifecycle}</p>
-                  <p className="text-sm text-muted-foreground mb-2">{template.type} Influencer</p>
-                </div>
-                
-                <div className="flex gap-2">
-                  <Button 
-                    onClick={() => handleUseTemplate(template)}
-                    className="flex-1 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
-                  >
-                    Use
-                  </Button>
-                  <Button 
-                    onClick={() => handleUseTemplate(template)}
+
+                  <div className="flex flex-col gap-1 mb-3">
+                    <div className="flex text-sm text-muted-foreground flex-col">
+                      <span className="font-medium mr-2">Age/Lifestyle:</span>
+                      {template.age}, {template.lifecycle}
+                    </div>
+                    <div className="flex items-center text-sm text-muted-foreground">
+                      <span className="font-medium mr-2">Type:</span>
+                      {template.type}
+                    </div>
+                  </div>
+
+                  <Button
+                    size="sm"
                     variant="outline"
-                    className="flex-1"
+                    onClick={() => handleUseTemplate(template)}
+                    className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 w-full"
                   >
-                    Edit
+                    <Plus className="w-4 h-4 mr-2" />
+                    Use
                   </Button>
                 </div>
               </div>

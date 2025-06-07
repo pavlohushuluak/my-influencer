@@ -2,10 +2,9 @@ import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '@/store/store';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { useState, useEffect, useCallback } from 'react';
-import { Search, MessageCircle, Instagram, Send, X, Filter, Tag, Crown, Plus } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Search, MessageCircle, Instagram, Send, X, Filter, Crown, Plus } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -43,13 +42,11 @@ const SEARCH_FIELDS = [
   { id: 'all', label: 'All Fields' },
   { id: 'name', label: 'Name' },
   { id: 'age_lifestyle', label: 'Age/Lifestyle' },
-  { id: 'influencer_type', label: 'Type' },
-  { id: 'tags', label: 'Tags' }
+  { id: 'influencer_type', label: 'Type' }
 ];
 
 export default function InfluencerUse() {
   const influencers = useSelector((state: RootState) => state.influencers.influencers);
-  console.log(influencers);
   const { subscription } = useSelector((state: RootState) => state.user);
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -59,7 +56,6 @@ export default function InfluencerUse() {
   const [selectedPlatform, setSelectedPlatform] = useState<string>('');
   const [showPlatformModal, setShowPlatformModal] = useState(false);
   const [selectedSearchField, setSelectedSearchField] = useState(SEARCH_FIELDS[0]);
-  const [showSearchSuggestions, setShowSearchSuggestions] = useState(false);
   const [openFilter, setOpenFilter] = useState(false);
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
   const [selectedInfluencerData, setSelectedInfluencerData] = useState<Influencer | null>(null);
@@ -77,14 +73,11 @@ export default function InfluencerUse() {
         return influencer.age_lifestyle.toLowerCase().includes(searchLower);
       case 'influencer_type':
         return influencer.influencer_type.toLowerCase().includes(searchLower);
-      case 'tags':
-        return influencer.tags?.some(tag => tag.toLowerCase().includes(searchLower)) || false;
       default:
         return (
           `${influencer.name_first} ${influencer.name_last}`.toLowerCase().includes(searchLower) ||
           influencer.age_lifestyle.toLowerCase().includes(searchLower) ||
-          influencer.influencer_type.toLowerCase().includes(searchLower) ||
-          influencer.tags?.some(tag => tag.toLowerCase().includes(searchLower)) || false
+          influencer.influencer_type.toLowerCase().includes(searchLower)
         );
     }
   });
@@ -148,21 +141,11 @@ export default function InfluencerUse() {
 
   const handleSearchChange = (value: string) => {
     setSearchTerm(value);
-    setShowSearchSuggestions(true);
   };
 
   const handleSearchClear = () => {
     setSearchTerm('');
-    setShowSearchSuggestions(false);
   };
-
-  const handleTagClick = (tag: string) => {
-    setSearchTerm(tag);
-    setShowSearchSuggestions(false);
-  };
-
-  // Get unique tags from all influencers for suggestions
-  const allTags = Array.from(new Set(influencers.flatMap(inf => inf.tags || [])));
 
   return (
     <div className="p-6 space-y-6 animate-fade-in">
@@ -200,31 +183,6 @@ export default function InfluencerUse() {
                 </Button>
               )}
             </div>
-            
-            {/* Search Suggestions */}
-            {showSearchSuggestions && searchTerm && (
-              <div className="absolute z-10 w-full mt-1 bg-popover rounded-md shadow-md border">
-                <div className="p-2">
-                  <div className="text-sm font-medium text-muted-foreground mb-2">Popular Tags</div>
-                  <div className="flex flex-wrap gap-2">
-                    {allTags
-                      .filter(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
-                      .slice(0, 5)
-                      .map((tag, index) => (
-                        <Badge
-                          key={index}
-                          variant="secondary"
-                          className="cursor-pointer hover:bg-secondary/80"
-                          onClick={() => handleTagClick(tag)}
-                        >
-                          <Tag className="h-3 w-3 mr-1" />
-                          {tag}
-                        </Badge>
-                      ))}
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
           
           <Popover open={openFilter} onOpenChange={setOpenFilter}>
@@ -290,14 +248,6 @@ export default function InfluencerUse() {
                       <span className="font-medium mr-2">Type:</span>
                       {influencer.influencer_type}
                     </div>
-                  </div>
-
-                  <div className="flex flex-wrap gap-1 mb-4">
-                    {influencer.tags?.map((tag) => (
-                      <Badge key={tag} variant="outline" className="text-xs">
-                        {tag}
-                      </Badge>
-                    ))}
                   </div>
 
                   <Button

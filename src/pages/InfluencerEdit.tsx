@@ -14,7 +14,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { updateInfluencer } from '@/store/slices/influencersSlice';
-import { X, Plus, Save, Crown, Lock, Image, Settings, User } from 'lucide-react';
+import { X, Plus, Save, Crown, Lock, Image, Settings, User, ChevronRight } from 'lucide-react';
 import { InfluencerCard } from '@/components/Influencers/InfluencerCard';
 
 const HAIR_LENGTHS = ['Short', 'Medium', 'Long', 'Shoulder-Length'];
@@ -97,16 +97,25 @@ const FEATURE_RESTRICTIONS = {
   enterprise: []
 };
 
+interface Option {
+  label: string;
+  image: string;
+}
+
 export default function InfluencerEdit() {
   const navigate = useNavigate();
   const location = useLocation();
   const dispatch = useDispatch();
   const influencers = useSelector((state: RootState) => state.influencers.influencers);
   
-  const [showEditView, setShowEditView] = useState(false);
+  const [showEditView, setShowEditView] = useState(!!location.state?.influencerData);
   const [subscriptionLevel, setSubscriptionLevel] = useState<'free' | 'professional' | 'enterprise'>('free');
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [lockedFeature, setLockedFeature] = useState<string | null>(null);
+  const [backgroundOptions, setBackgroundOptions] = useState<Option[]>([]);
+  const [hairLengthOptions, setHairLengthOptions] = useState<Option[]>([]);
+  const [showBackgroundSelector, setShowBackgroundSelector] = useState(false);
+  const [showHairLengthSelector, setShowHairLengthSelector] = useState(false);
   const [influencerData, setInfluencerData] = useState(location.state?.influencerData || {
     influencer_type: '',
     name_first: '',
@@ -151,6 +160,45 @@ export default function InfluencerEdit() {
 
   const [newTag, setNewTag] = useState('');
   const [activeTab, setActiveTab] = useState('basic');
+
+  const [eyeColorOptions, setEyeColorOptions] = useState<Option[]>([]);
+  const [hairColorOptions, setHairColorOptions] = useState<Option[]>([]);
+  const [hairStyleOptions, setHairStyleOptions] = useState<Option[]>([]);
+  const [lipOptions, setLipOptions] = useState<Option[]>([]);
+  const [noseOptions, setNoseOptions] = useState<Option[]>([]);
+  const [eyebrowOptions, setEyebrowOptions] = useState<Option[]>([]);
+  const [faceShapeOptions, setFaceShapeOptions] = useState<Option[]>([]);
+  const [facialFeaturesOptions, setFacialFeaturesOptions] = useState<Option[]>([]);
+  const [skinToneOptions, setSkinToneOptions] = useState<Option[]>([]);
+  const [bodyTypeOptions, setBodyTypeOptions] = useState<Option[]>([]);
+  const [makeupOptions, setMakeupOptions] = useState<Option[]>([]);
+  const [colorPaletteOptions, setColorPaletteOptions] = useState<Option[]>([]);
+  const [clothingEverydayOptions, setClothingEverydayOptions] = useState<Option[]>([]);
+  const [clothingOccasionalOptions, setClothingOccasionalOptions] = useState<Option[]>([]);
+  const [clothingHomewearOptions, setClothingHomewearOptions] = useState<Option[]>([]);
+  const [clothingSportsOptions, setClothingSportsOptions] = useState<Option[]>([]);
+  const [clothingSexyOptions, setClothingSexyOptions] = useState<Option[]>([]);
+  const [homeEnvironmentOptions, setHomeEnvironmentOptions] = useState<Option[]>([]);
+
+  // Add state for selectors
+  const [showEyeColorSelector, setShowEyeColorSelector] = useState(false);
+  const [showHairColorSelector, setShowHairColorSelector] = useState(false);
+  const [showHairStyleSelector, setShowHairStyleSelector] = useState(false);
+  const [showLipSelector, setShowLipSelector] = useState(false);
+  const [showNoseSelector, setShowNoseSelector] = useState(false);
+  const [showEyebrowSelector, setShowEyebrowSelector] = useState(false);
+  const [showFaceShapeSelector, setShowFaceShapeSelector] = useState(false);
+  const [showFacialFeaturesSelector, setShowFacialFeaturesSelector] = useState(false);
+  const [showSkinToneSelector, setShowSkinToneSelector] = useState(false);
+  const [showBodyTypeSelector, setShowBodyTypeSelector] = useState(false);
+  const [showMakeupSelector, setShowMakeupSelector] = useState(false);
+  const [showColorPaletteSelector, setShowColorPaletteSelector] = useState(false);
+  const [showClothingEverydaySelector, setShowClothingEverydaySelector] = useState(false);
+  const [showClothingOccasionalSelector, setShowClothingOccasionalSelector] = useState(false);
+  const [showClothingHomewearSelector, setShowClothingHomewearSelector] = useState(false);
+  const [showClothingSportsSelector, setShowClothingSportsSelector] = useState(false);
+  const [showClothingSexySelector, setShowClothingSexySelector] = useState(false);
+  const [showHomeEnvironmentSelector, setShowHomeEnvironmentSelector] = useState(false);
 
   const isFeatureLocked = (feature: string) => {
     return FEATURE_RESTRICTIONS[subscriptionLevel].includes(feature);
@@ -281,6 +329,91 @@ export default function InfluencerEdit() {
   const handleUseTemplate = () => {
     navigate('/influencers/templates');
   };
+  console.log(backgroundOptions);
+  console.log(hairLengthOptions);
+
+  useEffect(() => {
+    const fetchOptions = async () => {
+      try {
+        const endpoints = {
+          background: setBackgroundOptions,
+          hairlength: setHairLengthOptions,
+          eyecolor: setEyeColorOptions,
+          haircolor: setHairColorOptions,
+          hairstyle: setHairStyleOptions,
+          lips: setLipOptions,
+          nose: setNoseOptions,
+          eyebrow: setEyebrowOptions,
+          faceshape: setFaceShapeOptions,
+          facialfeatures: setFacialFeaturesOptions,
+          skin: setSkinToneOptions,
+          bodytype: setBodyTypeOptions,
+          makeup: setMakeupOptions,
+          colorpalette: setColorPaletteOptions,
+          clothing_everyday: setClothingEverydayOptions,
+          clothing_occasional: setClothingOccasionalOptions,
+          clothing_homewear: setClothingHomewearOptions,
+          clothing_sports: setClothingSportsOptions,
+          clothing_sexy: setClothingSexyOptions,
+          home_environment: setHomeEnvironmentOptions
+        };
+
+        for (const [fieldtype, setter] of Object.entries(endpoints)) {
+          const response = await fetch(`https://api.nymia.ai/v1/fieldoptions?fieldtype=${fieldtype}`, {
+            headers: {
+              'Authorization': 'Bearer WeInfl3nc3withAI'
+            }
+          });
+          if (response.ok) {
+            const data = await response.json();
+            setter(Array.isArray(data.fieldoptions) ? data.fieldoptions : []);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching options:', error);
+      }
+    };
+
+    fetchOptions();
+  }, []);
+
+  const OptionSelector = ({ options, onSelect, onClose, title }: { 
+    options: Option[], 
+    onSelect: (label: string) => void, 
+    onClose: () => void,
+    title: string 
+  }) => (
+    <Dialog open={true} onOpenChange={onClose}>
+      <DialogContent className="max-w-4xl overflow-scroll max-h-[80vh]">
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+        </DialogHeader>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 p-4">
+          {options.map((option, index) => (
+            <Card 
+              key={index} 
+              className="cursor-pointer hover:shadow-lg transition-all duration-300"
+              onClick={() => {
+                onSelect(option.label);
+                onClose();
+              }}
+            >
+              <CardContent className="p-4">
+                <div className="relative w-full" style={{ paddingBottom: '125%' }}>
+                  <img 
+                    src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
+                    alt={option.label}
+                    className="absolute inset-0 w-full h-full object-cover rounded-md"
+                  />
+                </div>
+                <p className="text-sm text-center font-medium mt-2">{option.label}</p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
 
   if (!showEditView) {
     return (
@@ -463,12 +596,21 @@ export default function InfluencerEdit() {
             {renderFieldWithUpgrade('cultural_background',
                     <div className="space-y-2">
                       <Label>Cultural Background</Label>
-                <Input
-                        value={influencerData.cultural_background}
-                        onChange={(e) => handleInputChange('cultural_background', e.target.value)}
-                        placeholder="e.g., North American, European"
-                />
-              </div>
+                      <div className="flex gap-2">
+                        <Input
+                          value={influencerData.cultural_background}
+                          onChange={(e) => handleInputChange('cultural_background', e.target.value)}
+                          placeholder="e.g., North American, European"
+                        />
+                        <Button 
+                          variant="outline" 
+                          size="icon"
+                          onClick={() => setShowBackgroundSelector(true)}
+                        >
+                          <ChevronRight className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
             )}
                 </div>
 
@@ -503,36 +645,54 @@ export default function InfluencerEdit() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Hair Length</Label>
-                    <Select
-                      value={influencerData.hair_length}
-                      onValueChange={(value) => handleInputChange('hair_length', value)}
-                    >
-                  <SelectTrigger>
-                        <SelectValue placeholder="Select hair length" />
-                  </SelectTrigger>
-                  <SelectContent>
-                        {HAIR_LENGTHS.map(length => (
-                          <SelectItem key={length} value={length}>{length}</SelectItem>
-                        ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              {renderFieldWithUpgrade('hair_color',
-                    <div className="space-y-2">
-                      <Label>Hair Color</Label>
+                    <div className="flex gap-2">
                       <Select
-                        value={influencerData.hair_color}
-                        onValueChange={(value) => handleInputChange('hair_color', value)}
+                        value={influencerData.hair_length}
+                        onValueChange={(value) => handleInputChange('hair_length', value)}
                       >
                         <SelectTrigger>
-                          <SelectValue placeholder="Select hair color" />
+                          <SelectValue placeholder="Select hair length" />
                         </SelectTrigger>
                         <SelectContent>
-                          {HAIR_COLORS.map(color => (
-                            <SelectItem key={color} value={color}>{color}</SelectItem>
+                          {hairLengthOptions.map((option, index) => (
+                            <SelectItem key={index} value={option.label}>{option.label}</SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
+                      <Button 
+                        variant="outline" 
+                        size="icon"
+                        onClick={() => setShowHairLengthSelector(true)}
+                      >
+                        <ChevronRight className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                  {renderFieldWithUpgrade('hair_color',
+                    <div className="space-y-2">
+                      <Label>Hair Color</Label>
+                      <div className="flex gap-2">
+                        <Select
+                          value={influencerData.hair_color}
+                          onValueChange={(value) => handleInputChange('hair_color', value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select hair color" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {hairColorOptions.map((option, index) => (
+                              <SelectItem key={index} value={option.label}>{option.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Button 
+                          variant="outline" 
+                          size="icon"
+                          onClick={() => setShowHairColorSelector(true)}
+                        >
+                          <ChevronRight className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -540,105 +700,159 @@ export default function InfluencerEdit() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Hair Style</Label>
-                    <Select
-                      value={influencerData.hair_style}
-                      onValueChange={(value) => handleInputChange('hair_style', value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select hair style" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {HAIR_STYLES.map(style => (
-                          <SelectItem key={style} value={style}>{style}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <div className="flex gap-2">
+                      <Select
+                        value={influencerData.hair_style}
+                        onValueChange={(value) => handleInputChange('hair_style', value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select hair style" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {hairStyleOptions.map((option, index) => (
+                            <SelectItem key={index} value={option.label}>{option.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Button 
+                        variant="outline" 
+                        size="icon"
+                        onClick={() => setShowHairStyleSelector(true)}
+                      >
+                        <ChevronRight className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </div>
                   <div className="space-y-2">
                     <Label>Eye Color</Label>
-                    <Select
-                      value={influencerData.eye_color}
-                      onValueChange={(value) => handleInputChange('eye_color', value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select eye color" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {EYE_COLORS.map(color => (
-                          <SelectItem key={color} value={color}>{color}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <div className="flex gap-2">
+                      <Select
+                        value={influencerData.eye_color}
+                        onValueChange={(value) => handleInputChange('eye_color', value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select eye color" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {eyeColorOptions.map((option, index) => (
+                            <SelectItem key={index} value={option.label}>{option.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Button 
+                        variant="outline" 
+                        size="icon"
+                        onClick={() => setShowEyeColorSelector(true)}
+                      >
+                        <ChevronRight className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Lip Style</Label>
-                    <Select
-                      value={influencerData.lip_style}
-                      onValueChange={(value) => handleInputChange('lip_style', value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select lip style" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {LIP_STYLES.map(style => (
-                          <SelectItem key={style} value={style}>{style}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <div className="flex gap-2">
+                      <Select
+                        value={influencerData.lip_style}
+                        onValueChange={(value) => handleInputChange('lip_style', value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select lip style" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {lipOptions.map((option, index) => (
+                            <SelectItem key={index} value={option.label}>{option.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Button 
+                        variant="outline" 
+                        size="icon"
+                        onClick={() => setShowLipSelector(true)}
+                      >
+                        <ChevronRight className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </div>
                   <div className="space-y-2">
                     <Label>Nose Style</Label>
-                    <Select
-                      value={influencerData.nose_style}
-                      onValueChange={(value) => handleInputChange('nose_style', value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select nose style" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {NOSE_STYLES.map(style => (
-                          <SelectItem key={style} value={style}>{style}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <div className="flex gap-2">
+                      <Select
+                        value={influencerData.nose_style}
+                        onValueChange={(value) => handleInputChange('nose_style', value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select nose style" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {noseOptions.map((option, index) => (
+                            <SelectItem key={index} value={option.label}>{option.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Button 
+                        variant="outline" 
+                        size="icon"
+                        onClick={() => setShowNoseSelector(true)}
+                      >
+                        <ChevronRight className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Face Shape</Label>
-                    <Select
-                      value={influencerData.face_shape}
-                      onValueChange={(value) => handleInputChange('face_shape', value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select face shape" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {FACE_SHAPES.map(shape => (
-                          <SelectItem key={shape} value={shape}>{shape}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <div className="flex gap-2">
+                      <Select
+                        value={influencerData.face_shape}
+                        onValueChange={(value) => handleInputChange('face_shape', value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select face shape" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {faceShapeOptions.map((option, index) => (
+                            <SelectItem key={index} value={option.label}>{option.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Button 
+                        variant="outline" 
+                        size="icon"
+                        onClick={() => setShowFaceShapeSelector(true)}
+                      >
+                        <ChevronRight className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </div>
                   <div className="space-y-2">
                     <Label>Skin Tone</Label>
-                    <Select
-                      value={influencerData.skin_tone}
-                      onValueChange={(value) => handleInputChange('skin_tone', value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select skin tone" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {SKIN_TONES.map(tone => (
-                          <SelectItem key={tone} value={tone}>{tone}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <div className="flex gap-2">
+                      <Select
+                        value={influencerData.skin_tone}
+                        onValueChange={(value) => handleInputChange('skin_tone', value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select skin tone" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {skinToneOptions.map((option, index) => (
+                            <SelectItem key={index} value={option.label}>{option.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Button 
+                        variant="outline" 
+                        size="icon"
+                        onClick={() => setShowSkinToneSelector(true)}
+                      >
+                        <ChevronRight className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
 
@@ -654,22 +868,31 @@ export default function InfluencerEdit() {
 
                 <div className="space-y-2">
                   <Label>Body Type</Label>
-                  <Select
-                    value={influencerData.body_type}
-                    onValueChange={(value) => handleInputChange('body_type', value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select body type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {BODY_TYPES.map(type => (
-                        <SelectItem key={type} value={type}>{type}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-            </div>
-          </CardContent>
-        </Card>
+                  <div className="flex gap-2">
+                    <Select
+                      value={influencerData.body_type}
+                      onValueChange={(value) => handleInputChange('body_type', value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select body type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {bodyTypeOptions.map((option, index) => (
+                          <SelectItem key={index} value={option.label}>{option.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button 
+                      variant="outline" 
+                      size="icon"
+                      onClick={() => setShowBodyTypeSelector(true)}
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="style" className="space-y-4">
@@ -680,113 +903,163 @@ export default function InfluencerEdit() {
           <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label>Color Palette</Label>
-                  <div className="flex gap-2 flex-wrap">
-                    {influencerData.color_palette.map((color, index) => (
-                      <Badge key={index} variant="secondary" className="flex items-center gap-1">
-                        {color}
-                        <X
-                          className="w-3 h-3 cursor-pointer"
-                          onClick={() => handleRemoveTag('color_palette', color)}
-                        />
-                  </Badge>
-                ))}
-              </div>
                   <div className="flex gap-2">
-                    <Input
+                    <Select
                       value={newTag}
-                      onChange={(e) => setNewTag(e.target.value)}
-                      placeholder="Add color (e.g., Neutral Tones)"
-                      onKeyDown={(e) => e.key === 'Enter' && handleAddTag('color_palette')}
-                    />
-                    <Button onClick={() => handleAddTag('color_palette')}>Add</Button>
+                      onValueChange={(value) => {
+                        setNewTag(value);
+                        handleAddTag('color_palette');
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select color palette" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {colorPaletteOptions.map((option, index) => (
+                          <SelectItem key={index} value={option.label}>{option.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button 
+                      variant="outline" 
+                      size="icon"
+                      onClick={() => setShowColorPaletteSelector(true)}
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </Button>
                   </div>
-            </div>
+                </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Everyday Style</Label>
-                    <Select
-                      value={influencerData.clothing_style_everyday}
-                      onValueChange={(value) => handleInputChange('clothing_style_everyday', value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select everyday style" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {CLOTHING_STYLES.map(style => (
-                          <SelectItem key={style} value={style}>{style}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <div className="flex gap-2">
+                      <Select
+                        value={influencerData.clothing_style_everyday}
+                        onValueChange={(value) => handleInputChange('clothing_style_everyday', value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select everyday style" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {clothingEverydayOptions.map((option, index) => (
+                            <SelectItem key={index} value={option.label}>{option.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Button 
+                        variant="outline" 
+                        size="icon"
+                        onClick={() => setShowClothingEverydaySelector(true)}
+                      >
+                        <ChevronRight className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </div>
                   <div className="space-y-2">
                     <Label>Occasional Style</Label>
-                    <Select
-                      value={influencerData.clothing_style_occasional}
-                      onValueChange={(value) => handleInputChange('clothing_style_occasional', value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select occasional style" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {CLOTHING_STYLES.map(style => (
-                          <SelectItem key={style} value={style}>{style}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <div className="flex gap-2">
+                      <Select
+                        value={influencerData.clothing_style_occasional}
+                        onValueChange={(value) => handleInputChange('clothing_style_occasional', value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select occasional style" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {clothingOccasionalOptions.map((option, index) => (
+                            <SelectItem key={index} value={option.label}>{option.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Button 
+                        variant="outline" 
+                        size="icon"
+                        onClick={() => setShowClothingOccasionalSelector(true)}
+                      >
+                        <ChevronRight className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Home Style</Label>
-                    <Select
-                      value={influencerData.clothing_style_home}
-                      onValueChange={(value) => handleInputChange('clothing_style_home', value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select home style" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {CLOTHING_STYLES.map(style => (
-                          <SelectItem key={style} value={style}>{style}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-              </div>
+                    <div className="flex gap-2">
+                      <Select
+                        value={influencerData.clothing_style_home}
+                        onValueChange={(value) => handleInputChange('clothing_style_home', value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select home style" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {clothingHomewearOptions.map((option, index) => (
+                            <SelectItem key={index} value={option.label}>{option.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Button 
+                        variant="outline" 
+                        size="icon"
+                        onClick={() => setShowClothingHomewearSelector(true)}
+                      >
+                        <ChevronRight className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
                   <div className="space-y-2">
                     <Label>Sports Style</Label>
-                    <Select
-                      value={influencerData.clothing_style_sports}
-                      onValueChange={(value) => handleInputChange('clothing_style_sports', value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select sports style" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {CLOTHING_STYLES.map(style => (
-                          <SelectItem key={style} value={style}>{style}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-              </div>
-            </div>
+                    <div className="flex gap-2">
+                      <Select
+                        value={influencerData.clothing_style_sports}
+                        onValueChange={(value) => handleInputChange('clothing_style_sports', value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select sports style" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {clothingSportsOptions.map((option, index) => (
+                            <SelectItem key={index} value={option.label}>{option.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Button 
+                        variant="outline" 
+                        size="icon"
+                        onClick={() => setShowClothingSportsSelector(true)}
+                      >
+                        <ChevronRight className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
 
                 <div className="space-y-2">
                   <Label>Home Environment</Label>
-                  <Select
-                    value={influencerData.home_environment}
-                    onValueChange={(value) => handleInputChange('home_environment', value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select home environment" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {HOME_ENVIRONMENTS.map(env => (
-                        <SelectItem key={env} value={env}>{env}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <div className="flex gap-2">
+                    <Select
+                      value={influencerData.home_environment}
+                      onValueChange={(value) => handleInputChange('home_environment', value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select home environment" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {homeEnvironmentOptions.map((option, index) => (
+                          <SelectItem key={index} value={option.label}>{option.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button 
+                      variant="outline" 
+                      size="icon"
+                      onClick={() => setShowHomeEnvironmentSelector(true)}
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
           </CardContent>
         </Card>
@@ -1012,6 +1285,150 @@ export default function InfluencerEdit() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {showBackgroundSelector && (
+        <OptionSelector
+          options={backgroundOptions}
+          onSelect={(label) => handleInputChange('cultural_background', label)}
+          onClose={() => setShowBackgroundSelector(false)}
+          title="Select Cultural Background"
+        />
+      )}
+
+      {showHairLengthSelector && (
+        <OptionSelector
+          options={hairLengthOptions}
+          onSelect={(label) => handleInputChange('hair_length', label)}
+          onClose={() => setShowHairLengthSelector(false)}
+          title="Select Hair Length"
+        />
+      )}
+
+      {showEyeColorSelector && (
+        <OptionSelector
+          options={eyeColorOptions}
+          onSelect={(label) => handleInputChange('eye_color', label)}
+          onClose={() => setShowEyeColorSelector(false)}
+          title="Select Eye Color"
+        />
+      )}
+
+      {showHairColorSelector && (
+        <OptionSelector
+          options={hairColorOptions}
+          onSelect={(label) => handleInputChange('hair_color', label)}
+          onClose={() => setShowHairColorSelector(false)}
+          title="Select Hair Color"
+        />
+      )}
+
+      {showHairStyleSelector && (
+        <OptionSelector
+          options={hairStyleOptions}
+          onSelect={(label) => handleInputChange('hair_style', label)}
+          onClose={() => setShowHairStyleSelector(false)}
+          title="Select Hair Style"
+        />
+      )}
+
+      {showLipSelector && (
+        <OptionSelector
+          options={lipOptions}
+          onSelect={(label) => handleInputChange('lip_style', label)}
+          onClose={() => setShowLipSelector(false)}
+          title="Select Lip Style"
+        />
+      )}
+
+      {showNoseSelector && (
+        <OptionSelector
+          options={noseOptions}
+          onSelect={(label) => handleInputChange('nose_style', label)}
+          onClose={() => setShowNoseSelector(false)}
+          title="Select Nose Style"
+        />
+      )}
+
+      {showFaceShapeSelector && (
+        <OptionSelector
+          options={faceShapeOptions}
+          onSelect={(label) => handleInputChange('face_shape', label)}
+          onClose={() => setShowFaceShapeSelector(false)}
+          title="Select Face Shape"
+        />
+      )}
+
+      {showSkinToneSelector && (
+        <OptionSelector
+          options={skinToneOptions}
+          onSelect={(label) => handleInputChange('skin_tone', label)}
+          onClose={() => setShowSkinToneSelector(false)}
+          title="Select Skin Tone"
+        />
+      )}
+
+      {showBodyTypeSelector && (
+        <OptionSelector
+          options={bodyTypeOptions}
+          onSelect={(label) => handleInputChange('body_type', label)}
+          onClose={() => setShowBodyTypeSelector(false)}
+          title="Select Body Type"
+        />
+      )}
+
+      {showColorPaletteSelector && (
+        <OptionSelector
+          options={colorPaletteOptions}
+          onSelect={(label) => handleAddTag('color_palette')}
+          onClose={() => setShowColorPaletteSelector(false)}
+          title="Select Color Palette"
+        />
+      )}
+
+      {showClothingEverydaySelector && (
+        <OptionSelector
+          options={clothingEverydayOptions}
+          onSelect={(label) => handleInputChange('clothing_style_everyday', label)}
+          onClose={() => setShowClothingEverydaySelector(false)}
+          title="Select Everyday Style"
+        />
+      )}
+
+      {showClothingOccasionalSelector && (
+        <OptionSelector
+          options={clothingOccasionalOptions}
+          onSelect={(label) => handleInputChange('clothing_style_occasional', label)}
+          onClose={() => setShowClothingOccasionalSelector(false)}
+          title="Select Occasional Style"
+        />
+      )}
+
+      {showClothingHomewearSelector && (
+        <OptionSelector
+          options={clothingHomewearOptions}
+          onSelect={(label) => handleInputChange('clothing_style_home', label)}
+          onClose={() => setShowClothingHomewearSelector(false)}
+          title="Select Home Style"
+        />
+      )}
+
+      {showClothingSportsSelector && (
+        <OptionSelector
+          options={clothingSportsOptions}
+          onSelect={(label) => handleInputChange('clothing_style_sports', label)}
+          onClose={() => setShowClothingSportsSelector(false)}
+          title="Select Sports Style"
+        />
+      )}
+
+      {showHomeEnvironmentSelector && (
+        <OptionSelector
+          options={homeEnvironmentOptions}
+          onSelect={(label) => handleInputChange('home_environment', label)}
+          onClose={() => setShowHomeEnvironmentSelector(false)}
+          title="Select Home Environment"
+        />
+      )}
     </div>
   );
 }

@@ -238,9 +238,12 @@ export default function InfluencerUse() {
                 </div>
                 
                 <div>
-                  <h3 className="font-semibold text-lg mb-2">{influencer.name}</h3>
-                  <p className="text-sm text-muted-foreground mb-3">{influencer.description}</p>
-                  <p className="text-xs text-muted-foreground mb-3">{influencer.personality}</p>
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="font-semibold text-lg">{influencer.name}</h3>
+                    <Badge variant="secondary">{influencer.status}</Badge>
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-1">{influencer.age_lifestyle}</p>
+                  <p className="text-sm text-muted-foreground mb-2">{influencer.influencer_type}</p>
                   
                   <div className="flex flex-wrap gap-1 mb-4">
                     {influencer.tags.slice(0, 3).map((tag, index) => (
@@ -254,18 +257,13 @@ export default function InfluencerUse() {
                       </Badge>
                     )}
                   </div>
-
-                  <div className="flex items-center justify-between text-sm text-muted-foreground mb-4">
-                    <span>Status: {influencer.status}</span>
-                    <span>{influencer.generatedContent} posts</span>
-                  </div>
                 </div>
                 
                 <Button 
                   onClick={() => handleUseInfluencer(influencer.id)}
                   className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
                 >
-                  Use for Content
+                  Use
                 </Button>
               </div>
             </CardContent>

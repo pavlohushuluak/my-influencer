@@ -13,8 +13,8 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { updateInfluencer } from '@/store/slices/influencersSlice';
-import { X, Plus, Save, Crown, Lock, Image, Settings, User, ChevronRight } from 'lucide-react';
+import { updateInfluencer, setInfluencers, setLoading, setError } from '@/store/slices/influencersSlice';
+import { X, Plus, Save, Crown, Lock, Image, Settings, User, ChevronRight, MoreHorizontal } from 'lucide-react';
 import { InfluencerCard } from '@/components/Influencers/InfluencerCard';
 
 const HAIR_LENGTHS = ['Short', 'Medium', 'Long', 'Shoulder-Length'];
@@ -107,7 +107,9 @@ export default function InfluencerEdit() {
   const location = useLocation();
   const dispatch = useDispatch();
   const influencers = useSelector((state: RootState) => state.influencers.influencers);
-  
+  const displayedInfluencers = influencers;
+  const [showAllInfluencers, setShowAllInfluencers] = useState(false);
+
   const [showEditView, setShowEditView] = useState(!!location.state?.influencerData);
   const [subscriptionLevel, setSubscriptionLevel] = useState<'free' | 'professional' | 'enterprise'>('free');
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
@@ -210,21 +212,24 @@ export default function InfluencerEdit() {
       setShowUpgradeModal(true);
       return;
     }
-    
+
     setInfluencerData(prev => ({
       ...prev,
       [field]: value
     }));
   };
 
-  const handleArrayInputChange = (field: string, value: string) => {
-    if (value && value.includes(',')) {
-      const values = value.split(',').map(v => v.trim());
-      setInfluencerData(prev => ({
-        ...prev,
-        [field]: values
-      }));
+  const handleArrayInputChange = (field: string, value: string[]) => {
+    if (isFeatureLocked(field)) {
+      setLockedFeature(field);
+      setShowUpgradeModal(true);
+      return;
     }
+
+    setInfluencerData(prev => ({
+      ...prev,
+      [field]: value
+    }));
   };
 
   const handleAddTag = (field: string) => {
@@ -233,10 +238,10 @@ export default function InfluencerEdit() {
       setShowUpgradeModal(true);
       return;
     }
-    
+
     if (newTag && !influencerData[field].includes(newTag)) {
       setInfluencerData(prev => ({
-      ...prev,
+        ...prev,
         [field]: [...prev[field], newTag]
       }));
       setNewTag('');
@@ -251,7 +256,16 @@ export default function InfluencerEdit() {
   };
 
   const handleSave = () => {
-    dispatch(updateInfluencer(influencerData));
+    const updatedInfluencer = {
+      ...influencerData,
+      name: `${influencerData.name_first} ${influencerData.name_last}`,
+      description: `${influencerData.influencer_type} Influencer`,
+      personality: influencerData.speech_style.join(', '),
+      updated_at: new Date().toISOString().split('T')[0],
+      tags: influencerData.content_focus
+    };
+
+    dispatch(updateInfluencer(updatedInfluencer));
     navigate('/influencers');
   };
 
@@ -330,6 +344,18 @@ export default function InfluencerEdit() {
     navigate('/influencers/templates');
   };
 
+  const handleUseInfluencer = (id: string) => {
+    const influencer = influencers.find(inf => inf.id === id);
+    if (influencer) {
+      navigate('/content/create', {
+        state: {
+          influencerData: influencer,
+          mode: 'create'
+        }
+      });
+    }
+  };
+
   useEffect(() => {
     const fetchOptions = async () => {
       try {
@@ -375,6 +401,32 @@ export default function InfluencerEdit() {
     fetchOptions();
   }, []);
 
+  useEffect(() => {
+    const fetchInfluencers = async () => {
+      try {
+        dispatch(setLoading(true));
+        const response = await fetch('https://db.nymia.ai/rest/v1/virtual_influencer?select=*', {
+          headers: {
+            'Authorization': 'Bearer WeInfl3nc3withAI'
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch influencers');
+        }
+
+        const data = await response.json();
+        dispatch(setInfluencers(data));
+      } catch (error) {
+        dispatch(setError(error instanceof Error ? error.message : 'An error occurred'));
+      } finally {
+        dispatch(setLoading(false));
+      }
+    };
+
+    fetchInfluencers();
+  }, [dispatch]);
+
   const OptionSelector = ({ options, onSelect, onClose, title }: {
     options: Option[],
     onSelect: (label: string) => void,
@@ -403,15 +455,15 @@ export default function InfluencerEdit() {
                     alt={option.label}
                     className="absolute inset-0 w-full h-full object-cover rounded-md"
                   />
-            </div>
+                </div>
                 <p className="text-sm text-center font-medium mt-2">{option.label}</p>
               </CardContent>
             </Card>
           ))}
-          </div>
+        </div>
       </DialogContent>
     </Dialog>
-    );
+  );
 
   if (!showEditView) {
     return (
@@ -438,56 +490,54 @@ export default function InfluencerEdit() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {influencers.map((influencer) => (
+          {displayedInfluencers.map((influencer) => (
             <Card key={influencer.id} className="group hover:shadow-lg transition-all duration-300 border-border/50 hover:border-ai-purple-500/20">
               <CardContent className="p-6">
                 <div className="space-y-4">
                   <div className="w-full h-48 bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg overflow-hidden">
-                    <img 
-                      src={influencer.image} 
-                      alt={influencer.name}
+                    <img
+                      src={influencer.image}
+                      alt={`${influencer.name_first} ${influencer.name_last}`}
                       className="w-full h-full object-cover"
                     />
                   </div>
-                  
+
                   <div>
                     <div className="flex items-center justify-between mb-2">
                       <h3 className="font-semibold text-lg group-hover:text-ai-purple-500 transition-colors">
-                        {influencer.name}
+                        {influencer.name_first} {influencer.name_last}
                       </h3>
-                      <Badge variant="secondary">
-                        {influencer.status}
-                      </Badge>
                     </div>
-                    <p className="text-sm text-muted-foreground mb-2">
-                      {influencer.description}
-                    </p>
-                    <p className="text-xs text-muted-foreground mb-3">
-                      {influencer.personality}
-                    </p>
+
+                    <div className="flex flex-col gap-1 mb-3">
+                      <div className="flex text-sm text-muted-foreground flex-col">
+                        <span className="font-medium mr-2">Age/Lifestyle:</span>
+                        {influencer.age_lifestyle}
+                      </div>
+                      <div className="flex items-center text-sm text-muted-foreground">
+                        <span className="font-medium mr-2">Type:</span>
+                        {influencer.influencer_type}
+                      </div>
+                    </div>
 
                     <div className="flex flex-wrap gap-1 mb-4">
-                      {influencer.tags.map((tag) => (
+                      {influencer.tags?.map((tag) => (
                         <Badge key={tag} variant="outline" className="text-xs">
                           {tag}
                         </Badge>
                       ))}
                     </div>
 
-                    <div className="flex items-center justify-between text-sm text-muted-foreground mb-4">
-                      <span>{influencer.generatedContent} content items</span>
-                  </div>
-                  
                     <div className="flex gap-2">
-                  <Button 
+                      <Button
                         size="sm"
                         variant="outline"
                         onClick={() => handleEditInfluencer(influencer.id)}
                         className="flex-1 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
                       >
                         <Settings className="w-4 h-4 mr-2" />
-                    Edit
-                  </Button>
+                        Edit
+                      </Button>
                     </div>
                   </div>
                 </div>
@@ -495,6 +545,7 @@ export default function InfluencerEdit() {
             </Card>
           ))}
         </div>
+
       </div>
     );
   }
@@ -515,9 +566,9 @@ export default function InfluencerEdit() {
             Back to List
           </Button>
           <Button onClick={handleSave} className="bg-gradient-to-r from-purple-600 to-blue-600">
-          <Save className="w-4 h-4 mr-2" />
-          Save Changes
-        </Button>
+            <Save className="w-4 h-4 mr-2" />
+            Save Changes
+          </Button>
         </div>
       </div>
 
@@ -531,30 +582,30 @@ export default function InfluencerEdit() {
 
         <ScrollArea>
           <TabsContent value="basic" className="space-y-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>Basic Information</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Basic Information</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>First Name</Label>
-                <Input
+                    <Input
                       value={influencerData.name_first}
                       onChange={(e) => handleInputChange('name_first', e.target.value)}
                       placeholder="Enter first name"
-                />
-              </div>
+                    />
+                  </div>
                   <div className="space-y-2">
                     <Label>Last Name</Label>
-                <Input
+                    <Input
                       value={influencerData.name_last}
                       onChange={(e) => handleInputChange('name_last', e.target.value)}
                       placeholder="Enter last name"
-                />
-              </div>
-            </div>
-            
+                    />
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Influencer Type</Label>
@@ -570,26 +621,26 @@ export default function InfluencerEdit() {
                       value={influencerData.sex}
                       onValueChange={(value) => handleInputChange('sex', value)}
                     >
-                <SelectTrigger>
+                      <SelectTrigger>
                         <SelectValue placeholder="Select sex" />
-                </SelectTrigger>
-                <SelectContent>
+                      </SelectTrigger>
+                      <SelectContent>
                         <SelectItem value="Woman">Woman</SelectItem>
                         <SelectItem value="Man">Man</SelectItem>
                         <SelectItem value="Non-binary">Non-binary</SelectItem>
-                </SelectContent>
-              </Select>
+                      </SelectContent>
+                    </Select>
                   </div>
-            </div>
+                </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Age & Lifestyle</Label>
-              <Input
+                    <Input
                       value={influencerData.age_lifestyle}
                       onChange={(e) => handleInputChange('age_lifestyle', e.target.value)}
-                placeholder="e.g., 25, Young Professional"
-              />
+                      placeholder="e.g., 25, Young Professional"
+                    />
                   </div>
                   {renderFieldWithUpgrade('cultural_background',
                     <div className="space-y-2">
@@ -629,17 +680,17 @@ export default function InfluencerEdit() {
                       placeholder="e.g., Los Angeles, USA"
                     />
                   </div>
-            </div>
-          </CardContent>
-        </Card>
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="appearance" className="space-y-4">
-        <Card>
-          <CardHeader>
+            <Card>
+              <CardHeader>
                 <CardTitle>Physical Appearance</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+              </CardHeader>
+              <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Hair Length</Label>
@@ -648,15 +699,15 @@ export default function InfluencerEdit() {
                         value={influencerData.hair_length}
                         onValueChange={(value) => handleInputChange('hair_length', value)}
                       >
-                <SelectTrigger>
+                        <SelectTrigger>
                           <SelectValue placeholder="Select hair length" />
-                </SelectTrigger>
-                <SelectContent>
+                        </SelectTrigger>
+                        <SelectContent>
                           {hairLengthOptions.map((option, index) => (
                             <SelectItem key={index} value={option.label}>{option.label}</SelectItem>
                           ))}
-                </SelectContent>
-              </Select>
+                        </SelectContent>
+                      </Select>
                       <Button
                         variant="outline"
                         size="icon"
@@ -664,7 +715,7 @@ export default function InfluencerEdit() {
                       >
                         <ChevronRight className="w-4 h-4" />
                       </Button>
-            </div>
+                    </div>
                   </div>
                   {renderFieldWithUpgrade('hair_color',
                     <div className="space-y-2">
@@ -691,11 +742,11 @@ export default function InfluencerEdit() {
                           <ChevronRight className="w-4 h-4" />
                         </Button>
                       </div>
-              </div>
-            )}
+                    </div>
+                  )}
                 </div>
 
-            <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Hair Style</Label>
                     <div className="flex gap-2">
@@ -703,15 +754,15 @@ export default function InfluencerEdit() {
                         value={influencerData.hair_style}
                         onValueChange={(value) => handleInputChange('hair_style', value)}
                       >
-                  <SelectTrigger>
+                        <SelectTrigger>
                           <SelectValue placeholder="Select hair style" />
-                  </SelectTrigger>
-                  <SelectContent>
+                        </SelectTrigger>
+                        <SelectContent>
                           {hairStyleOptions.map((option, index) => (
                             <SelectItem key={index} value={option.label}>{option.label}</SelectItem>
                           ))}
-                  </SelectContent>
-                </Select>
+                        </SelectContent>
+                      </Select>
                       <Button
                         variant="outline"
                         size="icon"
@@ -746,7 +797,7 @@ export default function InfluencerEdit() {
                       </Button>
                     </div>
                   </div>
-              </div>
+                </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
@@ -888,17 +939,17 @@ export default function InfluencerEdit() {
                       <ChevronRight className="w-4 h-4" />
                     </Button>
                   </div>
-            </div>
-          </CardContent>
-        </Card>
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="style" className="space-y-4">
-        <Card>
-          <CardHeader>
+            <Card>
+              <CardHeader>
                 <CardTitle>Style & Environment</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+              </CardHeader>
+              <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label>Color Palette</Label>
                   <div className="flex gap-2">
@@ -925,8 +976,8 @@ export default function InfluencerEdit() {
                     >
                       <ChevronRight className="w-4 h-4" />
                     </Button>
-              </div>
-            </div>
+                  </div>
+                </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
@@ -952,8 +1003,8 @@ export default function InfluencerEdit() {
                       >
                         <ChevronRight className="w-4 h-4" />
                       </Button>
-                </div>
-              </div>
+                    </div>
+                  </div>
                   <div className="space-y-2">
                     <Label>Occasional Style</Label>
                     <div className="flex gap-2">
@@ -1007,7 +1058,7 @@ export default function InfluencerEdit() {
                       </Button>
                     </div>
                   </div>
-            <div>
+                  <div>
                     <Label>Sports Style</Label>
                     <div className="flex gap-2">
                       <Select
@@ -1057,17 +1108,17 @@ export default function InfluencerEdit() {
                     >
                       <ChevronRight className="w-4 h-4" />
                     </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="personality">
-        <Card>
-          <CardHeader>
+            <Card>
+              <CardHeader>
                 <CardTitle>Personality & Content</CardTitle>
-          </CardHeader>
+              </CardHeader>
               <CardContent>
                 <div className="space-y-2">
                   <Label>Content Focus</Label>
@@ -1083,7 +1134,7 @@ export default function InfluencerEdit() {
                     ))}
                   </div>
                   <div className="flex gap-2">
-              <Input
+                    <Input
                       value={newTag}
                       onChange={(e) => setNewTag(e.target.value)}
                       placeholder="Add content focus"
@@ -1091,7 +1142,7 @@ export default function InfluencerEdit() {
                     />
                     <Button onClick={() => handleAddTag('content_focus')}>Add</Button>
                   </div>
-            </div>
+                </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
@@ -1100,15 +1151,15 @@ export default function InfluencerEdit() {
                       value={influencerData.job_area}
                       onValueChange={(value) => handleInputChange('job_area', value)}
                     >
-                <SelectTrigger>
+                      <SelectTrigger>
                         <SelectValue placeholder="Select job area" />
-                </SelectTrigger>
-                <SelectContent>
+                      </SelectTrigger>
+                      <SelectContent>
                         {JOB_AREAS.map(area => (
                           <SelectItem key={area} value={area}>{area}</SelectItem>
                         ))}
-                </SelectContent>
-              </Select>
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="space-y-2">
                     <Label>Job Title</Label>
@@ -1118,7 +1169,7 @@ export default function InfluencerEdit() {
                       placeholder="Enter job title"
                     />
                   </div>
-            </div>
+                </div>
 
                 <div className="space-y-2">
                   <Label>Speech Style</Label>
@@ -1200,14 +1251,14 @@ export default function InfluencerEdit() {
                     ))}
                   </div>
                   <div className="flex gap-2">
-                <Input
+                    <Input
                       value={newTag}
                       onChange={(e) => setNewTag(e.target.value)}
                       placeholder="Add core value"
                       onKeyDown={(e) => e.key === 'Enter' && handleAddTag('core_values')}
                     />
                     <Button onClick={() => handleAddTag('core_values')}>Add</Button>
-              </div>
+                  </div>
                 </div>
 
                 <div className="space-y-2">
@@ -1233,8 +1284,8 @@ export default function InfluencerEdit() {
                     <Button onClick={() => handleAddTag('current_goals')}>Add</Button>
                   </div>
                 </div>
-          </CardContent>
-        </Card>
+              </CardContent>
+            </Card>
           </TabsContent>
         </ScrollArea>
       </Tabs>
@@ -1250,7 +1301,7 @@ export default function InfluencerEdit() {
               This feature requires a higher subscription level. Choose a plan that fits your needs.
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-6">
             {Object.entries(SUBSCRIPTION_FEATURES).map(([level, plan]) => (
               <div key={level} className="space-y-2">
@@ -1258,7 +1309,7 @@ export default function InfluencerEdit() {
                   <div>
                     <h3 className="font-semibold">{plan.name}</h3>
                     <p className="text-sm text-muted-foreground">{plan.price}</p>
-            </div>
+                  </div>
                   <Button
                     variant={level === subscriptionLevel ? "outline" : "default"}
                     className={level === subscriptionLevel ? "" : "bg-gradient-to-r from-purple-600 to-blue-600"}
@@ -1268,8 +1319,8 @@ export default function InfluencerEdit() {
                     }}
                   >
                     {level === subscriptionLevel ? "Current Plan" : "Upgrade"}
-              </Button>
-            </div>
+                  </Button>
+                </div>
                 <ul className="text-sm text-muted-foreground space-y-1">
                   {plan.features.map((feature, index) => (
                     <li key={index} className="flex items-center gap-2">

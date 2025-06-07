@@ -42,9 +42,9 @@ const PLATFORMS = [
 const SEARCH_FIELDS = [
   { id: 'all', label: 'All Fields' },
   { id: 'name', label: 'Name' },
-  { id: 'description', label: 'Description' },
-  { id: 'tags', label: 'Tags' },
-  { id: 'personality', label: 'Personality' }
+  { id: 'age_lifestyle', label: 'Age/Lifestyle' },
+  { id: 'influencer_type', label: 'Type' },
+  { id: 'tags', label: 'Tags' }
 ];
 
 export default function InfluencerUse() {
@@ -65,29 +65,26 @@ export default function InfluencerUse() {
   const [selectedInfluencerData, setSelectedInfluencerData] = useState<Influencer | null>(null);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
-  // Get unique tags from all influencers for suggestions
-  const allTags = Array.from(new Set(influencers.flatMap(inf => inf.tags)));
-
   const filteredInfluencers = influencers.filter(influencer => {
     if (!debouncedSearchTerm) return true;
 
     const searchLower = debouncedSearchTerm.toLowerCase();
-
+    
     switch (selectedSearchField.id) {
       case 'name':
-        return influencer.name.toLowerCase().includes(searchLower);
-      case 'description':
-        return influencer.description.toLowerCase().includes(searchLower);
+        return `${influencer.name_first} ${influencer.name_last}`.toLowerCase().includes(searchLower);
+      case 'age_lifestyle':
+        return influencer.age_lifestyle.toLowerCase().includes(searchLower);
+      case 'influencer_type':
+        return influencer.influencer_type.toLowerCase().includes(searchLower);
       case 'tags':
-        return influencer.tags.some(tag => tag.toLowerCase().includes(searchLower));
-      case 'personality':
-        return influencer.personality.toLowerCase().includes(searchLower);
+        return influencer.tags?.some(tag => tag.toLowerCase().includes(searchLower)) || false;
       default:
         return (
-          influencer.name.toLowerCase().includes(searchLower) ||
-          influencer.description.toLowerCase().includes(searchLower) ||
-          influencer.tags.some(tag => tag.toLowerCase().includes(searchLower)) ||
-          influencer.personality.toLowerCase().includes(searchLower)
+          `${influencer.name_first} ${influencer.name_last}`.toLowerCase().includes(searchLower) ||
+          influencer.age_lifestyle.toLowerCase().includes(searchLower) ||
+          influencer.influencer_type.toLowerCase().includes(searchLower) ||
+          influencer.tags?.some(tag => tag.toLowerCase().includes(searchLower)) || false
         );
     }
   });
@@ -164,6 +161,9 @@ export default function InfluencerUse() {
     setShowSearchSuggestions(false);
   };
 
+  // Get unique tags from all influencers for suggestions
+  const allTags = Array.from(new Set(influencers.flatMap(inf => inf.tags || [])));
+
   return (
     <div className="p-6 space-y-6 animate-fade-in">
       {/* Header */}
@@ -200,7 +200,7 @@ export default function InfluencerUse() {
                 </Button>
               )}
             </div>
-
+            
             {/* Search Suggestions */}
             {showSearchSuggestions && searchTerm && (
               <div className="absolute z-10 w-full mt-1 bg-popover rounded-md shadow-md border">
@@ -226,7 +226,7 @@ export default function InfluencerUse() {
               </div>
             )}
           </div>
-
+          
           <Popover open={openFilter} onOpenChange={setOpenFilter}>
             <PopoverTrigger asChild>
               <Button variant="outline" className="gap-2">

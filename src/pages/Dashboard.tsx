@@ -6,12 +6,39 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { MoreHorizontal, Filter } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSelector } from 'react-redux';
+import { RootState } from '@/store/store';
 
 export default function Dashboard() {
   const navigate = useNavigate();
-
+  const { influencers } = useSelector((state: RootState) => state.influencers);
   const [showAllInfluencers, setShowAllInfluencers] = useState(false);
+  const [displayedInfluencers, setDisplayedInfluencers] = useState(influencers.slice(0, 3));
+
+  useEffect(() => {
+    const fetchLipOptions = async () => {
+      try {
+        const response = await fetch('https://api.nymia.ai/v1/fieldoptions?fieldtype=lips', {
+          headers: {
+            'Authorization': 'Bearer WeInfl3nc3withAI'
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch lip options');
+        }
+        
+        const data = await response.json();
+        console.log('Lip Options:', data);
+      } catch (error) {
+        console.error('Error fetching lip options:', error);
+      }
+    };
+
+    fetchLipOptions();
+  }, []);
+
   const [showAllStoryContent, setShowAllStoryContent] = useState(false);
 
   // Mock data for influencers
@@ -136,7 +163,6 @@ export default function Dashboard() {
     }
   ];
 
-  const displayedInfluencers = showAllInfluencers ? mockInfluencers : mockInfluencers.slice(0, 3);
   const displayedStoryContent = showAllStoryContent ? mockStoryContent : mockStoryContent.slice(0, 2);
 
   // Handler functions

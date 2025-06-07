@@ -10,6 +10,10 @@ export interface Influencer {
   generatedContent: number;
   status: 'active' | 'inactive';
   tags: string[];
+  age?: number;
+  lifecycle?: string;
+  type?: string;
+  imageUrl?: string;
   
   // Basic Information (Level 1)
   visual_only_or_full_persona?: 'visual_only' | 'full_persona';

@@ -1,11 +1,11 @@
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '@/store/store';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { useState, useEffect, useCallback } from 'react';
-import { Search, MessageCircle, Instagram, Send, X, Filter, Tag, Crown } from 'lucide-react';
+import { Search, MessageCircle, Instagram, Send, X, Filter, Tag, Crown, Plus } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useNavigate } from 'react-router-dom';
 import { Influencer } from '@/store/slices/influencersSlice';
+import { setInfluencers, setLoading, setError } from '@/store/slices/influencersSlice';
 
 const PLATFORMS = [
   {
@@ -47,8 +48,12 @@ const SEARCH_FIELDS = [
 ];
 
 export default function InfluencerUse() {
-  const { influencers } = useSelector((state: RootState) => state.influencers);
+  const influencers = useSelector((state: RootState) => state.influencers.influencers);
+  console.log(influencers);
   const { subscription } = useSelector((state: RootState) => state.user);
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedInfluencer, setSelectedInfluencer] = useState<string>('');
   const [selectedPlatform, setSelectedPlatform] = useState<string>('');
@@ -59,7 +64,6 @@ export default function InfluencerUse() {
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
   const [selectedInfluencerData, setSelectedInfluencerData] = useState<Influencer | null>(null);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-  const navigate = useNavigate();
 
   // Get unique tags from all influencers for suggestions
   const allTags = Array.from(new Set(influencers.flatMap(inf => inf.tags)));
@@ -68,7 +72,7 @@ export default function InfluencerUse() {
     if (!debouncedSearchTerm) return true;
 
     const searchLower = debouncedSearchTerm.toLowerCase();
-    
+
     switch (selectedSearchField.id) {
       case 'name':
         return influencer.name.toLowerCase().includes(searchLower);
@@ -88,6 +92,32 @@ export default function InfluencerUse() {
     }
   });
 
+  useEffect(() => {
+    const fetchInfluencers = async () => {
+      try {
+        dispatch(setLoading(true));
+        const response = await fetch('https://db.nymia.ai/rest/v1/virtual_influencer?select=*', {
+          headers: {
+            'Authorization': 'Bearer WeInfl3nc3withAI'
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch influencers');
+        }
+
+        const data = await response.json();
+        dispatch(setInfluencers(data));
+      } catch (error) {
+        dispatch(setError(error instanceof Error ? error.message : 'An error occurred'));
+      } finally {
+        dispatch(setLoading(false));
+      }
+    };
+
+    fetchInfluencers();
+  }, [dispatch]);
+
   const handleUseInfluencer = (influencerId: string) => {
     const influencer = influencers.find(i => i.id === influencerId);
     if (!influencer) return;
@@ -98,6 +128,7 @@ export default function InfluencerUse() {
       return;
     }
 
+    setSelectedInfluencer(influencerId);
     setSelectedInfluencerData(influencer);
     setShowPlatformModal(true);
   };
@@ -105,9 +136,15 @@ export default function InfluencerUse() {
   const handlePlatformSelect = (platformId: string) => {
     const influencer = influencers.find(inf => inf.id === selectedInfluencer);
     const platform = PLATFORMS.find(p => p.id === platformId);
-    
+
     if (influencer && platform) {
-      console.log(`Creating content for ${influencer.name} on ${platform.name}`);
+      navigate('/content/create', {
+        state: {
+          influencerData: influencer,
+          platform: platform,
+          mode: 'create'
+        }
+      });
       setShowPlatformModal(false);
     }
   };
@@ -163,7 +200,7 @@ export default function InfluencerUse() {
                 </Button>
               )}
             </div>
-            
+
             {/* Search Suggestions */}
             {showSearchSuggestions && searchTerm && (
               <div className="absolute z-10 w-full mt-1 bg-popover rounded-md shadow-md border">
@@ -189,7 +226,7 @@ export default function InfluencerUse() {
               </div>
             )}
           </div>
-          
+
           <Popover open={openFilter} onOpenChange={setOpenFilter}>
             <PopoverTrigger asChild>
               <Button variant="outline" className="gap-2">
@@ -226,45 +263,53 @@ export default function InfluencerUse() {
       {/* Influencers Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {filteredInfluencers.map((influencer) => (
-          <Card key={influencer.id} className="group hover:shadow-lg transition-all duration-300">
+          <Card key={influencer.id} className="group hover:shadow-lg transition-all duration-300 border-border/50 hover:border-ai-purple-500/20">
             <CardContent className="p-6">
               <div className="space-y-4">
                 <div className="w-full h-48 bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg overflow-hidden">
-                  <img 
-                    src={influencer.image} 
-                    alt={influencer.name}
+                  <img
+                    src={influencer.image}
+                    alt={`${influencer.name_first} ${influencer.name_last}`}
                     className="w-full h-full object-cover"
                   />
                 </div>
-                
+
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <h3 className="font-semibold text-lg">{influencer.name}</h3>
-                    <Badge variant="secondary">{influencer.status}</Badge>
+                    <h3 className="font-semibold text-lg group-hover:text-ai-purple-500 transition-colors">
+                      {influencer.name_first} {influencer.name_last}
+                    </h3>
                   </div>
-                  <p className="text-sm text-muted-foreground mb-1">{influencer.age_lifestyle}</p>
-                  <p className="text-sm text-muted-foreground mb-2">{influencer.influencer_type}</p>
-                  
+
+                  <div className="flex flex-col gap-1 mb-3">
+                    <div className="flex text-sm text-muted-foreground flex-col">
+                      <span className="font-medium mr-2">Age/Lifestyle:</span>
+                      {influencer.age_lifestyle}
+                    </div>
+                    <div className="flex items-center text-sm text-muted-foreground">
+                      <span className="font-medium mr-2">Type:</span>
+                      {influencer.influencer_type}
+                    </div>
+                  </div>
+
                   <div className="flex flex-wrap gap-1 mb-4">
-                    {influencer.tags.slice(0, 3).map((tag, index) => (
-                      <Badge key={index} variant="secondary" className="text-xs">
+                    {influencer.tags?.map((tag) => (
+                      <Badge key={tag} variant="outline" className="text-xs">
                         {tag}
                       </Badge>
                     ))}
-                    {influencer.tags.length > 3 && (
-                      <Badge variant="outline" className="text-xs">
-                        +{influencer.tags.length - 3} more
-                      </Badge>
-                    )}
                   </div>
+
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleUseInfluencer(influencer.id)}
+                    className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 w-full"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Use
+                  </Button>
                 </div>
-                
-                <Button 
-                  onClick={() => handleUseInfluencer(influencer.id)}
-                  className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
-                >
-                  Use
-                </Button>
               </div>
             </CardContent>
           </Card>
@@ -272,17 +317,20 @@ export default function InfluencerUse() {
       </div>
 
       {/* Platform Selection Modal */}
-      <Dialog open={showPlatformModal} onOpenChange={setShowPlatformModal}>
+      <Dialog
+        open={showPlatformModal}
+        onOpenChange={(open) => setShowPlatformModal(open)}
+      >
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Select Platform</DialogTitle>
           </DialogHeader>
-          
+
           {selectedInfluencerData && (
             <div className="space-y-4">
               <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
-                <img 
-                  src={selectedInfluencerData.image} 
+                <img
+                  src={selectedInfluencerData.image}
                   alt={selectedInfluencerData.name}
                   className="w-12 h-12 rounded-full object-cover"
                 />
@@ -317,7 +365,10 @@ export default function InfluencerUse() {
       </Dialog>
 
       {/* Upgrade Modal */}
-      <Dialog open={showUpgradeModal} onOpenChange={setShowUpgradeModal}>
+      <Dialog
+        open={showUpgradeModal}
+        onOpenChange={(open) => setShowUpgradeModal(open)}
+      >
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -328,7 +379,7 @@ export default function InfluencerUse() {
               This influencer is only available with a Professional or Enterprise subscription.
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-6">
             <div className="space-y-2">
               <div className="flex items-center justify-between">

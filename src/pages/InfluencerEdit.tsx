@@ -236,7 +236,7 @@ export default function InfluencerEdit() {
     
     if (newTag && !influencerData[field].includes(newTag)) {
       setInfluencerData(prev => ({
-        ...prev,
+      ...prev,
         [field]: [...prev[field], newTag]
       }));
       setNewTag('');
@@ -257,7 +257,7 @@ export default function InfluencerEdit() {
 
   const renderFieldWithUpgrade = (field: string, children: React.ReactNode) => {
     const isLocked = isFeatureLocked(field);
-    
+
     return (
       <div className="relative">
         {children}
@@ -329,8 +329,6 @@ export default function InfluencerEdit() {
   const handleUseTemplate = () => {
     navigate('/influencers/templates');
   };
-  console.log(backgroundOptions);
-  console.log(hairLengthOptions);
 
   useEffect(() => {
     const fetchOptions = async () => {
@@ -377,11 +375,11 @@ export default function InfluencerEdit() {
     fetchOptions();
   }, []);
 
-  const OptionSelector = ({ options, onSelect, onClose, title }: { 
-    options: Option[], 
-    onSelect: (label: string) => void, 
+  const OptionSelector = ({ options, onSelect, onClose, title }: {
+    options: Option[],
+    onSelect: (label: string) => void,
     onClose: () => void,
-    title: string 
+    title: string
   }) => (
     <Dialog open={true} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl overflow-scroll max-h-[80vh]">
@@ -390,8 +388,8 @@ export default function InfluencerEdit() {
         </DialogHeader>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 p-4">
           {options.map((option, index) => (
-            <Card 
-              key={index} 
+            <Card
+              key={index}
               className="cursor-pointer hover:shadow-lg transition-all duration-300"
               onClick={() => {
                 onSelect(option.label);
@@ -400,20 +398,20 @@ export default function InfluencerEdit() {
             >
               <CardContent className="p-4">
                 <div className="relative w-full" style={{ paddingBottom: '125%' }}>
-                  <img 
+                  <img
                     src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
                     alt={option.label}
                     className="absolute inset-0 w-full h-full object-cover rounded-md"
                   />
-                </div>
+            </div>
                 <p className="text-sm text-center font-medium mt-2">{option.label}</p>
               </CardContent>
             </Card>
           ))}
-        </div>
+          </div>
       </DialogContent>
     </Dialog>
-  );
+    );
 
   if (!showEditView) {
     return (
@@ -467,7 +465,7 @@ export default function InfluencerEdit() {
                     <p className="text-xs text-muted-foreground mb-3">
                       {influencer.personality}
                     </p>
-                    
+
                     <div className="flex flex-wrap gap-1 mb-4">
                       {influencer.tags.map((tag) => (
                         <Badge key={tag} variant="outline" className="text-xs">
@@ -475,21 +473,21 @@ export default function InfluencerEdit() {
                         </Badge>
                       ))}
                     </div>
-                    
+
                     <div className="flex items-center justify-between text-sm text-muted-foreground mb-4">
                       <span>{influencer.generatedContent} content items</span>
-                    </div>
-                    
+                  </div>
+                  
                     <div className="flex gap-2">
-                      <Button
+                  <Button 
                         size="sm"
                         variant="outline"
                         onClick={() => handleEditInfluencer(influencer.id)}
                         className="flex-1 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
                       >
                         <Settings className="w-4 h-4 mr-2" />
-                        Edit
-                      </Button>
+                    Edit
+                  </Button>
                     </div>
                   </div>
                 </div>
@@ -520,7 +518,7 @@ export default function InfluencerEdit() {
           <Save className="w-4 h-4 mr-2" />
           Save Changes
         </Button>
-      </div>
+        </div>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
@@ -531,7 +529,7 @@ export default function InfluencerEdit() {
           <TabsTrigger value="personality">Personality</TabsTrigger>
         </TabsList>
 
-        <ScrollArea className="h-[calc(100vh-300px)]">
+        <ScrollArea>
           <TabsContent value="basic" className="space-y-4">
         <Card>
           <CardHeader>
@@ -560,12 +558,12 @@ export default function InfluencerEdit() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Influencer Type</Label>
-              <Input
+                    <Input
                       value={influencerData.influencer_type}
                       onChange={(e) => handleInputChange('influencer_type', e.target.value)}
                       placeholder="e.g., Fashion, Tech, Lifestyle"
-              />
-            </div>
+                    />
+                  </div>
                   <div className="space-y-2">
                     <Label>Sex</Label>
                     <Select
@@ -573,12 +571,12 @@ export default function InfluencerEdit() {
                       onValueChange={(value) => handleInputChange('sex', value)}
                     >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select sex" />
+                        <SelectValue placeholder="Select sex" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Woman">Woman</SelectItem>
-                  <SelectItem value="Man">Man</SelectItem>
-                  <SelectItem value="Non-binary">Non-binary</SelectItem>
+                        <SelectItem value="Woman">Woman</SelectItem>
+                        <SelectItem value="Man">Man</SelectItem>
+                        <SelectItem value="Non-binary">Non-binary</SelectItem>
                 </SelectContent>
               </Select>
                   </div>
@@ -587,13 +585,13 @@ export default function InfluencerEdit() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Age & Lifestyle</Label>
-                    <Input
+              <Input
                       value={influencerData.age_lifestyle}
                       onChange={(e) => handleInputChange('age_lifestyle', e.target.value)}
-                      placeholder="e.g., 25, Young Professional"
-                    />
+                placeholder="e.g., 25, Young Professional"
+              />
                   </div>
-            {renderFieldWithUpgrade('cultural_background',
+                  {renderFieldWithUpgrade('cultural_background',
                     <div className="space-y-2">
                       <Label>Cultural Background</Label>
                       <div className="flex gap-2">
@@ -602,8 +600,8 @@ export default function InfluencerEdit() {
                           onChange={(e) => handleInputChange('cultural_background', e.target.value)}
                           placeholder="e.g., North American, European"
                         />
-                        <Button 
-                          variant="outline" 
+                        <Button
+                          variant="outline"
                           size="icon"
                           onClick={() => setShowBackgroundSelector(true)}
                         >
@@ -611,10 +609,10 @@ export default function InfluencerEdit() {
                         </Button>
                       </div>
                     </div>
-            )}
+                  )}
                 </div>
 
-            <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Birth Origin</Label>
                     <Input
@@ -631,17 +629,17 @@ export default function InfluencerEdit() {
                       placeholder="e.g., Los Angeles, USA"
                     />
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+            </div>
+          </CardContent>
+        </Card>
           </TabsContent>
 
           <TabsContent value="appearance" className="space-y-4">
-            <Card>
-              <CardHeader>
+        <Card>
+          <CardHeader>
                 <CardTitle>Physical Appearance</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
+          </CardHeader>
+          <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Hair Length</Label>
@@ -650,23 +648,23 @@ export default function InfluencerEdit() {
                         value={influencerData.hair_length}
                         onValueChange={(value) => handleInputChange('hair_length', value)}
                       >
-                        <SelectTrigger>
+                <SelectTrigger>
                           <SelectValue placeholder="Select hair length" />
-                        </SelectTrigger>
-                        <SelectContent>
+                </SelectTrigger>
+                <SelectContent>
                           {hairLengthOptions.map((option, index) => (
                             <SelectItem key={index} value={option.label}>{option.label}</SelectItem>
                           ))}
-                        </SelectContent>
-                      </Select>
-                      <Button 
-                        variant="outline" 
+                </SelectContent>
+              </Select>
+                      <Button
+                        variant="outline"
                         size="icon"
                         onClick={() => setShowHairLengthSelector(true)}
                       >
                         <ChevronRight className="w-4 h-4" />
                       </Button>
-                    </div>
+            </div>
                   </div>
                   {renderFieldWithUpgrade('hair_color',
                     <div className="space-y-2">
@@ -685,19 +683,19 @@ export default function InfluencerEdit() {
                             ))}
                           </SelectContent>
                         </Select>
-                        <Button 
-                          variant="outline" 
+                        <Button
+                          variant="outline"
                           size="icon"
                           onClick={() => setShowHairColorSelector(true)}
                         >
                           <ChevronRight className="w-4 h-4" />
                         </Button>
                       </div>
-                    </div>
-                  )}
+              </div>
+            )}
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Hair Style</Label>
                     <div className="flex gap-2">
@@ -705,17 +703,17 @@ export default function InfluencerEdit() {
                         value={influencerData.hair_style}
                         onValueChange={(value) => handleInputChange('hair_style', value)}
                       >
-                        <SelectTrigger>
+                  <SelectTrigger>
                           <SelectValue placeholder="Select hair style" />
-                        </SelectTrigger>
-                        <SelectContent>
+                  </SelectTrigger>
+                  <SelectContent>
                           {hairStyleOptions.map((option, index) => (
                             <SelectItem key={index} value={option.label}>{option.label}</SelectItem>
                           ))}
-                        </SelectContent>
-                      </Select>
-                      <Button 
-                        variant="outline" 
+                  </SelectContent>
+                </Select>
+                      <Button
+                        variant="outline"
                         size="icon"
                         onClick={() => setShowHairStyleSelector(true)}
                       >
@@ -739,8 +737,8 @@ export default function InfluencerEdit() {
                           ))}
                         </SelectContent>
                       </Select>
-                      <Button 
-                        variant="outline" 
+                      <Button
+                        variant="outline"
                         size="icon"
                         onClick={() => setShowEyeColorSelector(true)}
                       >
@@ -748,7 +746,7 @@ export default function InfluencerEdit() {
                       </Button>
                     </div>
                   </div>
-                </div>
+              </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
@@ -767,8 +765,8 @@ export default function InfluencerEdit() {
                           ))}
                         </SelectContent>
                       </Select>
-                      <Button 
-                        variant="outline" 
+                      <Button
+                        variant="outline"
                         size="icon"
                         onClick={() => setShowLipSelector(true)}
                       >
@@ -792,8 +790,8 @@ export default function InfluencerEdit() {
                           ))}
                         </SelectContent>
                       </Select>
-                      <Button 
-                        variant="outline" 
+                      <Button
+                        variant="outline"
                         size="icon"
                         onClick={() => setShowNoseSelector(true)}
                       >
@@ -820,8 +818,8 @@ export default function InfluencerEdit() {
                           ))}
                         </SelectContent>
                       </Select>
-                      <Button 
-                        variant="outline" 
+                      <Button
+                        variant="outline"
                         size="icon"
                         onClick={() => setShowFaceShapeSelector(true)}
                       >
@@ -845,8 +843,8 @@ export default function InfluencerEdit() {
                           ))}
                         </SelectContent>
                       </Select>
-                      <Button 
-                        variant="outline" 
+                      <Button
+                        variant="outline"
                         size="icon"
                         onClick={() => setShowSkinToneSelector(true)}
                       >
@@ -882,17 +880,17 @@ export default function InfluencerEdit() {
                         ))}
                       </SelectContent>
                     </Select>
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       size="icon"
                       onClick={() => setShowBodyTypeSelector(true)}
                     >
                       <ChevronRight className="w-4 h-4" />
                     </Button>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+            </div>
+          </CardContent>
+        </Card>
           </TabsContent>
 
           <TabsContent value="style" className="space-y-4">
@@ -920,15 +918,15 @@ export default function InfluencerEdit() {
                         ))}
                       </SelectContent>
                     </Select>
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       size="icon"
                       onClick={() => setShowColorPaletteSelector(true)}
                     >
                       <ChevronRight className="w-4 h-4" />
                     </Button>
-                  </div>
-                </div>
+              </div>
+            </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
@@ -947,15 +945,15 @@ export default function InfluencerEdit() {
                           ))}
                         </SelectContent>
                       </Select>
-                      <Button 
-                        variant="outline" 
+                      <Button
+                        variant="outline"
                         size="icon"
                         onClick={() => setShowClothingEverydaySelector(true)}
                       >
                         <ChevronRight className="w-4 h-4" />
                       </Button>
-                    </div>
-                  </div>
+                </div>
+              </div>
                   <div className="space-y-2">
                     <Label>Occasional Style</Label>
                     <div className="flex gap-2">
@@ -972,8 +970,8 @@ export default function InfluencerEdit() {
                           ))}
                         </SelectContent>
                       </Select>
-                      <Button 
-                        variant="outline" 
+                      <Button
+                        variant="outline"
                         size="icon"
                         onClick={() => setShowClothingOccasionalSelector(true)}
                       >
@@ -1000,8 +998,8 @@ export default function InfluencerEdit() {
                           ))}
                         </SelectContent>
                       </Select>
-                      <Button 
-                        variant="outline" 
+                      <Button
+                        variant="outline"
                         size="icon"
                         onClick={() => setShowClothingHomewearSelector(true)}
                       >
@@ -1009,7 +1007,7 @@ export default function InfluencerEdit() {
                       </Button>
                     </div>
                   </div>
-                  <div className="space-y-2">
+            <div>
                     <Label>Sports Style</Label>
                     <div className="flex gap-2">
                       <Select
@@ -1025,8 +1023,8 @@ export default function InfluencerEdit() {
                           ))}
                         </SelectContent>
                       </Select>
-                      <Button 
-                        variant="outline" 
+                      <Button
+                        variant="outline"
                         size="icon"
                         onClick={() => setShowClothingSportsSelector(true)}
                       >
@@ -1052,25 +1050,25 @@ export default function InfluencerEdit() {
                         ))}
                       </SelectContent>
                     </Select>
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       size="icon"
                       onClick={() => setShowHomeEnvironmentSelector(true)}
                     >
                       <ChevronRight className="w-4 h-4" />
                     </Button>
-                  </div>
-                </div>
+              </div>
+            </div>
           </CardContent>
         </Card>
           </TabsContent>
 
-          <TabsContent value="personality" className="space-y-4">
+          <TabsContent value="personality">
         <Card>
           <CardHeader>
                 <CardTitle>Personality & Content</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+              <CardContent>
                 <div className="space-y-2">
                   <Label>Content Focus</Label>
                   <div className="flex gap-2 flex-wrap">
@@ -1111,16 +1109,16 @@ export default function InfluencerEdit() {
                         ))}
                 </SelectContent>
               </Select>
-            </div>
+                  </div>
                   <div className="space-y-2">
                     <Label>Job Title</Label>
-                <Input
+                    <Input
                       value={influencerData.job_title}
                       onChange={(e) => handleInputChange('job_title', e.target.value)}
                       placeholder="Enter job title"
-                />
-              </div>
-                </div>
+                    />
+                  </div>
+            </div>
 
                 <div className="space-y-2">
                   <Label>Speech Style</Label>
@@ -1202,14 +1200,14 @@ export default function InfluencerEdit() {
                     ))}
                   </div>
                   <div className="flex gap-2">
-                    <Input
+                <Input
                       value={newTag}
                       onChange={(e) => setNewTag(e.target.value)}
                       placeholder="Add core value"
                       onKeyDown={(e) => e.key === 'Enter' && handleAddTag('core_values')}
                     />
                     <Button onClick={() => handleAddTag('core_values')}>Add</Button>
-                  </div>
+              </div>
                 </div>
 
                 <div className="space-y-2">

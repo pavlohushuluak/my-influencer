@@ -1,4 +1,3 @@
-
 import { useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { Card, CardContent } from '@/components/ui/card';
@@ -223,12 +222,14 @@ export default function InfluencerTemplates() {
     
     // Add to store and navigate to edit
     dispatch(addInfluencer({
+      ...newInfluencerData,
       id: newInfluencerData.id,
       name: `${newInfluencerData.name_first} ${newInfluencerData.name_last}`,
       image: template.image,
       description: `${newInfluencerData.influencer_type} Influencer`,
       personality: newInfluencerData.speech_style.join(', '),
-      createdAt: new Date().toISOString().split('T')[0],
+      created_at: new Date().toISOString().split('T')[0],
+      updated_at: new Date().toISOString().split('T')[0],
       generatedContent: 0,
       status: 'active' as const,
       tags: newInfluencerData.content_focus
@@ -268,19 +269,25 @@ export default function InfluencerTemplates() {
                     <h3 className="font-semibold text-lg">{template.name}</h3>
                     <Badge variant="secondary">Template</Badge>
                   </div>
-                  <p className="text-sm text-muted-foreground mb-1">Age {template.age}</p>
-                  <p className="text-sm text-muted-foreground mb-2">{template.lifecycle}</p>
-                  <Badge variant="outline" className="text-xs">
-                    {template.type}
-                  </Badge>
+                  <p className="text-sm text-muted-foreground mb-1">{template.age}, {template.lifecycle}</p>
+                  <p className="text-sm text-muted-foreground mb-2">{template.type} Influencer</p>
                 </div>
                 
-                <Button 
-                  onClick={() => handleUseTemplate(template)}
-                  className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
-                >
-                  Use Template
-                </Button>
+                <div className="flex gap-2">
+                  <Button 
+                    onClick={() => handleUseTemplate(template)}
+                    className="flex-1 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                  >
+                    Use
+                  </Button>
+                  <Button 
+                    onClick={() => handleUseTemplate(template)}
+                    variant="outline"
+                    className="flex-1"
+                  >
+                    Edit
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>

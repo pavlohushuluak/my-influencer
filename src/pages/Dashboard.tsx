@@ -1,91 +1,27 @@
-import { InfluencerCard } from '@/components/Dashboard/InfluencerCard';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
+import { RootState } from '@/store/store';
+import { setInfluencers, setLoading, setError } from '@/store/slices/influencersSlice';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Plus, Settings, MoreHorizontal, Filter } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { StoryContentCard } from '@/components/Dashboard/StoryContentCard';
 import { ScheduleCard } from '@/components/Dashboard/ScheduleCard';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, Filter } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import { useState, useEffect } from 'react';
-import { useSelector } from 'react-redux';
-import { RootState } from '@/store/store';
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { influencers } = useSelector((state: RootState) => state.influencers);
+  const dispatch = useDispatch();
+  const influencers = useSelector((state: RootState) => state.influencers.influencers);
+  const loading = useSelector((state: RootState) => state.influencers.loading);
+  const error = useSelector((state: RootState) => state.influencers.error);
   const [showAllInfluencers, setShowAllInfluencers] = useState(false);
-  const [displayedInfluencers, setDisplayedInfluencers] = useState(influencers.slice(0, 3));
-
-  useEffect(() => {
-    const fetchLipOptions = async () => {
-      try {
-        const response = await fetch('https://api.nymia.ai/v1/fieldoptions?fieldtype=lips', {
-          headers: {
-            'Authorization': 'Bearer WeInfl3nc3withAI'
-          }
-        });
-        
-        if (!response.ok) {
-          throw new Error('Failed to fetch lip options');
-        }
-        
-        const data = await response.json();
-        console.log('Lip Options:', data);
-      } catch (error) {
-        console.error('Error fetching lip options:', error);
-      }
-    };
-
-    fetchLipOptions();
-  }, []);
-
   const [showAllStoryContent, setShowAllStoryContent] = useState(false);
+  const displayedInfluencers = showAllInfluencers ? influencers : influencers.slice(0, 4);
 
-  // Mock data for influencers
-  const mockInfluencers = [
-    {
-      id: '1',
-      name: 'Sophia Chen',
-      age: 24,
-      lifecycle: 'Active',
-      type: 'Fashion',
-      imageUrl: '/placeholder.svg'
-    },
-    {
-      id: '2',
-      name: 'Maya Rodriguez',
-      age: 22,
-      lifecycle: 'Growing',
-      type: 'Lifestyle',
-      imageUrl: '/placeholder.svg'
-    },
-    {
-      id: '3',
-      name: 'Alex Kim',
-      age: 26,
-      lifecycle: 'Established',
-      type: 'Fitness',
-      imageUrl: '/placeholder.svg'
-    },
-    {
-      id: '4',
-      name: 'Emma Wilson',
-      age: 25,
-      lifecycle: 'Active',
-      type: 'Beauty',
-      imageUrl: '/placeholder.svg'
-    },
-    {
-      id: '5',
-      name: 'James Thompson',
-      age: 28,
-      lifecycle: 'Established',
-      type: 'Tech',
-      imageUrl: '/placeholder.svg'
-    }
-  ];
-
-  // Mock data for story content based on your specification
+  // Mock data for story content
   const mockStoryContent = [
     {
       id: '1',
@@ -122,63 +58,43 @@ export default function Dashboard() {
         '/placeholder.svg'
       ],
       totalImages: 12
-    },
-    {
-      id: '3',
-      title: 'Sunset Yoga Session - Beach Meditation',
-      format: 'Wellness Series',
-      setting: 'Private beach location, sunset hour, calm waves, peaceful atmosphere with warm lighting.',
-      seo: 'Finding my center as the day comes to an end. Beach yoga hits different when you have the whole shoreline to yourself...',
-      instagramStatus: 'Published',
-      fanvueSchedule: 'May 12, 2025 6:00 PM',
-      images: [
-        '/placeholder.svg',
-        '/placeholder.svg',
-        '/placeholder.svg',
-        '/placeholder.svg',
-        '/placeholder.svg',
-        '/placeholder.svg'
-      ],
-      totalImages: 12
-    },
-    {
-      id: '4',
-      title: 'Sunset Yoga Session - Beach Meditation',
-      format: 'Wellness Series',
-      setting: 'Private beach location, sunset hour, calm waves, peaceful atmosphere with warm lighting.',
-      seo: 'Finding my center as the day comes to an end. Beach yoga hits different when you have the whole shoreline to yourself...',
-      instagramStatus: 'Published',
-      fanvueSchedule: 'May 12, 2025 6:00 PM',
-      images: [
-        '/placeholder.svg',
-        '/placeholder.svg',
-        '/placeholder.svg',
-        '/placeholder.svg',
-        '/placeholder.svg',
-        '/placeholder.svg',
-        '/placeholder.svg',
-        '/placeholder.svg'
-      ],
-      totalImages: 15
     }
   ];
 
   const displayedStoryContent = showAllStoryContent ? mockStoryContent : mockStoryContent.slice(0, 2);
 
-  // Handler functions
-  const handleCreateInfluencer = () => {
-    navigate('/influencers/create');
-    // Navigate to create influencer page or open modal
+  useEffect(() => {
+    const fetchInfluencers = async () => {
+      try {
+        dispatch(setLoading(true));
+        const response = await fetch('https://db.nymia.ai/rest/v1/virtual_influencer?select=*', {
+          headers: {
+            'Authorization': 'Bearer WeInfl3nc3withAI'
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch influencers');
+        }
+
+        const data = await response.json();
+        dispatch(setInfluencers(data));
+      } catch (error) {
+        dispatch(setError(error instanceof Error ? error.message : 'An error occurred'));
+      } finally {
+        dispatch(setLoading(false));
+      }
+    };
+
+    fetchInfluencers();
+  }, [dispatch]);
+
+  const handleCreateNew = () => {
+    navigate('/influencers/edit');
   };
 
   const handleEditInfluencer = (id: string) => {
-    console.log('Edit influencer:', id);
-    // Navigate to edit page or open modal
-  };
-
-  const handleUseInfluencer = (id: string) => {
-    console.log('Use influencer:', id);
-    // Navigate to content generation or open modal
+    navigate('/influencers/edit', { state: { influencerData: influencers.find(inf => inf.id === id) } });
   };
 
   const handleEditStoryContent = (id: string) => {
@@ -186,111 +102,190 @@ export default function Dashboard() {
     // Navigate to edit page or open modal
   };
 
-  const handleShowAllInfluencers = () => {
-    setShowAllInfluencers(true);
-    console.log('Show all influencers');
-  };
-
-  const handleShowAllStoryContent = () => {
-    setShowAllStoryContent(true);
-    console.log('Show all story content');
-  };
-
   const handleFilterStoryContent = () => {
     console.log('Filter story content');
     // Open filter modal or dropdown
   };
 
+  const handleUseInfluencer = (id: string) => {
+    const selectedInfluencer = influencers.find(inf => inf.id === id);
+    if (selectedInfluencer) {
+      navigate('/content/create', { 
+        state: { 
+          influencerData: selectedInfluencer,
+          mode: 'create'
+        }
+      });
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="p-6">
+        <div className="flex items-center justify-center h-[calc(100vh-200px)]">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-6">
+        <div className="flex items-center justify-center h-[calc(100vh-200px)]">
+          <div className="text-red-500">Error: {error}</div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="container space-y-8 animate-fade-in">
+    <div className="p-6 space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight bg-ai-gradient bg-clip-text text-transparent">
+            Dashboard
+          </h1>
+          <p className="text-muted-foreground">
+            Welcome to your AI influencer management dashboard
+          </p>
+        </div>
+        <Button onClick={handleCreateNew} className="bg-gradient-to-r from-purple-600 to-blue-600">
+          <Plus className="w-4 h-4 mr-2" />
+          Create New Influencer
+        </Button>
+      </div>
+
       {/* My Influencers Container */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle className="text-xl font-semibold">My Influencers</CardTitle>
-            <Button variant="ghost" size="sm" className="text-purple-600 hover:text-purple-700" onClick={handleShowAllInfluencers}>
+            <Button variant="ghost" size="sm" className="text-purple-600 hover:text-purple-700" onClick={() => setShowAllInfluencers(!showAllInfluencers)}>
               <MoreHorizontal className="w-4 h-4 mr-2" />
-              More
+              {showAllInfluencers ? 'Show Less' : 'Show More'}
             </Button>
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
-            <InfluencerCard
-              isCreateCard={true}
-              onCreate={handleCreateInfluencer}
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {displayedInfluencers.map((influencer) => (
-              <InfluencerCard
-                key={influencer.id}
-                id={influencer.id}
-                name={influencer.name}
-                age={influencer.age}
-                lifecycle={influencer.lifecycle}
-                type={influencer.type}
-                imageUrl={influencer.imageUrl}
-                onEdit={handleEditInfluencer}
-                onUse={handleUseInfluencer}
+              <Card key={influencer.id} className="group hover:shadow-lg transition-all duration-300 border-border/50 hover:border-ai-purple-500/20">
+                <CardContent className="p-6">
+                  <div className="space-y-4">
+                    <div className="w-full h-48 bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg overflow-hidden">
+                      <img 
+                        src={influencer.image} 
+                        alt={`${influencer.name_first} ${influencer.name_last}`}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <h3 className="font-semibold text-lg group-hover:text-ai-purple-500 transition-colors">
+                          {influencer.name_first} {influencer.name_last}
+                        </h3>
+                      </div>
+                      
+                      <div className="flex flex-col gap-1 mb-3">
+                        <div className="flex text-sm text-muted-foreground flex-col">
+                          <span className="font-medium mr-2">Age/Lifestyle:</span>
+                          {influencer.age_lifestyle}
+                        </div>
+                        <div className="flex items-center text-sm text-muted-foreground">
+                          <span className="font-medium mr-2">Type:</span>
+                          {influencer.influencer_type}
+                        </div>
+                      </div>
+                      
+                      <div className="flex flex-wrap gap-1 mb-4">
+                        {influencer.tags?.map((tag) => (
+                          <Badge key={tag} variant="outline" className="text-xs">
+                            {tag}
+                          </Badge>
+                        ))}
+                      </div>
+                      
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleEditInfluencer(influencer.id)}
+                          className="flex-1 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                        >
+                          <Settings className="w-4 h-4 mr-2" />
+                          Edit
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleUseInfluencer(influencer.id)}
+                          className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+                        >
+                          <Plus className="w-4 h-4 mr-2" />
+                          Use
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Story Content Container */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-xl font-semibold">Story Content</CardTitle>
+            <div className="flex items-center gap-2">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" onClick={handleFilterStoryContent}>
+                    <Filter className="w-4 h-4 mr-2" />
+                    Filter
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  <DropdownMenuItem>All Content</DropdownMenuItem>
+                  <DropdownMenuItem>Published</DropdownMenuItem>
+                  <DropdownMenuItem>Scheduled</DropdownMenuItem>
+                  <DropdownMenuItem>Not Scheduled</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <Button variant="ghost" size="sm" className="text-purple-600 hover:text-purple-700" onClick={() => setShowAllStoryContent(!showAllStoryContent)}>
+                <MoreHorizontal className="w-4 h-4 mr-2" />
+                {showAllStoryContent ? 'Show Less' : 'Show More'}
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {displayedStoryContent.map((content) => (
+              <StoryContentCard
+                key={content.id}
+                id={content.id}
+                title={content.title}
+                format={content.format}
+                setting={content.setting}
+                seo={content.seo}
+                instagramStatus={content.instagramStatus}
+                fanvueSchedule={content.fanvueSchedule}
+                images={content.images}
+                totalImages={content.totalImages}
+                onEdit={handleEditStoryContent}
               />
             ))}
           </div>
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-1 gap-8">
-        {/* Story Content Container */}
-        <div>
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-xl font-semibold">Story Content</CardTitle>
-                <div className="flex items-center gap-2">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm" onClick={handleFilterStoryContent}>
-                        <Filter className="w-4 h-4 mr-2" />
-                        Filter
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent>
-                      <DropdownMenuItem>All Content</DropdownMenuItem>
-                      <DropdownMenuItem>Published</DropdownMenuItem>
-                      <DropdownMenuItem>Scheduled</DropdownMenuItem>
-                      <DropdownMenuItem>Not Scheduled</DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                  <Button variant="ghost" size="sm" className="text-purple-600 hover:text-purple-700" onClick={handleShowAllStoryContent}>
-                    <MoreHorizontal className="w-4 h-4 mr-2" />
-                    More
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {displayedStoryContent.map((content) => (
-                  <StoryContentCard
-                    key={content.id}
-                    id={content.id}
-                    title={content.title}
-                    format={content.format}
-                    setting={content.setting}
-                    seo={content.seo}
-                    instagramStatus={content.instagramStatus}
-                    fanvueSchedule={content.fanvueSchedule}
-                    images={content.images}
-                    totalImages={content.totalImages}
-                    onEdit={handleEditStoryContent}
-                  />
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Schedule Container */}
-        <ScheduleCard />
-      </div>
+      {/* Schedule Container */}
+      <ScheduleCard />
     </div>
   );
 }

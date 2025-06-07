@@ -136,14 +136,21 @@ export default function CreateInfluencer() {
   const [uploadedImage, setUploadedImage] = useState<string>('');
 
   const handleScratchUse = () => {
-    // Create a new scratch template with unique ID
     const scratchData = {
       ...SCRATCH_TEMPLATE,
       id: Date.now().toString(),
-      name_first: 'New',
-      name_last: 'Influencer'
+      name: `${SCRATCH_TEMPLATE.name_first} ${SCRATCH_TEMPLATE.name_last}`,
+      image: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=400&h=400&fit=crop&crop=face',
+      description: `${SCRATCH_TEMPLATE.influencer_type} Influencer`,
+      personality: SCRATCH_TEMPLATE.speech_style.join(', '),
+      created_at: new Date().toISOString().split('T')[0],
+      updated_at: new Date().toISOString().split('T')[0],
+      generatedContent: 0,
+      status: 'active' as const,
+      tags: SCRATCH_TEMPLATE.content_focus
     };
     
+    dispatch(addInfluencer(scratchData));
     navigate('/influencers/edit', { 
       state: { 
         influencerData: scratchData
@@ -159,13 +166,54 @@ export default function CreateInfluencer() {
     const newInfluencer = {
       id: Date.now().toString(),
       name: wizardData.name,
+      name_first: wizardData.name.split(' ')[0],
+      name_last: wizardData.name.split(' ')[1] || '',
       image: uploadedImage || 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=400&h=400&fit=crop&crop=face',
       description: wizardData.description,
       personality: wizardData.personality,
-      createdAt: new Date().toISOString().split('T')[0],
+      created_at: new Date().toISOString().split('T')[0],
+      updated_at: new Date().toISOString().split('T')[0],
       generatedContent: 0,
       status: 'active' as const,
-      tags: [wizardData.niche]
+      tags: [wizardData.niche],
+      influencer_type: wizardData.niche,
+      sex: 'Woman',
+      cultural_background: 'North American',
+      hair_length: 'Medium',
+      hair_color: 'Brown',
+      hair_style: 'Natural',
+      eye_color: 'Brown',
+      lip_style: 'Natural',
+      nose_style: 'Natural',
+      face_shape: 'Oval',
+      facial_features: 'Natural',
+      skin_tone: 'Medium',
+      body_type: 'Average',
+      color_palette: ['Neutral Tones'],
+      clothing_style_everyday: 'Casual',
+      clothing_style_occasional: 'Smart',
+      clothing_style_home: 'Comfortable',
+      clothing_style_sports: 'Athletic',
+      clothing_style_sexy_dress: 'Elegant',
+      home_environment: 'Modern',
+      age_lifestyle: '25-30',
+      origin_birth: 'Unknown',
+      origin_residence: 'Unknown',
+      content_focus: [wizardData.niche],
+      content_focus_areas: [wizardData.niche],
+      job_area: 'Creative',
+      job_title: 'Influencer',
+      job_vibe: 'Creative',
+      hobbies: ['Social Media'],
+      social_circle: 'Creative professionals',
+      strengths: ['Creative'],
+      weaknesses: ['Perfectionist'],
+      speech_style: ['Friendly'],
+      humor: ['Light'],
+      core_values: ['Authenticity'],
+      current_goals: ['Growth'],
+      background_elements: ['Social Media'],
+      user_id: 1
     };
     
     dispatch(addInfluencer(newInfluencer));
@@ -174,25 +222,33 @@ export default function CreateInfluencer() {
   };
 
   const handleTemplateUse = (template: typeof INFLUENCER_TEMPLATES[0]) => {
-    // Create template data structure and navigate to edit
     const templateData = {
       id: Date.now().toString(),
+      name: `${template.name}`,
       name_first: template.name.split(' ')[0],
       name_last: template.name.split(' ')[1] || '',
+      image: template.image,
+      description: `${template.type} Influencer`,
+      personality: 'Friendly, Professional',
+      created_at: new Date().toISOString().split('T')[0],
+      updated_at: new Date().toISOString().split('T')[0],
+      generatedContent: 0,
+      status: 'active' as const,
+      tags: [template.type],
       influencer_type: template.type,
       sex: 'Woman',
       cultural_background: 'North American',
       hair_length: 'Medium',
-      hair_color: 'Brown (#8B4513)',
+      hair_color: 'Brown',
       hair_style: 'Natural',
-      eye_color: 'Brown (#654321)',
+      eye_color: 'Brown',
       lip_style: 'Natural',
       nose_style: 'Natural',
       face_shape: 'Oval',
       facial_features: 'Natural',
-      skin_tone: 'Medium (#C68E17)',
+      skin_tone: 'Medium',
       body_type: 'Average',
-      color_palette: ['Neutral Tones (#D2B48C, #808080)'],
+      color_palette: ['Neutral Tones'],
       clothing_style_everyday: 'Casual',
       clothing_style_occasional: 'Smart',
       clothing_style_home: 'Comfortable',
@@ -215,22 +271,11 @@ export default function CreateInfluencer() {
       humor: ['Light'],
       core_values: ['Authenticity'],
       current_goals: ['Growth'],
-      background_elements: ['Social Media']
+      background_elements: ['Social Media'],
+      user_id: 1
     };
     
-    // Add to store and navigate to edit
-    dispatch(addInfluencer({
-      id: templateData.id,
-      name: `${templateData.name_first} ${templateData.name_last}`,
-      image: template.image,
-      description: `${templateData.influencer_type} Influencer`,
-      personality: templateData.speech_style.join(', '),
-      createdAt: new Date().toISOString().split('T')[0],
-      generatedContent: 0,
-      status: 'active' as const,
-      tags: templateData.content_focus
-    }));
-    
+    dispatch(addInfluencer(templateData));
     navigate('/influencers/edit', { state: { influencerData: templateData } });
   };
 

@@ -24,6 +24,8 @@ import ContentCreate from '@/pages/ContentCreate';
 import ContentEnhance from '@/pages/ContentEnhance';
 import ContentEdit from './pages/ContentEdit';
 import ContentStory from './pages/ContentStory';
+import ContentSchedule from './pages/ContentSchedule';
+import ContentBatch from './pages/ContentBatch';
 import NotFound from '@/pages/NotFound';
 import { MainLayout } from '@/components/Layout/MainLayout';
 
@@ -65,6 +67,8 @@ const App = () => {
                   <Route path='/content/enhance' element={<ContentEnhance />} />
                   <Route path='/content/edit' element={<ContentEdit />} />
                   <Route path='/content/story' element={<ContentStory />} />
+                  <Route path='/content/schedule' element={<ContentSchedule />} />
+                  <Route path='/content/batch' element={<ContentBatch />} />
                 </Route>
                 <Route path="*" element={<NotFound />} />
               </Routes>

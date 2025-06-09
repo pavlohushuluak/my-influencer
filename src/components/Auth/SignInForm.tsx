@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,6 +8,9 @@ import { FcGoogle } from 'react-icons/fc';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
+import { useDispatch } from 'react-redux';
+import { setUser } from '@/store/slices/userSlice';
+
 interface SignInFormProps {
   onToggleMode: () => void;
 }
@@ -20,6 +22,7 @@ export function SignInForm({ onToggleMode }: SignInFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState({ email: '', password: '' });
   const navigate = useNavigate();
+  const dispatch = useDispatch();
 
   const validateEmail = (email: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -51,13 +54,50 @@ export function SignInForm({ onToggleMode }: SignInFormProps) {
     
     setIsLoading(true);
     
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      const response = await fetch('https://api.nymia.ai/v1/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          email,
+          password
+        })
+      });
+
+      const data = await response.json();
+      console.log('Login response:', data);
+
+      if (response.ok) {
+        // Save tokens to session storage
+        sessionStorage.setItem('access_token', data.access_token);
+        sessionStorage.setItem('refresh_token', data.refresh_token);
+        
+        // Update user data in Redux store
+        dispatch(setUser({
+          id: data.user.id,
+          email: data.user.email,
+          firstName: data.user.user_metadata.first_name,
+          lastName: data.user.user_metadata.last_name,
+          nickname: data.user.user_metadata.nickname,
+          level: data.user.user_metadata.level,
+          credits: data.user.user_metadata.credits || 0,
+          subscription: data.user.user_metadata.subscription || 'free'
+        }));
+        
+        toast.success('Sign in successful');
+        navigate('/dashboard');
+      } else {
+        toast.error(data.message || 'Sign in failed');
+      }
+    } catch (error) {
+      console.error('Sign in error:', error);
+      toast.error('An error occurred during sign in');
+    } finally {
       setIsLoading(false);
-      console.log('Sign in:', { email, password });
-      toast.success('Sign in successful');
-      navigate('/dashboard');
-    }, 1000);
+    }
   };
 
   const handleGoogleSignIn = () => {

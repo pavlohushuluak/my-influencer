@@ -52,7 +52,7 @@ export function AppFooter() {
     e.preventDefault();
     if (email.trim()) {
       // Here you would typically send the email to your backend
-      console.log('Newsletter subscription:', email);
+      // console.log('Newsletter subscription:', email);
       setIsSubscribed(true);
       setEmail('');
       

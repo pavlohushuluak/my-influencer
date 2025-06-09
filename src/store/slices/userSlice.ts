@@ -1,21 +1,29 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
 interface UserState {
-  id: string | null;
-  email: string | null;
-  name: string | null;
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  nickname: string;
+  level: number;
   credits: number;
-  subscription: 'free' | 'professional' | 'enterprise';
-  isAuthenticated: boolean;
+  subscription: string;
+  loading: boolean;
+  error: string | null;
 }
 
 const initialState: UserState = {
-  id: '1',
-  email: 'user@example.com',
-  name: 'Demo User',
-  credits: 150,
+  id: '',
+  email: '',
+  firstName: '',
+  lastName: '',
+  nickname: '',
+  level: 0,
+  credits: 0,
   subscription: 'free',
-  isAuthenticated: true,
+  loading: false,
+  error: null
 };
 
 const userSlice = createSlice({
@@ -23,19 +31,19 @@ const userSlice = createSlice({
   initialState,
   reducers: {
     setUser: (state, action: PayloadAction<Partial<UserState>>) => {
-      Object.assign(state, action.payload);
+      return { ...state, ...action.payload };
     },
-    updateCredits: (state, action: PayloadAction<number>) => {
-      state.credits = Math.max(0, state.credits + action.payload);
+    setLoading: (state, action: PayloadAction<boolean>) => {
+      state.loading = action.payload;
     },
-    logout: (state) => {
-      state.id = null;
-      state.email = null;
-      state.name = null;
-      state.isAuthenticated = false;
+    setError: (state, action: PayloadAction<string | null>) => {
+      state.error = action.payload;
     },
-  },
+    clearUser: (state) => {
+      return initialState;
+    }
+  }
 });
 
-export const { setUser, updateCredits, logout } = userSlice.actions;
+export const { setUser, setLoading, setError, clearUser } = userSlice.actions;
 export default userSlice.reducer;

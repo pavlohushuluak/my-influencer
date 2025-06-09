@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,7 +18,9 @@ interface SignUpFormProps {
 
 export function SignUpForm({ onToggleMode }: SignUpFormProps) {
   const [formData, setFormData] = useState({
-    name: '',
+    firstName: '',
+    lastName: '',
+    nickname: '',
     email: '',
     password: '',
     confirmPassword: ''
@@ -53,20 +54,50 @@ export function SignUpForm({ onToggleMode }: SignUpFormProps) {
     }
     
     if (!acceptTerms) {
-      alert('Please accept the terms and conditions');
+      toast.error('Please accept the terms and conditions');
       return;
     }
 
     setIsLoading(true);
     
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      const response = await fetch('https://api.nymia.ai/v1/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+          data: {
+            first_name: formData.firstName,
+            last_name: formData.lastName,
+            nickname: formData.nickname,
+            level: 0
+          }
+        })
+      });
+
+      const data = await response.json();
+      // console.log('Registration response:', data);
+
+      if (response.ok) {
+        // Save tokens to session storage
+        sessionStorage.setItem('access_token', data.body.access_token);
+        sessionStorage.setItem('refresh_token', data.body.refresh_token);
+        
+        toast.success('Account created successfully');
+        navigate('/dashboard');
+      } else {
+        toast.error(data.message || 'Registration failed');
+      }
+    } catch (error) {
+      console.error('Registration error:', error);
+      toast.error('An error occurred during registration');
+    } finally {
       setIsLoading(false);
-      console.log('Sign up:', formData);
-      toast.success('Account created successfully');
-      // onToggleMode();
-      navigate('/dashboard');
-    }, 1000);
+    }
   };
 
   const handleGoogleSignUp = () => {
@@ -88,16 +119,50 @@ export function SignUpForm({ onToggleMode }: SignUpFormProps) {
   return (
     <div className="space-y-6">
       <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="firstName" className="text-foreground">First Name</Label>
+            <div className="relative">
+              <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Input
+                id="firstName"
+                type="text"
+                placeholder="Enter first name"
+                value={formData.firstName}
+                onChange={(e) => updateFormData('firstName', e.target.value)}
+                className="pl-10 bg-background border-border text-foreground placeholder:text-muted-foreground"
+                required
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="lastName" className="text-foreground">Last Name</Label>
+            <div className="relative">
+              <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Input
+                id="lastName"
+                type="text"
+                placeholder="Enter last name"
+                value={formData.lastName}
+                onChange={(e) => updateFormData('lastName', e.target.value)}
+                className="pl-10 bg-background border-border text-foreground placeholder:text-muted-foreground"
+                required
+              />
+            </div>
+          </div>
+        </div>
+
         <div className="space-y-2">
-          <Label htmlFor="name" className="text-foreground">Full Name</Label>
+          <Label htmlFor="nickname" className="text-foreground">Nickname</Label>
           <div className="relative">
             <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
             <Input
-              id="name"
+              id="nickname"
               type="text"
-              placeholder="Enter your full name"
-              value={formData.name}
-              onChange={(e) => updateFormData('name', e.target.value)}
+              placeholder="Enter nickname"
+              value={formData.nickname}
+              onChange={(e) => updateFormData('nickname', e.target.value)}
               className="pl-10 bg-background border-border text-foreground placeholder:text-muted-foreground"
               required
             />
@@ -164,7 +229,6 @@ export function SignUpForm({ onToggleMode }: SignUpFormProps) {
             </div>
           )}
           
-          {/* Password Validation Errors */}
           {showPasswordErrors && passwordValidation.errors.length > 0 && (
             <div className="space-y-1">
               {passwordValidation.errors.map((error, index) => (

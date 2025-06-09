@@ -9,12 +9,15 @@ import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbP
 import { Moon, Sun, User, Settings, LogOut, Star } from 'lucide-react';
 import { UserLevelBadge } from '@/components/ui/user-level-badge';
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import { useNavigate } from 'react-router-dom';
 
 export function Header() {
   const dispatch = useDispatch();
   const location = useLocation();
   const { theme } = useSelector((state: RootState) => state.ui);
-  const { name, email, credits, subscription } = useSelector((state: RootState) => state.user);
+  const { firstName, lastName, email, credits, subscription } = useSelector((state: RootState) => state.user);
+  const name = `${firstName} ${lastName}`;
+  const navigate = useNavigate();
 
   // Generate breadcrumbs based on current path
   const generateBreadcrumbs = () => {
@@ -62,6 +65,12 @@ export function Header() {
     return breadcrumbs;
   };
 
+  const handleLogout = () => {
+    sessionStorage.removeItem('access_token');
+    sessionStorage.removeItem('refresh_token');
+    navigate('/signin');
+  };
+
   const breadcrumbs = generateBreadcrumbs();
 
   const handleThemeToggle = () => {
@@ -87,7 +96,7 @@ export function Header() {
             </div>
 
             {/* User Level Badge */}
-            <UserLevelBadge level={subscription} />
+            <UserLevelBadge level={subscription as 'free' | 'professional' | 'enterprise'} />
 
             {/* Theme toggle */}
             <Button
@@ -121,12 +130,12 @@ export function Header() {
                   <p className="text-xs text-muted-foreground">{email}</p>
                 </div>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem className="hover:bg-accent cursor-pointer">
+                <DropdownMenuItem className="hover:bg-accent cursor-pointer" onClick={() => navigate('/settings')}>
                   <Settings className="mr-2 h-4 w-4" />
                   Settings
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem className="hover:bg-accent cursor-pointer">
+                <DropdownMenuItem className="hover:bg-accent cursor-pointer" onClick={handleLogout}>
                   <LogOut className="mr-2 h-4 w-4" />
                   Sign out
                 </DropdownMenuItem>
@@ -142,7 +151,7 @@ export function Header() {
           <Breadcrumb>
             <BreadcrumbList>
               {breadcrumbs.map((crumb, index) => (
-                <div key={crumb.href} className="flex items-center">
+                <div key={`${crumb.href}-${index}`} className="flex items-center">
                   {index > 0 && <BreadcrumbSeparator className="text-muted-foreground/50" />}
                   <BreadcrumbItem>
                     {crumb.isLast ? (

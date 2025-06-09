@@ -1,5 +1,6 @@
-
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useSelector } from 'react-redux';
+import { RootState } from '@/store/store';
 import {
   Sidebar,
   SidebarContent,
@@ -86,6 +87,8 @@ export function AppSidebar() {
   const location = useLocation();
   const { state } = useSidebar();
   const isCollapsed = state === "collapsed";
+  const { firstName, lastName, email } = useSelector((state: RootState) => state.user);
+  const fullName = `${firstName} ${lastName}`;
 
   return (
     <Sidebar variant="inset" className="border-r border-border/40 bg-gradient-to-b from-background via-background/98 to-background/95">
@@ -193,8 +196,8 @@ export function AppSidebar() {
           </div>
           {!isCollapsed && (
             <div className="flex-1 text-left">
-              <span className="text-sm font-medium text-foreground/90">Demo User</span>
-              <p className="text-xs text-muted-foreground">demo@aiinfluence.com</p>
+              <span className="text-sm font-medium text-foreground/90">{fullName}</span>
+              <p className="text-xs text-muted-foreground">{email}</p>
             </div>
           )}
         </div>  

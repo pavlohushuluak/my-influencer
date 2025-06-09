@@ -26,6 +26,7 @@ import ContentEdit from './pages/ContentEdit';
 import ContentStory from './pages/ContentStory';
 import ContentSchedule from './pages/ContentSchedule';
 import ContentBatch from './pages/ContentBatch';
+import Settings from './pages/Settings';
 import NotFound from '@/pages/NotFound';
 import { MainLayout } from '@/components/Layout/MainLayout';
 
@@ -69,6 +70,7 @@ const App = () => {
                   <Route path='/content/story' element={<ContentStory />} />
                   <Route path='/content/schedule' element={<ContentSchedule />} />
                   <Route path='/content/batch' element={<ContentBatch />} />
+                  <Route path='/settings' element={<Settings />} />
                 </Route>
                 <Route path="*" element={<NotFound />} />
               </Routes>

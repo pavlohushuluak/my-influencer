@@ -65,7 +65,31 @@ export function Header() {
     return breadcrumbs;
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    const accessToken = sessionStorage.getItem('access_token');
+    
+    if (accessToken) {
+      try {
+        const response = await fetch('https://api.nymia.ai/v1/logout', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer WeInfl3nc3withAI'
+          },
+          body: JSON.stringify({
+            access_token: accessToken
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to logout');
+        }
+      } catch (error) {
+        console.error('Error during logout:', error);
+      }
+    }
+
+    // Remove tokens and navigate regardless of API call success
     sessionStorage.removeItem('access_token');
     sessionStorage.removeItem('refresh_token');
     navigate('/signin');

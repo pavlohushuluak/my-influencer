@@ -68,7 +68,7 @@ export function SignInForm({ onToggleMode }: SignInFormProps) {
       });
 
       const data = await response.json();
-      console.log('Login response:', data);
+      // console.log('Login response:', data);
 
       if (response.ok) {
         // Save tokens to session storage
@@ -94,7 +94,7 @@ export function SignInForm({ onToggleMode }: SignInFormProps) {
       }
     } catch (error) {
       console.error('Sign in error:', error);
-      toast.error('An error occurred during sign in');
+      toast.error('Sign in failed');
     } finally {
       setIsLoading(false);
     }

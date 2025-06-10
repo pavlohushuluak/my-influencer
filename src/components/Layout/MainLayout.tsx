@@ -16,14 +16,43 @@ export function MainLayout() {
 
   useEffect(() => {
     const fetchUserData = async () => {
-      const accessToken = sessionStorage.getItem('access_token');
+      dispatch(setLoading(true));
+      let accessToken = sessionStorage.getItem('access_token');
+      const refreshToken = sessionStorage.getItem('refresh_token');
       
-      if (!accessToken) {
+      if (!accessToken && !refreshToken) {
         navigate('/signin');
         return;
       }
 
-      dispatch(setLoading(true));
+      // If no access token but refresh token exists, try to get new access token
+      if (!accessToken && refreshToken) {
+        try {
+          const refreshResponse = await fetch('https://api.nymia.ai/v1/refresh', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer WeInfl3nc3withAI'
+            },
+            body: JSON.stringify({
+              refresh_token: refreshToken
+            })
+          });
+
+          if (!refreshResponse.ok) {
+            throw new Error('Failed to refresh token');
+          }
+
+          const refreshData = await refreshResponse.json();
+          accessToken = refreshData.access_token;
+          sessionStorage.setItem('access_token', accessToken);
+        } catch (error) {
+          console.error('Error refreshing token:', error);
+          sessionStorage.removeItem('refresh_token');
+          navigate('/signin');
+          return;
+        }
+      }
       
       try {
         const response = await fetch('https://api.nymia.ai/v1/user', {
@@ -54,6 +83,7 @@ export function MainLayout() {
           subscription: data.user_metadata.subscription || 'free'
         }));
       } catch (error) {
+        console.error('Error fetching user data:', error);
         navigate('/signin');
       } finally {
         dispatch(setLoading(false));

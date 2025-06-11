@@ -39,6 +39,12 @@ import {
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const menuItems = [
   {
@@ -94,7 +100,7 @@ export function AppSidebar() {
     <Sidebar collapsible="icon" variant="inset" className="border-r border-border/40 bg-gradient-to-b from-background via-background/98 to-background/95 p-0">
       <SidebarHeader
         className="border-b border-border/30 bg-gradient-to-r from-purple-50/50 to-blue-50/50 dark:from-purple-950/20 dark:to-blue-950/20 cursor-pointer px-0"
-        onClick={() => navigate('/dashboard')}
+        onClick={() => navigate('/')}
       >
         <div className={`${isCollapsed ? "" : "p-4 py-2"} flex items-center justify-center`}>
           <div className="relative">
@@ -114,7 +120,7 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent className="bg-gradient-to-b from-background/50 to-background/80">
-        <SidebarGroup className="px-4 py-4">
+        <SidebarGroup className="px-4 py-4 overflow-auto">
           <SidebarGroupLabel className="text-xs font-semibold text-muted-foreground/80 uppercase tracking-wider mb-3 px-3">
             {!isCollapsed && "Navigation"}
           </SidebarGroupLabel>
@@ -123,15 +129,19 @@ export function AppSidebar() {
               {menuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   {item.items ? (
-                    <Collapsible className="group/collapsible">
+                    <Collapsible className="group/collapsible" defaultOpen={false}>
                       <CollapsibleTrigger asChild>
-                        <SidebarMenuButton
+                        <SidebarMenuButton 
                           className={cn(
                             "w-full hover:bg-gradient-to-r hover:from-purple-50 hover:to-blue-50 dark:hover:from-purple-950/30 dark:hover:to-blue-950/30 transition-all duration-300 rounded-lg py-3 px-3",
-                            "data-[state=open]:bg-gradient-to-r data-[state=open]:from-purple-100/60 data-[state=open]:to-blue-100/60 dark:data-[state=open]:from-purple-900/40 dark:data-[state=open]:to-blue-900/40",
-                            "data-[state=open]:shadow-sm data-[state=open]:border data-[state=open]:border-purple-200/50 dark:data-[state=open]:border-purple-800/30"
                           )}
                           tooltip={isCollapsed ? item.title : undefined}
+                          onClick={(e) => {
+                            if (isCollapsed) {
+                              e.preventDefault();
+                              e.stopPropagation();
+                            }
+                          }}
                         >
                           <div className={`${isCollapsed ? "" : "w-8 h-8 rounded-lg bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/50 dark:to-blue-900/50"} flex items-center justify-center`}>
                             <item.icon className="w-4 h-4 text-purple-600 dark:text-purple-400" />
@@ -146,26 +156,30 @@ export function AppSidebar() {
                       </CollapsibleTrigger>
                       {
                         isCollapsed ?
-                          <CollapsibleContent>
+                          <div>
                             {item.items.map((subItem) => (
-                              <SidebarMenuSubItem key={subItem.title}>
-                                <SidebarMenuSubButton
-                                  onClick={() => navigate(subItem.url)}
-                                  isActive={location.pathname === subItem.url}
-                                  className={cn(
-                                    "hover:bg-gradient-to-r hover:from-purple-50/80 hover:to-blue-50/80 dark:hover:from-purple-950/40 dark:hover:to-blue-950/40 transition-all duration-200 rounded-md py-2 px-3",
-                                    location.pathname === subItem.url && "bg-gradient-to-r from-purple-100 to-blue-100 dark:from-purple-900/60 dark:to-blue-900/60 text-purple-700 dark:text-purple-300 font-medium shadow-sm border border-purple-200/50 dark:border-purple-800/30"
-                                  )}
-                                >
-                                  {subItem.icon && (
-                                    <div className="flex items-center justify-center w-6 h-6 rounded-md bg-white/80 dark:bg-gray-800/80 shadow-sm">
-                                      <subItem.icon className="w-3 h-3 text-purple-600 dark:text-purple-400" />
-                                    </div>
-                                  )}
-                                </SidebarMenuSubButton>
-                              </SidebarMenuSubItem>
+                              <Tooltip key={subItem.title}>
+                                <TooltipTrigger asChild>
+                                  <div
+                                    onClick={() => navigate(subItem.url)}
+                                    className={cn(
+                                      "hover:bg-gradient-to-r hover:from-purple-50/80 hover:to-blue-50/80 dark:hover:from-purple-950/40 dark:hover:to-blue-950/40 transition-all duration-200 rounded-md py-1 my-1 px-1 cursor-pointer",
+                                      location.pathname === subItem.url && "bg-gradient-to-r from-purple-100 to-blue-100 dark:from-purple-900/60 dark:to-blue-900/60 text-purple-700 dark:text-purple-300 font-medium shadow-sm border border-purple-200/50 dark:border-purple-800/30"
+                                    )}
+                                  >
+                                    {subItem.icon && (
+                                      <div className="flex items-center justify-center w-6 h-6 rounded-md bg-white/80 dark:bg-gray-800/80 shadow-sm">
+                                        <subItem.icon className="w-3 h-3 text-purple-600 dark:text-purple-400" />
+                                      </div>
+                                    )}
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent side="right" align="center">
+                                  {subItem.title}
+                                </TooltipContent>
+                              </Tooltip>
                             ))}
-                          </CollapsibleContent>
+                          </div>
                           :
                           <CollapsibleContent>
                             <SidebarMenuSub className={cn(

@@ -90,7 +90,7 @@ export default function Dashboard() {
   }, [dispatch]);
 
   const handleCreateNew = () => {
-    navigate('/influencers/edit');
+    navigate('/influencers/create');
   };
 
   const handleEditInfluencer = (id: string) => {

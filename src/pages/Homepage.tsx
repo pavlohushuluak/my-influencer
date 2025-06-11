@@ -14,7 +14,9 @@ export default function Homepage() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { theme } = useSelector((state: RootState) => state.ui);
+  const { id, email } = useSelector((state: RootState) => state.user);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const isLoggedIn = sessionStorage.getItem('access_token') !== null;
 
   const features = [
     {
@@ -138,9 +140,9 @@ export default function Homepage() {
               <Button
                 size="lg"
                 className="bg-ai-gradient hover:opacity-90 text-lg px-8 py-3 shadow-lg transition-all hover:shadow-xl"
-                onClick={() => navigate('/dashboard')}
+                onClick={() => navigate(isLoggedIn ? '/dashboard' : '/signup')}
               >
-                Start Creating
+                {isLoggedIn ? 'Go to Dashboard' : 'Start Creating'}
               </Button>
               <Button
                 size="lg"
@@ -148,7 +150,7 @@ export default function Homepage() {
                 className="text-lg px-8 py-3 border-border border-neutral-300 hover:bg-accent dark:border-neutral-600 text-neutral-800 dark:text-neutral-100 bg-transparent hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
                 onClick={() => navigate('/signin')}
               >
-                View Demo
+                {isLoggedIn ? 'Sign Out' : 'View Demo'}
               </Button>
             </div>
           </div>
@@ -234,9 +236,9 @@ export default function Homepage() {
                         ? "bg-ai-gradient hover:opacity-90" 
                         : "bg-background border border-border hover:bg-accent text-foreground"
                     )}
-                    onClick={() => navigate('/signup')}
+                    onClick={() => navigate(isLoggedIn ? '/dashboard' : '/signup')}
                   >
-                    Get Started
+                    {isLoggedIn ? 'Go to Dashboard' : 'Get Started'}
                   </Button>
                 </CardContent>
               </Card>
@@ -401,7 +403,7 @@ export default function Homepage() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-12 sm:py-16 lg:py-20 px-4">
+      <section className="py-12 sm:py-16 lg:py-20 px-4 bg-muted/30 backdrop-blur">
         <div className="container mx-auto text-center">
           <div className="max-w-3xl mx-auto">
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4 sm:mb-6 text-foreground">
@@ -413,9 +415,9 @@ export default function Homepage() {
             <Button 
               size="lg" 
               className="bg-ai-gradient hover:opacity-90 text-base sm:text-lg px-6 sm:px-8 py-3 shadow-lg transition-all hover:shadow-xl w-full sm:w-auto"
-              onClick={() => navigate('/signup')}
+              onClick={() => navigate(isLoggedIn ? '/dashboard' : '/signup')}
             >
-              Get Started for Free
+              {isLoggedIn ? 'Go to Dashboard' : 'Get Started for Free'}
             </Button>
           </div>
         </div>

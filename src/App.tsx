@@ -11,7 +11,7 @@ import Homepage from '@/pages/Homepage';
 import Dashboard from '@/pages/Dashboard';
 import Auth from '@/pages/Auth';
 import Account from '@/pages/Account';
-import CreateInfluencer from '@/pages/CreateInfluencer';
+import { CreateInfluencer } from '@/pages/CreateInfluencer';
 import InfluencerTemplates from '@/pages/InfluencerTemplates';
 import InfluencerEdit from '@/pages/InfluencerEdit';
 import InfluencerUse from '@/pages/InfluencerUse';

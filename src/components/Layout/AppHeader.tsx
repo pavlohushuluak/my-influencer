@@ -67,38 +67,40 @@ export function AppHeader({ showAuthButtons = true }: AppHeaderProps) {
         )}
 
         {/* Desktop Actions */}
-        <div className="flex items-center gap-3">
-          {/* Theme toggle */}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleThemeToggle}
-            className="w-9 h-9 hover:bg-accent transition-colors"
-          >
-            {theme === 'dark' ? (
-              <Sun className="w-4 h-4 text-foreground" />
-            ) : (
-              <Moon className="w-4 h-4 text-foreground" />
+        {!isMobile && (
+          <div className="flex items-center gap-3">
+            {/* Theme toggle */}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleThemeToggle}
+              className="w-9 h-9 hover:bg-accent transition-colors"
+            >
+              {theme === 'dark' ? (
+                <Sun className="w-4 h-4 text-foreground" />
+              ) : (
+                <Moon className="w-4 h-4 text-foreground" />
+              )}
+            </Button>
+            {showAuthButtons && (
+              <>
+                <Button
+                  variant="outline"
+                  onClick={() => navigate('/signin')}
+                  className="px-8 py-3 border-border border-neutral-300 hover:bg-accent dark:border-neutral-600 text-neutral-800 dark:text-neutral-100 bg-transparent hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+                >
+                  {isLoggedIn ? 'Sign Out' : 'Sign In'}
+                </Button>
+                <Button
+                  className="bg-ai-gradient hover:opacity-90 transition-opacity shadow-lg"
+                  onClick={() => navigate(isLoggedIn ? '/dashboard' : '/signup')}
+                >
+                  {isLoggedIn ? 'Dashboard' : 'Get Started'}
+                </Button>
+              </>
             )}
-          </Button>
-          {showAuthButtons && (
-            <>
-              <Button
-                variant="outline"
-                onClick={() => navigate('/signin')}
-                className="px-8 py-3 border-border border-neutral-300 hover:bg-accent dark:border-neutral-600 text-neutral-800 dark:text-neutral-100 bg-transparent hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
-              >
-                {isLoggedIn ? 'Sign Out' : 'Sign In'}
-              </Button>
-              <Button
-                className="bg-ai-gradient hover:opacity-90 transition-opacity shadow-lg"
-                onClick={() => navigate(isLoggedIn ? '/dashboard' : '/signup')}
-              >
-                {isLoggedIn ? 'Dashboard' : 'Get Started'}
-              </Button>
-            </>
-          )}
-        </div>
+          </div>
+        )}
 
         {/* Mobile Menu */}
         {isMobile && showAuthButtons && (
@@ -144,7 +146,7 @@ export function AppHeader({ showAuthButtons = true }: AppHeaderProps) {
                       </button>
                     ))}
                   </nav>
-                  
+
                   <Button
                     variant="outline"
                     onClick={() => {

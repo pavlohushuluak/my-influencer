@@ -57,9 +57,9 @@ export default function ContentStory() {
 
   return (
     <div className="p-6 space-y-6 animate-fade-in">
-      <div className="flex justify-between items-start">
+      <div className="flex flex-col md:flex-row items-center justify-between gap-5">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight bg-ai-gradient bg-clip-text text-transparent">
+          <h1 className="flex flex-col items-center md:items-start text-3xl font-bold tracking-tight bg-ai-gradient bg-clip-text text-transparent">
             Story Content
           </h1>
           <p className="text-muted-foreground">

@@ -141,8 +141,8 @@ export default function Dashboard() {
 
   return (
     <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex flex-col md:flex-row items-center justify-between gap-5">
+        <div className="flex flex-col items-center md:items-start">
           <h1 className="text-3xl font-bold tracking-tight bg-ai-gradient bg-clip-text text-transparent">
             Dashboard
           </h1>

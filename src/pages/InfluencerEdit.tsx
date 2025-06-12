@@ -452,7 +452,7 @@ export default function InfluencerEdit() {
     title: string
   }) => (
     <Dialog open={true} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl overflow-scroll max-h-[80vh]">
+      <DialogContent className="max-w-4xl overflow-auto max-h-[80vh]">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
@@ -581,7 +581,7 @@ export default function InfluencerEdit() {
 
   return (
     <div className="p-6 space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row items-center justify-between gap-5">
         <div>
           <h1 className="text-3xl font-bold tracking-tight bg-ai-gradient bg-clip-text text-transparent">
             Edit Influencer
@@ -623,7 +623,7 @@ export default function InfluencerEdit() {
         </div>
       ) : (
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-1 h-full md:grid-cols-4">
             <TabsTrigger value="basic">Basic Info</TabsTrigger>
             <TabsTrigger value="appearance">Appearance</TabsTrigger>
             <TabsTrigger value="style">Style & Environment</TabsTrigger>
@@ -637,7 +637,7 @@ export default function InfluencerEdit() {
                   <CardTitle>Basic Information</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     <div className="space-y-2">
                       <Label>First Name</Label>
                       <Input
@@ -735,7 +735,7 @@ export default function InfluencerEdit() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>Birth Origin</Label>
                       <Input
@@ -1233,7 +1233,7 @@ export default function InfluencerEdit() {
                   <CardTitle>Style & Environment</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     <div className="space-y-2">
                       <Label>Everyday Style</Label>
                       <div className="flex flex-col gap-2">

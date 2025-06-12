@@ -302,11 +302,8 @@ export function CreateInfluencerSteps({ onComplete }: CreateInfluencerStepsProps
         return (
           <div className="space-y-6">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-              <CardHeader>
-                <CardTitle>Basic Information</CardTitle>
-              </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>First Name</Label>
                     <Input
@@ -385,7 +382,7 @@ export function CreateInfluencerSteps({ onComplete }: CreateInfluencerStepsProps
           <div className="pr-4">
             {renderStepContent()}
           </div>
-          <div className="flex justify-between mt-8">
+          <div className="flex flex-col md:flex-row gap-2 justify-between mt-8">
             <Button
               variant="outline"
               onClick={handleBack}

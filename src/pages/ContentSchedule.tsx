@@ -85,9 +85,9 @@ export default function ContentSchedule() {
 
   return (
     <div className="p-6 space-y-6 animate-fade-in">
-      <div className="flex justify-between items-start">
+      <div className="flex flex-col md:flex-row items-center justify-between gap-5">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight bg-ai-gradient bg-clip-text text-transparent">
+          <h1 className="flex flex-col items-center md:items-start text-3xl font-bold tracking-tight bg-ai-gradient bg-clip-text text-transparent">
             Content Schedule
           </h1>
           <p className="text-muted-foreground">
@@ -103,27 +103,9 @@ export default function ContentSchedule() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Calendar */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CalendarIcon className="w-5 h-5" />
-              Calendar
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Calendar
-              mode="single"
-              selected={selectedDate}
-              onSelect={setSelectedDate}
-              className="rounded-md border"
-            />
-          </CardContent>
-        </Card>
-
+      <div className="grid gap-6">
         {/* Content Lists */}
-        <div className="lg:col-span-2">
+        <div>
           <Tabs defaultValue="today" className="w-full">
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="today">Today</TabsTrigger>

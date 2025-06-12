@@ -205,11 +205,11 @@ export default function InfluencerEdit() {
   };
 
   const handleInputChange = (field: string, value: string) => {
-    if (isFeatureLocked(field)) {
-      setLockedFeature(field);
-      setShowUpgradeModal(true);
-      return;
-    }
+    // if (isFeatureLocked(field)) {
+    //   setLockedFeature(field);
+    //   setShowUpgradeModal(true);
+    //   return;
+    // }
 
     setInfluencerData(prev => ({
       ...prev,
@@ -629,7 +629,7 @@ export default function InfluencerEdit() {
                   <CardTitle>Basic Information</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-3 gap-4">
                     <div className="space-y-2">
                       <Label>First Name</Label>
                       <Input
@@ -646,9 +646,6 @@ export default function InfluencerEdit() {
                         placeholder="Enter last name"
                       />
                     </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>Influencer Type</Label>
                       <Select
@@ -683,9 +680,6 @@ export default function InfluencerEdit() {
                         </SelectContent>
                       </Select>
                     </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>Age & Lifestyle</Label>
                       <Input
@@ -696,7 +690,7 @@ export default function InfluencerEdit() {
                     </div>
                     <div className="space-y-2">
                       <Label>Cultural Background</Label>
-                      <div className="flex gap-2">
+                      <div className="flex flex-col gap-2">
                         <Select
                           value={influencerData.cultural_background}
                           onValueChange={(value) => handleInputChange('cultural_background', value)}
@@ -710,13 +704,25 @@ export default function InfluencerEdit() {
                             ))}
                           </SelectContent>
                         </Select>
-                        <Button
-                          variant="outline"
-                          size="icon"
+                        <div
                           onClick={() => setShowCulturalBackgroundSelector(true)}
+                          className='flex items-center justify-center cursor-pointer'
                         >
-                          <ChevronRight className="w-4 h-4" />
-                        </Button>
+                          {
+                            culturalBackgroundOptions.find(option => option.label === influencerData.cultural_background)?.image ? (
+                              <img
+                                src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${culturalBackgroundOptions.find(option => option.label === influencerData.cultural_background)?.image}`}
+                                alt={culturalBackgroundOptions.find(option => option.label === influencerData.cultural_background)?.label}
+                                className="w-[70%] max-w-[200px] rounded-full"
+                              />
+                            )
+                              :
+                              <div
+                                className="max-w-[200px] w-[200px] h-[200px] rounded-full border"
+                                style={{ backgroundColor: '#FFFFFF' }}
+                              />
+                          }
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -749,10 +755,10 @@ export default function InfluencerEdit() {
                   <CardTitle>Physical Appearance</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     <div className="space-y-2">
                       <Label>Hair Length</Label>
-                      <div className="flex gap-2">
+                      <div className="flex flex-col gap-2">
                         <Select
                           value={influencerData.hair_length}
                           onValueChange={(value) => handleInputChange('hair_length', value)}
@@ -766,52 +772,30 @@ export default function InfluencerEdit() {
                             ))}
                           </SelectContent>
                         </Select>
-                        <Button
-                          variant="outline"
-                          size="icon"
+                        <div
                           onClick={() => setShowHairLengthSelector(true)}
+                          className='flex items-center justify-center cursor-pointer'
                         >
-                          <ChevronRight className="w-4 h-4" />
-                        </Button>
+                          {
+                            hairLengthOptions.find(option => option.label === influencerData.hair_length)?.image ? (
+                              <img
+                                src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${hairLengthOptions.find(option => option.label === influencerData.hair_length)?.image}`}
+                                alt={hairLengthOptions.find(option => option.label === influencerData.hair_length)?.label}
+                                className="w-[70%] max-w-[200px] rounded-full"
+                              />
+                            )
+                              :
+                              <div
+                                className="max-w-[200px] w-[200px] h-[200px] rounded-full border"
+                                style={{ backgroundColor: '#FFFFFF' }}
+                              />
+                          }
+                        </div>
                       </div>
                     </div>
-                    <div className="space-y-2">
-                      <Label>Hair Color</Label>
-                      <div className="flex gap-2">
-                        <Select
-                          value={influencerData.hair_color}
-                          onValueChange={(value) => handleInputChange('hair_color', value)}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select hair color" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {hairColorOptions.map((option, index) => (
-                              <SelectItem key={index} value={option.label}>{option.label}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() => setShowHairColorPicker(true)}
-                        >
-                          <ChevronRight className="w-4 h-4" />
-                        </Button>
-                        {influencerData.hair_color && influencerData.hair_color.startsWith('#') && (
-                          <div
-                            className="w-8 h-8 rounded-full border"
-                            style={{ backgroundColor: influencerData.hair_color }}
-                          />
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>Hair Style</Label>
-                      <div className="flex gap-2">
+                      <div className="flex flex-col gap-2">
                         <Select
                           value={influencerData.hair_style}
                           onValueChange={(value) => handleInputChange('hair_style', value)}
@@ -825,130 +809,74 @@ export default function InfluencerEdit() {
                             ))}
                           </SelectContent>
                         </Select>
-                        <Button
-                          variant="outline"
-                          size="icon"
+                        <div
                           onClick={() => setShowHairStyleSelector(true)}
+                          className='flex items-center justify-center cursor-pointer'
                         >
-                          <ChevronRight className="w-4 h-4" />
-                        </Button>
+                          {
+                            hairStyleOptions.find(option => option.label === influencerData.hair_style)?.image ? (
+                              <img
+                                src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${hairStyleOptions.find(option => option.label === influencerData.hair_style)?.image}`}
+                                alt={hairStyleOptions.find(option => option.label === influencerData.hair_style)?.label}
+                                className="w-[70%] max-w-[200px] rounded-full"
+                              />
+                            )
+                              :
+                              <div
+                                className="max-w-[200px] w-[200px] h-[200px] rounded-full border"
+                                style={{ backgroundColor: '#FFFFFF' }}
+                              />
+                          }
+                        </div>
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <Label>Eye Color</Label>
-                      <div className="flex gap-2">
+                      <Label>Hair Color</Label>
+                      <div className="flex flex-col gap-2">
                         <Select
-                          value={influencerData.eye_color}
-                          onValueChange={(value) => handleInputChange('eye_color', value)}
+                          value={influencerData.hair_color}
+                          onValueChange={(value) => handleInputChange('hair_color', value)}
                         >
                           <SelectTrigger>
-                            <SelectValue placeholder="Select eye color" />
+                            <SelectValue placeholder="Select hair color" />
                           </SelectTrigger>
                           <SelectContent>
-                            {eyeColorOptions.map((option, index) => (
+                            {hairColorOptions.map((option, index) => (
                               <SelectItem key={index} value={option.label}>{option.label}</SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() => setShowEyeColorPicker(true)}
+                        <div
+                          onClick={() => setShowHairColorPicker(true)}
+                          className='flex items-center justify-center cursor-pointer'
                         >
-                          <ChevronRight className="w-4 h-4" />
-                        </Button>
-                        {influencerData.eye_color && influencerData.eye_color.startsWith('#') && (
-                          <div
-                            className="w-8 h-8 rounded-full border"
-                            style={{ backgroundColor: influencerData.eye_color }}
-                          />
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Lip Style</Label>
-                      <div className="flex gap-2">
-                        <Select
-                          value={influencerData.lip_style}
-                          onValueChange={(value) => handleInputChange('lip_style', value)}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select lip style" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {lipOptions.map((option, index) => (
-                              <SelectItem key={index} value={option.label}>{option.label}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() => setShowLipSelector(true)}
-                        >
-                          <ChevronRight className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Nose Style</Label>
-                      <div className="flex gap-2">
-                        <Select
-                          value={influencerData.nose_style}
-                          onValueChange={(value) => handleInputChange('nose_style', value)}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select nose style" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {noseOptions.map((option, index) => (
-                              <SelectItem key={index} value={option.label}>{option.label}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() => setShowNoseSelector(true)}
-                        >
-                          <ChevronRight className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Face Shape</Label>
-                      <div className="flex gap-2">
-                        <Select
-                          value={influencerData.face_shape}
-                          onValueChange={(value) => handleInputChange('face_shape', value)}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select face shape" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {faceShapeOptions.map((option, index) => (
-                              <SelectItem key={index} value={option.label}>{option.label}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() => setShowFaceShapeSelector(true)}
-                        >
-                          <ChevronRight className="w-4 h-4" />
-                        </Button>
+                          {
+                            hairColorOptions.find(option => option.label === influencerData.hair_color)?.image && (
+                              <img
+                                src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${hairColorOptions.find(option => option.label === influencerData.hair_color)?.image}`}
+                                alt={hairColorOptions.find(option => option.label === influencerData.hair_color)?.label}
+                                className="w-[70%] max-w-[200px] rounded-full"
+                              />
+                            )
+                          }
+                          {influencerData.hair_color && influencerData.hair_color.startsWith('#') && (
+                            <div
+                              className="max-w-[200px] w-[200px] h-[200px] rounded-full border"
+                              style={{ backgroundColor: influencerData.hair_color }}
+                            />
+                          )}
+                          {!influencerData.hair_color && (
+                            <div
+                              className="max-w-[200px] w-[200px] h-[200px] rounded-full border"
+                              style={{ backgroundColor: '#FFFFFF' }}
+                            />
+                          )}
+                        </div>
                       </div>
                     </div>
                     <div className="space-y-2">
                       <Label>Facial Features</Label>
-                      <div className="flex gap-2">
+                      <div className="flex flex-col gap-2">
                         <Select
                           value={influencerData.facial_features}
                           onValueChange={(value) => handleInputChange('facial_features', value)}
@@ -962,74 +890,185 @@ export default function InfluencerEdit() {
                             ))}
                           </SelectContent>
                         </Select>
-                        <Button
-                          variant="outline"
-                          size="icon"
+                        <div
                           onClick={() => setShowFacialFeaturesSelector(true)}
+                          className='flex items-center justify-center cursor-pointer'
                         >
-                          <ChevronRight className="w-4 h-4" />
-                        </Button>
+                          {
+                            facialFeaturesOptions.find(option => option.label === influencerData.facial_features)?.image ? (
+                              <img
+                                src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${facialFeaturesOptions.find(option => option.label === influencerData.facial_features)?.image}`}
+                                alt={facialFeaturesOptions.find(option => option.label === influencerData.facial_features)?.label}
+                                className="w-[70%] max-w-[200px] rounded-full"
+                              />
+                            )
+                              :
+                              <div
+                                className="max-w-[200px] w-[200px] h-[200px] rounded-full border"
+                                style={{ backgroundColor: '#FFFFFF' }}
+                              />
+                          }
+                        </div>
                       </div>
                     </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label>Skin Tone</Label>
-                      <div className="flex gap-2">
+                      <Label>Face Shape</Label>
+                      <div className="flex flex-col gap-2">
                         <Select
-                          value={influencerData.skin_tone}
-                          onValueChange={(value) => handleInputChange('skin_tone', value)}
+                          value={influencerData.face_shape}
+                          onValueChange={(value) => handleInputChange('face_shape', value)}
                         >
                           <SelectTrigger>
-                            <SelectValue placeholder="Select skin tone" />
+                            <SelectValue placeholder="Select face shape" />
                           </SelectTrigger>
                           <SelectContent>
-                            {skinToneOptions.map((option, index) => (
+                            {faceShapeOptions.map((option, index) => (
                               <SelectItem key={index} value={option.label}>{option.label}</SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() => setShowSkinToneSelector(true)}
+                        <div
+                          onClick={() => setShowFaceShapeSelector(true)}
+                          className='flex items-center justify-center cursor-pointer'
                         >
-                          <ChevronRight className="w-4 h-4" />
-                        </Button>
+                          {
+                            faceShapeOptions.find(option => option.label === influencerData.face_shape)?.image ? (
+                              <img
+                                src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${faceShapeOptions.find(option => option.label === influencerData.face_shape)?.image}`}
+                                alt={faceShapeOptions.find(option => option.label === influencerData.face_shape)?.label}
+                                className="w-[70%] max-w-[200px] rounded-full"
+                              />
+                            )
+                              :
+                              <div
+                                className="max-w-[200px] w-[200px] h-[200px] rounded-full border"
+                                style={{ backgroundColor: '#FFFFFF' }}
+                              />
+                          }
+                        </div>
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <Label>Body Type</Label>
-                      <div className="flex gap-2">
+                      <Label>Eye Color</Label>
+                      <div className="flex flex-col gap-2">
                         <Select
-                          value={influencerData.body_type}
-                          onValueChange={(value) => handleInputChange('body_type', value)}
+                          value={influencerData.eye_color}
+                          onValueChange={(value) => handleInputChange('eye_color', value)}
                         >
                           <SelectTrigger>
-                            <SelectValue placeholder="Select body type" />
+                            <SelectValue placeholder="Select eye color" />
                           </SelectTrigger>
                           <SelectContent>
-                            {bodyTypeOptions.map((option, index) => (
+                            {eyeColorOptions.map((option, index) => (
                               <SelectItem key={index} value={option.label}>{option.label}</SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() => setShowBodyTypeSelector(true)}
+                        <div
+                          onClick={() => setShowEyeColorPicker(true)}
+                          className='flex items-center justify-center cursor-pointer'
                         >
-                          <ChevronRight className="w-4 h-4" />
-                        </Button>
+                          {
+                            eyeColorOptions.find(option => option.label === influencerData.eye_color)?.image && (
+                              <img
+                                src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${eyeColorOptions.find(option => option.label === influencerData.eye_color)?.image}`}
+                                alt={eyeColorOptions.find(option => option.label === influencerData.eye_color)?.label}
+                                className="w-[70%] max-w-[200px] rounded-full"
+                              />
+                            )
+                          }
+                          {influencerData.eye_color && influencerData.eye_color.startsWith('#') && (
+                            <div
+                              className="max-w-[200px] w-[200px] h-[200px] rounded-full border"
+                              style={{ backgroundColor: influencerData.eye_color }}
+                            />
+                          )}
+                          {!influencerData.eye_color && (
+                            <div
+                              className="max-w-[200px] w-[200px] h-[200px] rounded-full border"
+                              style={{ backgroundColor: '#FFFFFF' }}
+                            />
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Lip Style</Label>
+                      <div className="flex flex-col gap-2">
+                        <Select
+                          value={influencerData.lip_style}
+                          onValueChange={(value) => handleInputChange('lip_style', value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select lip style" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {lipOptions.map((option, index) => (
+                              <SelectItem key={index} value={option.label}>{option.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <div
+                          onClick={() => setShowLipSelector(true)}
+                          className='flex items-center justify-center cursor-pointer'
+                        >
+                          {
+                            lipOptions.find(option => option.label === influencerData.lip_style)?.image ? (
+                              <img
+                                src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${lipOptions.find(option => option.label === influencerData.lip_style)?.image}`}
+                                alt={lipOptions.find(option => option.label === influencerData.lip_style)?.label}
+                                className="w-[70%] max-w-[200px] rounded-full"
+                              />
+                            )
+                              :
+                              <div
+                                className="max-w-[200px] w-[200px] h-[200px] rounded-full border"
+                                style={{ backgroundColor: '#FFFFFF' }}
+                              />
+                          }
+                        </div>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Nose Style</Label>
+                      <div className="flex flex-col gap-2">
+                        <Select
+                          value={influencerData.nose_style}
+                          onValueChange={(value) => handleInputChange('nose_style', value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select nose style" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {noseOptions.map((option, index) => (
+                              <SelectItem key={index} value={option.label}>{option.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <div
+                          onClick={() => setShowNoseSelector(true)}
+                          className='flex items-center justify-center cursor-pointer'
+                        >
+                          {
+                            noseOptions.find(option => option.label === influencerData.nose_style)?.image ? (
+                              <img
+                                src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${noseOptions.find(option => option.label === influencerData.nose_style)?.image}`}
+                                alt={noseOptions.find(option => option.label === influencerData.nose_style)?.label}
+                                className="w-[70%] max-w-[200px] rounded-full"
+                              />
+                            )
+                              :
+                              <div
+                                className="max-w-[200px] w-[200px] h-[200px] rounded-full border"
+                                style={{ backgroundColor: '#FFFFFF' }}
+                              />
+                          }
+                        </div>
+                      </div>
+                    </div>
                     <div className="space-y-2">
                       <Label>Eyebrow Style</Label>
-                      <div className="flex gap-2">
+                      <div className="flex flex-col gap-2">
                         <Select
                           value={influencerData.eyebrow_style}
                           onValueChange={(value) => handleInputChange('eyebrow_style', value)}
@@ -1043,18 +1082,104 @@ export default function InfluencerEdit() {
                             ))}
                           </SelectContent>
                         </Select>
-                        <Button
-                          variant="outline"
-                          size="icon"
+                        <div
                           onClick={() => setShowEyebrowSelector(true)}
+                          className='flex items-center justify-center cursor-pointer'
                         >
-                          <ChevronRight className="w-4 h-4" />
-                        </Button>
+                          {
+                            eyebrowOptions.find(option => option.label === influencerData.eyebrow_style)?.image ? (
+                              <img
+                                src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${eyebrowOptions.find(option => option.label === influencerData.eyebrow_style)?.image}`}
+                                alt={eyebrowOptions.find(option => option.label === influencerData.eyebrow_style)?.label}
+                                className="w-[70%] max-w-[200px] rounded-full"
+                              />
+                            )
+                              :
+                              <div
+                                className="max-w-[200px] w-[200px] h-[200px] rounded-full border"
+                                style={{ backgroundColor: '#FFFFFF' }}
+                              />
+                          }
+                        </div>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Skin Tone</Label>
+                      <div className="flex flex-col gap-2">
+                        <Select
+                          value={influencerData.skin_tone}
+                          onValueChange={(value) => handleInputChange('skin_tone', value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select skin tone" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {skinToneOptions.map((option, index) => (
+                              <SelectItem key={index} value={option.label}>{option.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <div
+                          onClick={() => setShowSkinToneSelector(true)}
+                          className='flex items-center justify-center cursor-pointer'
+                        >
+                          {
+                            skinToneOptions.find(option => option.label === influencerData.skin_tone)?.image ? (
+                              <img
+                                src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${skinToneOptions.find(option => option.label === influencerData.skin_tone)?.image}`}
+                                alt={skinToneOptions.find(option => option.label === influencerData.skin_tone)?.label}
+                                className="w-[70%] max-w-[200px] rounded-full"
+                              />
+                            )
+                              :
+                              <div
+                                className="max-w-[200px] w-[200px] h-[200px] rounded-full border"
+                                style={{ backgroundColor: '#FFFFFF' }}
+                              />
+                          }
+                        </div>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Body Type</Label>
+                      <div className="flex flex-col gap-2">
+                        <Select
+                          value={influencerData.body_type}
+                          onValueChange={(value) => handleInputChange('body_type', value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select body type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {bodyTypeOptions.map((option, index) => (
+                              <SelectItem key={index} value={option.label}>{option.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <div
+                          onClick={() => setShowBodyTypeSelector(true)}
+                          className='flex items-center justify-center cursor-pointer'
+                        >
+                          {
+                            bodyTypeOptions.find(option => option.label === influencerData.body_type)?.image ? (
+                              <img
+                                src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${bodyTypeOptions.find(option => option.label === influencerData.body_type)?.image}`}
+                                alt={bodyTypeOptions.find(option => option.label === influencerData.body_type)?.label}
+                                className="w-[70%] max-w-[200px] rounded-full"
+                              />
+                            )
+                              :
+                              <div
+                                className="max-w-[200px] w-[200px] h-[200px] rounded-full border"
+                                style={{ backgroundColor: '#FFFFFF' }}
+                              />
+                          }
+                        </div>
                       </div>
                     </div>
                     <div className="space-y-2">
                       <Label>Makeup Style</Label>
-                      <div className="flex gap-2">
+                      <div className="flex flex-col gap-2">
                         <Select
                           value={influencerData.makeup_style}
                           onValueChange={(value) => handleInputChange('makeup_style', value)}
@@ -1068,13 +1193,25 @@ export default function InfluencerEdit() {
                             ))}
                           </SelectContent>
                         </Select>
-                        <Button
-                          variant="outline"
-                          size="icon"
+                        <div
                           onClick={() => setShowMakeupSelector(true)}
+                          className='flex items-center justify-center cursor-pointer'
                         >
-                          <ChevronRight className="w-4 h-4" />
-                        </Button>
+                          {
+                            makeupOptions.find(option => option.label === influencerData.makeup_style)?.image ? (
+                              <img
+                                src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${makeupOptions.find(option => option.label === influencerData.makeup_style)?.image}`}
+                                alt={makeupOptions.find(option => option.label === influencerData.makeup_style)?.label}
+                                className="w-[70%] max-w-[200px] rounded-full"
+                              />
+                            )
+                              :
+                              <div
+                                className="max-w-[200px] w-[200px] h-[200px] rounded-full border"
+                                style={{ backgroundColor: '#FFFFFF' }}
+                              />
+                          }
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -1088,6 +1225,230 @@ export default function InfluencerEdit() {
                   <CardTitle>Style & Environment</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label>Everyday Style</Label>
+                      <div className="flex flex-col gap-2">
+                        <Select
+                          value={influencerData.clothing_style_everyday}
+                          onValueChange={(value) => handleInputChange('clothing_style_everyday', value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select everyday style" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {clothingEverydayOptions.map((option, index) => (
+                              <SelectItem key={index} value={option.label}>{option.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <div
+                          onClick={() => setShowClothingEverydaySelector(true)}
+                          className='flex items-center justify-center cursor-pointer'
+                        >
+                          {
+                            clothingEverydayOptions.find(option => option.label === influencerData.clothing_style_everyday)?.image ? (
+                              <img
+                                src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${clothingEverydayOptions.find(option => option.label === influencerData.clothing_style_everyday)?.image}`}
+                                alt={clothingEverydayOptions.find(option => option.label === influencerData.clothing_style_everyday)?.label}
+                                className="w-[70%] max-w-[200px] rounded-full"
+                              />
+                            )
+                              :
+                              <div
+                                className="max-w-[200px] w-[200px] h-[200px] rounded-full border"
+                                style={{ backgroundColor: '#FFFFFF' }}
+                              />
+                          }
+                        </div>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Home Style</Label>
+                      <div className="flex flex-col gap-2">
+                        <Select
+                          value={influencerData.clothing_style_home}
+                          onValueChange={(value) => handleInputChange('clothing_style_home', value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select home style" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {clothingHomewearOptions.map((option, index) => (
+                              <SelectItem key={index} value={option.label}>{option.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <div
+                          onClick={() => setShowClothingHomewearSelector(true)}
+                          className='flex items-center justify-center cursor-pointer'
+                        >
+                          {
+                            clothingHomewearOptions.find(option => option.label === influencerData.clothing_style_home)?.image ? (
+                              <img
+                                src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${clothingHomewearOptions.find(option => option.label === influencerData.clothing_style_home)?.image}`}
+                                alt={clothingHomewearOptions.find(option => option.label === influencerData.clothing_style_home)?.label}
+                                className="w-[70%] max-w-[200px] rounded-full"
+                              />
+                            )
+                              :
+                              <div
+                                className="max-w-[200px] w-[200px] h-[200px] rounded-full border"
+                                style={{ backgroundColor: '#FFFFFF' }}
+                              />
+                          }
+                        </div>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Occasional Style</Label>
+                      <div className="flex flex-col gap-2">
+                        <Select
+                          value={influencerData.clothing_style_occasional}
+                          onValueChange={(value) => handleInputChange('clothing_style_occasional', value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select occasional style" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {clothingOccasionalOptions.map((option, index) => (
+                              <SelectItem key={index} value={option.label}>{option.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <div
+                          onClick={() => setShowClothingOccasionalSelector(true)}
+                          className='flex items-center justify-center cursor-pointer'
+                        >
+                          {
+                            clothingOccasionalOptions.find(option => option.label === influencerData.clothing_style_occasional)?.image ? (
+                              <img
+                                src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${clothingOccasionalOptions.find(option => option.label === influencerData.clothing_style_occasional)?.image}`}
+                                alt={clothingOccasionalOptions.find(option => option.label === influencerData.clothing_style_occasional)?.label}
+                                className="w-[70%] max-w-[200px] rounded-full"
+                              />
+                            )
+                              :
+                              <div
+                                className="max-w-[200px] w-[200px] h-[200px] rounded-full border"
+                                style={{ backgroundColor: '#FFFFFF' }}
+                              />
+                          }
+                        </div>
+                      </div>
+                    </div>
+                    <div className='space-y-2'>
+                      <Label>Sports Style</Label>
+                      <div className="flex flex-col gap-2">
+                        <Select
+                          value={influencerData.clothing_style_sports}
+                          onValueChange={(value) => handleInputChange('clothing_style_sports', value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select sports style" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {clothingSportsOptions.map((option, index) => (
+                              <SelectItem key={index} value={option.label}>{option.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <div
+                          onClick={() => setShowClothingSportsSelector(true)}
+                          className='flex items-center justify-center cursor-pointer'
+                        >
+                          {
+                            clothingSportsOptions.find(option => option.label === influencerData.clothing_style_sports)?.image ? (
+                              <img
+                                src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${clothingSportsOptions.find(option => option.label === influencerData.clothing_style_sports)?.image}`}
+                                alt={clothingSportsOptions.find(option => option.label === influencerData.clothing_style_sports)?.label}
+                                className="w-[70%] max-w-[200px] rounded-full"
+                              />
+                            )
+                              :
+                              <div
+                                className="max-w-[200px] w-[200px] h-[200px] rounded-full border"
+                                style={{ backgroundColor: '#FFFFFF' }}
+                              />
+                          }
+                        </div>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Sexy Dresses Style</Label>
+                      <div className="flex flex-col gap-2">
+                        <Select
+                          value={influencerData.clothing_style_sexy_dress}
+                          onValueChange={(value) => handleInputChange('clothing_style_sexy_dress', value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select sexy dresses style" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {clothingSexyOptions.map((option, index) => (
+                              <SelectItem key={index} value={option.label}>{option.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <div
+                          onClick={() => setShowClothingSexySelector(true)}
+                          className='flex items-center justify-center cursor-pointer'
+                        >
+                          {
+                            clothingSexyOptions.find(option => option.label === influencerData.clothing_style_sexy_dress)?.image ? (
+                              <img
+                                src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${clothingSexyOptions.find(option => option.label === influencerData.clothing_style_sexy_dress)?.image}`}
+                                alt={clothingSexyOptions.find(option => option.label === influencerData.clothing_style_sexy_dress)?.label}
+                                className="w-[70%] max-w-[200px] rounded-full"
+                              />
+                            )
+                              :
+                              <div
+                                className="max-w-[200px] w-[200px] h-[200px] rounded-full border"
+                                style={{ backgroundColor: '#FFFFFF' }}
+                              />
+                          }
+                        </div>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Home Environment</Label>
+                      <div className="flex flex-col gap-2">
+                        <Select
+                          value={influencerData.home_environment}
+                          onValueChange={(value) => handleInputChange('home_environment', value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select home environment" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {homeEnvironmentOptions.map((option, index) => (
+                              <SelectItem key={index} value={option.label}>{option.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <div
+                          onClick={() => setShowHomeEnvironmentSelector(true)}
+                          className='flex items-center justify-center cursor-pointer'
+                        >
+                          {
+                            homeEnvironmentOptions.find(option => option.label === influencerData.home_environment)?.image ? (
+                              <img
+                                src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${homeEnvironmentOptions.find(option => option.label === influencerData.home_environment)?.image}`}
+                                alt={homeEnvironmentOptions.find(option => option.label === influencerData.home_environment)?.label}
+                                className="w-[70%] max-w-[200px] rounded-full"
+                              />
+                            )
+                              :
+                              <div
+                                className="max-w-[200px] w-[200px] h-[200px] rounded-full border"
+                                style={{ backgroundColor: '#FFFFFF' }}
+                              />
+                          }
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                   <div className="space-y-2">
                     <Label>Color Palette</Label>
                     <div className="flex gap-2">
@@ -1111,166 +1472,6 @@ export default function InfluencerEdit() {
                         variant="outline"
                         size="icon"
                         onClick={() => setShowColorPaletteSelector(true)}
-                      >
-                        <ChevronRight className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Everyday Style</Label>
-                      <div className="flex gap-2">
-                        <Select
-                          value={influencerData.clothing_style_everyday}
-                          onValueChange={(value) => handleInputChange('clothing_style_everyday', value)}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select everyday style" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {clothingEverydayOptions.map((option, index) => (
-                              <SelectItem key={index} value={option.label}>{option.label}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() => setShowClothingEverydaySelector(true)}
-                        >
-                          <ChevronRight className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Occasional Style</Label>
-                      <div className="flex gap-2">
-                        <Select
-                          value={influencerData.clothing_style_occasional}
-                          onValueChange={(value) => handleInputChange('clothing_style_occasional', value)}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select occasional style" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {clothingOccasionalOptions.map((option, index) => (
-                              <SelectItem key={index} value={option.label}>{option.label}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() => setShowClothingOccasionalSelector(true)}
-                        >
-                          <ChevronRight className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Home Style</Label>
-                      <div className="flex gap-2">
-                        <Select
-                          value={influencerData.clothing_style_home}
-                          onValueChange={(value) => handleInputChange('clothing_style_home', value)}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select home style" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {clothingHomewearOptions.map((option, index) => (
-                              <SelectItem key={index} value={option.label}>{option.label}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() => setShowClothingHomewearSelector(true)}
-                        >
-                          <ChevronRight className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </div>
-                    <div className='space-y-2'>
-                      <Label>Sports Style</Label>
-                      <div className="flex gap-2">
-                        <Select
-                          value={influencerData.clothing_style_sports}
-                          onValueChange={(value) => handleInputChange('clothing_style_sports', value)}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select sports style" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {clothingSportsOptions.map((option, index) => (
-                              <SelectItem key={index} value={option.label}>{option.label}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() => setShowClothingSportsSelector(true)}
-                        >
-                          <ChevronRight className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Sexy Dresses Style</Label>
-                      <div className="flex gap-2">
-                        <Select
-                          value={influencerData.clothing_style_sexy_dress}
-                          onValueChange={(value) => handleInputChange('clothing_style_sexy_dress', value)}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select sexy dresses style" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {clothingSexyOptions.map((option, index) => (
-                              <SelectItem key={index} value={option.label}>{option.label}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() => setShowClothingSexySelector(true)}
-                        >
-                          <ChevronRight className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Home Environment</Label>
-                    <div className="flex gap-2">
-                      <Select
-                        value={influencerData.home_environment}
-                        onValueChange={(value) => handleInputChange('home_environment', value)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select home environment" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {homeEnvironmentOptions.map((option, index) => (
-                            <SelectItem key={index} value={option.label}>{option.label}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => setShowHomeEnvironmentSelector(true)}
                       >
                         <ChevronRight className="w-4 h-4" />
                       </Button>
@@ -1455,7 +1656,8 @@ export default function InfluencerEdit() {
             </TabsContent>
           </ScrollArea>
         </Tabs>
-      )}
+      )
+      }
 
       <Dialog open={showUpgradeModal} onOpenChange={setShowUpgradeModal}>
         <DialogContent className="max-w-md">
@@ -1502,167 +1704,203 @@ export default function InfluencerEdit() {
         </DialogContent>
       </Dialog>
 
-      {showBackgroundSelector && (
-        <OptionSelector
-          options={backgroundOptions}
-          onSelect={(label) => handleInputChange('cultural_background', label)}
-          onClose={() => setShowBackgroundSelector(false)}
-          title="Select Cultural Background"
-        />
-      )}
+      {
+        showBackgroundSelector && (
+          <OptionSelector
+            options={backgroundOptions}
+            onSelect={(label) => handleInputChange('cultural_background', label)}
+            onClose={() => setShowBackgroundSelector(false)}
+            title="Select Cultural Background"
+          />
+        )
+      }
 
-      {showHairLengthSelector && (
-        <OptionSelector
-          options={hairLengthOptions}
-          onSelect={(label) => handleInputChange('hair_length', label)}
-          onClose={() => setShowHairLengthSelector(false)}
-          title="Select Hair Length"
-        />
-      )}
+      {
+        showHairLengthSelector && (
+          <OptionSelector
+            options={hairLengthOptions}
+            onSelect={(label) => handleInputChange('hair_length', label)}
+            onClose={() => setShowHairLengthSelector(false)}
+            title="Select Hair Length"
+          />
+        )
+      }
 
-      {showEyeColorSelector && (
-        <OptionSelector
-          options={eyeColorOptions}
-          onSelect={(label) => handleInputChange('eye_color', label)}
-          onClose={() => setShowEyeColorSelector(false)}
-          title="Select Eye Color"
-        />
-      )}
+      {
+        showEyeColorSelector && (
+          <OptionSelector
+            options={eyeColorOptions}
+            onSelect={(label) => handleInputChange('eye_color', label)}
+            onClose={() => setShowEyeColorSelector(false)}
+            title="Select Eye Color"
+          />
+        )
+      }
 
-      {showHairColorSelector && (
-        <OptionSelector
-          options={hairColorOptions}
-          onSelect={(label) => handleInputChange('hair_color', label)}
-          onClose={() => setShowHairColorSelector(false)}
-          title="Select Hair Color"
-        />
-      )}
+      {
+        showHairColorSelector && (
+          <OptionSelector
+            options={hairColorOptions}
+            onSelect={(label) => handleInputChange('hair_color', label)}
+            onClose={() => setShowHairColorSelector(false)}
+            title="Select Hair Color"
+          />
+        )
+      }
 
-      {showHairStyleSelector && (
-        <OptionSelector
-          options={hairStyleOptions}
-          onSelect={(label) => handleInputChange('hair_style', label)}
-          onClose={() => setShowHairStyleSelector(false)}
-          title="Select Hair Style"
-        />
-      )}
+      {
+        showHairStyleSelector && (
+          <OptionSelector
+            options={hairStyleOptions}
+            onSelect={(label) => handleInputChange('hair_style', label)}
+            onClose={() => setShowHairStyleSelector(false)}
+            title="Select Hair Style"
+          />
+        )
+      }
 
-      {showLipSelector && (
-        <OptionSelector
-          options={lipOptions}
-          onSelect={(label) => handleInputChange('lip_style', label)}
-          onClose={() => setShowLipSelector(false)}
-          title="Select Lip Style"
-        />
-      )}
+      {
+        showLipSelector && (
+          <OptionSelector
+            options={lipOptions}
+            onSelect={(label) => handleInputChange('lip_style', label)}
+            onClose={() => setShowLipSelector(false)}
+            title="Select Lip Style"
+          />
+        )
+      }
 
-      {showNoseSelector && (
-        <OptionSelector
-          options={noseOptions}
-          onSelect={(label) => handleInputChange('nose_style', label)}
-          onClose={() => setShowNoseSelector(false)}
-          title="Select Nose Style"
-        />
-      )}
+      {
+        showNoseSelector && (
+          <OptionSelector
+            options={noseOptions}
+            onSelect={(label) => handleInputChange('nose_style', label)}
+            onClose={() => setShowNoseSelector(false)}
+            title="Select Nose Style"
+          />
+        )
+      }
 
-      {showFaceShapeSelector && (
-        <OptionSelector
-          options={faceShapeOptions}
-          onSelect={(label) => handleInputChange('face_shape', label)}
-          onClose={() => setShowFaceShapeSelector(false)}
-          title="Select Face Shape"
-        />
-      )}
+      {
+        showFaceShapeSelector && (
+          <OptionSelector
+            options={faceShapeOptions}
+            onSelect={(label) => handleInputChange('face_shape', label)}
+            onClose={() => setShowFaceShapeSelector(false)}
+            title="Select Face Shape"
+          />
+        )
+      }
 
-      {showSkinToneSelector && (
-        <OptionSelector
-          options={skinToneOptions}
-          onSelect={(label) => handleInputChange('skin_tone', label)}
-          onClose={() => setShowSkinToneSelector(false)}
-          title="Select Skin Tone"
-        />
-      )}
+      {
+        showSkinToneSelector && (
+          <OptionSelector
+            options={skinToneOptions}
+            onSelect={(label) => handleInputChange('skin_tone', label)}
+            onClose={() => setShowSkinToneSelector(false)}
+            title="Select Skin Tone"
+          />
+        )
+      }
 
-      {showBodyTypeSelector && (
-        <OptionSelector
-          options={bodyTypeOptions}
-          onSelect={(label) => handleInputChange('body_type', label)}
-          onClose={() => setShowBodyTypeSelector(false)}
-          title="Select Body Type"
-        />
-      )}
+      {
+        showBodyTypeSelector && (
+          <OptionSelector
+            options={bodyTypeOptions}
+            onSelect={(label) => handleInputChange('body_type', label)}
+            onClose={() => setShowBodyTypeSelector(false)}
+            title="Select Body Type"
+          />
+        )
+      }
 
-      {showColorPaletteSelector && (
-        <OptionSelector
-          options={colorPaletteOptions}
-          onSelect={(label) => handleAddTag('color_palette')}
-          onClose={() => setShowColorPaletteSelector(false)}
-          title="Select Color Palette"
-        />
-      )}
+      {
+        showColorPaletteSelector && (
+          <OptionSelector
+            options={colorPaletteOptions}
+            onSelect={(label) => handleAddTag('color_palette')}
+            onClose={() => setShowColorPaletteSelector(false)}
+            title="Select Color Palette"
+          />
+        )
+      }
 
-      {showClothingEverydaySelector && (
-        <OptionSelector
-          options={clothingEverydayOptions}
-          onSelect={(label) => handleInputChange('clothing_style_everyday', label)}
-          onClose={() => setShowClothingEverydaySelector(false)}
-          title="Select Everyday Style"
-        />
-      )}
+      {
+        showClothingEverydaySelector && (
+          <OptionSelector
+            options={clothingEverydayOptions}
+            onSelect={(label) => handleInputChange('clothing_style_everyday', label)}
+            onClose={() => setShowClothingEverydaySelector(false)}
+            title="Select Everyday Style"
+          />
+        )
+      }
 
-      {showClothingOccasionalSelector && (
-        <OptionSelector
-          options={clothingOccasionalOptions}
-          onSelect={(label) => handleInputChange('clothing_style_occasional', label)}
-          onClose={() => setShowClothingOccasionalSelector(false)}
-          title="Select Occasional Style"
-        />
-      )}
+      {
+        showClothingOccasionalSelector && (
+          <OptionSelector
+            options={clothingOccasionalOptions}
+            onSelect={(label) => handleInputChange('clothing_style_occasional', label)}
+            onClose={() => setShowClothingOccasionalSelector(false)}
+            title="Select Occasional Style"
+          />
+        )
+      }
 
-      {showClothingHomewearSelector && (
-        <OptionSelector
-          options={clothingHomewearOptions}
-          onSelect={(label) => handleInputChange('clothing_style_home', label)}
-          onClose={() => setShowClothingHomewearSelector(false)}
-          title="Select Home Style"
-        />
-      )}
+      {
+        showClothingHomewearSelector && (
+          <OptionSelector
+            options={clothingHomewearOptions}
+            onSelect={(label) => handleInputChange('clothing_style_home', label)}
+            onClose={() => setShowClothingHomewearSelector(false)}
+            title="Select Home Style"
+          />
+        )
+      }
 
-      {showClothingSportsSelector && (
-        <OptionSelector
-          options={clothingSportsOptions}
-          onSelect={(label) => handleInputChange('clothing_style_sports', label)}
-          onClose={() => setShowClothingSportsSelector(false)}
-          title="Select Sports Style"
-        />
-      )}
+      {
+        showClothingSportsSelector && (
+          <OptionSelector
+            options={clothingSportsOptions}
+            onSelect={(label) => handleInputChange('clothing_style_sports', label)}
+            onClose={() => setShowClothingSportsSelector(false)}
+            title="Select Sports Style"
+          />
+        )
+      }
 
-      {showHomeEnvironmentSelector && (
-        <OptionSelector
-          options={homeEnvironmentOptions}
-          onSelect={(label) => handleInputChange('home_environment', label)}
-          onClose={() => setShowHomeEnvironmentSelector(false)}
-          title="Select Home Environment"
-        />
-      )}
+      {
+        showHomeEnvironmentSelector && (
+          <OptionSelector
+            options={homeEnvironmentOptions}
+            onSelect={(label) => handleInputChange('home_environment', label)}
+            onClose={() => setShowHomeEnvironmentSelector(false)}
+            title="Select Home Environment"
+          />
+        )
+      }
 
-      {showClothingSexySelector && (
-        <OptionSelector
-          options={clothingSexyOptions}
-          onSelect={(label) => handleInputChange('clothing_style_sexy_dress', label)}
-          onClose={() => setShowClothingSexySelector(false)}
-          title="Select Sexy Dresses Style"
-        />
-      )}
+      {
+        showClothingSexySelector && (
+          <OptionSelector
+            options={clothingSexyOptions}
+            onSelect={(label) => handleInputChange('clothing_style_sexy_dress', label)}
+            onClose={() => setShowClothingSexySelector(false)}
+            title="Select Sexy Dresses Style"
+          />
+        )
+      }
 
-      {showFacialFeaturesSelector && (
-        <OptionSelector
-          options={facialFeaturesOptions}
-          onSelect={(label) => handleInputChange('facial_features', label)}
-          onClose={() => setShowFacialFeaturesSelector(false)}
-          title="Select Facial Features"
-        />
-      )}
+      {
+        showFacialFeaturesSelector && (
+          <OptionSelector
+            options={facialFeaturesOptions}
+            onSelect={(label) => handleInputChange('facial_features', label)}
+            onClose={() => setShowFacialFeaturesSelector(false)}
+            title="Select Facial Features"
+          />
+        )
+      }
 
       <Dialog open={showHairColorPicker} onOpenChange={setShowHairColorPicker}>
         <DialogContent className="max-w-4xl overflow-scroll max-h-[80vh]">
@@ -1810,32 +2048,38 @@ export default function InfluencerEdit() {
         </DialogContent>
       </Dialog>
 
-      {showCulturalBackgroundSelector && (
-        <OptionSelector
-          options={culturalBackgroundOptions}
-          onSelect={(label) => handleInputChange('cultural_background', label)}
-          onClose={() => setShowCulturalBackgroundSelector(false)}
-          title="Select Cultural Background"
-        />
-      )}
+      {
+        showCulturalBackgroundSelector && (
+          <OptionSelector
+            options={culturalBackgroundOptions}
+            onSelect={(label) => handleInputChange('cultural_background', label)}
+            onClose={() => setShowCulturalBackgroundSelector(false)}
+            title="Select Cultural Background"
+          />
+        )
+      }
 
-      {showEyebrowSelector && (
-        <OptionSelector
-          options={eyebrowOptions}
-          onSelect={(label) => handleInputChange('eyebrow_style', label)}
-          onClose={() => setShowEyebrowSelector(false)}
-          title="Select Eyebrow Style"
-        />
-      )}
+      {
+        showEyebrowSelector && (
+          <OptionSelector
+            options={eyebrowOptions}
+            onSelect={(label) => handleInputChange('eyebrow_style', label)}
+            onClose={() => setShowEyebrowSelector(false)}
+            title="Select Eyebrow Style"
+          />
+        )
+      }
 
-      {showMakeupSelector && (
-        <OptionSelector
-          options={makeupOptions}
-          onSelect={(label) => handleInputChange('makeup_style', label)}
-          onClose={() => setShowMakeupSelector(false)}
-          title="Select Makeup Style"
-        />
-      )}
-    </div>
+      {
+        showMakeupSelector && (
+          <OptionSelector
+            options={makeupOptions}
+            onSelect={(label) => handleInputChange('makeup_style', label)}
+            onClose={() => setShowMakeupSelector(false)}
+            title="Select Makeup Style"
+          />
+        )
+      }
+    </div >
   );
 }

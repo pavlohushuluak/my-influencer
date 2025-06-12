@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Provider } from 'react-redux';
 import { store } from '@/store/store';
@@ -29,6 +28,7 @@ import ContentBatch from './pages/ContentBatch';
 import Settings from './pages/Settings';
 import NotFound from '@/pages/NotFound';
 import { MainLayout } from '@/components/Layout/MainLayout';
+import Pricing from '@/pages/Pricing';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -71,6 +71,7 @@ const App = () => {
                   <Route path='/content/schedule' element={<ContentSchedule />} />
                   <Route path='/content/batch' element={<ContentBatch />} />
                   <Route path='/settings' element={<Settings />} />
+                  <Route path="/pricing" element={<Pricing />} />
                 </Route>
                 <Route path="*" element={<NotFound />} />
               </Routes>

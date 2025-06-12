@@ -7,14 +7,29 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
-import { User, Mail, Key, CreditCard, Shield, Bell } from 'lucide-react';
+import { User, Mail, Key, CreditCard, Shield, Bell, Crown, Calendar, AlertCircle, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
-export default function Account() {
+export default function Settings() {
   const dispatch = useDispatch();
   const user = useSelector((state: RootState) => state.user);
   const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
+
+  // Mock subscription data - replace with actual data from your backend
+  const subscriptionData = {
+    plan: user.subscription || 'Free',
+    nextBillingDate: '2024-07-01',
+    cardLast4: '4242',
+    status: 'active',
+    features: {
+      free: ['Basic influencer information', 'Limited appearance customization', 'Basic style options', 'Up to 3 color palettes', 'Basic content generation'],
+      professional: ['All Free features', 'Advanced appearance customization', 'Detailed personality traits', 'Style & environment options', 'Content focus customization', 'Unlimited color palettes', 'Advanced content generation', 'Priority support'],
+      enterprise: ['All Professional features', 'Unlimited customization', 'Priority support', 'Advanced analytics', 'API access', 'Custom integrations', 'Dedicated account manager', 'Team collaboration features']
+    }
+  };
 
   const handleProfileUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,6 +63,26 @@ export default function Account() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleBillingUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+
+    try {
+      // TODO: Implement actual payment method update
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      toast.success('Payment method updated successfully');
+    } catch (error) {
+      console.error('Error updating payment method:', error);
+      toast.error('Failed to update payment method');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const getPlanFeatures = (plan: string) => {
+    return subscriptionData.features[plan.toLowerCase() as keyof typeof subscriptionData.features] || [];
   };
 
   return (
@@ -188,27 +223,99 @@ export default function Account() {
         <TabsContent value="billing" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Billing Information</CardTitle>
+              <CardTitle>Current Plan</CardTitle>
               <CardDescription>Manage your subscription and billing details</CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>Current Plan</Label>
-                    <p className="text-sm text-muted-foreground">You are currently on the {user.subscription} plan</p>
+            <CardContent className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <Crown className="w-5 h-5 text-ai-purple-500" />
+                    <h3 className="text-lg font-semibold">{subscriptionData.plan} Plan</h3>
                   </div>
-                  <Button variant="outline">Upgrade Plan</Button>
+                  <p className="text-sm text-muted-foreground">
+                    {subscriptionData.plan === 'Free' ? 'Basic features with limited access' : 'Full access to all features'}
+                  </p>
                 </div>
-                <Separator />
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>Payment Method</Label>
-                    <p className="text-sm text-muted-foreground">Manage your payment methods</p>
-                  </div>
-                  <Button variant="outline">Manage</Button>
-                </div>
+                <Button 
+                  variant="outline" 
+                  onClick={() => navigate('/pricing')}
+                  className="bg-gradient-to-r from-purple-600 to-blue-600 text-white hover:from-purple-700 hover:to-blue-700"
+                >
+                  {subscriptionData.plan === 'Free' ? 'Upgrade Plan' : 'Change Plan'}
+                </Button>
               </div>
+
+              <Separator />
+
+              <div className="space-y-4">
+                <h4 className="font-medium">Plan Features</h4>
+                <ul className="space-y-2">
+                  {getPlanFeatures(subscriptionData.plan).map((feature, index) => (
+                    <li key={index} className="flex items-center gap-2 text-sm">
+                      <Check className="w-4 h-4 text-ai-purple-500" />
+                      {feature}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {subscriptionData.plan !== 'Free' && (
+                <>
+                  <Separator />
+                  
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-1">
+                        <h4 className="font-medium">Next Billing Date</h4>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Calendar className="w-4 h-4" />
+                          {new Date(subscriptionData.nextBillingDate).toLocaleDateString()}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <h4 className="font-medium">Payment Method</h4>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <CreditCard className="w-4 h-4" />
+                        •••• {subscriptionData.cardLast4}
+                      </div>
+                    </div>
+
+                    <form onSubmit={handleBillingUpdate} className="space-y-4 pt-4">
+                      <div className="space-y-2">
+                        <Label>Update Payment Method</Label>
+                        <Input placeholder="Card number" />
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>Expiry Date</Label>
+                          <Input placeholder="MM/YY" />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>CVV</Label>
+                          <Input placeholder="123" />
+                        </div>
+                      </div>
+                      <Button type="submit" disabled={isLoading}>
+                        {isLoading ? 'Updating...' : 'Update Payment Method'}
+                      </Button>
+                    </form>
+                  </div>
+                </>
+              )}
+
+              {subscriptionData.plan !== 'Free' && (
+                <div className="pt-4">
+                  <Button variant="destructive" className="w-full">
+                    Cancel Subscription
+                  </Button>
+                  <p className="text-xs text-muted-foreground mt-2 text-center">
+                    You will lose access to premium features at the end of your billing period
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

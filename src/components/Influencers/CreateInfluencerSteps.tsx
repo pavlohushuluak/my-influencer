@@ -229,7 +229,7 @@ export function CreateInfluencerSteps({ onComplete }: CreateInfluencerStepsProps
                     "h-24 transition-all duration-300",
                     influencerData.influencer_type === 'Visual only' 
                       ? "bg-primary hover:bg-primary/90" 
-                      : "hover:bg-gray-100"
+                      : "hover:bg-amber-500"
                   )}
                 >
                   <div className="flex flex-col items-center gap-2">
@@ -244,7 +244,7 @@ export function CreateInfluencerSteps({ onComplete }: CreateInfluencerStepsProps
                     "h-24 transition-all duration-300",
                     influencerData.influencer_type === 'Full persona' 
                       ? "bg-primary hover:bg-primary/90" 
-                      : "hover:bg-gray-100"
+                      : "hover:bg-amber-500"
                   )}
                 >
                   <div className="flex flex-col items-center gap-2">
@@ -270,7 +270,7 @@ export function CreateInfluencerSteps({ onComplete }: CreateInfluencerStepsProps
                     "h-24 transition-all duration-300",
                     influencerData.category === 'Lifestyle' 
                       ? "bg-primary hover:bg-primary/90" 
-                      : "hover:bg-amber-300"
+                      : "hover:bg-amber-500"
                   )}
                 >
                   <div className="flex flex-col items-center gap-2">
@@ -285,7 +285,7 @@ export function CreateInfluencerSteps({ onComplete }: CreateInfluencerStepsProps
                     "h-24 transition-all duration-300",
                     influencerData.category === 'Educational' 
                       ? "bg-primary hover:bg-primary/90" 
-                      : "hover:bg-amber-300"
+                      : "hover:bg-amber-500"
                   )}
                 >
                   <div className="flex flex-col items-center gap-2">

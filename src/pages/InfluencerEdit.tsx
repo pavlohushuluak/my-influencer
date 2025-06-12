@@ -16,6 +16,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { updateInfluencer, setInfluencers, setLoading, setError } from '@/store/slices/influencersSlice';
 import { X, Plus, Save, Crown, Lock, Image, Settings, User, ChevronRight, MoreHorizontal, Loader2 } from 'lucide-react';
 import { HexColorPicker } from 'react-colorful';
+import { toast } from 'sonner';
 
 const JOB_AREAS = ['Creative', 'Corporate', 'Tech', 'Healthcare', 'Education', 'Entertainment'];
 const SPEECH_STYLES = ['Friendly', 'Professional', 'Casual', 'Formal', 'Energetic', 'Calm'];
@@ -231,13 +232,20 @@ export default function InfluencerEdit() {
   };
 
   const handleAddTag = (field: string) => {
-    if (isFeatureLocked(field)) {
-      setLockedFeature(field);
-      setShowUpgradeModal(true);
-      return;
-    }
+    // if (isFeatureLocked(field)) {
+    //   setLockedFeature(field);
+    //   setShowUpgradeModal(true);
+    //   return;
+    // }
 
     if (newTag && !influencerData[field].includes(newTag)) {
+      if (field === 'color_palette' && influencerData[field].length >= 3) {
+        toast.error('Maximum Selection Reached', {
+          description: 'You can only select up to 3 color palettes',
+          duration: 3000,
+        });
+        return;
+      }
       setInfluencerData(prev => ({
         ...prev,
         [field]: [...prev[field], newTag]
@@ -1450,31 +1458,65 @@ export default function InfluencerEdit() {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label>Color Palette</Label>
-                    <div className="flex gap-2">
-                      <Select
-                        value={newTag}
-                        onValueChange={(value) => {
-                          setNewTag(value);
-                          handleAddTag('color_palette');
-                        }}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select color palette" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {colorPaletteOptions.map((option, index) => (
-                            <SelectItem key={index} value={option.label}>{option.label}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => setShowColorPaletteSelector(true)}
-                      >
-                        <ChevronRight className="w-4 h-4" />
-                      </Button>
+                    <Label>Color Palette (Max 3)</Label>
+                    <div className="space-y-4">
+                      <div className="flex flex-wrap gap-2">
+                        {influencerData.color_palette.map((palette, index) => (
+                          <Badge
+                            key={index}
+                            variant="secondary"
+                            className="flex items-center gap-1 px-3 py-1"
+                          >
+                            {palette}
+                            <button
+                              onClick={() => handleRemoveTag('color_palette', palette)}
+                              className="ml-1 hover:text-destructive"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </Badge>
+                        ))}
+                      </div>
+                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                        {colorPaletteOptions.map((option, index) => (
+                          <Card
+                            key={index}
+                            className={`cursor-pointer hover:shadow-lg transition-all duration-300 ${
+                              influencerData.color_palette.includes(option.label) 
+                                ? 'ring-2 ring-ai-purple-500' 
+                                : 'opacity-50 hover:opacity-100'
+                            }`}
+                            onClick={() => {
+                              if (influencerData.color_palette.includes(option.label)) {
+                                handleRemoveTag('color_palette', option.label);
+                              } else {
+                                if (influencerData.color_palette.length < 3) {
+                                  setInfluencerData(prev => ({
+                                    ...prev,
+                                    color_palette: [...prev.color_palette, option.label]
+                                  }));
+                                } else {
+                                  toast.error('Maximum Selection Reached', {
+                                    description: 'You can only select up to 3 color palettes',
+                                    duration: 3000,
+                                  });
+                                }
+                              }
+                            }}
+                          >
+                            <CardContent className="p-4">
+                              <div className="relative w-full" style={{ paddingBottom: '100%' }}>
+                                <img
+                                  src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
+                                  alt={option.label}
+                                  className="absolute inset-0 w-full h-full object-cover rounded-md"
+                                />
+                              </div>
+                              <p className="text-sm text-center font-medium mt-2">{option.label}</p>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 </CardContent>

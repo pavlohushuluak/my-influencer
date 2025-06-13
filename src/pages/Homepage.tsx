@@ -15,6 +15,7 @@ export default function Homepage() {
   const dispatch = useDispatch();
   const { theme } = useSelector((state: RootState) => state.ui);
   const { id, email } = useSelector((state: RootState) => state.user);
+  const { plan: currentPlan } = useSelector((state: RootState) => state.subscription);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const isLoggedIn = sessionStorage.getItem('access_token') !== null;
 
@@ -121,6 +122,20 @@ export default function Homepage() {
     }
   ];
 
+  const handlePricingClick = (plan: string) => {
+    if (!isLoggedIn) {
+      navigate('/signup');
+      return;
+    }
+
+    if (plan === 'free') {
+      navigate('/dashboard');
+      return;
+    }
+
+    navigate('/pricing');
+  };
+
   return (
     <div className={cn("min-h-screen bg-gradient-to-br from-background via-background to-muted", theme)}>
       {/* Header */}
@@ -220,7 +235,7 @@ export default function Homepage() {
                   </div>
                   <p className="text-sm text-muted-foreground mt-2">{plan.description}</p>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent>
                   <ul className="space-y-3">
                     {plan.features.map((feature, featureIndex) => (
                       <li key={featureIndex} className="flex items-center gap-3">
@@ -236,9 +251,13 @@ export default function Homepage() {
                         ? "bg-ai-gradient hover:opacity-90" 
                         : "bg-background border border-border hover:bg-accent text-foreground"
                     )}
-                    onClick={() => navigate(isLoggedIn ? '/dashboard' : '/signup')}
+                    onClick={() => handlePricingClick(plan.name.toLowerCase())}
                   >
-                    {isLoggedIn ? 'Go to Dashboard' : 'Get Started'}
+                    {isLoggedIn 
+                      ? currentPlan === plan.name.toLowerCase() 
+                        ? 'Current Plan' 
+                        : 'Change Plan'
+                      : 'Get Started'}
                   </Button>
                 </CardContent>
               </Card>

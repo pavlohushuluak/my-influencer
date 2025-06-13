@@ -1,4 +1,3 @@
-
 import { configureStore } from '@reduxjs/toolkit';
 import influencersReducer from './slices/influencersSlice';
 import contentReducer from './slices/contentSlice';
@@ -8,6 +7,7 @@ import clothingReducer from './slices/clothingSlice';
 import locationReducer from './slices/locationSlice';
 import posesReducer from './slices/posesSlice';
 import accessoriesReducer from './slices/accessoriesSlice';
+import subscriptionReducer from './slices/subscriptionSlice';
 
 export const store = configureStore({
   reducer: {
@@ -19,6 +19,7 @@ export const store = configureStore({
     location: locationReducer,
     poses: posesReducer,
     accessories: accessoriesReducer,
+    subscription: subscriptionReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

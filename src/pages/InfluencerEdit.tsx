@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { DialogZoom, DialogContentZoom, DialogHeaderZoom, DialogTitleZoom, DialogDescriptionZoom } from '@/components/ui/zoomdialog';
 import { updateInfluencer, setInfluencers, setLoading, setError } from '@/store/slices/influencersSlice';
 import { X, Plus, Save, Crown, Lock, Image, Settings, User, ChevronRight, MoreHorizontal, Loader2, ZoomIn } from 'lucide-react';
 import { HexColorPicker } from 'react-colorful';
@@ -473,17 +474,17 @@ export default function InfluencerEdit() {
   }, [dispatch]);
 
   const ImagePreviewDialog = ({ imageUrl, onClose }: { imageUrl: string, onClose: () => void }) => (
-    <Dialog open={true} onOpenChange={onClose}>
-      <DialogContent className="max-w-[90vw] max-h-[90vh] p-0 overflow-hidden">
-        <div className="relative w-full h-full">
+    <DialogZoom open={true} onOpenChange={onClose}>
+      <DialogContentZoom className="max-w-[90vw] max-h-[90vh] p-0 overflow-hidden">
+        <div className="relative h-full">
           <img
             src={imageUrl}
             alt="Preview"
-            className="w-full h-full object-contain"
+            className="h-full object-contain"
           />
         </div>
-      </DialogContent>
-    </Dialog>
+      </DialogContentZoom>
+    </DialogZoom>
   );
 
   const OptionSelector = ({ options, onSelect, onClose, title }: {
@@ -1062,30 +1063,23 @@ export default function InfluencerEdit() {
                           </SelectContent>
                         </Select>
                         <div
-                          onClick={() => setShowHairColorPicker(true)}
+                          onClick={() => setShowHairColorSelector(true)}
                           className='flex items-center justify-center cursor-pointer'
                         >
                           {
-                            hairColorOptions.find(option => option.label === influencerData.hair_color)?.image && (
+                            hairColorOptions.find(option => option.label === influencerData.hair_color)?.image ? (
                               <img
                                 src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${hairColorOptions.find(option => option.label === influencerData.hair_color)?.image}`}
                                 alt={hairColorOptions.find(option => option.label === influencerData.hair_color)?.label}
                                 className="w-[70%] max-w-[200px] rounded-full"
                               />
                             )
+                              :
+                              <div
+                                className="max-w-[200px] w-[200px] h-[200px] rounded-full border"
+                                style={{ backgroundColor: '#FFFFFF' }}
+                              />
                           }
-                          {influencerData.hair_color && influencerData.hair_color.startsWith('#') && (
-                            <div
-                              className="max-w-[200px] w-[200px] h-[200px] rounded-full border"
-                              style={{ backgroundColor: influencerData.hair_color }}
-                            />
-                          )}
-                          {!influencerData.hair_color && (
-                            <div
-                              className="max-w-[200px] w-[200px] h-[200px] rounded-full border"
-                              style={{ backgroundColor: '#FFFFFF' }}
-                            />
-                          )}
                         </div>
                       </div>
                     </div>
@@ -1180,30 +1174,23 @@ export default function InfluencerEdit() {
                           </SelectContent>
                         </Select>
                         <div
-                          onClick={() => setShowEyeColorPicker(true)}
+                          onClick={() => setShowEyeColorSelector(true)}
                           className='flex items-center justify-center cursor-pointer'
                         >
                           {
-                            eyeColorOptions.find(option => option.label === influencerData.eye_color)?.image && (
+                            eyeColorOptions.find(option => option.label === influencerData.eye_color)?.image ? (
                               <img
                                 src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${eyeColorOptions.find(option => option.label === influencerData.eye_color)?.image}`}
                                 alt={eyeColorOptions.find(option => option.label === influencerData.eye_color)?.label}
                                 className="w-[70%] max-w-[200px] rounded-full"
                               />
                             )
+                              :
+                              <div
+                                className="max-w-[200px] w-[200px] h-[200px] rounded-full border"
+                                style={{ backgroundColor: '#FFFFFF' }}
+                              />
                           }
-                          {influencerData.eye_color && influencerData.eye_color.startsWith('#') && (
-                            <div
-                              className="max-w-[200px] w-[200px] h-[200px] rounded-full border"
-                              style={{ backgroundColor: influencerData.eye_color }}
-                            />
-                          )}
-                          {!influencerData.eye_color && (
-                            <div
-                              className="max-w-[200px] w-[200px] h-[200px] rounded-full border"
-                              style={{ backgroundColor: '#FFFFFF' }}
-                            />
-                          )}
                         </div>
                       </div>
                     </div>
@@ -1712,12 +1699,21 @@ export default function InfluencerEdit() {
                             }}
                           >
                             <CardContent className="p-4">
-                              <div className="relative w-full" style={{ paddingBottom: '100%' }}>
+                              <div className="relative w-full group" style={{ paddingBottom: '100%' }}>
                                 <img
                                   src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
                                   alt={option.label}
                                   className="absolute inset-0 w-full h-full object-cover rounded-md"
                                 />
+                                <div 
+                                  className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setPreviewImage(`https://images.nymia.ai/cdn-cgi/image/w=800/wizard/${option.image}`);
+                                  }}
+                                >
+                                  <ZoomIn className="w-8 h-8 text-white" />
+                                </div>
                               </div>
                               <p className="text-sm text-center font-medium mt-2">{option.label}</p>
                             </CardContent>
@@ -2299,151 +2295,27 @@ export default function InfluencerEdit() {
         )
       }
 
-      <Dialog open={showHairColorPicker} onOpenChange={setShowHairColorPicker}>
-        <DialogContent className="max-w-4xl overflow-scroll max-h-[80vh]">
-          <DialogHeader>
-            <DialogTitle>Select Hair Color</DialogTitle>
-            <DialogDescription>
-              Choose from predefined colors or create a custom color
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-6 p-4">
-            <div className="space-y-4">
-              <h3 className="font-medium">Predefined Colors</h3>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 p-4">
-                {hairColorOptions.map((option, index) => (
-                  <Card
-                    key={index}
-                    className={`cursor-pointer hover:shadow-lg transition-all duration-300 ${influencerData.hair_color === option.label ? 'ring-2 ring-ai-purple-500' : ''
-                      }`}
-                    onClick={() => {
-                      handleInputChange('hair_color', option.label);
-                      setShowHairColorPicker(false);
-                    }}
-                  >
-                    <CardContent className="p-4">
-                      <div className="relative w-full" style={{ paddingBottom: '125%' }}>
-                        <img
-                          src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
-                          alt={option.label}
-                          className="absolute inset-0 w-full h-full object-cover rounded-md"
-                        />
-                      </div>
-                      <p className="text-sm text-center font-medium mt-2">{option.label}</p>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </div>
-            <div className="space-y-4 mx-auto">
-              <h3 className="font-medium">Custom Color</h3>
-              <Card>
-                <CardContent className="p-6">
-                  <div className="space-y-6">
-                    <HexColorPicker
-                      color={influencerData.hair_color?.startsWith('#') ? influencerData.hair_color : '#000000'}
-                      onChange={(color) => handleInputChange('hair_color', color)}
-                    />
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div
-                          className="w-10 h-10 rounded-full border"
-                          style={{ backgroundColor: influencerData.hair_color?.startsWith('#') ? influencerData.hair_color : '#000000' }}
-                        />
-                        <div className="space-y-1">
-                          <p className="text-sm font-medium">Selected Color</p>
-                          <p className="text-sm font-mono text-muted-foreground">
-                            {influencerData.hair_color?.startsWith('#') ? influencerData.hair_color : '#000000'}
-                          </p>
-                        </div>
-                      </div>
-                      <Button
-                        variant="outline"
-                        onClick={() => setShowHairColorPicker(false)}
-                      >
-                        Apply Color
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      {
+        showHairColorSelector && (
+          <OptionSelector
+            options={hairColorOptions}
+            onSelect={(label) => handleInputChange('hair_color', label)}
+            onClose={() => setShowHairColorSelector(false)}
+            title="Select Hair Color"
+          />
+        )
+      }
 
-      <Dialog open={showEyeColorPicker} onOpenChange={setShowEyeColorPicker}>
-        <DialogContent className="max-w-4xl overflow-scroll max-h-[80vh]">
-          <DialogHeader>
-            <DialogTitle>Select Eye Color</DialogTitle>
-            <DialogDescription>
-              Choose from predefined colors or create a custom color
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-6 p-4">
-            <div className="space-y-4">
-              <h3 className="font-medium">Predefined Colors</h3>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 p-4">
-                {eyeColorOptions.map((option, index) => (
-                  <Card
-                    key={index}
-                    className={`cursor-pointer hover:shadow-lg transition-all duration-300 ${influencerData.eye_color === option.label ? 'ring-2 ring-ai-purple-500' : ''
-                      }`}
-                    onClick={() => {
-                      handleInputChange('eye_color', option.label);
-                      setShowEyeColorPicker(false);
-                    }}
-                  >
-                    <CardContent className="p-4">
-                      <div className="relative w-full" style={{ paddingBottom: '125%' }}>
-                        <img
-                          src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
-                          alt={option.label}
-                          className="absolute inset-0 w-full h-full object-cover rounded-md"
-                        />
-                      </div>
-                      <p className="text-sm text-center font-medium mt-2">{option.label}</p>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </div>
-            <div className="space-y-4 mx-auto">
-              <h3 className="font-medium">Custom Color</h3>
-              <Card>
-                <CardContent className="p-6">
-                  <div className="space-y-6">
-                    <HexColorPicker
-                      color={influencerData.eye_color?.startsWith('#') ? influencerData.eye_color : '#000000'}
-                      onChange={(color) => handleInputChange('eye_color', color)}
-                    />
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div
-                          className="w-10 h-10 rounded-full border"
-                          style={{ backgroundColor: influencerData.eye_color?.startsWith('#') ? influencerData.eye_color : '#000000' }}
-                        />
-                        <div className="space-y-1">
-                          <p className="text-sm font-medium">Selected Color</p>
-                          <p className="text-sm font-mono text-muted-foreground">
-                            {influencerData.eye_color?.startsWith('#') ? influencerData.eye_color : '#000000'}
-                          </p>
-                        </div>
-                      </div>
-                      <Button
-                        variant="outline"
-                        onClick={() => setShowEyeColorPicker(false)}
-                      >
-                        Apply Color
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      {
+        showEyeColorSelector && (
+          <OptionSelector
+            options={eyeColorOptions}
+            onSelect={(label) => handleInputChange('eye_color', label)}
+            onClose={() => setShowEyeColorSelector(false)}
+            title="Select Eye Color"
+          />
+        )
+      }
 
       {
         showCulturalBackgroundSelector && (

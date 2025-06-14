@@ -508,6 +508,77 @@ export default function InfluencerEdit() {
     </Dialog>
   );
 
+  const OptionMultiSelector = ({ options, onSelect, onClose, title, selectedValues, maxSelections }: {
+    options: Option[],
+    onSelect: (label: string) => void,
+    onClose: () => void,
+    title: string,
+    selectedValues: string[],
+    maxSelections: number
+  }) => {
+    const [localSelected, setLocalSelected] = useState<string[]>(selectedValues);
+
+    const handleSelect = (label: string) => {
+      if (localSelected.includes(label)) {
+        setLocalSelected(prev => prev.filter(item => item !== label));
+      } else {
+        if (localSelected.length < maxSelections) {
+          setLocalSelected(prev => [...prev, label]);
+        } else {
+          toast.error('Maximum Selection Reached', {
+            description: `You can only select up to ${maxSelections} options`,
+            duration: 3000,
+          });
+        }
+      }
+    };
+
+    const handleClose = () => {
+      onSelect(localSelected.join(','));
+      onClose();
+    };
+
+    return (
+      <Dialog open={true} onOpenChange={handleClose}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{title}</DialogTitle>
+            <DialogDescription>
+              Select up to {maxSelections} options
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-4">
+            {options.map((option, index) => (
+              <Card
+                key={index}
+                className={`cursor-pointer hover:shadow-lg transition-all duration-300 ${
+                  localSelected.includes(option.label) 
+                    ? 'ring-2 ring-ai-purple-500' 
+                    : 'opacity-50 hover:opacity-100'
+                }`}
+                onClick={() => handleSelect(option.label)}
+              >
+                <CardContent className="p-4">
+                  <div className="relative w-full" style={{ paddingBottom: '100%' }}>
+                    <img
+                      src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
+                      alt={option.label}
+                      className="absolute inset-0 w-full h-full object-cover rounded-md"
+                    />
+                  </div>
+                  <p className="text-sm text-center font-medium mt-2">{option.label}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+          <div className="flex justify-end mt-4">
+            <Button onClick={handleClose}>Done</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -1625,45 +1696,29 @@ export default function InfluencerEdit() {
                         ))}
                       </div>
                       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                        {contentFocusOptions.map((option, index) => (
-                          <Card
-                            key={index}
-                            className={`cursor-pointer hover:shadow-lg transition-all duration-300 ${
-                              influencerData.content_focus.includes(option.label) 
-                                ? 'ring-2 ring-ai-purple-500' 
-                                : 'opacity-50 hover:opacity-100'
-                            }`}
-                            onClick={() => {
-                              if (influencerData.content_focus.includes(option.label)) {
-                                handleRemoveTag('content_focus', option.label);
-                              } else {
-                                if (influencerData.content_focus.length < 4) {
-                                  setInfluencerData(prev => ({
-                                    ...prev,
-                                    content_focus: [...prev.content_focus, option.label]
-                                  }));
-                                } else {
-                                  toast.error('Maximum Selection Reached', {
-                                    description: 'You can only select up to 4 content focus areas',
-                                    duration: 3000,
-                                  });
-                                }
-                              }
-                            }}
-                          >
-                            <CardContent className="p-4">
-                              <div className="relative w-full" style={{ paddingBottom: '100%' }}>
-                                <img
-                                  src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
-                                  alt={option.label}
-                                  className="absolute inset-0 w-full h-full object-cover rounded-md"
-                                />
-                              </div>
-                              <p className="text-sm text-center font-medium mt-2">{option.label}</p>
-                            </CardContent>
-                          </Card>
-                        ))}
+                        {influencerData.content_focus.map((focus, index) => {
+                          const option = contentFocusOptions.find(opt => opt.label === focus);
+                          if (!option) return null;
+                          return (
+                            <Card key={index} className="relative">
+                              <CardContent className="p-4">
+                                <div className="relative w-full" style={{ paddingBottom: '100%' }}>
+                                  <img
+                                    src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
+                                    alt={option.label}
+                                    className="absolute inset-0 w-full h-full object-cover rounded-md"
+                                  />
+                                </div>
+                                <p className="text-sm text-center font-medium mt-2">{option.label}</p>
+                              </CardContent>
+                            </Card>
+                          );
+                        })}
                       </div>
+                      <Button onClick={() => setShowContentFocusSelector(true)}>
+                        <Image className="w-4 h-4 mr-2" />
+                        Select Content Focus
+                      </Button>
                     </div>
                   </div>
 
@@ -1688,45 +1743,29 @@ export default function InfluencerEdit() {
                         ))}
                       </div>
                       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                        {hobbyOptions.map((option, index) => (
-                          <Card
-                            key={index}
-                            className={`cursor-pointer hover:shadow-lg transition-all duration-300 ${
-                              influencerData.hobbies.includes(option.label) 
-                                ? 'ring-2 ring-ai-purple-500' 
-                                : 'opacity-50 hover:opacity-100'
-                            }`}
-                            onClick={() => {
-                              if (influencerData.hobbies.includes(option.label)) {
-                                handleRemoveTag('hobbies', option.label);
-                              } else {
-                                if (influencerData.hobbies.length < 5) {
-                                  setInfluencerData(prev => ({
-                                    ...prev,
-                                    hobbies: [...prev.hobbies, option.label]
-                                  }));
-                                } else {
-                                  toast.error('Maximum Selection Reached', {
-                                    description: 'You can only select up to 5 hobbies',
-                                    duration: 3000,
-                                  });
-                                }
-                              }
-                            }}
-                          >
-                            <CardContent className="p-4">
-                              <div className="relative w-full" style={{ paddingBottom: '100%' }}>
-                                <img
-                                  src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
-                                  alt={option.label}
-                                  className="absolute inset-0 w-full h-full object-cover rounded-md"
-                                />
-                              </div>
-                              <p className="text-sm text-center font-medium mt-2">{option.label}</p>
-                            </CardContent>
-                          </Card>
-                        ))}
+                        {influencerData.hobbies.map((hobby, index) => {
+                          const option = hobbyOptions.find(opt => opt.label === hobby);
+                          if (!option) return null;
+                          return (
+                            <Card key={index} className="relative">
+                              <CardContent className="p-4">
+                                <div className="relative w-full" style={{ paddingBottom: '100%' }}>
+                                  <img
+                                    src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
+                                    alt={option.label}
+                                    className="absolute inset-0 w-full h-full object-cover rounded-md"
+                                  />
+                                </div>
+                                <p className="text-sm text-center font-medium mt-2">{option.label}</p>
+                              </CardContent>
+                            </Card>
+                          );
+                        })}
                       </div>
+                      <Button onClick={() => setShowHobbySelector(true)}>
+                        <Image className="w-4 h-4 mr-2" />
+                        Select Hobbies
+                      </Button>
                     </div>
                   </div>
 
@@ -1751,45 +1790,29 @@ export default function InfluencerEdit() {
                         ))}
                       </div>
                       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                        {strengthOptions.map((option, index) => (
-                          <Card
-                            key={index}
-                            className={`cursor-pointer hover:shadow-lg transition-all duration-300 ${
-                              influencerData.strengths.includes(option.label) 
-                                ? 'ring-2 ring-ai-purple-500' 
-                                : 'opacity-50 hover:opacity-100'
-                            }`}
-                            onClick={() => {
-                              if (influencerData.strengths.includes(option.label)) {
-                                handleRemoveTag('strengths', option.label);
-                              } else {
-                                if (influencerData.strengths.length < 3) {
-                                  setInfluencerData(prev => ({
-                                    ...prev,
-                                    strengths: [...prev.strengths, option.label]
-                                  }));
-                                } else {
-                                  toast.error('Maximum Selection Reached', {
-                                    description: 'You can only select up to 3 strengths',
-                                    duration: 3000,
-                                  });
-                                }
-                              }
-                            }}
-                          >
-                            <CardContent className="p-4">
-                              <div className="relative w-full" style={{ paddingBottom: '100%' }}>
-                                <img
-                                  src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
-                                  alt={option.label}
-                                  className="absolute inset-0 w-full h-full object-cover rounded-md"
-                                />
-                              </div>
-                              <p className="text-sm text-center font-medium mt-2">{option.label}</p>
-                            </CardContent>
-                          </Card>
-                        ))}
+                        {influencerData.strengths.map((strength, index) => {
+                          const option = strengthOptions.find(opt => opt.label === strength);
+                          if (!option) return null;
+                          return (
+                            <Card key={index} className="relative">
+                              <CardContent className="p-4">
+                                <div className="relative w-full" style={{ paddingBottom: '100%' }}>
+                                  <img
+                                    src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
+                                    alt={option.label}
+                                    className="absolute inset-0 w-full h-full object-cover rounded-md"
+                                  />
+                                </div>
+                                <p className="text-sm text-center font-medium mt-2">{option.label}</p>
+                              </CardContent>
+                            </Card>
+                          );
+                        })}
                       </div>
+                      <Button onClick={() => setShowStrengthSelector(true)}>
+                        <Image className="w-4 h-4 mr-2" />
+                        Select Strengths
+                      </Button>
                     </div>
                   </div>
 
@@ -1814,45 +1837,29 @@ export default function InfluencerEdit() {
                         ))}
                       </div>
                       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                        {weaknessOptions.map((option, index) => (
-                          <Card
-                            key={index}
-                            className={`cursor-pointer hover:shadow-lg transition-all duration-300 ${
-                              influencerData.weaknesses.includes(option.label) 
-                                ? 'ring-2 ring-ai-purple-500' 
-                                : 'opacity-50 hover:opacity-100'
-                            }`}
-                            onClick={() => {
-                              if (influencerData.weaknesses.includes(option.label)) {
-                                handleRemoveTag('weaknesses', option.label);
-                              } else {
-                                if (influencerData.weaknesses.length < 2) {
-                                  setInfluencerData(prev => ({
-                                    ...prev,
-                                    weaknesses: [...prev.weaknesses, option.label]
-                                  }));
-                                } else {
-                                  toast.error('Maximum Selection Reached', {
-                                    description: 'You can only select up to 2 weaknesses',
-                                    duration: 3000,
-                                  });
-                                }
-                              }
-                            }}
-                          >
-                            <CardContent className="p-4">
-                              <div className="relative w-full" style={{ paddingBottom: '100%' }}>
-                                <img
-                                  src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
-                                  alt={option.label}
-                                  className="absolute inset-0 w-full h-full object-cover rounded-md"
-                                />
-                              </div>
-                              <p className="text-sm text-center font-medium mt-2">{option.label}</p>
-                            </CardContent>
-                          </Card>
-                        ))}
+                        {influencerData.weaknesses.map((weakness, index) => {
+                          const option = weaknessOptions.find(opt => opt.label === weakness);
+                          if (!option) return null;
+                          return (
+                            <Card key={index} className="relative">
+                              <CardContent className="p-4">
+                                <div className="relative w-full" style={{ paddingBottom: '100%' }}>
+                                  <img
+                                    src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
+                                    alt={option.label}
+                                    className="absolute inset-0 w-full h-full object-cover rounded-md"
+                                  />
+                                </div>
+                                <p className="text-sm text-center font-medium mt-2">{option.label}</p>
+                              </CardContent>
+                            </Card>
+                          );
+                        })}
                       </div>
+                      <Button onClick={() => setShowWeaknessSelector(true)}>
+                        <Image className="w-4 h-4 mr-2" />
+                        Select Weaknesses
+                      </Button>
                     </div>
                   </div>
 
@@ -1877,45 +1884,29 @@ export default function InfluencerEdit() {
                         ))}
                       </div>
                       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                        {speechOptions.map((option, index) => (
-                          <Card
-                            key={index}
-                            className={`cursor-pointer hover:shadow-lg transition-all duration-300 ${
-                              influencerData.speech_style.includes(option.label) 
-                                ? 'ring-2 ring-ai-purple-500' 
-                                : 'opacity-50 hover:opacity-100'
-                            }`}
-                            onClick={() => {
-                              if (influencerData.speech_style.includes(option.label)) {
-                                handleRemoveTag('speech_style', option.label);
-                              } else {
-                                if (influencerData.speech_style.length < 4) {
-                                  setInfluencerData(prev => ({
-                                    ...prev,
-                                    speech_style: [...prev.speech_style, option.label]
-                                  }));
-                                } else {
-                                  toast.error('Maximum Selection Reached', {
-                                    description: 'You can only select up to 4 speech styles',
-                                    duration: 3000,
-                                  });
-                                }
-                              }
-                            }}
-                          >
-                            <CardContent className="p-4">
-                              <div className="relative w-full" style={{ paddingBottom: '100%' }}>
-                                <img
-                                  src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
-                                  alt={option.label}
-                                  className="absolute inset-0 w-full h-full object-cover rounded-md"
-                                />
-                              </div>
-                              <p className="text-sm text-center font-medium mt-2">{option.label}</p>
-                            </CardContent>
-                          </Card>
-                        ))}
+                        {influencerData.speech_style.map((style, index) => {
+                          const option = speechOptions.find(opt => opt.label === style);
+                          if (!option) return null;
+                          return (
+                            <Card key={index} className="relative">
+                              <CardContent className="p-4">
+                                <div className="relative w-full" style={{ paddingBottom: '100%' }}>
+                                  <img
+                                    src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
+                                    alt={option.label}
+                                    className="absolute inset-0 w-full h-full object-cover rounded-md"
+                                  />
+                                </div>
+                                <p className="text-sm text-center font-medium mt-2">{option.label}</p>
+                              </CardContent>
+                            </Card>
+                          );
+                        })}
                       </div>
+                      <Button onClick={() => setShowSpeechSelector(true)}>
+                        <Image className="w-4 h-4 mr-2" />
+                        Select Speech Style
+                      </Button>
                     </div>
                   </div>
 
@@ -2409,22 +2400,38 @@ export default function InfluencerEdit() {
 
       {
         showContentFocusSelector && (
-          <OptionSelector
+          <OptionMultiSelector
             options={contentFocusOptions}
-            onSelect={(label) => handleAddTag('content_focus')}
+            onSelect={(selected) => {
+              const newValues = selected.split(',').filter(Boolean);
+              setInfluencerData(prev => ({
+                ...prev,
+                content_focus: newValues
+              }));
+            }}
             onClose={() => setShowContentFocusSelector(false)}
             title="Select Content Focus"
+            selectedValues={influencerData.content_focus}
+            maxSelections={4}
           />
         )
       }
 
       {
         showHobbySelector && (
-          <OptionSelector
+          <OptionMultiSelector
             options={hobbyOptions}
-            onSelect={(label) => handleAddTag('hobbies')}
+            onSelect={(selected) => {
+              const newValues = selected.split(',').filter(Boolean);
+              setInfluencerData(prev => ({
+                ...prev,
+                hobbies: newValues
+              }));
+            }}
             onClose={() => setShowHobbySelector(false)}
-            title="Select Hobby"
+            title="Select Hobbies"
+            selectedValues={influencerData.hobbies}
+            maxSelections={5}
           />
         )
       }
@@ -2442,33 +2449,57 @@ export default function InfluencerEdit() {
 
       {
         showSpeechSelector && (
-          <OptionSelector
+          <OptionMultiSelector
             options={speechOptions}
-            onSelect={(label) => handleAddTag('speech_style')}
+            onSelect={(selected) => {
+              const newValues = selected.split(',').filter(Boolean);
+              setInfluencerData(prev => ({
+                ...prev,
+                speech_style: newValues
+              }));
+            }}
             onClose={() => setShowSpeechSelector(false)}
             title="Select Speech Style"
+            selectedValues={influencerData.speech_style}
+            maxSelections={4}
           />
         )
       }
 
       {
         showStrengthSelector && (
-          <OptionSelector
+          <OptionMultiSelector
             options={strengthOptions}
-            onSelect={(label) => handleAddTag('strengths')}
+            onSelect={(selected) => {
+              const newValues = selected.split(',').filter(Boolean);
+              setInfluencerData(prev => ({
+                ...prev,
+                strengths: newValues
+              }));
+            }}
             onClose={() => setShowStrengthSelector(false)}
-            title="Select Strength"
+            title="Select Strengths"
+            selectedValues={influencerData.strengths}
+            maxSelections={3}
           />
         )
       }
 
       {
         showWeaknessSelector && (
-          <OptionSelector
+          <OptionMultiSelector
             options={weaknessOptions}
-            onSelect={(label) => handleAddTag('weaknesses')}
+            onSelect={(selected) => {
+              const newValues = selected.split(',').filter(Boolean);
+              setInfluencerData(prev => ({
+                ...prev,
+                weaknesses: newValues
+              }));
+            }}
             onClose={() => setShowWeaknessSelector(false)}
-            title="Select Weakness"
+            title="Select Weaknesses"
+            selectedValues={influencerData.weaknesses}
+            maxSelections={2}
           />
         )
       }

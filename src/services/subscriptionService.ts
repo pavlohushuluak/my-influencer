@@ -3,7 +3,7 @@ import axios from 'axios';
 const API_URL = 'https://nymia.ai';
 
 export interface SubscriptionData {
-  plan: 'free' | 'professional' | 'enterprise';
+  plan: 'starter' | 'professional' | 'enterprise';
   billingCycle: 'monthly' | 'yearly';
   paymentMethod: string;
   amount: number;

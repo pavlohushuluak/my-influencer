@@ -1,7 +1,7 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
 interface SubscriptionState {
-  plan: 'free' | 'professional' | 'enterprise';
+  plan: 'starter' | 'professional' | 'enterprise';
   status: 'active' | 'inactive' | 'trial';
   billingCycle: 'monthly' | 'yearly';
   nextBillingDate: string | null;
@@ -9,7 +9,7 @@ interface SubscriptionState {
 }
 
 const initialState: SubscriptionState = {
-  plan: 'free',
+  plan: 'starter',
   status: 'inactive',
   billingCycle: 'monthly',
   nextBillingDate: null,

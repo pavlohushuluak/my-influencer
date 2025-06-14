@@ -16,10 +16,10 @@ import { updatePlan, updateBillingCycle, updatePaymentMethod } from '@/store/sli
 import { subscriptionService } from '@/services/subscriptionService';
 
 const SUBSCRIPTION_FEATURES = {
-  free: {
-    name: 'Free',
-    price: '$0',
-    description: 'Perfect for trying out our platform',
+  starter: {
+    name: 'Starter',
+    price: '$19.95',
+    description: 'Perfect for individual creators',
     icon: Sparkles,
     color: 'text-blue-500',
     gradient: 'from-blue-500 to-blue-600',
@@ -33,13 +33,13 @@ const SUBSCRIPTION_FEATURES = {
   },
   professional: {
     name: 'Professional',
-    price: '$19.99',
+    price: '$49.95',
     description: 'Best for growing creators',
     icon: Crown,
     color: 'text-purple-500',
     gradient: 'from-purple-600 to-blue-600',
     features: [
-      'All Free features',
+      'All Starter features',
       'Advanced appearance customization',
       'Detailed personality traits',
       'Style & environment options',
@@ -51,7 +51,7 @@ const SUBSCRIPTION_FEATURES = {
   },
   enterprise: {
     name: 'Enterprise',
-    price: '$49.99',
+    price: '$99.95',
     description: 'For teams and businesses',
     icon: Zap,
     color: 'text-orange-500',
@@ -82,26 +82,6 @@ export default function Pricing() {
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>(currentBillingCycle);
 
   const handleSubscribe = async (plan: string) => {
-    if (plan === 'free') {
-      setLoading(plan);
-      try {
-        await subscriptionService.updateSubscription({
-          plan: 'free',
-          billingCycle: 'monthly',
-          paymentMethod: 'none',
-          amount: 0
-        });
-        dispatch(updatePlan('free'));
-        toast.success('Free plan activated');
-        navigate('/dashboard');
-      } catch (error) {
-        toast.error('Failed to activate free plan');
-      } finally {
-        setLoading(null);
-      }
-      return;
-    }
-
     setSelectedPlan(plan);
     setPaymentStep('select');
   };
@@ -116,13 +96,13 @@ export default function Pricing() {
 
     try {
       await subscriptionService.updateSubscription({
-        plan: selectedPlan as 'professional' | 'enterprise',
+        plan: selectedPlan as 'starter' | 'professional' | 'enterprise',
         billingCycle,
         paymentMethod,
         amount: getPlanPrice(selectedPlan)
       });
 
-      dispatch(updatePlan(selectedPlan as 'professional' | 'enterprise'));
+      dispatch(updatePlan(selectedPlan as 'starter' | 'professional' | 'enterprise'));
       dispatch(updateBillingCycle(billingCycle));
       dispatch(updatePaymentMethod(paymentMethod));
 
@@ -139,7 +119,12 @@ export default function Pricing() {
   };
 
   const getPlanPrice = (plan: string) => {
-    const basePrice = plan === 'professional' ? 19.99 : 49.99;
+    const basePrice = {
+      starter: 19.95,
+      professional: 49.95,
+      enterprise: 99.95
+    }[plan] || 19.95;
+    
     return billingCycle === 'yearly' ? basePrice * 10 : basePrice;
   };
 

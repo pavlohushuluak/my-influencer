@@ -54,10 +54,10 @@ export default function Homepage() {
 
   const pricingPlans = [
     {
-      name: 'Free',
-      price: '$0',
-      period: '',
-      description: 'Perfect for trying out the platform',
+      name: 'Starter',
+      price: '$19.95',
+      period: '/month',
+      description: 'Perfect for individual creators',
       features: [
         'Basic influencer information',
         'Limited appearance customization',
@@ -69,11 +69,11 @@ export default function Homepage() {
     },
     {
       name: 'Professional',
-      price: '$19.99',
+      price: '$49.95',
       period: '/month',
       description: 'Best for growing creators and agencies',
       features: [
-        'All Free features',
+        'All Starter features',
         'Advanced appearance customization',
         'Detailed personality traits',
         'Style & environment options',
@@ -85,7 +85,7 @@ export default function Homepage() {
     },
     {
       name: 'Enterprise',
-      price: '$49.99',
+      price: '$99.95',
       period: '/month',
       description: 'For large teams and businesses',
       features: [
@@ -154,18 +154,10 @@ export default function Homepage() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button
                 size="lg"
-                className="bg-ai-gradient hover:opacity-90 text-lg px-8 py-3 shadow-lg transition-all hover:shadow-xl"
+                className="bg-ai-gradient hover:opacity-90 text-lg px-8 py-3 mt-5 shadow-lg transition-all hover:shadow-xl"
                 onClick={() => navigate(isLoggedIn ? '/dashboard' : '/signup')}
               >
                 {isLoggedIn ? 'Go to Dashboard' : 'Start Creating'}
-              </Button>
-              <Button
-                size="lg"
-                variant="outline"
-                className="text-lg px-8 py-3 border-border border-neutral-300 hover:bg-accent dark:border-neutral-600 text-neutral-800 dark:text-neutral-100 bg-transparent hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
-                onClick={() => navigate('/signin')}
-              >
-                {isLoggedIn ? 'Sign Out' : 'View Demo'}
               </Button>
             </div>
           </div>

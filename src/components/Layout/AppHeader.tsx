@@ -7,6 +7,7 @@ import { Star, Moon, Sun, Menu } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useState } from 'react';
+import { toast } from 'sonner';
 
 interface AppHeaderProps {
   showAuthButtons?: boolean;
@@ -20,28 +21,52 @@ export function AppHeader({ showAuthButtons = true }: AppHeaderProps) {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const isLoggedIn = sessionStorage.getItem('access_token') !== null;
 
-  const navigationItems = [
-    { name: 'Features', href: '#features' },
-    { name: 'Pricing', href: '#pricing' },
-    { name: 'About', href: '#about' },
-    { name: 'Contact', href: '#contact' }
-  ];
-
   const handleThemeToggle = () => {
     dispatch(toggleTheme());
   };
 
-  const handleNavigation = (href: string) => {
-    if (href.startsWith('#')) {
-      const element = document.querySelector(href);
-      if (element) {
-        element.scrollIntoView({ behavior: 'smooth' });
+  const handleLogout = async () => {
+    const accessToken = sessionStorage.getItem('access_token');
+    
+    if (accessToken) {
+      try {
+        const response = await fetch('https://api.nymia.ai/v1/logout', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer WeInfl3nc3withAI'
+          },
+          body: JSON.stringify({
+            access_token: accessToken
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to logout');
+        }
+      } catch (error) {
+        console.error('Error during logout:', error);
       }
-    } else {
-      navigate(href);
     }
+
+    // Remove tokens and navigate regardless of API call success
+    sessionStorage.removeItem('access_token');
+    sessionStorage.removeItem('refresh_token');
+    toast.success('Signed out successfully');
+    navigate('/');
+  };
+
+  const handleNavigation = (href: string) => {
+    navigate(href);
     setIsSheetOpen(false);
   };
+
+  const navigationItems = [
+    { name: 'Features', href: '/#features' },
+    { name: 'Pricing', href: '/pricing' },
+    { name: 'About', href: '/#about' },
+    { name: 'Contact', href: '/#contact' }
+  ];
 
   return (
     <header className="border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
@@ -86,7 +111,7 @@ export function AppHeader({ showAuthButtons = true }: AppHeaderProps) {
               <>
                 <Button
                   variant="outline"
-                  onClick={() => navigate('/signin')}
+                  onClick={isLoggedIn ? handleLogout : () => navigate('/signin')}
                   className="px-8 py-3 border-border border-neutral-300 hover:bg-accent dark:border-neutral-600 text-neutral-800 dark:text-neutral-100 bg-transparent hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
                 >
                   {isLoggedIn ? 'Sign Out' : 'Sign In'}
@@ -103,7 +128,7 @@ export function AppHeader({ showAuthButtons = true }: AppHeaderProps) {
         )}
 
         {/* Mobile Menu */}
-        {isMobile && showAuthButtons && (
+        {isMobile && (
           <div className="flex items-center gap-3">
             <Button
               variant="ghost"
@@ -150,7 +175,11 @@ export function AppHeader({ showAuthButtons = true }: AppHeaderProps) {
                   <Button
                     variant="outline"
                     onClick={() => {
-                      navigate('/signin');
+                      if (isLoggedIn) {
+                        handleLogout();
+                      } else {
+                        navigate('/signin');
+                      }
                       setIsSheetOpen(false);
                     }}
                     className="w-full"

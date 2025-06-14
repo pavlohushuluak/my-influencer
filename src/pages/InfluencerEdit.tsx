@@ -24,9 +24,9 @@ const HUMOR_STYLES = ['Witty', 'Sarcastic', 'Dry', 'Playful', 'Absurd'];
 
 // Subscription level features
 const SUBSCRIPTION_FEATURES = {
-  free: {
-    name: 'Free',
-    price: '$0',
+  starter: {
+    name: 'Starter',
+    price: '$19.95/month',
     features: [
       'Basic influencer information',
       'Limited appearance customization',
@@ -35,9 +35,9 @@ const SUBSCRIPTION_FEATURES = {
   },
   professional: {
     name: 'Professional',
-    price: '$19.99/month',
+    price: '$49.95/month',
     features: [
-      'All Free features',
+      'All Starter features',
       'Advanced appearance customization',
       'Detailed personality traits',
       'Style & environment options',
@@ -46,7 +46,7 @@ const SUBSCRIPTION_FEATURES = {
   },
   enterprise: {
     name: 'Enterprise',
-    price: '$49.99/month',
+    price: '$99.95/month',
     features: [
       'All Professional features',
       'Unlimited customization',

@@ -1,16 +1,28 @@
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { CheckCircle, ArrowRight, Crown, Zap } from 'lucide-react';
+import { CheckCircle, ArrowRight, Crown, Zap, Sparkles } from 'lucide-react';
 
 interface SubscriptionSuccessProps {
-  plan: 'Professional' | 'Enterprise';
+  plan: 'Starter' | 'Professional' | 'Enterprise';
 }
 
 export function SubscriptionSuccess({ plan }: SubscriptionSuccessProps) {
   const navigate = useNavigate();
 
   const planDetails = {
+    Starter: {
+      icon: Sparkles,
+      color: 'text-blue-500',
+      gradient: 'from-blue-500 to-blue-600',
+      features: [
+        'Basic influencer information',
+        'Limited appearance customization',
+        'Basic style options',
+        'Up to 3 color palettes',
+        'Basic content generation'
+      ]
+    },
     Professional: {
       icon: Crown,
       color: 'text-purple-500',

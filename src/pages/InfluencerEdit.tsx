@@ -201,6 +201,23 @@ export default function InfluencerEdit() {
   const [showCulturalBackgroundSelector, setShowCulturalBackgroundSelector] = useState(false);
   const [culturalBackgroundOptions, setCulturalBackgroundOptions] = useState<Option[]>([]);
 
+  const [sexOptions, setSexOptions] = useState<Option[]>([]);
+  const [contentFocusOptions, setContentFocusOptions] = useState<Option[]>([]);
+  const [hobbyOptions, setHobbyOptions] = useState<Option[]>([]);
+  const [personaOptions, setPersonaOptions] = useState<Option[]>([]);
+  const [speechOptions, setSpeechOptions] = useState<Option[]>([]);
+  const [strengthOptions, setStrengthOptions] = useState<Option[]>([]);
+  const [weaknessOptions, setWeaknessOptions] = useState<Option[]>([]);
+
+  // Add state for selectors
+  const [showSexSelector, setShowSexSelector] = useState(false);
+  const [showContentFocusSelector, setShowContentFocusSelector] = useState(false);
+  const [showHobbySelector, setShowHobbySelector] = useState(false);
+  const [showPersonaSelector, setShowPersonaSelector] = useState(false);
+  const [showSpeechSelector, setShowSpeechSelector] = useState(false);
+  const [showStrengthSelector, setShowStrengthSelector] = useState(false);
+  const [showWeaknessSelector, setShowWeaknessSelector] = useState(false);
+
   const isFeatureLocked = (feature: string) => {
     return FEATURE_RESTRICTIONS[subscriptionLevel].includes(feature);
   };
@@ -384,7 +401,15 @@ export default function InfluencerEdit() {
           clothing_homewear: setClothingHomewearOptions,
           clothing_sports: setClothingSportsOptions,
           clothing_sexy: setClothingSexyOptions,
-          home_environment: setHomeEnvironmentOptions
+          home_environment: setHomeEnvironmentOptions,
+          // Add new endpoints
+          sex: setSexOptions,
+          cfocus: setContentFocusOptions,
+          hobby: setHobbyOptions,
+          persona: setPersonaOptions,
+          speech: setSpeechOptions,
+          strength: setStrengthOptions,
+          weak: setWeaknessOptions
         };
 
         const promises = Object.entries(endpoints).map(async ([fieldtype, setter]) => {
@@ -674,27 +699,77 @@ export default function InfluencerEdit() {
                     </div>
                     <div className="space-y-2">
                       <Label>Sex</Label>
-                      <Select
-                        value={influencerData.sex}
-                        onValueChange={(value) => handleInputChange('sex', value)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select sex" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Woman">Woman</SelectItem>
-                          <SelectItem value="Man">Man</SelectItem>
-                          <SelectItem value="Non-binary">Non-binary</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <div className="flex flex-col gap-2">
+                        <Select
+                          value={influencerData.sex}
+                          onValueChange={(value) => handleInputChange('sex', value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select sex" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {sexOptions.map((option, index) => (
+                              <SelectItem key={index} value={option.label}>{option.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <div
+                          onClick={() => setShowSexSelector(true)}
+                          className='flex items-center justify-center cursor-pointer'
+                        >
+                          {
+                            sexOptions.find(option => option.label === influencerData.sex)?.image ? (
+                              <img
+                                src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${sexOptions.find(option => option.label === influencerData.sex)?.image}`}
+                                alt={sexOptions.find(option => option.label === influencerData.sex)?.label}
+                                className="w-[70%] max-w-[200px] rounded-full"
+                              />
+                            )
+                              :
+                              <div
+                                className="max-w-[200px] w-[200px] h-[200px] rounded-full border"
+                                style={{ backgroundColor: '#FFFFFF' }}
+                              />
+                          }
+                        </div>
+                      </div>
                     </div>
                     <div className="space-y-2">
                       <Label>Age & Lifestyle</Label>
-                      <Input
-                        value={influencerData.age_lifestyle}
-                        onChange={(e) => handleInputChange('age_lifestyle', e.target.value)}
-                        placeholder="e.g., 25, Young Professional"
-                      />
+                      <div className="flex flex-col gap-2">
+                        <Select
+                          value={influencerData.age_lifestyle}
+                          onValueChange={(value) => handleInputChange('age_lifestyle', value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select age & lifestyle" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {personaOptions.map((option, index) => (
+                              <SelectItem key={index} value={option.label}>{option.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <div
+                          onClick={() => setShowPersonaSelector(true)}
+                          className='flex items-center justify-center cursor-pointer'
+                        >
+                          {
+                            personaOptions.find(option => option.label === influencerData.age_lifestyle)?.image ? (
+                              <img
+                                src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${personaOptions.find(option => option.label === influencerData.age_lifestyle)?.image}`}
+                                alt={personaOptions.find(option => option.label === influencerData.age_lifestyle)?.label}
+                                className="w-[70%] max-w-[200px] rounded-full"
+                              />
+                            )
+                              :
+                              <div
+                                className="max-w-[200px] w-[200px] h-[200px] rounded-full border"
+                                style={{ backgroundColor: '#FFFFFF' }}
+                              />
+                          }
+                        </div>
+                      </div>
                     </div>
                     <div className="space-y-2">
                       <Label>Cultural Background</Label>
@@ -1530,119 +1605,317 @@ export default function InfluencerEdit() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">
-                    <Label>Content Focus</Label>
-                    <div className="flex gap-2 flex-wrap">
-                      {influencerData.content_focus.map((focus, index) => (
-                        <Badge key={index} variant="secondary" className="flex items-center gap-1">
-                          {focus}
-                          <X
-                            className="w-3 h-3 cursor-pointer"
-                            onClick={() => handleRemoveTag('content_focus', focus)}
-                          />
-                        </Badge>
-                      ))}
-                    </div>
-                    <div className="flex gap-2">
-                      <Input
-                        value={newTag}
-                        onChange={(e) => setNewTag(e.target.value)}
-                        placeholder="Add content focus"
-                        onKeyDown={(e) => e.key === 'Enter' && handleAddTag('content_focus')}
-                      />
-                      <Button onClick={() => handleAddTag('content_focus')}>Add</Button>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Job Area</Label>
-                      <Select
-                        value={influencerData.job_area}
-                        onValueChange={(value) => handleInputChange('job_area', value)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select job area" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {JOB_AREAS.map(area => (
-                            <SelectItem key={area} value={area}>{area}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Job Title</Label>
-                      <Input
-                        value={influencerData.job_title}
-                        onChange={(e) => handleInputChange('job_title', e.target.value)}
-                        placeholder="Enter job title"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Speech Style</Label>
-                    <div className="flex gap-2 flex-wrap">
-                      {influencerData.speech_style.map((style, index) => (
-                        <Badge key={index} variant="secondary" className="flex items-center gap-1">
-                          {style}
-                          <X
-                            className="w-3 h-3 cursor-pointer"
-                            onClick={() => handleRemoveTag('speech_style', style)}
-                          />
-                        </Badge>
-                      ))}
-                    </div>
-                    <div className="flex gap-2">
-                      <Select
-                        value={newTag}
-                        onValueChange={(value) => {
-                          setNewTag(value);
-                          handleAddTag('speech_style');
-                        }}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select speech style" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {SPEECH_STYLES.map(style => (
-                            <SelectItem key={style} value={style}>{style}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                    <Label>Content Focus (Max 4)</Label>
+                    <div className="space-y-4">
+                      <div className="flex flex-wrap gap-2">
+                        {influencerData.content_focus.map((focus, index) => (
+                          <Badge
+                            key={index}
+                            variant="secondary"
+                            className="flex items-center gap-1 px-3 py-1"
+                          >
+                            {focus}
+                            <button
+                              onClick={() => handleRemoveTag('content_focus', focus)}
+                              className="ml-1 hover:text-destructive"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </Badge>
+                        ))}
+                      </div>
+                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                        {contentFocusOptions.map((option, index) => (
+                          <Card
+                            key={index}
+                            className={`cursor-pointer hover:shadow-lg transition-all duration-300 ${
+                              influencerData.content_focus.includes(option.label) 
+                                ? 'ring-2 ring-ai-purple-500' 
+                                : 'opacity-50 hover:opacity-100'
+                            }`}
+                            onClick={() => {
+                              if (influencerData.content_focus.includes(option.label)) {
+                                handleRemoveTag('content_focus', option.label);
+                              } else {
+                                if (influencerData.content_focus.length < 4) {
+                                  setInfluencerData(prev => ({
+                                    ...prev,
+                                    content_focus: [...prev.content_focus, option.label]
+                                  }));
+                                } else {
+                                  toast.error('Maximum Selection Reached', {
+                                    description: 'You can only select up to 4 content focus areas',
+                                    duration: 3000,
+                                  });
+                                }
+                              }
+                            }}
+                          >
+                            <CardContent className="p-4">
+                              <div className="relative w-full" style={{ paddingBottom: '100%' }}>
+                                <img
+                                  src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
+                                  alt={option.label}
+                                  className="absolute inset-0 w-full h-full object-cover rounded-md"
+                                />
+                              </div>
+                              <p className="text-sm text-center font-medium mt-2">{option.label}</p>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Humor Style</Label>
-                    <div className="flex gap-2 flex-wrap">
-                      {influencerData.humor.map((style, index) => (
-                        <Badge key={index} variant="secondary" className="flex items-center gap-1">
-                          {style}
-                          <X
-                            className="w-3 h-3 cursor-pointer"
-                            onClick={() => handleRemoveTag('humor', style)}
-                          />
-                        </Badge>
-                      ))}
+                    <Label>Hobbies (Max 5)</Label>
+                    <div className="space-y-4">
+                      <div className="flex flex-wrap gap-2">
+                        {influencerData.hobbies.map((hobby, index) => (
+                          <Badge
+                            key={index}
+                            variant="secondary"
+                            className="flex items-center gap-1 px-3 py-1"
+                          >
+                            {hobby}
+                            <button
+                              onClick={() => handleRemoveTag('hobbies', hobby)}
+                              className="ml-1 hover:text-destructive"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </Badge>
+                        ))}
+                      </div>
+                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                        {hobbyOptions.map((option, index) => (
+                          <Card
+                            key={index}
+                            className={`cursor-pointer hover:shadow-lg transition-all duration-300 ${
+                              influencerData.hobbies.includes(option.label) 
+                                ? 'ring-2 ring-ai-purple-500' 
+                                : 'opacity-50 hover:opacity-100'
+                            }`}
+                            onClick={() => {
+                              if (influencerData.hobbies.includes(option.label)) {
+                                handleRemoveTag('hobbies', option.label);
+                              } else {
+                                if (influencerData.hobbies.length < 5) {
+                                  setInfluencerData(prev => ({
+                                    ...prev,
+                                    hobbies: [...prev.hobbies, option.label]
+                                  }));
+                                } else {
+                                  toast.error('Maximum Selection Reached', {
+                                    description: 'You can only select up to 5 hobbies',
+                                    duration: 3000,
+                                  });
+                                }
+                              }
+                            }}
+                          >
+                            <CardContent className="p-4">
+                              <div className="relative w-full" style={{ paddingBottom: '100%' }}>
+                                <img
+                                  src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
+                                  alt={option.label}
+                                  className="absolute inset-0 w-full h-full object-cover rounded-md"
+                                />
+                              </div>
+                              <p className="text-sm text-center font-medium mt-2">{option.label}</p>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
                     </div>
-                    <div className="flex gap-2">
-                      <Select
-                        value={newTag}
-                        onValueChange={(value) => {
-                          setNewTag(value);
-                          handleAddTag('humor');
-                        }}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select humor style" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {HUMOR_STYLES.map(style => (
-                            <SelectItem key={style} value={style}>{style}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Strengths (Max 3)</Label>
+                    <div className="space-y-4">
+                      <div className="flex flex-wrap gap-2">
+                        {influencerData.strengths.map((strength, index) => (
+                          <Badge
+                            key={index}
+                            variant="secondary"
+                            className="flex items-center gap-1 px-3 py-1"
+                          >
+                            {strength}
+                            <button
+                              onClick={() => handleRemoveTag('strengths', strength)}
+                              className="ml-1 hover:text-destructive"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </Badge>
+                        ))}
+                      </div>
+                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                        {strengthOptions.map((option, index) => (
+                          <Card
+                            key={index}
+                            className={`cursor-pointer hover:shadow-lg transition-all duration-300 ${
+                              influencerData.strengths.includes(option.label) 
+                                ? 'ring-2 ring-ai-purple-500' 
+                                : 'opacity-50 hover:opacity-100'
+                            }`}
+                            onClick={() => {
+                              if (influencerData.strengths.includes(option.label)) {
+                                handleRemoveTag('strengths', option.label);
+                              } else {
+                                if (influencerData.strengths.length < 3) {
+                                  setInfluencerData(prev => ({
+                                    ...prev,
+                                    strengths: [...prev.strengths, option.label]
+                                  }));
+                                } else {
+                                  toast.error('Maximum Selection Reached', {
+                                    description: 'You can only select up to 3 strengths',
+                                    duration: 3000,
+                                  });
+                                }
+                              }
+                            }}
+                          >
+                            <CardContent className="p-4">
+                              <div className="relative w-full" style={{ paddingBottom: '100%' }}>
+                                <img
+                                  src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
+                                  alt={option.label}
+                                  className="absolute inset-0 w-full h-full object-cover rounded-md"
+                                />
+                              </div>
+                              <p className="text-sm text-center font-medium mt-2">{option.label}</p>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Weaknesses (Max 2)</Label>
+                    <div className="space-y-4">
+                      <div className="flex flex-wrap gap-2">
+                        {influencerData.weaknesses.map((weakness, index) => (
+                          <Badge
+                            key={index}
+                            variant="secondary"
+                            className="flex items-center gap-1 px-3 py-1"
+                          >
+                            {weakness}
+                            <button
+                              onClick={() => handleRemoveTag('weaknesses', weakness)}
+                              className="ml-1 hover:text-destructive"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </Badge>
+                        ))}
+                      </div>
+                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                        {weaknessOptions.map((option, index) => (
+                          <Card
+                            key={index}
+                            className={`cursor-pointer hover:shadow-lg transition-all duration-300 ${
+                              influencerData.weaknesses.includes(option.label) 
+                                ? 'ring-2 ring-ai-purple-500' 
+                                : 'opacity-50 hover:opacity-100'
+                            }`}
+                            onClick={() => {
+                              if (influencerData.weaknesses.includes(option.label)) {
+                                handleRemoveTag('weaknesses', option.label);
+                              } else {
+                                if (influencerData.weaknesses.length < 2) {
+                                  setInfluencerData(prev => ({
+                                    ...prev,
+                                    weaknesses: [...prev.weaknesses, option.label]
+                                  }));
+                                } else {
+                                  toast.error('Maximum Selection Reached', {
+                                    description: 'You can only select up to 2 weaknesses',
+                                    duration: 3000,
+                                  });
+                                }
+                              }
+                            }}
+                          >
+                            <CardContent className="p-4">
+                              <div className="relative w-full" style={{ paddingBottom: '100%' }}>
+                                <img
+                                  src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
+                                  alt={option.label}
+                                  className="absolute inset-0 w-full h-full object-cover rounded-md"
+                                />
+                              </div>
+                              <p className="text-sm text-center font-medium mt-2">{option.label}</p>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Speech Style (Max 4)</Label>
+                    <div className="space-y-4">
+                      <div className="flex flex-wrap gap-2">
+                        {influencerData.speech_style.map((style, index) => (
+                          <Badge
+                            key={index}
+                            variant="secondary"
+                            className="flex items-center gap-1 px-3 py-1"
+                          >
+                            {style}
+                            <button
+                              onClick={() => handleRemoveTag('speech_style', style)}
+                              className="ml-1 hover:text-destructive"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </Badge>
+                        ))}
+                      </div>
+                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                        {speechOptions.map((option, index) => (
+                          <Card
+                            key={index}
+                            className={`cursor-pointer hover:shadow-lg transition-all duration-300 ${
+                              influencerData.speech_style.includes(option.label) 
+                                ? 'ring-2 ring-ai-purple-500' 
+                                : 'opacity-50 hover:opacity-100'
+                            }`}
+                            onClick={() => {
+                              if (influencerData.speech_style.includes(option.label)) {
+                                handleRemoveTag('speech_style', option.label);
+                              } else {
+                                if (influencerData.speech_style.length < 4) {
+                                  setInfluencerData(prev => ({
+                                    ...prev,
+                                    speech_style: [...prev.speech_style, option.label]
+                                  }));
+                                } else {
+                                  toast.error('Maximum Selection Reached', {
+                                    description: 'You can only select up to 4 speech styles',
+                                    duration: 3000,
+                                  });
+                                }
+                              }
+                            }}
+                          >
+                            <CardContent className="p-4">
+                              <div className="relative w-full" style={{ paddingBottom: '100%' }}>
+                                <img
+                                  src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
+                                  alt={option.label}
+                                  className="absolute inset-0 w-full h-full object-cover rounded-md"
+                                />
+                              </div>
+                              <p className="text-sm text-center font-medium mt-2">{option.label}</p>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
                     </div>
                   </div>
 
@@ -2122,6 +2395,83 @@ export default function InfluencerEdit() {
           />
         )
       }
-    </div >
+
+      {
+        showSexSelector && (
+          <OptionSelector
+            options={sexOptions}
+            onSelect={(label) => handleInputChange('sex', label)}
+            onClose={() => setShowSexSelector(false)}
+            title="Select Sex"
+          />
+        )
+      }
+
+      {
+        showContentFocusSelector && (
+          <OptionSelector
+            options={contentFocusOptions}
+            onSelect={(label) => handleAddTag('content_focus')}
+            onClose={() => setShowContentFocusSelector(false)}
+            title="Select Content Focus"
+          />
+        )
+      }
+
+      {
+        showHobbySelector && (
+          <OptionSelector
+            options={hobbyOptions}
+            onSelect={(label) => handleAddTag('hobbies')}
+            onClose={() => setShowHobbySelector(false)}
+            title="Select Hobby"
+          />
+        )
+      }
+
+      {
+        showPersonaSelector && (
+          <OptionSelector
+            options={personaOptions}
+            onSelect={(label) => handleInputChange('age_lifestyle', label)}
+            onClose={() => setShowPersonaSelector(false)}
+            title="Select Age & Lifestyle"
+          />
+        )
+      }
+
+      {
+        showSpeechSelector && (
+          <OptionSelector
+            options={speechOptions}
+            onSelect={(label) => handleAddTag('speech_style')}
+            onClose={() => setShowSpeechSelector(false)}
+            title="Select Speech Style"
+          />
+        )
+      }
+
+      {
+        showStrengthSelector && (
+          <OptionSelector
+            options={strengthOptions}
+            onSelect={(label) => handleAddTag('strengths')}
+            onClose={() => setShowStrengthSelector(false)}
+            title="Select Strength"
+          />
+        )
+      }
+
+      {
+        showWeaknessSelector && (
+          <OptionSelector
+            options={weaknessOptions}
+            onSelect={(label) => handleAddTag('weaknesses')}
+            onClose={() => setShowWeaknessSelector(false)}
+            title="Select Weakness"
+          />
+        )
+      }
+    </div>
   );
 }

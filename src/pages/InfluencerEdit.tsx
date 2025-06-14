@@ -14,7 +14,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { updateInfluencer, setInfluencers, setLoading, setError } from '@/store/slices/influencersSlice';
-import { X, Plus, Save, Crown, Lock, Image, Settings, User, ChevronRight, MoreHorizontal, Loader2 } from 'lucide-react';
+import { X, Plus, Save, Crown, Lock, Image, Settings, User, ChevronRight, MoreHorizontal, Loader2, ZoomIn } from 'lucide-react';
 import { HexColorPicker } from 'react-colorful';
 import { toast } from 'sonner';
 
@@ -217,6 +217,8 @@ export default function InfluencerEdit() {
   const [showSpeechSelector, setShowSpeechSelector] = useState(false);
   const [showStrengthSelector, setShowStrengthSelector] = useState(false);
   const [showWeaknessSelector, setShowWeaknessSelector] = useState(false);
+
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
 
   const isFeatureLocked = (feature: string) => {
     return FEATURE_RESTRICTIONS[subscriptionLevel].includes(feature);
@@ -470,43 +472,82 @@ export default function InfluencerEdit() {
     fetchInfluencers();
   }, [dispatch]);
 
+  const ImagePreviewDialog = ({ imageUrl, onClose }: { imageUrl: string, onClose: () => void }) => (
+    <Dialog open={true} onOpenChange={onClose}>
+      <DialogContent className="max-w-[90vw] max-h-[90vh] p-0 overflow-hidden">
+        <div className="relative w-full h-full">
+          <img
+            src={imageUrl}
+            alt="Preview"
+            className="w-full h-full object-contain"
+          />
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+
   const OptionSelector = ({ options, onSelect, onClose, title }: {
     options: Option[],
     onSelect: (label: string) => void,
     onClose: () => void,
     title: string
-  }) => (
-    <Dialog open={true} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl overflow-auto max-h-[80vh]">
-        <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-        </DialogHeader>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 p-4">
-          {options.map((option, index) => (
-            <Card
-              key={index}
-              className="cursor-pointer hover:shadow-lg transition-all duration-300"
-              onClick={() => {
-                onSelect(option.label);
-                onClose();
-              }}
-            >
-              <CardContent className="p-4">
-                <div className="relative w-full" style={{ paddingBottom: '125%' }}>
-                  <img
-                    src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
-                    alt={option.label}
-                    className="absolute inset-0 w-full h-full object-cover rounded-md"
-                  />
-                </div>
-                <p className="text-sm text-center font-medium mt-2">{option.label}</p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
+  }) => {
+    const [previewImage, setPreviewImage] = useState<string | null>(null);
+
+    const handleImageClick = (e: React.MouseEvent, imageUrl: string) => {
+      e.stopPropagation();
+      setPreviewImage(imageUrl);
+    };
+
+    const handleSelect = (label: string) => {
+      onSelect(label);
+      onClose();
+    };
+
+    return (
+      <>
+        <Dialog open={true} onOpenChange={onClose}>
+          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>{title}</DialogTitle>
+            </DialogHeader>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 p-4">
+              {options.map((option, index) => (
+                <Card
+                  key={index}
+                  className="cursor-pointer hover:shadow-lg transition-all duration-300"
+                  onClick={() => handleSelect(option.label)}
+                >
+                  <CardContent className="p-4">
+                    <div className="relative w-full group" style={{ paddingBottom: '100%' }}>
+                      <img
+                        src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
+                        alt={option.label}
+                        className="absolute inset-0 w-full h-full object-cover rounded-md"
+                      />
+                      <div 
+                        className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
+                        onClick={(e) => handleImageClick(e, `https://images.nymia.ai/cdn-cgi/image/w=800/wizard/${option.image}`)}
+                      >
+                        <ZoomIn className="w-8 h-8 text-white" />
+                      </div>
+                    </div>
+                    <p className="text-sm text-center font-medium mt-2">{option.label}</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </DialogContent>
+        </Dialog>
+        {previewImage && (
+          <ImagePreviewDialog
+            imageUrl={previewImage}
+            onClose={() => setPreviewImage(null)}
+          />
+        )}
+      </>
+    );
+  };
 
   const OptionMultiSelector = ({ options, onSelect, onClose, title, selectedValues, maxSelections }: {
     options: Option[],
@@ -517,6 +558,7 @@ export default function InfluencerEdit() {
     maxSelections: number
   }) => {
     const [localSelected, setLocalSelected] = useState<string[]>(selectedValues);
+    const [previewImage, setPreviewImage] = useState<string | null>(null);
 
     const handleSelect = (label: string) => {
       if (localSelected.includes(label)) {
@@ -538,44 +580,63 @@ export default function InfluencerEdit() {
       onClose();
     };
 
+    const handleImageClick = (e: React.MouseEvent, imageUrl: string) => {
+      e.stopPropagation();
+      setPreviewImage(imageUrl);
+    };
+
     return (
-      <Dialog open={true} onOpenChange={handleClose}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{title}</DialogTitle>
-            <DialogDescription>
-              Select up to {maxSelections} options
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-4">
-            {options.map((option, index) => (
-              <Card
-                key={index}
-                className={`cursor-pointer hover:shadow-lg transition-all duration-300 ${
-                  localSelected.includes(option.label) 
-                    ? 'ring-2 ring-ai-purple-500' 
-                    : 'opacity-50 hover:opacity-100'
-                }`}
-                onClick={() => handleSelect(option.label)}
-              >
-                <CardContent className="p-4">
-                  <div className="relative w-full" style={{ paddingBottom: '100%' }}>
-                    <img
-                      src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
-                      alt={option.label}
-                      className="absolute inset-0 w-full h-full object-cover rounded-md"
-                    />
-                  </div>
-                  <p className="text-sm text-center font-medium mt-2">{option.label}</p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-          <div className="flex justify-end mt-4">
-            <Button onClick={handleClose}>Done</Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <>
+        <Dialog open={true} onOpenChange={handleClose}>
+          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>{title}</DialogTitle>
+              <DialogDescription>
+                Select up to {maxSelections} options
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 p-4">
+              {options.map((option, index) => (
+                <Card
+                  key={index}
+                  className={`cursor-pointer hover:shadow-lg transition-all duration-300 ${
+                    localSelected.includes(option.label) 
+                      ? 'ring-2 ring-ai-purple-500' 
+                      : 'opacity-50 hover:opacity-100'
+                  }`}
+                  onClick={() => handleSelect(option.label)}
+                >
+                  <CardContent className="p-4">
+                    <div className="relative w-full group" style={{ paddingBottom: '100%' }}>
+                      <img
+                        src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
+                        alt={option.label}
+                        className="absolute inset-0 w-full h-full object-cover rounded-md"
+                      />
+                      <div 
+                        className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
+                        onClick={(e) => handleImageClick(e, `https://images.nymia.ai/cdn-cgi/image/w=800/wizard/${option.image}`)}
+                      >
+                        <ZoomIn className="w-8 h-8 text-white" />
+                      </div>
+                    </div>
+                    <p className="text-sm text-center font-medium mt-2">{option.label}</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+            <div className="flex justify-end mt-4">
+              <Button onClick={handleClose}>Done</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+        {previewImage && (
+          <ImagePreviewDialog
+            imageUrl={previewImage}
+            onClose={() => setPreviewImage(null)}
+          />
+        )}
+      </>
     );
   };
 
@@ -1702,12 +1763,18 @@ export default function InfluencerEdit() {
                           return (
                             <Card key={index} className="relative">
                               <CardContent className="p-4">
-                                <div className="relative w-full" style={{ paddingBottom: '100%' }}>
+                                <div className="relative w-full group" style={{ paddingBottom: '100%' }}>
                                   <img
                                     src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
                                     alt={option.label}
                                     className="absolute inset-0 w-full h-full object-cover rounded-md"
                                   />
+                                  <div 
+                                    className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
+                                    onClick={() => setPreviewImage(`https://images.nymia.ai/cdn-cgi/image/w=800/wizard/${option.image}`)}
+                                  >
+                                    <ZoomIn className="w-8 h-8 text-white" />
+                                  </div>
                                 </div>
                                 <p className="text-sm text-center font-medium mt-2">{option.label}</p>
                               </CardContent>
@@ -1749,12 +1816,18 @@ export default function InfluencerEdit() {
                           return (
                             <Card key={index} className="relative">
                               <CardContent className="p-4">
-                                <div className="relative w-full" style={{ paddingBottom: '100%' }}>
+                                <div className="relative w-full group" style={{ paddingBottom: '100%' }}>
                                   <img
                                     src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
                                     alt={option.label}
                                     className="absolute inset-0 w-full h-full object-cover rounded-md"
                                   />
+                                  <div 
+                                    className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
+                                    onClick={() => setPreviewImage(`https://images.nymia.ai/cdn-cgi/image/w=800/wizard/${option.image}`)}
+                                  >
+                                    <ZoomIn className="w-8 h-8 text-white" />
+                                  </div>
                                 </div>
                                 <p className="text-sm text-center font-medium mt-2">{option.label}</p>
                               </CardContent>
@@ -1796,12 +1869,18 @@ export default function InfluencerEdit() {
                           return (
                             <Card key={index} className="relative">
                               <CardContent className="p-4">
-                                <div className="relative w-full" style={{ paddingBottom: '100%' }}>
+                                <div className="relative w-full group" style={{ paddingBottom: '100%' }}>
                                   <img
                                     src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
                                     alt={option.label}
                                     className="absolute inset-0 w-full h-full object-cover rounded-md"
                                   />
+                                  <div 
+                                    className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
+                                    onClick={() => setPreviewImage(`https://images.nymia.ai/cdn-cgi/image/w=800/wizard/${option.image}`)}
+                                  >
+                                    <ZoomIn className="w-8 h-8 text-white" />
+                                  </div>
                                 </div>
                                 <p className="text-sm text-center font-medium mt-2">{option.label}</p>
                               </CardContent>
@@ -1843,12 +1922,18 @@ export default function InfluencerEdit() {
                           return (
                             <Card key={index} className="relative">
                               <CardContent className="p-4">
-                                <div className="relative w-full" style={{ paddingBottom: '100%' }}>
+                                <div className="relative w-full group" style={{ paddingBottom: '100%' }}>
                                   <img
                                     src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
                                     alt={option.label}
                                     className="absolute inset-0 w-full h-full object-cover rounded-md"
                                   />
+                                  <div 
+                                    className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
+                                    onClick={() => setPreviewImage(`https://images.nymia.ai/cdn-cgi/image/w=800/wizard/${option.image}`)}
+                                  >
+                                    <ZoomIn className="w-8 h-8 text-white" />
+                                  </div>
                                 </div>
                                 <p className="text-sm text-center font-medium mt-2">{option.label}</p>
                               </CardContent>
@@ -1890,12 +1975,18 @@ export default function InfluencerEdit() {
                           return (
                             <Card key={index} className="relative">
                               <CardContent className="p-4">
-                                <div className="relative w-full" style={{ paddingBottom: '100%' }}>
+                                <div className="relative w-full group" style={{ paddingBottom: '100%' }}>
                                   <img
                                     src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
                                     alt={option.label}
                                     className="absolute inset-0 w-full h-full object-cover rounded-md"
                                   />
+                                  <div 
+                                    className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
+                                    onClick={() => setPreviewImage(`https://images.nymia.ai/cdn-cgi/image/w=800/wizard/${option.image}`)}
+                                  >
+                                    <ZoomIn className="w-8 h-8 text-white" />
+                                  </div>
                                 </div>
                                 <p className="text-sm text-center font-medium mt-2">{option.label}</p>
                               </CardContent>
@@ -2503,6 +2594,12 @@ export default function InfluencerEdit() {
           />
         )
       }
+      {previewImage && (
+        <ImagePreviewDialog
+          imageUrl={previewImage}
+          onClose={() => setPreviewImage(null)}
+        />
+      )}
     </div>
   );
 }

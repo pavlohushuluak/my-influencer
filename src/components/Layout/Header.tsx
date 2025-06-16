@@ -10,6 +10,8 @@ import { Moon, Sun, User, Settings, LogOut, Star } from 'lucide-react';
 import { UserLevelBadge } from '@/components/ui/user-level-badge';
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useNavigate } from 'react-router-dom';
+import { CreditPurchaseDialog } from '@/components/Payment/CreditPurchaseDialog';
+import { useState } from 'react';
 
 export function Header() {
   const dispatch = useDispatch();
@@ -18,6 +20,7 @@ export function Header() {
   const { firstName, lastName, email, credits, subscription } = useSelector((state: RootState) => state.user);
   const name = `${firstName} ${lastName}`;
   const navigate = useNavigate();
+  const [showCreditPurchase, setShowCreditPurchase] = useState(false);
 
   // Generate breadcrumbs based on current path
   const generateBreadcrumbs = () => {
@@ -117,10 +120,25 @@ export function Header() {
             <div className="hidden sm:flex items-center gap-2 px-3 py-1 bg-gradient-to-r from-purple-500/10 to-blue-500/10 rounded-full border border-purple-200/20 dark:border-purple-800/20">
               <Star className="w-4 h-4 text-purple-600 dark:text-purple-400" />
               <span className="text-sm font-medium text-foreground">{credits} credits</span>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 px-2 text-xs hover:bg-purple-500/20"
+                onClick={() => setShowCreditPurchase(true)}
+              >
+                Buy More
+              </Button>
             </div>
 
             {/* User Level Badge */}
-            <UserLevelBadge level={subscription as 'free' | 'professional' | 'enterprise'} />
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate('/pricing')}
+              className="hover:bg-accent transition-colors"
+            >
+              <UserLevelBadge level={subscription as 'free' | 'professional' | 'enterprise'} />
+            </Button>
 
             {/* Theme toggle */}
             <Button
@@ -195,6 +213,12 @@ export function Header() {
           </Breadcrumb>
         </div>
       </div>
+
+      {/* Credit Purchase Dialog */}
+      <CreditPurchaseDialog
+        open={showCreditPurchase}
+        onOpenChange={setShowCreditPurchase}
+      />
     </>
   );
 }

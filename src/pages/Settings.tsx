@@ -7,15 +7,17 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
-import { User, Mail, Key, CreditCard, Shield, Bell, Crown, Calendar, AlertCircle, Check } from 'lucide-react';
+import { User, Mail, Key, CreditCard, Shield, Bell, Crown, Calendar, AlertCircle, Check, Star } from 'lucide-react';
 import { toast } from 'sonner';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { CreditPurchaseDialog } from '@/components/Payment/CreditPurchaseDialog';
 
 export default function Settings() {
   const dispatch = useDispatch();
   const user = useSelector((state: RootState) => state.user);
   const [isLoading, setIsLoading] = useState(false);
+  const [showCreditPurchase, setShowCreditPurchase] = useState(false);
   const navigate = useNavigate();
 
   // Mock subscription data - replace with actual data from your backend
@@ -107,6 +109,10 @@ export default function Settings() {
           <TabsTrigger value="notifications" className="flex items-center gap-2">
             <Bell className="w-4 h-4" />
             Notifications
+          </TabsTrigger>
+          <TabsTrigger value="credits" className="flex items-center gap-2">
+            <Star className="w-4 h-4" />
+            Credits
           </TabsTrigger>
           <TabsTrigger value="billing" className="flex items-center gap-2">
             <CreditCard className="w-4 h-4" />
@@ -220,6 +226,63 @@ export default function Settings() {
           </Card>
         </TabsContent>
 
+        <TabsContent value="credits" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Credit Balance</CardTitle>
+              <CardDescription>Manage your credits and purchase more when needed</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <Star className="w-5 h-5 text-ai-purple-500" />
+                    <h3 className="text-lg font-semibold">{user.credits} Credits</h3>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Available for content generation and customization
+                  </p>
+                </div>
+                <Button 
+                  onClick={() => setShowCreditPurchase(true)}
+                  className="bg-gradient-to-r from-purple-600 to-blue-600 text-white hover:from-purple-700 hover:to-blue-700"
+                >
+                  Buy More Credits
+                </Button>
+              </div>
+
+              <Separator />
+
+              <div className="space-y-4">
+                <h4 className="font-medium">Credit Usage</h4>
+                <div className="grid gap-4">
+                  <div className="flex items-center justify-between p-4 rounded-lg border bg-card">
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium">Content Generation</p>
+                      <p className="text-xs text-muted-foreground">Generate new content for your influencers</p>
+                    </div>
+                    <div className="text-sm font-medium">1 credit per generation</div>
+                  </div>
+                  <div className="flex items-center justify-between p-4 rounded-lg border bg-card">
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium">Appearance Customization</p>
+                      <p className="text-xs text-muted-foreground">Modify your influencer's appearance</p>
+                    </div>
+                    <div className="text-sm font-medium">2 credits per change</div>
+                  </div>
+                  <div className="flex items-center justify-between p-4 rounded-lg border bg-card">
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium">Style Updates</p>
+                      <p className="text-xs text-muted-foreground">Update your influencer's style and environment</p>
+                    </div>
+                    <div className="text-sm font-medium">3 credits per update</div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         <TabsContent value="billing" className="space-y-4">
           <Card>
             <CardHeader>
@@ -320,6 +383,12 @@ export default function Settings() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Credit Purchase Dialog */}
+      <CreditPurchaseDialog
+        open={showCreditPurchase}
+        onOpenChange={setShowCreditPurchase}
+      />
     </div>
   );
 }

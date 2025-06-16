@@ -137,7 +137,7 @@ export function Header() {
               onClick={() => navigate('/pricing')}
               className="hover:bg-accent transition-colors"
             >
-              <UserLevelBadge level={subscription as 'free' | 'professional' | 'enterprise'} />
+            <UserLevelBadge level={subscription as 'free' | 'professional' | 'enterprise'} />
             </Button>
 
             {/* Theme toggle */}

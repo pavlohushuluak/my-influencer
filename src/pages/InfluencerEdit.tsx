@@ -111,7 +111,6 @@ export default function InfluencerEdit() {
   const [lockedFeature, setLockedFeature] = useState<string | null>(null);
   const [backgroundOptions, setBackgroundOptions] = useState<Option[]>([]);
   const [hairLengthOptions, setHairLengthOptions] = useState<Option[]>([]);
-  const [showBackgroundSelector, setShowBackgroundSelector] = useState(false);
   const [showHairLengthSelector, setShowHairLengthSelector] = useState(false);
   const [influencerData, setInfluencerData] = useState(location.state?.influencerData || {
     influencer_type: '',
@@ -220,6 +219,14 @@ export default function InfluencerEdit() {
   const [showWeaknessSelector, setShowWeaknessSelector] = useState(false);
 
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+
+  const [humorOptions, setHumorOptions] = useState<Option[]>([]);
+  const [goalsOptions, setGoalsOptions] = useState<Option[]>([]);
+
+  // Add state for selectors
+  const [showHumorSelector, setShowHumorSelector] = useState(false);
+  const [showGoalsSelector, setShowGoalsSelector] = useState(false);
+  const [showBackgroundSelector, setShowBackgroundSelector] = useState(false);
 
   const isFeatureLocked = (feature: string) => {
     return FEATURE_RESTRICTIONS[subscriptionLevel].includes(feature);
@@ -412,7 +419,10 @@ export default function InfluencerEdit() {
           persona: setPersonaOptions,
           speech: setSpeechOptions,
           strength: setStrengthOptions,
-          weak: setWeaknessOptions
+          weak: setWeaknessOptions,
+          humor: setHumorOptions,
+          goals: setGoalsOptions,
+          bground: setBackgroundOptions
         };
 
         const promises = Object.entries(endpoints).map(async ([fieldtype, setter]) => {
@@ -526,7 +536,7 @@ export default function InfluencerEdit() {
                         alt={option.label}
                         className="absolute inset-0 w-full h-full object-cover rounded-md"
                       />
-                      <div 
+                      <div
                         className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
                         onClick={(e) => handleImageClick(e, `https://images.nymia.ai/cdn-cgi/image/w=800/wizard/${option.image}`)}
                       >
@@ -600,11 +610,10 @@ export default function InfluencerEdit() {
               {options.map((option, index) => (
                 <Card
                   key={index}
-                  className={`cursor-pointer hover:shadow-lg transition-all duration-300 ${
-                    localSelected.includes(option.label) 
-                      ? 'ring-2 ring-ai-purple-500' 
+                  className={`cursor-pointer hover:shadow-lg transition-all duration-300 ${localSelected.includes(option.label)
+                      ? 'ring-2 ring-ai-purple-500'
                       : 'opacity-50 hover:opacity-100'
-                  }`}
+                    }`}
                   onClick={() => handleSelect(option.label)}
                 >
                   <CardContent className="p-4">
@@ -614,7 +623,7 @@ export default function InfluencerEdit() {
                         alt={option.label}
                         className="absolute inset-0 w-full h-full object-cover rounded-md"
                       />
-                      <div 
+                      <div
                         className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
                         onClick={(e) => handleImageClick(e, `https://images.nymia.ai/cdn-cgi/image/w=800/wizard/${option.image}`)}
                       >
@@ -1675,11 +1684,10 @@ export default function InfluencerEdit() {
                         {colorPaletteOptions.map((option, index) => (
                           <Card
                             key={index}
-                            className={`cursor-pointer hover:shadow-lg transition-all duration-300 ${
-                              influencerData.color_palette.includes(option.label) 
-                                ? 'ring-2 ring-ai-purple-500' 
+                            className={`cursor-pointer hover:shadow-lg transition-all duration-300 ${influencerData.color_palette.includes(option.label)
+                                ? 'ring-2 ring-ai-purple-500'
                                 : 'opacity-50 hover:opacity-100'
-                            }`}
+                              }`}
                             onClick={() => {
                               if (influencerData.color_palette.includes(option.label)) {
                                 handleRemoveTag('color_palette', option.label);
@@ -1705,7 +1713,7 @@ export default function InfluencerEdit() {
                                   alt={option.label}
                                   className="absolute inset-0 w-full h-full object-cover rounded-md"
                                 />
-                                <div 
+                                <div
                                   className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
                                   onClick={(e) => {
                                     e.stopPropagation();
@@ -1765,7 +1773,7 @@ export default function InfluencerEdit() {
                                     alt={option.label}
                                     className="absolute inset-0 w-full h-full object-cover rounded-md"
                                   />
-                                  <div 
+                                  <div
                                     className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
                                     onClick={() => setPreviewImage(`https://images.nymia.ai/cdn-cgi/image/w=800/wizard/${option.image}`)}
                                   >
@@ -1818,7 +1826,7 @@ export default function InfluencerEdit() {
                                     alt={option.label}
                                     className="absolute inset-0 w-full h-full object-cover rounded-md"
                                   />
-                                  <div 
+                                  <div
                                     className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
                                     onClick={() => setPreviewImage(`https://images.nymia.ai/cdn-cgi/image/w=800/wizard/${option.image}`)}
                                   >
@@ -1871,7 +1879,7 @@ export default function InfluencerEdit() {
                                     alt={option.label}
                                     className="absolute inset-0 w-full h-full object-cover rounded-md"
                                   />
-                                  <div 
+                                  <div
                                     className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
                                     onClick={() => setPreviewImage(`https://images.nymia.ai/cdn-cgi/image/w=800/wizard/${option.image}`)}
                                   >
@@ -1924,7 +1932,7 @@ export default function InfluencerEdit() {
                                     alt={option.label}
                                     className="absolute inset-0 w-full h-full object-cover rounded-md"
                                   />
-                                  <div 
+                                  <div
                                     className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
                                     onClick={() => setPreviewImage(`https://images.nymia.ai/cdn-cgi/image/w=800/wizard/${option.image}`)}
                                   >
@@ -1977,7 +1985,7 @@ export default function InfluencerEdit() {
                                     alt={option.label}
                                     className="absolute inset-0 w-full h-full object-cover rounded-md"
                                   />
-                                  <div 
+                                  <div
                                     className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
                                     onClick={() => setPreviewImage(`https://images.nymia.ai/cdn-cgi/image/w=800/wizard/${option.image}`)}
                                   >
@@ -1997,51 +2005,188 @@ export default function InfluencerEdit() {
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label>Core Values</Label>
-                    <div className="flex gap-2 flex-wrap">
-                      {influencerData.core_values.map((value, index) => (
-                        <Badge key={index} variant="secondary" className="flex items-center gap-1">
-                          {value}
-                          <X
-                            className="w-3 h-3 cursor-pointer"
-                            onClick={() => handleRemoveTag('core_values', value)}
-                          />
-                        </Badge>
-                      ))}
+                  <div className="space-y-4 mt-6">
+                    <div className="space-y-2">
+                      <Label>Humor Style (Max 4)</Label>
+                      <div className="space-y-4">
+                        <div className="flex flex-wrap gap-2">
+                          {influencerData.humor.map((style, index) => (
+                            <Badge
+                              key={index}
+                              variant="secondary"
+                              className="flex items-center gap-1 px-3 py-1"
+                            >
+                              {style}
+                              <button
+                                onClick={() => handleRemoveTag('humor', style)}
+                                className="ml-1 hover:text-destructive"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </Badge>
+                          ))}
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                          {influencerData.humor.map((style, index) => {
+                            const option = humorOptions.find(opt => opt.label === style);
+                            if (!option) return null;
+                            return (
+                              <Card key={index} className="relative">
+                                <CardContent className="p-4">
+                                  <div className="relative w-full group" style={{ paddingBottom: '100%' }}>
+                                    <img
+                                      src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
+                                      alt={option.label}
+                                      className="absolute inset-0 w-full h-full object-cover rounded-md"
+                                    />
+                                    <div
+                                      className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
+                                      onClick={() => setPreviewImage(`https://images.nymia.ai/cdn-cgi/image/w=800/wizard/${option.image}`)}
+                                    >
+                                      <ZoomIn className="w-8 h-8 text-white" />
+                                    </div>
+                                  </div>
+                                  <p className="text-sm text-center font-medium mt-2">{option.label}</p>
+                                </CardContent>
+                              </Card>
+                            );
+                          })}
+                        </div>
+                        <Button onClick={() => setShowHumorSelector(true)}>
+                          <Image className="w-4 h-4 mr-2" />
+                          Select Humor Style
+                        </Button>
+                      </div>
                     </div>
-                    <div className="flex gap-2">
-                      <Input
-                        value={newTag}
-                        onChange={(e) => setNewTag(e.target.value)}
-                        placeholder="Add core value"
-                        onKeyDown={(e) => e.key === 'Enter' && handleAddTag('core_values')}
-                      />
-                      <Button onClick={() => handleAddTag('core_values')}>Add</Button>
-                    </div>
-                  </div>
 
-                  <div className="space-y-2">
-                    <Label>Current Goals</Label>
-                    <div className="flex gap-2 flex-wrap">
-                      {influencerData.current_goals.map((goal, index) => (
-                        <Badge key={index} variant="secondary" className="flex items-center gap-1">
-                          {goal}
-                          <X
-                            className="w-3 h-3 cursor-pointer"
-                            onClick={() => handleRemoveTag('current_goals', goal)}
-                          />
-                        </Badge>
-                      ))}
+                    <div className="space-y-2">
+                      <Label>Current Goals (Max 3)</Label>
+                      <div className="space-y-4">
+                        <div className="flex flex-wrap gap-2">
+                          {influencerData.current_goals.map((goal, index) => (
+                            <Badge
+                              key={index}
+                              variant="secondary"
+                              className="flex items-center gap-1 px-3 py-1"
+                            >
+                              {goal}
+                              <button
+                                onClick={() => handleRemoveTag('current_goals', goal)}
+                                className="ml-1 hover:text-destructive"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </Badge>
+                          ))}
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                          {influencerData.current_goals.map((goal, index) => {
+                            const option = goalsOptions.find(opt => opt.label === goal);
+                            if (!option) return null;
+                            return (
+                              <Card key={index} className="relative">
+                                <CardContent className="p-4">
+                                  <div className="relative w-full group" style={{ paddingBottom: '100%' }}>
+                                    <img
+                                      src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
+                                      alt={option.label}
+                                      className="absolute inset-0 w-full h-full object-cover rounded-md"
+                                    />
+                                    <div
+                                      className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
+                                      onClick={() => setPreviewImage(`https://images.nymia.ai/cdn-cgi/image/w=800/wizard/${option.image}`)}
+                                    >
+                                      <ZoomIn className="w-8 h-8 text-white" />
+                                    </div>
+                                  </div>
+                                  <p className="text-sm text-center font-medium mt-2">{option.label}</p>
+                                </CardContent>
+                              </Card>
+                            );
+                          })}
+                        </div>
+                        <Button onClick={() => setShowGoalsSelector(true)}>
+                          <Image className="w-4 h-4 mr-2" />
+                          Select Current Goals
+                        </Button>
+                      </div>
                     </div>
-                    <div className="flex gap-2">
-                      <Input
-                        value={newTag}
-                        onChange={(e) => setNewTag(e.target.value)}
-                        placeholder="Add current goal"
-                        onKeyDown={(e) => e.key === 'Enter' && handleAddTag('current_goals')}
-                      />
-                      <Button onClick={() => handleAddTag('current_goals')}>Add</Button>
+
+                    <div className="space-y-2">
+                      <Label>Background Elements (Max 4)</Label>
+                      <div className="space-y-4">
+                        <div className="flex flex-wrap gap-2">
+                          {influencerData.background_elements.map((element, index) => (
+                            <Badge
+                              key={index}
+                              variant="secondary"
+                              className="flex items-center gap-1 px-3 py-1"
+                            >
+                              {element}
+                              <button
+                                onClick={() => handleRemoveTag('background_elements', element)}
+                                className="ml-1 hover:text-destructive"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </Badge>
+                          ))}
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                          {influencerData.background_elements.map((element, index) => {
+                            const option = backgroundOptions.find(opt => opt.label === element);
+                            if (!option) return null;
+                            return (
+                              <Card key={index} className="relative">
+                                <CardContent className="p-4">
+                                  <div className="relative w-full group" style={{ paddingBottom: '100%' }}>
+                                    <img
+                                      src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
+                                      alt={option.label}
+                                      className="absolute inset-0 w-full h-full object-cover rounded-md"
+                                    />
+                                    <div
+                                      className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
+                                      onClick={() => setPreviewImage(`https://images.nymia.ai/cdn-cgi/image/w=800/wizard/${option.image}`)}
+                                    >
+                                      <ZoomIn className="w-8 h-8 text-white" />
+                                    </div>
+                                  </div>
+                                  <p className="text-sm text-center font-medium mt-2">{option.label}</p>
+                                </CardContent>
+                              </Card>
+                            );
+                          })}
+                        </div>
+                        <Button onClick={() => setShowBackgroundSelector(true)}>
+                          <Image className="w-4 h-4 mr-2" />
+                          Select Background Elements
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Core Values</Label>
+                      <div className="flex gap-2 flex-wrap">
+                        {influencerData.core_values.map((value, index) => (
+                          <Badge key={index} variant="secondary" className="flex items-center gap-1">
+                            {value}
+                            <X
+                              className="w-3 h-3 cursor-pointer"
+                              onClick={() => handleRemoveTag('core_values', value)}
+                            />
+                          </Badge>
+                        ))}
+                      </div>
+                      <div className="flex gap-2">
+                        <Input
+                          value={newTag}
+                          onChange={(e) => setNewTag(e.target.value)}
+                          placeholder="Add core value"
+                          onKeyDown={(e) => e.key === 'Enter' && handleAddTag('core_values')}
+                        />
+                        <Button onClick={() => handleAddTag('core_values')}>Add</Button>
+                      </div>
                     </div>
                   </div>
                 </CardContent>
@@ -2466,6 +2611,57 @@ export default function InfluencerEdit() {
           />
         )
       }
+
+      {showHumorSelector && (
+        <OptionMultiSelector
+          options={humorOptions}
+          onSelect={(selected) => {
+            const newValues = selected.split(',').filter(Boolean);
+            setInfluencerData(prev => ({
+              ...prev,
+              humor: newValues
+            }));
+          }}
+          onClose={() => setShowHumorSelector(false)}
+          title="Select Humor Style"
+          selectedValues={influencerData.humor}
+          maxSelections={4}
+        />
+      )}
+
+      {showGoalsSelector && (
+        <OptionMultiSelector
+          options={goalsOptions}
+          onSelect={(selected) => {
+            const newValues = selected.split(',').filter(Boolean);
+            setInfluencerData(prev => ({
+              ...prev,
+              current_goals: newValues
+            }));
+          }}
+          onClose={() => setShowGoalsSelector(false)}
+          title="Select Current Goals"
+          selectedValues={influencerData.current_goals}
+          maxSelections={3}
+        />
+      )}
+
+      {showBackgroundSelector && (
+        <OptionMultiSelector
+          options={backgroundOptions}
+          onSelect={(selected) => {
+            const newValues = selected.split(',').filter(Boolean);
+            setInfluencerData(prev => ({
+              ...prev,
+              background_elements: newValues
+            }));
+          }}
+          onClose={() => setShowBackgroundSelector(false)}
+          title="Select Background Elements"
+          selectedValues={influencerData.background_elements}
+          maxSelections={4}
+        />
+      )}
       {previewImage && (
         <ImagePreviewDialog
           imageUrl={previewImage}

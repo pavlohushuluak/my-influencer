@@ -73,8 +73,7 @@ export function SignUpForm({ onToggleMode }: SignUpFormProps) {
           data: {
             first_name: formData.firstName,
             last_name: formData.lastName,
-            nickname: formData.nickname,
-            level: 0
+            nickname: formData.nickname
           }
         })
       });
@@ -87,11 +86,10 @@ export function SignUpForm({ onToggleMode }: SignUpFormProps) {
         sessionStorage.setItem('access_token', data.body.access_token);
         sessionStorage.setItem('refresh_token', data.body.refresh_token);
 
-        console.log('User ID:', data.body.user.id);
-
-        const responseData = await fetch('https://db.nymia.ai/rest/v1/user', {
+        await fetch('https://db.nymia.ai/rest/v1/user', {
           method: 'POST',
           headers: {
+            'Content-Type': 'application/json',
             'Authorization': 'Bearer WeInfl3nc3withAI'
           },
           body: JSON.stringify({
@@ -99,19 +97,10 @@ export function SignUpForm({ onToggleMode }: SignUpFormProps) {
             first_name: formData.firstName,
             last_name: formData.lastName,
             nickname: formData.nickname,
-            level: 0,
             uuid: data.body.user.id,
             credits: 10
           })
         });
-
-        if (responseData.ok) {
-          console.log('User created successfully');
-          const userData = await responseData.json();
-          console.log('User data:', userData);
-        } else {
-          console.error('Error creating user');
-        }
 
         toast.success('Account created successfully');
         navigate('/dashboard');

@@ -448,7 +448,7 @@ export default function InfluencerEdit() {
     fetchOptions();
   }, []);
 
-  console.log('Cultural background options:', culturalBackgroundOptions);
+  // console.log('Cultural background options:', culturalBackgroundOptions);
   useEffect(() => {
     const fetchInfluencers = async () => {
       setIsLoading(true);

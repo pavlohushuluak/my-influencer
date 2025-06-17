@@ -42,24 +42,24 @@ export function SignUpForm({ onToggleMode }: SignUpFormProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!passwordValidation.isValid) {
       setTouched({ password: true, confirmPassword: true });
       return;
     }
-    
+
     if (!passwordsMatch) {
       setTouched(prev => ({ ...prev, confirmPassword: true }));
       return;
     }
-    
+
     if (!acceptTerms) {
       toast.error('Please accept the terms and conditions');
       return;
     }
 
     setIsLoading(true);
-    
+
     try {
       const response = await fetch('https://api.nymia.ai/v1/register', {
         method: 'POST',
@@ -86,7 +86,33 @@ export function SignUpForm({ onToggleMode }: SignUpFormProps) {
         // Save tokens to session storage
         sessionStorage.setItem('access_token', data.body.access_token);
         sessionStorage.setItem('refresh_token', data.body.refresh_token);
-        
+
+        console.log('User ID:', data.body.user.id);
+
+        const responseData = await fetch('https://db.nymia.ai/rest/v1/user', {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Bearer WeInfl3nc3withAI'
+          },
+          body: JSON.stringify({
+            email: formData.email,
+            first_name: formData.firstName,
+            last_name: formData.lastName,
+            nickname: formData.nickname,
+            level: 0,
+            uuid: data.body.user.id,
+            credits: 10
+          })
+        });
+
+        if (responseData.ok) {
+          console.log('User created successfully');
+          const userData = await responseData.json();
+          console.log('User data:', userData);
+        } else {
+          console.error('Error creating user');
+        }
+
         toast.success('Account created successfully');
         navigate('/dashboard');
       } else {
@@ -212,7 +238,7 @@ export function SignUpForm({ onToggleMode }: SignUpFormProps) {
               {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </Button>
           </div>
-          
+
           {/* Password Strength Indicator */}
           {formData.password.length > 0 && (
             <div className="space-y-2">
@@ -222,13 +248,13 @@ export function SignUpForm({ onToggleMode }: SignUpFormProps) {
                   {passwordValidation.strength}
                 </span>
               </div>
-              <Progress 
-                value={getStrengthProgress(passwordValidation.strength)} 
+              <Progress
+                value={getStrengthProgress(passwordValidation.strength)}
                 className="h-2"
               />
             </div>
           )}
-          
+
           {showPasswordErrors && passwordValidation.errors.length > 0 && (
             <div className="space-y-1">
               {passwordValidation.errors.map((error, index) => (
@@ -269,7 +295,7 @@ export function SignUpForm({ onToggleMode }: SignUpFormProps) {
               {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </Button>
           </div>
-          
+
           {/* Confirm Password Validation */}
           {touched.confirmPassword && formData.confirmPassword.length > 0 && (
             <div className="flex items-center gap-2 text-xs">
@@ -306,8 +332,8 @@ export function SignUpForm({ onToggleMode }: SignUpFormProps) {
           </Label>
         </div>
 
-        <Button 
-          type="submit" 
+        <Button
+          type="submit"
           className="w-full bg-ai-gradient hover:bg-ai-gradient-dark text-white"
           disabled={isLoading || !passwordValidation.isValid || !passwordsMatch || !acceptTerms}
         >
@@ -336,8 +362,8 @@ export function SignUpForm({ onToggleMode }: SignUpFormProps) {
 
       <div className="text-center text-sm">
         <span className="text-muted-foreground">Already have an account? </span>
-        <Button 
-          variant="link" 
+        <Button
+          variant="link"
           className="p-0 h-auto text-ai-purple-500 hover:text-ai-purple-600"
           onClick={onToggleMode}
         >

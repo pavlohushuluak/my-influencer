@@ -222,12 +222,14 @@ export default function InfluencerEdit() {
 
   const [humorOptions, setHumorOptions] = useState<Option[]>([]);
   const [goalsOptions, setGoalsOptions] = useState<Option[]>([]);
+  const [coreValuesOptions, setCoreValuesOptions] = useState<Option[]>([]);
 
   // Add state for selectors
   const [showHumorSelector, setShowHumorSelector] = useState(false);
   const [showGoalsSelector, setShowGoalsSelector] = useState(false);
   const [showBackgroundSelector, setShowBackgroundSelector] = useState(false);
   const [showJobAreaSelector, setShowJobAreaSelector] = useState(false);
+  const [showCoreValuesSelector, setShowCoreValuesSelector] = useState(false);
   const [showContentFocusAreasSelector, setShowContentFocusAreasSelector] = useState(false);
 
   const [jobAreaOptions, setJobAreaOptions] = useState<Option[]>([]);
@@ -414,6 +416,7 @@ export default function InfluencerEdit() {
           bground: setBackgroundOptions,
           jobarea: setJobAreaOptions,
           niche: setContentFocusAreasOptions,
+          cvalues: setCoreValuesOptions,
         };
 
         const promises = Object.entries(endpoints).map(async ([fieldtype, setter]) => {
@@ -1138,52 +1141,6 @@ export default function InfluencerEdit() {
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <Label>Facial Features</Label>
-                      <div className="flex flex-col gap-2">
-                        <Select
-                          value={influencerData.facial_features}
-                          onValueChange={(value) => handleInputChange('facial_features', value)}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select facial features" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {facialFeaturesOptions.map((option, index) => (
-                              <SelectItem key={index} value={option.label}>{option.label}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <div
-                          onClick={() => setShowFacialFeaturesSelector(true)}
-                          className='flex items-center justify-center cursor-pointer w-full'
-                        >
-                          {
-                            facialFeaturesOptions.find(option => option.label === influencerData.facial_features)?.image ? (
-                              <Card className="relative w-full max-w-[250px]">
-                                <CardContent className="p-4">
-                                  <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
-                                    <img
-                                      src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${facialFeaturesOptions.find(option => option.label === influencerData.facial_features)?.image}`}
-                                      className="absolute inset-0 w-full h-full object-cover rounded-md"
-                                    />
-                                  </div>
-                                  <p className="text-sm text-center font-medium mt-2">{facialFeaturesOptions.find(option => option.label === influencerData.facial_features)?.label}</p>
-                                </CardContent>
-                              </Card>
-                            )
-                              :
-                              <Card className="relative w-full border max-w-[250px]">
-                                <CardContent className="p-4">
-                                  <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
-                                    Select option
-                                  </div>
-                                </CardContent>
-                              </Card>
-                          }
-                        </div>
-                      </div>
-                    </div>
-                    <div className="space-y-2">
                       <Label>Face Shape</Label>
                       <div className="flex flex-col gap-2">
                         <Select
@@ -1506,6 +1463,52 @@ export default function InfluencerEdit() {
                       </div>
                     </div>
                     <div className="space-y-2">
+                      <Label>Facial Features</Label>
+                      <div className="flex flex-col gap-2">
+                        <Select
+                          value={influencerData.facial_features}
+                          onValueChange={(value) => handleInputChange('facial_features', value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select facial features" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {facialFeaturesOptions.map((option, index) => (
+                              <SelectItem key={index} value={option.label}>{option.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <div
+                          onClick={() => setShowFacialFeaturesSelector(true)}
+                          className='flex items-center justify-center cursor-pointer w-full'
+                        >
+                          {
+                            facialFeaturesOptions.find(option => option.label === influencerData.facial_features)?.image ? (
+                              <Card className="relative w-full max-w-[250px]">
+                                <CardContent className="p-4">
+                                  <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
+                                    <img
+                                      src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${facialFeaturesOptions.find(option => option.label === influencerData.facial_features)?.image}`}
+                                      className="absolute inset-0 w-full h-full object-cover rounded-md"
+                                    />
+                                  </div>
+                                  <p className="text-sm text-center font-medium mt-2">{facialFeaturesOptions.find(option => option.label === influencerData.facial_features)?.label}</p>
+                                </CardContent>
+                              </Card>
+                            )
+                              :
+                              <Card className="relative w-full border max-w-[250px]">
+                                <CardContent className="p-4">
+                                  <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
+                                    Select option
+                                  </div>
+                                </CardContent>
+                              </Card>
+                          }
+                        </div>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
                       <Label>Makeup Style</Label>
                       <div className="flex flex-col gap-2">
                         <Select
@@ -1611,52 +1614,6 @@ export default function InfluencerEdit() {
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <Label>Home Style</Label>
-                      <div className="flex flex-col gap-2">
-                        <Select
-                          value={influencerData.clothing_style_home}
-                          onValueChange={(value) => handleInputChange('clothing_style_home', value)}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select home style" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {clothingHomewearOptions.map((option, index) => (
-                              <SelectItem key={index} value={option.label}>{option.label}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <div
-                          onClick={() => setShowClothingHomewearSelector(true)}
-                          className='flex items-center justify-center cursor-pointer w-full'
-                        >
-                          {
-                            clothingHomewearOptions.find(option => option.label === influencerData.clothing_style_home)?.image ? (
-                              <Card className="relative w-full max-w-[250px]">
-                                <CardContent className="p-4">
-                                  <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
-                                    <img
-                                      src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${clothingHomewearOptions.find(option => option.label === influencerData.clothing_style_home)?.image}`}
-                                      className="absolute inset-0 w-full h-full object-cover rounded-md"
-                                    />
-                                  </div>
-                                  <p className="text-sm text-center font-medium mt-2">{clothingHomewearOptions.find(option => option.label === influencerData.clothing_style_home)?.label}</p>
-                                </CardContent>
-                              </Card>
-                            )
-                              :
-                              <Card className="relative w-full border max-w-[250px]">
-                                <CardContent className="p-4">
-                                  <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
-                                    Select option
-                                  </div>
-                                </CardContent>
-                              </Card>
-                          }
-                        </div>
-                      </div>
-                    </div>
-                    <div className="space-y-2">
                       <Label>Occasional Style</Label>
                       <div className="flex flex-col gap-2">
                         <Select
@@ -1687,6 +1644,52 @@ export default function InfluencerEdit() {
                                     />
                                   </div>
                                   <p className="text-sm text-center font-medium mt-2">{clothingOccasionalOptions.find(option => option.label === influencerData.clothing_style_occasional)?.label}</p>
+                                </CardContent>
+                              </Card>
+                            )
+                              :
+                              <Card className="relative w-full border max-w-[250px]">
+                                <CardContent className="p-4">
+                                  <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
+                                    Select option
+                                  </div>
+                                </CardContent>
+                              </Card>
+                          }
+                        </div>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Home Style</Label>
+                      <div className="flex flex-col gap-2">
+                        <Select
+                          value={influencerData.clothing_style_home}
+                          onValueChange={(value) => handleInputChange('clothing_style_home', value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select home style" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {clothingHomewearOptions.map((option, index) => (
+                              <SelectItem key={index} value={option.label}>{option.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <div
+                          onClick={() => setShowClothingHomewearSelector(true)}
+                          className='flex items-center justify-center cursor-pointer w-full'
+                        >
+                          {
+                            clothingHomewearOptions.find(option => option.label === influencerData.clothing_style_home)?.image ? (
+                              <Card className="relative w-full max-w-[250px]">
+                                <CardContent className="p-4">
+                                  <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
+                                    <img
+                                      src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${clothingHomewearOptions.find(option => option.label === influencerData.clothing_style_home)?.image}`}
+                                      className="absolute inset-0 w-full h-full object-cover rounded-md"
+                                    />
+                                  </div>
+                                  <p className="text-sm text-center font-medium mt-2">{clothingHomewearOptions.find(option => option.label === influencerData.clothing_style_home)?.label}</p>
                                 </CardContent>
                               </Card>
                             )
@@ -1922,91 +1925,6 @@ export default function InfluencerEdit() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">
-                    <Label>Job Area</Label>
-                    <div className="space-y-4">
-                      {influencerData.job_area && (
-                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                          <Card className="relative max-w-[250px]">
-                            <CardContent className="p-4">
-                              <div className="relative w-full group" style={{ paddingBottom: '100%' }}>
-                                <img
-                                  src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${jobAreaOptions.find(opt => opt.label === influencerData.job_area)?.image}`}
-                                  alt={influencerData.job_area}
-                                  className="absolute inset-0 w-full h-full object-cover rounded-md"
-                                />
-                                <div
-                                  className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
-                                  onClick={() => setPreviewImage(`https://images.nymia.ai/cdn-cgi/image/w=800/wizard/${jobAreaOptions.find(opt => opt.label === influencerData.job_area)?.image}`)}
-                                >
-                                  <ZoomIn className="w-8 h-8 text-white" />
-                                </div>
-                              </div>
-                              <p className="text-sm text-center font-medium mt-2">{influencerData.job_area}</p>
-                            </CardContent>
-                          </Card>
-                        </div>
-                      )}
-                      <Button onClick={() => setShowJobAreaSelector(true)}>
-                        <Image className="w-4 h-4 mr-2" />
-                        Select Job Area
-                      </Button>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Content Focus Areas (Max 5)</Label>
-                    <div className="space-y-4">
-                      <div className="flex flex-wrap gap-2">
-                        {influencerData.content_focus_areas.map((area, index) => (
-                          <Badge
-                            key={index}
-                            variant="secondary"
-                            className="flex items-center gap-1 px-3 py-1"
-                          >
-                            {area}
-                            <button
-                              onClick={() => handleRemoveTag('content_focus_areas', area)}
-                              className="ml-1 hover:text-destructive"
-                            >
-                              <X className="h-3 w-3" />
-                            </button>
-                          </Badge>
-                        ))}
-                      </div>
-                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                        {influencerData.content_focus_areas.map((area, index) => {
-                          const option = contentFocusAreasOptions.find(opt => opt.label === area);
-                          if (!option) return null;
-                          return (
-                            <Card key={index} className="relative max-w-[250px]">
-                              <CardContent className="p-4">
-                                <div className="relative w-full group" style={{ paddingBottom: '100%' }}>
-                                  <img
-                                    src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
-                                    alt={option.label}
-                                    className="absolute inset-0 w-full h-full object-cover rounded-md"
-                                  />
-                                  <div
-                                    className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
-                                    onClick={() => setPreviewImage(`https://images.nymia.ai/cdn-cgi/image/w=800/wizard/${option.image}`)}
-                                  >
-                                    <ZoomIn className="w-8 h-8 text-white" />
-                                  </div>
-                                </div>
-                                <p className="text-sm text-center font-medium mt-2">{option.label}</p>
-                              </CardContent>
-                            </Card>
-                          );
-                        })}
-                      </div>
-                      <Button onClick={() => setShowContentFocusAreasSelector(true)}>
-                        <Image className="w-4 h-4 mr-2" />
-                        Select Content Focus Areas
-                      </Button>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
                     <Label>Content Focus (Max 4)</Label>
                     <div className="space-y-4">
                       <div className="flex flex-wrap gap-2">
@@ -2026,7 +1944,7 @@ export default function InfluencerEdit() {
                           </Badge>
                         ))}
                       </div>
-                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
                         {influencerData.content_focus.map((focus, index) => {
                           const option = contentFocusOptions.find(opt => opt.label === focus);
                           if (!option) return null;
@@ -2060,6 +1978,109 @@ export default function InfluencerEdit() {
                   </div>
 
                   <div className="space-y-2">
+                    <Label>Content Focus Areas (Max 5)</Label>
+                    <div className="space-y-4">
+                      <div className="flex flex-wrap gap-2">
+                        {influencerData.content_focus_areas.map((area, index) => (
+                          <Badge
+                            key={index}
+                            variant="secondary"
+                            className="flex items-center gap-1 px-3 py-1"
+                          >
+                            {area}
+                            <button
+                              onClick={() => handleRemoveTag('content_focus_areas', area)}
+                              className="ml-1 hover:text-destructive"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </Badge>
+                        ))}
+                      </div>
+                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                        {influencerData.content_focus_areas.map((area, index) => {
+                          const option = contentFocusAreasOptions.find(opt => opt.label === area);
+                          if (!option) return null;
+                          return (
+                            <Card key={index} className="relative max-w-[250px]">
+                              <CardContent className="p-4">
+                                <div className="relative w-full group" style={{ paddingBottom: '100%' }}>
+                                  <img
+                                    src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
+                                    alt={option.label}
+                                    className="absolute inset-0 w-full h-full object-cover rounded-md"
+                                  />
+                                  <div
+                                    className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
+                                    onClick={() => setPreviewImage(`https://images.nymia.ai/cdn-cgi/image/w=800/wizard/${option.image}`)}
+                                  >
+                                    <ZoomIn className="w-8 h-8 text-white" />
+                                  </div>
+                                </div>
+                                <p className="text-sm text-center font-medium mt-2">{option.label}</p>
+                              </CardContent>
+                            </Card>
+                          );
+                        })}
+                      </div>
+                      <Button onClick={() => setShowContentFocusAreasSelector(true)}>
+                        <Image className="w-4 h-4 mr-2" />
+                        Select Content Focus Areas
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Job Area</Label>
+                    <div className="space-y-4">
+                      {influencerData.job_area && (
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                          <Card className="relative max-w-[250px]">
+                            <CardContent className="p-4">
+                              <div className="relative w-full group" style={{ paddingBottom: '100%' }}>
+                                <img
+                                  src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${jobAreaOptions.find(opt => opt.label === influencerData.job_area)?.image}`}
+                                  alt={influencerData.job_area}
+                                  className="absolute inset-0 w-full h-full object-cover rounded-md"
+                                />
+                                <div
+                                  className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
+                                  onClick={() => setPreviewImage(`https://images.nymia.ai/cdn-cgi/image/w=800/wizard/${jobAreaOptions.find(opt => opt.label === influencerData.job_area)?.image}`)}
+                                >
+                                  <ZoomIn className="w-8 h-8 text-white" />
+                                </div>
+                              </div>
+                              <p className="text-sm text-center font-medium mt-2">{influencerData.job_area}</p>
+                            </CardContent>
+                          </Card>
+                        </div>
+                      )}
+                      <Button onClick={() => setShowJobAreaSelector(true)}>
+                        <Image className="w-4 h-4 mr-2" />
+                        Select Job Area
+                      </Button>
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <Label>Job Title</Label>
+                          <Input
+                            value={influencerData.job_title || ''}
+                            onChange={(e) => handleInputChange('job_title', e.target.value)}
+                            placeholder="Enter job title"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Job Vibe</Label>
+                          <Input
+                            value={influencerData.job_vibe || ''}
+                            onChange={(e) => handleInputChange('job_vibe', e.target.value)}
+                            placeholder="Enter job vibe"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
                     <Label>Hobbies (Max 5)</Label>
                     <div className="space-y-4">
                       <div className="flex flex-wrap gap-2">
@@ -2079,12 +2100,12 @@ export default function InfluencerEdit() {
                           </Badge>
                         ))}
                       </div>
-                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
                         {influencerData.hobbies.map((hobby, index) => {
                           const option = hobbyOptions.find(opt => opt.label === hobby);
                           if (!option) return null;
                           return (
-                            <Card key={index} className="relative">
+                            <Card key={index} className="relative max-w-[250px]">
                               <CardContent className="p-4">
                                 <div className="relative w-full group" style={{ paddingBottom: '100%' }}>
                                   <img
@@ -2109,6 +2130,14 @@ export default function InfluencerEdit() {
                         <Image className="w-4 h-4 mr-2" />
                         Select Hobbies
                       </Button>
+                      <div className="space-y-2">
+                        <Label>Social Circle</Label>
+                        <Input
+                          value={influencerData.social_circle || ''}
+                          onChange={(e) => handleInputChange('social_circle', e.target.value)}
+                          placeholder="Enter social circle"
+                        />
+                      </div>
                     </div>
                   </div>
 
@@ -2132,7 +2161,7 @@ export default function InfluencerEdit() {
                           </Badge>
                         ))}
                       </div>
-                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
                         {influencerData.strengths.map((strength, index) => {
                           const option = strengthOptions.find(opt => opt.label === strength);
                           if (!option) return null;
@@ -2185,7 +2214,7 @@ export default function InfluencerEdit() {
                           </Badge>
                         ))}
                       </div>
-                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
                         {influencerData.weaknesses.map((weakness, index) => {
                           const option = weaknessOptions.find(opt => opt.label === weakness);
                           if (!option) return null;
@@ -2238,7 +2267,7 @@ export default function InfluencerEdit() {
                           </Badge>
                         ))}
                       </div>
-                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
                         {influencerData.speech_style.map((style, index) => {
                           const option = speechOptions.find(opt => opt.label === style);
                           if (!option) return null;
@@ -2292,7 +2321,7 @@ export default function InfluencerEdit() {
                             </Badge>
                           ))}
                         </div>
-                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
                           {influencerData.humor.map((style, index) => {
                             const option = humorOptions.find(opt => opt.label === style);
                             if (!option) return null;
@@ -2326,6 +2355,59 @@ export default function InfluencerEdit() {
                     </div>
 
                     <div className="space-y-2">
+                      <Label>Core Values Style (Max 5)</Label>
+                      <div className="space-y-4">
+                        <div className="flex flex-wrap gap-2">
+                          {influencerData.core_values.map((style, index) => (
+                            <Badge
+                              key={index}
+                              variant="secondary"
+                              className="flex items-center gap-1 px-3 py-1"
+                            >
+                              {style}
+                              <button
+                                onClick={() => handleRemoveTag('core_values', style)}
+                                className="ml-1 hover:text-destructive"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </Badge>
+                          ))}
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                          {influencerData.core_values.map((style, index) => {
+                            const option = coreValuesOptions.find(opt => opt.label === style);
+                            if (!option) return null;
+                            return (
+                              <Card key={index} className="relative">
+                                <CardContent className="p-4">
+                                  <div className="relative w-full group" style={{ paddingBottom: '100%' }}>
+                                    <img
+                                      src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
+                                      alt={option.label}
+                                      className="absolute inset-0 w-full h-full object-cover rounded-md"
+                                    />
+                                    <div
+                                      className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
+                                      onClick={() => setPreviewImage(`https://images.nymia.ai/cdn-cgi/image/w=800/wizard/${option.image}`)}
+                                    >
+                                      <ZoomIn className="w-8 h-8 text-white" />
+                                    </div>
+                                  </div>
+                                  <p className="text-sm text-center font-medium mt-2">{option.label}</p>
+                                </CardContent>
+                              </Card>
+                            );
+                          })}
+                        </div>
+                        <Button onClick={() => setShowCoreValuesSelector(true)}>
+                          <Image className="w-4 h-4 mr-2" />
+                          Select Core Values Style
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
                       <Label>Current Goals (Max 3)</Label>
                       <div className="space-y-4">
                         <div className="flex flex-wrap gap-2">
@@ -2345,7 +2427,7 @@ export default function InfluencerEdit() {
                             </Badge>
                           ))}
                         </div>
-                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
                           {influencerData.current_goals.map((goal, index) => {
                             const option = goalsOptions.find(opt => opt.label === goal);
                             if (!option) return null;
@@ -2398,7 +2480,7 @@ export default function InfluencerEdit() {
                             </Badge>
                           ))}
                         </div>
-                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
                           {influencerData.background_elements.map((element, index) => {
                             const option = backgroundOptions.find(opt => opt.label === element);
                             if (!option) return null;
@@ -2428,30 +2510,6 @@ export default function InfluencerEdit() {
                           <Image className="w-4 h-4 mr-2" />
                           Select Background Elements
                         </Button>
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>Core Values</Label>
-                      <div className="flex gap-2 flex-wrap">
-                        {influencerData.core_values.map((value, index) => (
-                          <Badge key={index} variant="secondary" className="flex items-center gap-1">
-                            {value}
-                            <X
-                              className="w-3 h-3 cursor-pointer"
-                              onClick={() => handleRemoveTag('core_values', value)}
-                            />
-                          </Badge>
-                        ))}
-                      </div>
-                      <div className="flex gap-2">
-                        <Input
-                          value={newTag}
-                          onChange={(e) => setNewTag(e.target.value)}
-                          placeholder="Add core value"
-                          onKeyDown={(e) => e.key === 'Enter' && handleAddTag('core_values', (e.target as HTMLInputElement).value)}
-                        />
-                        <Button onClick={() => handleAddTag('core_values', newTag)}>Add</Button>
                       </div>
                     </div>
                   </div>
@@ -2892,6 +2950,23 @@ export default function InfluencerEdit() {
           title="Select Humor Style"
           selectedValues={influencerData.humor}
           maxSelections={4}
+        />
+      )}
+
+      {showCoreValuesSelector && (
+        <OptionMultiSelector
+          options={coreValuesOptions}
+          onSelect={(selected) => {
+            const newValues = selected.split(',').filter(Boolean);
+            setInfluencerData(prev => ({
+              ...prev,
+              core_values: newValues
+            }));
+          }}
+          onClose={() => setShowCoreValuesSelector(false)}
+          title="Select Core Values Style"
+          selectedValues={influencerData.core_values}
+          maxSelections={5}
         />
       )}
 

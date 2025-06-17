@@ -8,6 +8,7 @@ import locationReducer from './slices/locationSlice';
 import posesReducer from './slices/posesSlice';
 import accessoriesReducer from './slices/accessoriesSlice';
 import subscriptionReducer from './slices/subscriptionSlice';
+import templateInfluencerReducer from './slices/templateInfluencerSlice';
 
 export const store = configureStore({
   reducer: {
@@ -20,6 +21,7 @@ export const store = configureStore({
     poses: posesReducer,
     accessories: accessoriesReducer,
     subscription: subscriptionReducer,
+    templateInfluencer: templateInfluencerReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

@@ -4,7 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { addInfluencer } from '@/store/slices/influencersSlice';
-import { Loader2, Plus } from 'lucide-react';
+import { Loader2, Plus, Shirt } from 'lucide-react';
 import { RootState } from '@/store/store';
 import { fetchTemplateInfluencers, TemplateInfluencer } from '@/store/slices/templateInfluencerSlice';
 import { useEffect } from 'react';
@@ -106,15 +106,15 @@ export default function InfluencerTemplates() {
       {/* Templates Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {templates.map((template) => (
-          <Card key={template.id} className="group hover:shadow-lg transition-all duration-300 border-border/50 hover:border-ai-purple-500/20">
+          <Card key={template.id} className="group hover:shadow-lg transition-all duration-300">
             <CardContent className="p-6">
               <div className="space-y-4">
-                <div className="w-full h-48 bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg overflow-hidden">
-                  <img
-                    src={template.image_url}
-                    alt={template.name}
-                    className="w-full h-full object-cover"
-                  />
+                <div className="w-full h-48 bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg flex items-center justify-center">
+                  {
+                    template.image_url && (
+                      <img src={template.image_url} alt={template.name} className="w-full h-full object-cover rounded-lg" />
+                    )
+                  }
                 </div>
 
                 <div>

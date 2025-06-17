@@ -73,12 +73,14 @@ export function SignUpForm({ onToggleMode }: SignUpFormProps) {
           data: {
             first_name: formData.firstName,
             last_name: formData.lastName,
-            nickname: formData.nickname
+            nickname: formData.nickname,
+            level: 0
           }
         })
       });
 
       const data = await response.json();
+      console.log('Registration response:', data);
       // console.log('Registration response:', data);
 
       if (response.ok) {

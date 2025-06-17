@@ -227,6 +227,11 @@ export default function InfluencerEdit() {
   const [showHumorSelector, setShowHumorSelector] = useState(false);
   const [showGoalsSelector, setShowGoalsSelector] = useState(false);
   const [showBackgroundSelector, setShowBackgroundSelector] = useState(false);
+  const [showJobAreaSelector, setShowJobAreaSelector] = useState(false);
+  const [showContentFocusAreasSelector, setShowContentFocusAreasSelector] = useState(false);
+
+  const [jobAreaOptions, setJobAreaOptions] = useState<Option[]>([]);
+  const [contentFocusAreasOptions, setContentFocusAreasOptions] = useState<Option[]>([]);
 
   const isFeatureLocked = (feature: string) => {
     return FEATURE_RESTRICTIONS[subscriptionLevel].includes(feature);
@@ -258,33 +263,17 @@ export default function InfluencerEdit() {
     }));
   };
 
-  const handleAddTag = (field: string) => {
-    // if (isFeatureLocked(field)) {
-    //   setLockedFeature(field);
-    //   setShowUpgradeModal(true);
-    //   return;
-    // }
-
-    if (newTag && !influencerData[field].includes(newTag)) {
-      if (field === 'color_palette' && influencerData[field].length >= 3) {
-        toast.error('Maximum Selection Reached', {
-          description: 'You can only select up to 3 color palettes',
-          duration: 3000,
-        });
-        return;
-      }
-      setInfluencerData(prev => ({
-        ...prev,
-        [field]: [...prev[field], newTag]
-      }));
-      setNewTag('');
-    }
+  const handleAddTag = (field: string, value: string) => {
+    setInfluencerData(prev => ({
+      ...prev,
+      [field]: [...(prev[field as keyof typeof influencerData] as string[] || []), value]
+    }));
   };
 
   const handleRemoveTag = (field: string, tag: string) => {
     setInfluencerData(prev => ({
       ...prev,
-      [field]: prev[field].filter(t => t !== tag)
+      [field]: (prev[field as keyof typeof influencerData] as string[]).filter(t => t !== tag)
     }));
   };
 
@@ -422,7 +411,9 @@ export default function InfluencerEdit() {
           weak: setWeaknessOptions,
           humor: setHumorOptions,
           goals: setGoalsOptions,
-          bground: setBackgroundOptions
+          bground: setBackgroundOptions,
+          jobarea: setJobAreaOptions,
+          niche: setContentFocusAreasOptions,
         };
 
         const promises = Object.entries(endpoints).map(async ([fieldtype, setter]) => {
@@ -790,7 +781,7 @@ export default function InfluencerEdit() {
         </div>
       ) : (
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList className="grid w-full grid-cols-1 h-full md:grid-cols-4">
+          <TabsList className="grid w-full grid-cols-1 h-full md:grid-cols-2 lg:grid-cols-4">
             <TabsTrigger value="basic">Basic Info</TabsTrigger>
             <TabsTrigger value="appearance">Appearance</TabsTrigger>
             <TabsTrigger value="style">Style & Environment</TabsTrigger>
@@ -804,7 +795,7 @@ export default function InfluencerEdit() {
                   <CardTitle>Basic Information</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                     <div className="space-y-2">
                       <Label>First Name</Label>
                       <Input
@@ -861,7 +852,7 @@ export default function InfluencerEdit() {
                         >
                           {
                             sexOptions.find(option => option.label === influencerData.sex)?.image ? (
-                              <Card className="relative w-full">
+                              <Card className="relative w-full max-w-[250px]">
                                 <CardContent className="p-4">
                                   <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                                     <img
@@ -874,7 +865,7 @@ export default function InfluencerEdit() {
                               </Card>
                             )
                               :
-                              <Card className="relative w-full border">
+                              <Card className="relative w-full border max-w-[250px]">
                                 <CardContent className="p-4">
                                   <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                                     Select option
@@ -907,7 +898,7 @@ export default function InfluencerEdit() {
                         >
                           {
                             personaOptions.find(option => option.label === influencerData.age_lifestyle)?.image ? (
-                              <Card className="relative w-full">
+                              <Card className="relative w-full max-w-[250px]">
                                 <CardContent className="p-4">
                                   <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                                     <img
@@ -920,7 +911,7 @@ export default function InfluencerEdit() {
                               </Card>
                             )
                               :
-                              <Card className="relative w-full border">
+                              <Card className="relative w-full border max-w-[250px]">
                                 <CardContent className="p-4">
                                   <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                                     Select option
@@ -953,7 +944,7 @@ export default function InfluencerEdit() {
                         >
                           {
                             culturalBackgroundOptions.find(option => option.label === influencerData.cultural_background)?.image ? (
-                              <Card className="relative w-full">
+                              <Card className="relative w-full max-w-[250px]">
                                 <CardContent className="p-4">
                                   <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                                     <img
@@ -966,7 +957,7 @@ export default function InfluencerEdit() {
                               </Card>
                             )
                               :
-                              <Card className="relative w-full border">
+                              <Card className="relative w-full border max-w-[250px]">
                                 <CardContent className="p-4">
                                   <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                                     Select option
@@ -1007,7 +998,7 @@ export default function InfluencerEdit() {
                   <CardTitle>Physical Appearance</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                     <div className="space-y-2">
                       <Label>Hair Length</Label>
                       <div className="flex flex-col gap-2">
@@ -1030,7 +1021,7 @@ export default function InfluencerEdit() {
                         >
                           {
                             hairLengthOptions.find(option => option.label === influencerData.hair_length)?.image ? (
-                              <Card className="relative w-full">
+                              <Card className="relative w-full max-w-[250px]">
                                 <CardContent className="p-4">
                                   <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                                     <img
@@ -1043,7 +1034,7 @@ export default function InfluencerEdit() {
                               </Card>
                             )
                               :
-                              <Card className="relative w-full border">
+                              <Card className="relative w-full border max-w-[250px]">
                                 <CardContent className="p-4">
                                   <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                                     Select option
@@ -1076,7 +1067,7 @@ export default function InfluencerEdit() {
                         >
                           {
                             hairStyleOptions.find(option => option.label === influencerData.hair_style)?.image ? (
-                              <Card className="relative w-full">
+                              <Card className="relative w-full max-w-[250px]">
                                 <CardContent className="p-4">
                                   <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                                     <img
@@ -1089,7 +1080,7 @@ export default function InfluencerEdit() {
                               </Card>
                             )
                               :
-                              <Card className="relative w-full border">
+                              <Card className="relative w-full border max-w-[250px]">
                                 <CardContent className="p-4">
                                   <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                                     Select option
@@ -1122,7 +1113,7 @@ export default function InfluencerEdit() {
                         >
                           {
                             hairColorOptions.find(option => option.label === influencerData.hair_color)?.image ? (
-                              <Card className="relative w-full">
+                              <Card className="relative w-full max-w-[250px]">
                                 <CardContent className="p-4">
                                   <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                                     <img
@@ -1135,7 +1126,7 @@ export default function InfluencerEdit() {
                               </Card>
                             )
                               :
-                              <Card className="relative w-full border">
+                              <Card className="relative w-full border max-w-[250px]">
                                 <CardContent className="p-4">
                                   <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                                     Select option
@@ -1168,7 +1159,7 @@ export default function InfluencerEdit() {
                         >
                           {
                             facialFeaturesOptions.find(option => option.label === influencerData.facial_features)?.image ? (
-                              <Card className="relative w-full">
+                              <Card className="relative w-full max-w-[250px]">
                                 <CardContent className="p-4">
                                   <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                                     <img
@@ -1181,7 +1172,7 @@ export default function InfluencerEdit() {
                               </Card>
                             )
                               :
-                              <Card className="relative w-full border">
+                              <Card className="relative w-full border max-w-[250px]">
                                 <CardContent className="p-4">
                                   <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                                     Select option
@@ -1214,7 +1205,7 @@ export default function InfluencerEdit() {
                         >
                           {
                             faceShapeOptions.find(option => option.label === influencerData.face_shape)?.image ? (
-                              <Card className="relative w-full">
+                              <Card className="relative w-full max-w-[250px]">
                                 <CardContent className="p-4">
                                   <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                                     <img
@@ -1227,7 +1218,7 @@ export default function InfluencerEdit() {
                               </Card>
                             )
                               :
-                              <Card className="relative w-full border">
+                              <Card className="relative w-full border max-w-[250px]">
                                 <CardContent className="p-4">
                                   <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                                     Select option
@@ -1260,7 +1251,7 @@ export default function InfluencerEdit() {
                         >
                           {
                             eyeColorOptions.find(option => option.label === influencerData.eye_color)?.image ? (
-                              <Card className="relative w-full">
+                              <Card className="relative w-full max-w-[250px]">
                                 <CardContent className="p-4">
                                   <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                                     <img
@@ -1273,7 +1264,7 @@ export default function InfluencerEdit() {
                               </Card>
                             )
                               :
-                              <Card className="relative w-full border">
+                              <Card className="relative w-full border max-w-[250px]">
                                 <CardContent className="p-4">
                                   <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                                     Select option
@@ -1306,7 +1297,7 @@ export default function InfluencerEdit() {
                         >
                           {
                             lipOptions.find(option => option.label === influencerData.lip_style)?.image ? (
-                              <Card className="relative w-full">
+                              <Card className="relative w-full max-w-[250px]">
                                 <CardContent className="p-4">
                                   <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                                     <img
@@ -1319,7 +1310,7 @@ export default function InfluencerEdit() {
                               </Card>
                             )
                               :
-                              <Card className="relative w-full border">
+                              <Card className="relative w-full border max-w-[250px]">
                                 <CardContent className="p-4">
                                   <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                                     Select option
@@ -1352,7 +1343,7 @@ export default function InfluencerEdit() {
                         >
                           {
                             noseOptions.find(option => option.label === influencerData.nose_style)?.image ? (
-                              <Card className="relative w-full">
+                              <Card className="relative w-full max-w-[250px]">
                                 <CardContent className="p-4">
                                   <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                                     <img
@@ -1365,7 +1356,7 @@ export default function InfluencerEdit() {
                               </Card>
                             )
                               :
-                              <Card className="relative w-full border">
+                              <Card className="relative w-full border max-w-[250px]">
                                 <CardContent className="p-4">
                                   <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                                     Select option
@@ -1398,7 +1389,7 @@ export default function InfluencerEdit() {
                         >
                           {
                             eyebrowOptions.find(option => option.label === influencerData.eyebrow_style)?.image ? (
-                              <Card className="relative w-full">
+                              <Card className="relative w-full max-w-[250px]">
                                 <CardContent className="p-4">
                                   <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                                     <img
@@ -1411,7 +1402,7 @@ export default function InfluencerEdit() {
                               </Card>
                             )
                               :
-                              <Card className="relative w-full border">
+                              <Card className="relative w-full border max-w-[250px]">
                                 <CardContent className="p-4">
                                   <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                                     Select option
@@ -1444,7 +1435,7 @@ export default function InfluencerEdit() {
                         >
                           {
                             skinToneOptions.find(option => option.label === influencerData.skin_tone)?.image ? (
-                              <Card className="relative w-full">
+                              <Card className="relative w-full max-w-[250px]">
                                 <CardContent className="p-4">
                                   <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                                     <img
@@ -1457,7 +1448,7 @@ export default function InfluencerEdit() {
                               </Card>
                             )
                               :
-                              <Card className="relative w-full border">
+                              <Card className="relative w-full border max-w-[250px]">
                                 <CardContent className="p-4">
                                   <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                                     Select option
@@ -1490,7 +1481,7 @@ export default function InfluencerEdit() {
                         >
                           {
                             bodyTypeOptions.find(option => option.label === influencerData.body_type)?.image ? (
-                              <Card className="relative w-full">
+                              <Card className="relative w-full max-w-[250px]">
                                 <CardContent className="p-4">
                                   <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                                     <img
@@ -1503,7 +1494,7 @@ export default function InfluencerEdit() {
                               </Card>
                             )
                               :
-                              <Card className="relative w-full border">
+                              <Card className="relative w-full border max-w-[250px]">
                                 <CardContent className="p-4">
                                   <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                                     Select option
@@ -1536,7 +1527,7 @@ export default function InfluencerEdit() {
                         >
                           {
                             makeupOptions.find(option => option.label === influencerData.makeup_style)?.image ? (
-                              <Card className="relative w-full">
+                              <Card className="relative w-full max-w-[250px]">
                                 <CardContent className="p-4">
                                   <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
 
@@ -1550,7 +1541,7 @@ export default function InfluencerEdit() {
                               </Card>
                             )
                               :
-                              <Card className="relative w-full border">
+                              <Card className="relative w-full border max-w-[250px]">
                                 <CardContent className="p-4">
                                   <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                                     Select option
@@ -1595,7 +1586,7 @@ export default function InfluencerEdit() {
                         >
                           {
                             clothingEverydayOptions.find(option => option.label === influencerData.clothing_style_everyday)?.image ? (
-                              <Card className="relative w-full">
+                              <Card className="relative w-full max-w-[250px]">
                                 <CardContent className="p-4">
                                   <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                                     <img
@@ -1608,7 +1599,7 @@ export default function InfluencerEdit() {
                               </Card>
                             )
                               :
-                              <Card className="relative w-full border">
+                              <Card className="relative w-full border max-w-[250px]">
                                 <CardContent className="p-4">
                                   <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                                     Select option
@@ -1641,7 +1632,7 @@ export default function InfluencerEdit() {
                         >
                           {
                             clothingHomewearOptions.find(option => option.label === influencerData.clothing_style_home)?.image ? (
-                              <Card className="relative w-full">
+                              <Card className="relative w-full max-w-[250px]">
                                 <CardContent className="p-4">
                                   <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                                     <img
@@ -1654,7 +1645,7 @@ export default function InfluencerEdit() {
                               </Card>
                             )
                               :
-                              <Card className="relative w-full border">
+                              <Card className="relative w-full border max-w-[250px]">
                                 <CardContent className="p-4">
                                   <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                                     Select option
@@ -1687,7 +1678,7 @@ export default function InfluencerEdit() {
                         >
                           {
                             clothingOccasionalOptions.find(option => option.label === influencerData.clothing_style_occasional)?.image ? (
-                              <Card className="relative w-full">
+                              <Card className="relative w-full max-w-[250px]">
                                 <CardContent className="p-4">
                                   <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                                     <img
@@ -1700,7 +1691,7 @@ export default function InfluencerEdit() {
                               </Card>
                             )
                               :
-                              <Card className="relative w-full border">
+                              <Card className="relative w-full border max-w-[250px]">
                                 <CardContent className="p-4">
                                   <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                                     Select option
@@ -1733,7 +1724,7 @@ export default function InfluencerEdit() {
                         >
                           {
                             clothingSportsOptions.find(option => option.label === influencerData.clothing_style_sports)?.image ? (
-                              <Card className="relative w-full">
+                              <Card className="relative w-full max-w-[250px]">
                                 <CardContent className="p-4">
                                   <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                                     <img
@@ -1746,7 +1737,7 @@ export default function InfluencerEdit() {
                               </Card>
                             )
                               :
-                              <Card className="relative w-full border">
+                              <Card className="relative w-full border max-w-[250px]">
                                 <CardContent className="p-4">
                                   <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                                     Select option
@@ -1779,7 +1770,7 @@ export default function InfluencerEdit() {
                         >
                           {
                             clothingSexyOptions.find(option => option.label === influencerData.clothing_style_sexy_dress)?.image ? (
-                              <Card className="relative w-full">
+                              <Card className="relative w-full max-w-[250px]">
                                 <CardContent className="p-4">
                                   <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                                     <img
@@ -1792,7 +1783,7 @@ export default function InfluencerEdit() {
                               </Card>
                             )
                               :
-                              <Card className="relative w-full border">
+                              <Card className="relative w-full border max-w-[250px]">
                                 <CardContent className="p-4">
                                   <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                                     Select option
@@ -1825,7 +1816,7 @@ export default function InfluencerEdit() {
                         >
                           {
                             homeEnvironmentOptions.find(option => option.label === influencerData.home_environment)?.image ? (
-                              <Card className="relative w-full">
+                              <Card className="relative w-full max-w-[250px]">
                                 <CardContent className="p-4">
                                   <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                                     <img
@@ -1838,7 +1829,7 @@ export default function InfluencerEdit() {
                               </Card>
                             )
                               :
-                              <Card className="relative w-full border">
+                              <Card className="relative w-full border max-w-[250px]">
                                 <CardContent className="p-4">
                                   <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                                     Select option
@@ -1930,6 +1921,91 @@ export default function InfluencerEdit() {
                   <CardTitle>Personality & Content</CardTitle>
                 </CardHeader>
                 <CardContent>
+                  <div className="space-y-2">
+                    <Label>Job Area</Label>
+                    <div className="space-y-4">
+                      {influencerData.job_area && (
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                          <Card className="relative max-w-[250px]">
+                            <CardContent className="p-4">
+                              <div className="relative w-full group" style={{ paddingBottom: '100%' }}>
+                                <img
+                                  src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${jobAreaOptions.find(opt => opt.label === influencerData.job_area)?.image}`}
+                                  alt={influencerData.job_area}
+                                  className="absolute inset-0 w-full h-full object-cover rounded-md"
+                                />
+                                <div
+                                  className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
+                                  onClick={() => setPreviewImage(`https://images.nymia.ai/cdn-cgi/image/w=800/wizard/${jobAreaOptions.find(opt => opt.label === influencerData.job_area)?.image}`)}
+                                >
+                                  <ZoomIn className="w-8 h-8 text-white" />
+                                </div>
+                              </div>
+                              <p className="text-sm text-center font-medium mt-2">{influencerData.job_area}</p>
+                            </CardContent>
+                          </Card>
+                        </div>
+                      )}
+                      <Button onClick={() => setShowJobAreaSelector(true)}>
+                        <Image className="w-4 h-4 mr-2" />
+                        Select Job Area
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Content Focus Areas (Max 5)</Label>
+                    <div className="space-y-4">
+                      <div className="flex flex-wrap gap-2">
+                        {influencerData.content_focus_areas.map((area, index) => (
+                          <Badge
+                            key={index}
+                            variant="secondary"
+                            className="flex items-center gap-1 px-3 py-1"
+                          >
+                            {area}
+                            <button
+                              onClick={() => handleRemoveTag('content_focus_areas', area)}
+                              className="ml-1 hover:text-destructive"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </Badge>
+                        ))}
+                      </div>
+                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                        {influencerData.content_focus_areas.map((area, index) => {
+                          const option = contentFocusAreasOptions.find(opt => opt.label === area);
+                          if (!option) return null;
+                          return (
+                            <Card key={index} className="relative max-w-[250px]">
+                              <CardContent className="p-4">
+                                <div className="relative w-full group" style={{ paddingBottom: '100%' }}>
+                                  <img
+                                    src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
+                                    alt={option.label}
+                                    className="absolute inset-0 w-full h-full object-cover rounded-md"
+                                  />
+                                  <div
+                                    className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
+                                    onClick={() => setPreviewImage(`https://images.nymia.ai/cdn-cgi/image/w=800/wizard/${option.image}`)}
+                                  >
+                                    <ZoomIn className="w-8 h-8 text-white" />
+                                  </div>
+                                </div>
+                                <p className="text-sm text-center font-medium mt-2">{option.label}</p>
+                              </CardContent>
+                            </Card>
+                          );
+                        })}
+                      </div>
+                      <Button onClick={() => setShowContentFocusAreasSelector(true)}>
+                        <Image className="w-4 h-4 mr-2" />
+                        Select Content Focus Areas
+                      </Button>
+                    </div>
+                  </div>
+
                   <div className="space-y-2">
                     <Label>Content Focus (Max 4)</Label>
                     <div className="space-y-4">
@@ -2373,9 +2449,9 @@ export default function InfluencerEdit() {
                           value={newTag}
                           onChange={(e) => setNewTag(e.target.value)}
                           placeholder="Add core value"
-                          onKeyDown={(e) => e.key === 'Enter' && handleAddTag('core_values')}
+                          onKeyDown={(e) => e.key === 'Enter' && handleAddTag('core_values', (e.target as HTMLInputElement).value)}
                         />
-                        <Button onClick={() => handleAddTag('core_values')}>Add</Button>
+                        <Button onClick={() => handleAddTag('core_values', newTag)}>Add</Button>
                       </div>
                     </div>
                   </div>
@@ -2546,7 +2622,7 @@ export default function InfluencerEdit() {
         showColorPaletteSelector && (
           <OptionSelector
             options={colorPaletteOptions}
-            onSelect={(label) => handleAddTag('color_palette')}
+            onSelect={(label) => handleAddTag('color_palette', label)}
             onClose={() => setShowColorPaletteSelector(false)}
             title="Select Color Palette"
           />
@@ -2850,6 +2926,38 @@ export default function InfluencerEdit() {
           title="Select Background Elements"
           selectedValues={influencerData.background_elements}
           maxSelections={4}
+        />
+      )}
+
+      {showJobAreaSelector && (
+        <OptionSelector
+          options={jobAreaOptions}
+          onSelect={(label) => {
+            setInfluencerData(prev => ({
+              ...prev,
+              job_area: label
+            }));
+            setShowJobAreaSelector(false);
+          }}
+          onClose={() => setShowJobAreaSelector(false)}
+          title="Select Job Area"
+        />
+      )}
+
+      {showContentFocusAreasSelector && (
+        <OptionMultiSelector
+          options={contentFocusAreasOptions}
+          onSelect={(selected) => {
+            const newValues = selected.split(',').filter(Boolean);
+            setInfluencerData(prev => ({
+              ...prev,
+              content_focus_areas: newValues
+            }));
+          }}
+          onClose={() => setShowContentFocusAreasSelector(false)}
+          title="Select Content Focus Areas"
+          selectedValues={influencerData.content_focus_areas}
+          maxSelections={5}
         />
       )}
       {previewImage && (

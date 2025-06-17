@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '@/store/store';
 import { addLocation, updateLocation, deleteLocation } from '@/store/slices/locationSlice';
@@ -11,6 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { MapPin, Plus, Edit, Trash2 } from 'lucide-react';
+import supabase from '@/utils/supabaseClient';
 
 interface Location {
   id: string;
@@ -125,6 +126,21 @@ export default function Location() {
     }));
   };
 
+  useEffect(() => {
+    const fetchLocations = async () => {
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', 3);
+      if (error) {
+        console.error('Error fetching locations:', error);
+      } else {
+        console.log(data);
+      }
+    };
+    fetchLocations();
+  }, [dispatch]);
+
   return (
     <div className="p-6 space-y-6 animate-fade-in">
       {/* Header */}
@@ -156,7 +172,7 @@ export default function Location() {
                     <MapPin className="w-16 h-16 text-purple-600 dark:text-purple-400" />
                   )}
                 </div>
-                
+
                 <div>
                   <h3 className="font-semibold text-lg mb-2">{location.name}</h3>
                   <div className="space-y-2">
@@ -178,20 +194,20 @@ export default function Location() {
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="flex gap-2">
-                  <Button 
+                  <Button
                     onClick={() => handleEdit(location)}
-                    variant="outline" 
+                    variant="outline"
                     size="sm"
                     className="flex-1"
                   >
                     <Edit className="w-4 h-4 mr-1" />
                     Edit
                   </Button>
-                  <Button 
+                  <Button
                     onClick={() => handleDelete(location.id)}
-                    variant="outline" 
+                    variant="outline"
                     size="sm"
                     className="text-red-600 hover:text-red-700"
                   >
@@ -212,21 +228,21 @@ export default function Location() {
               {editingLocation ? 'Edit Location' : 'Add New Location'}
             </DialogTitle>
           </DialogHeader>
-          
+
           <div className="space-y-4">
             <div>
               <Label htmlFor="name">Location Name</Label>
               <Input
                 id="name"
                 value={formData.name}
-                onChange={(e) => setFormData({...formData, name: e.target.value})}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 placeholder="e.g., Modern Coffee Shop"
               />
             </div>
-            
+
             <div>
               <Label htmlFor="type">Type</Label>
-              <Select value={formData.type} onValueChange={(value) => setFormData({...formData, type: value})}>
+              <Select value={formData.type} onValueChange={(value) => setFormData({ ...formData, type: value })}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select type" />
                 </SelectTrigger>
@@ -243,7 +259,7 @@ export default function Location() {
               <Textarea
                 id="description"
                 value={formData.description}
-                onChange={(e) => setFormData({...formData, description: e.target.value})}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 placeholder="Describe the location..."
                 rows={3}
               />
@@ -251,7 +267,7 @@ export default function Location() {
 
             <div>
               <Label htmlFor="mood">Mood</Label>
-              <Select value={formData.mood} onValueChange={(value) => setFormData({...formData, mood: value})}>
+              <Select value={formData.mood} onValueChange={(value) => setFormData({ ...formData, mood: value })}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select mood" />
                 </SelectTrigger>
@@ -265,7 +281,7 @@ export default function Location() {
 
             <div>
               <Label htmlFor="lighting">Lighting</Label>
-              <Select value={formData.lighting} onValueChange={(value) => setFormData({...formData, lighting: value})}>
+              <Select value={formData.lighting} onValueChange={(value) => setFormData({ ...formData, lighting: value })}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select lighting" />
                 </SelectTrigger>
@@ -279,7 +295,7 @@ export default function Location() {
 
             <div>
               <Label htmlFor="season">Season</Label>
-              <Select value={formData.season} onValueChange={(value) => setFormData({...formData, season: value})}>
+              <Select value={formData.season} onValueChange={(value) => setFormData({ ...formData, season: value })}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select season" />
                 </SelectTrigger>
@@ -319,7 +335,7 @@ export default function Location() {
                 ))}
               </div>
             </div>
-            
+
             <div className="flex gap-3 pt-4">
               <Button variant="outline" onClick={() => setShowAddModal(false)} className="flex-1">
                 Cancel

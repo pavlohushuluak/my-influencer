@@ -448,13 +448,15 @@ export default function InfluencerEdit() {
     fetchOptions();
   }, []);
 
+  const userData = useSelector((state: RootState) => state.user);
+
   // console.log('Cultural background options:', culturalBackgroundOptions);
   useEffect(() => {
     const fetchInfluencers = async () => {
       setIsLoading(true);
       try {
         dispatch(setLoading(true));
-        const response = await fetch('https://db.nymia.ai/rest/v1/virtual_influencer?select=*', {
+        const response = await fetch(`https://db.nymia.ai/rest/v1/influencer?user_id=eq.${userData.id}`, {
           headers: {
             'Authorization': 'Bearer WeInfl3nc3withAI'
           }

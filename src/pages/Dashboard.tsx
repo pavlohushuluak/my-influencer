@@ -63,11 +63,12 @@ export default function Dashboard() {
 
   const displayedStoryContent = showAllStoryContent ? mockStoryContent : mockStoryContent.slice(0, 2);
 
+  const userData = useSelector((state: RootState) => state.user);
   useEffect(() => {
     const fetchInfluencers = async () => {
       try {
         dispatch(setLoading(true));
-        const response = await fetch('https://db.nymia.ai/rest/v1/virtual_influencer?select=*', {
+        const response = await fetch(`https://db.nymia.ai/rest/v1/influencer?user_id=eq.${userData.id}`, {
           headers: {
             'Authorization': 'Bearer WeInfl3nc3withAI'
           }

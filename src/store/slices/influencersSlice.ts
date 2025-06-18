@@ -2,16 +2,12 @@ import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
 export interface Influencer {
   id: string;
-  name: string;
-  description: string;
-  image: string;
-  status: string;
-  personality: string;
-  tags: string[];
-  generatedContent: number;
+  user_id: string;
+  image_url: string;
   influencer_type: string;
   name_first: string;
   name_last: string;
+  visual_only: boolean;
   sex: string;
   age_lifestyle: string;
   origin_birth: string;

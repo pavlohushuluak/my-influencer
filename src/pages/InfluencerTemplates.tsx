@@ -11,6 +11,7 @@ import { useEffect } from 'react';
 import { AppDispatch } from '@/store/store';
 
 export default function InfluencerTemplates() {
+  const userData = useSelector((state: RootState) => state.user);
   const navigate = useNavigate();
 
   const dispatch = useDispatch<AppDispatch>();
@@ -30,18 +31,15 @@ export default function InfluencerTemplates() {
     );
   }
 
-  const handleUseTemplate = (template: TemplateInfluencer) => {
+  const handleUseTemplate = async (template: TemplateInfluencer) => {
     // Create a new influencer with default values for required fields
     const newInfluencerData = {
-      id: Date.now().toString(), // Generate new ID
-      name: template.name,
-      name_first: template.name.split(' ')[0] || '',
-      name_last: template.name.split(' ')[1] || '',
-      image: template.image_url,
-      description: template.description,
-      personality: template.personality?.join(', ') || '',
+      user_id: userData.id,
+      name_first: template.name_first,
+      name_last: template.name_last,
+      image_url: template.image_url,
       influencer_type: template.influencer_type || 'Lifestyle',
-      category: template.influencer_type || 'Lifestyle',
+      visual_only: template.visual_only || false,
       sex: template.sex || '',
       cultural_background: template.cultural_background || '',
       hair_length: template.hair_length || '',
@@ -80,14 +78,17 @@ export default function InfluencerTemplates() {
       core_values: template.core_values || [],
       current_goals: template.current_goals || [],
       background_elements: template.background_elements || [],
-      created_at: new Date().toISOString().split('T')[0],
-      updated_at: new Date().toISOString().split('T')[0],
-      generatedContent: 0,
-      status: 'active' as const,
-      tags: template.content_focus || []
     };
 
-    dispatch(addInfluencer(newInfluencerData));
+    const response = await fetch('https://db.nymia.ai/rest/v1/influencer', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer WeInfl3nc3withAI'
+      },
+      body: JSON.stringify(newInfluencerData)
+    });
+
     navigate('/influencers/edit', { state: { influencerData: newInfluencerData } });
   };
 
@@ -106,13 +107,13 @@ export default function InfluencerTemplates() {
       {/* Templates Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {templates.map((template) => (
-          <Card key={template.id} className="group hover:shadow-lg transition-all duration-300">
+          <Card key={template.name_first} className="group hover:shadow-lg transition-all duration-300">
             <CardContent className="p-6">
               <div className="space-y-4">
                 <div className="w-full h-48 bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg flex items-center justify-center">
                   {
                     template.image_url && (
-                      <img src={template.image_url} alt={template.name} className="w-full h-full object-cover rounded-lg" />
+                      <img src={template.image_url} alt={template.name_first} className="w-full h-full object-cover rounded-lg" />
                     )
                   }
                 </div>
@@ -120,7 +121,7 @@ export default function InfluencerTemplates() {
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <h3 className="font-semibold text-lg group-hover:text-ai-purple-500 transition-colors">
-                      {template.name}
+                      {template.name_first} {template.name_last}
                     </h3>
                   </div>
 

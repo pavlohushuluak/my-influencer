@@ -1,18 +1,11 @@
 export interface Influencer {
   id: string;
-  name: string;
+  user_id: string;
   name_first: string;
   name_last: string;
-  image: string;
-  description: string;
-  personality: string;
-  created_at: string;
-  updated_at: string;
-  generatedContent: number;
-  status: 'active' | 'inactive';
-  tags: string[];
+  image_url: string;
   influencer_type: string;
-  category: string;
+  visual_only: boolean;
   sex: string;
   cultural_background: string;
   hair_length: string;

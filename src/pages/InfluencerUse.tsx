@@ -228,7 +228,7 @@ export default function InfluencerUse() {
               <div className="space-y-4">
                 <div className="w-full h-48 bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg overflow-hidden">
                   <img
-                    src={influencer.image}
+                    src={influencer.image_url}
                     alt={`${influencer.name_first} ${influencer.name_last}`}
                     className="w-full h-full object-cover"
                   />
@@ -282,13 +282,12 @@ export default function InfluencerUse() {
             <div className="space-y-4">
               <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
                 <img
-                  src={selectedInfluencerData.image}
-                  alt={selectedInfluencerData.name}
+                  src={selectedInfluencerData.image_url}
+                  alt={selectedInfluencerData.name_first}
                   className="w-12 h-12 rounded-full object-cover"
                 />
                 <div>
-                  <h4 className="font-medium">{selectedInfluencerData.name}</h4>
-                  <p className="text-sm text-muted-foreground">{selectedInfluencerData.description}</p>
+                  <h4 className="font-medium">{selectedInfluencerData.name_first} {selectedInfluencerData.name_last}</h4>
                 </div>
               </div>
 

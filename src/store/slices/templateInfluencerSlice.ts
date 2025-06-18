@@ -4,15 +4,11 @@ import axios from 'axios';
 export interface TemplateInfluencer {
     id: string;
     user_id: string;
-    name: string;
-    description: string;
     image_url: string;
-    created_at: string;
-    updated_at: string;
     name_first: string;
     name_last: string;
     influencer_type: string;
-    personality: string[];
+    visual_only: boolean;
     sex: string;
     cultural_background: string;
     hair_length: string;

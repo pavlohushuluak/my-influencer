@@ -176,7 +176,7 @@ export default function Dashboard() {
                   <div className="space-y-4">
                     <div className="w-full h-48 bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg overflow-hidden">
                       <img 
-                        src={influencer.image} 
+                        src={influencer.image_url} 
                         alt={`${influencer.name_first} ${influencer.name_last}`}
                         className="w-full h-full object-cover"
                       />
@@ -198,14 +198,6 @@ export default function Dashboard() {
                           <span className="font-medium mr-2">Type:</span>
                           {influencer.influencer_type}
                         </div>
-                      </div>
-                      
-                      <div className="flex flex-wrap gap-1 mb-4">
-                        {influencer.tags?.map((tag) => (
-                          <Badge key={tag} variant="outline" className="text-xs">
-                            {tag}
-                          </Badge>
-                        ))}
                       </div>
                       
                       <div className="flex gap-2">

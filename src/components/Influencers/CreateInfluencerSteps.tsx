@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,13 +11,8 @@ import { ChevronRight, ChevronLeft, Loader2, Save, X, User, Sparkles, Palette, S
 import { Influencer } from '@/types/influencer';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
-
-// Constants
-const INFLUENCER_TYPES = ['Visual only', 'Full persona'];
-const JOB_AREAS = ['Technology', 'Fashion', 'Fitness', 'Food', 'Travel', 'Lifestyle', 'Education', 'Business', 'Entertainment', 'Health'];
-const SPEECH_STYLES = ['Casual', 'Professional', 'Friendly', 'Authoritative', 'Humorous', 'Educational', 'Inspirational', 'Confident'];
-const HUMOR_STYLES = ['Witty', 'Sarcastic', 'Playful', 'Dry', 'Self-deprecating', 'Observational', 'Absurd', 'Clever'];
-
+import { RootState } from '@/store/store';
+import { toast } from 'sonner';
 interface CreateInfluencerStepsProps {
   onComplete: () => void;
 }
@@ -29,10 +24,12 @@ interface Option {
 }
 
 interface InfluencerData {
+  user_id: string;
   influencer_type: string;
-  category: string;
+  image_url: string;
   name_first: string;
   name_last: string;
+  visual_only: boolean;
   sex: string;
   cultural_background: string;
   hair_length: string;
@@ -79,12 +76,15 @@ export function CreateInfluencerSteps({ onComplete }: CreateInfluencerStepsProps
   const [currentStep, setCurrentStep] = useState(1);
   const [activeTab, setActiveTab] = useState('basic');
   const [isOptionsLoading, setIsOptionsLoading] = useState(false);
+  const userData = useSelector((state: RootState) => state.user);
 
   const [influencerData, setInfluencerData] = useState<InfluencerData>({
-    influencer_type: '', // 'Visual only' or 'Full persona'
-    category: '', // 'Lifestyle' or 'Educational'
+    user_id: userData.id,
+    influencer_type: 'Lifestyle',
+    image_url: '',
     name_first: '',
     name_last: '',
+    visual_only: false,
     sex: '',
     cultural_background: '',
     hair_length: '',
@@ -126,7 +126,7 @@ export function CreateInfluencerSteps({ onComplete }: CreateInfluencerStepsProps
     background_elements: []
   });
 
-  const handleOptionSelect = (field: string, value: string) => {
+  const handleOptionSelect = (field: string, value: string | boolean) => {
     setInfluencerData(prev => ({
       ...prev,
       [field]: value
@@ -136,14 +136,14 @@ export function CreateInfluencerSteps({ onComplete }: CreateInfluencerStepsProps
   const steps = [
     { 
       id: 1, 
-      title: 'Type', 
-      description: 'Choose influencer type',
+      title: 'Visual', 
+      description: 'Choose your visual style',
       icon: User
     },
     { 
       id: 2, 
-      title: 'Category', 
-      description: 'Select content category',
+      title: 'Influencer type', 
+      description: 'Select your influencer type',
       icon: Sparkles
     },
     { 
@@ -223,11 +223,11 @@ export function CreateInfluencerSteps({ onComplete }: CreateInfluencerStepsProps
               <Label className="text-lg font-semibold">Influencer Type</Label>
               <div className="grid grid-cols-2 gap-4">
                 <Button
-                  variant={influencerData.influencer_type === 'Visual only' ? 'default' : 'outline'}
-                  onClick={() => handleOptionSelect('influencer_type', 'Visual only')}
+                  variant={influencerData.visual_only === false ? 'default' : 'outline'}
+                  onClick={() => handleOptionSelect('visual_only', false)}
                   className={cn(
                     "h-24 transition-all duration-300",
-                    influencerData.influencer_type === 'Visual only' 
+                    influencerData.visual_only === false 
                       ? "bg-primary hover:bg-primary/90" 
                       : "hover:bg-amber-500"
                   )}
@@ -238,11 +238,11 @@ export function CreateInfluencerSteps({ onComplete }: CreateInfluencerStepsProps
                   </div>
                 </Button>
                 <Button
-                  variant={influencerData.influencer_type === 'Full persona' ? 'default' : 'outline'}
-                  onClick={() => handleOptionSelect('influencer_type', 'Full persona')}
+                  variant={influencerData.visual_only === true ? 'default' : 'outline'}
+                  onClick={() => handleOptionSelect('visual_only', true)}
                   className={cn(
                     "h-24 transition-all duration-300",
-                    influencerData.influencer_type === 'Full persona' 
+                    influencerData.visual_only === true 
                       ? "bg-primary hover:bg-primary/90" 
                       : "hover:bg-amber-500"
                   )}
@@ -264,11 +264,11 @@ export function CreateInfluencerSteps({ onComplete }: CreateInfluencerStepsProps
               <Label className="text-lg font-semibold">Category</Label>
               <div className="grid grid-cols-2 gap-4">
                 <Button
-                  variant={influencerData.category === 'Lifestyle' ? 'default' : 'outline'}
-                  onClick={() => handleOptionSelect('category', 'Lifestyle')}
+                  variant={influencerData.influencer_type === 'Lifestyle' ? 'default' : 'outline'}
+                  onClick={() => handleOptionSelect('influencer_type', 'Lifestyle')}
                   className={cn(
                     "h-24 transition-all duration-300",
-                    influencerData.category === 'Lifestyle' 
+                    influencerData.influencer_type === 'Lifestyle' 
                       ? "bg-primary hover:bg-primary/90" 
                       : "hover:bg-amber-500"
                   )}
@@ -279,11 +279,11 @@ export function CreateInfluencerSteps({ onComplete }: CreateInfluencerStepsProps
                   </div>
                 </Button>
                 <Button
-                  variant={influencerData.category === 'Educational' ? 'default' : 'outline'}
-                  onClick={() => handleOptionSelect('category', 'Educational')}
+                  variant={influencerData.influencer_type === 'Educational' ? 'default' : 'outline'}
+                  onClick={() => handleOptionSelect('influencer_type', 'Educational')}
                   className={cn(
                     "h-24 transition-all duration-300",
-                    influencerData.category === 'Educational' 
+                    influencerData.influencer_type === 'Educational' 
                       ? "bg-primary hover:bg-primary/90" 
                       : "hover:bg-amber-500"
                   )}
@@ -335,7 +335,12 @@ export function CreateInfluencerSteps({ onComplete }: CreateInfluencerStepsProps
     if (currentStep < 3) {
       setCurrentStep(prev => prev + 1);
     } else {
-      handleSubmit();
+      if(influencerData.name_first.length > 0 && influencerData.name_last.length > 0) {
+        handleSubmit();
+      }
+      else {
+        toast.error('Please enter your first and last name');
+      }
     }
   };
 
@@ -348,25 +353,16 @@ export function CreateInfluencerSteps({ onComplete }: CreateInfluencerStepsProps
     }
   };
 
-  const handleSubmit = () => {
-    const newInfluencer: Influencer = {
-      id: Date.now().toString(),
-      name: `${influencerData.name_first} ${influencerData.name_last}`,
-      name_first: influencerData.name_first,
-      name_last: influencerData.name_last,
-      image: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=400&h=400&fit=crop&crop=face',
-      description: `${influencerData.category} Influencer`,
-      personality: influencerData.speech_style?.join(', ') || '',
-      created_at: new Date().toISOString().split('T')[0],
-      updated_at: new Date().toISOString().split('T')[0],
-      generatedContent: 0,
-      status: 'active',
-      tags: influencerData.content_focus || [],
-      ...influencerData
-    };
-
-    dispatch(addInfluencer(newInfluencer));
-    navigate('/influencers/edit', { state: { influencerData: newInfluencer } });
+  const handleSubmit = async() => {
+    const response = await fetch('https://db.nymia.ai/rest/v1/influencer', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer WeInfl3nc3withAI'
+      },
+      body: JSON.stringify(influencerData)
+    });
+    navigate('/influencers/edit', { state: { influencerData: influencerData } });
     onComplete();
   };
 
@@ -379,7 +375,7 @@ export function CreateInfluencerSteps({ onComplete }: CreateInfluencerStepsProps
           <StepSlider />
         </CardHeader>
         <CardContent>
-          <div className="pr-4">
+          <div>
             {renderStepContent()}
           </div>
           <div className="flex flex-col md:flex-row gap-2 justify-between mt-8">
@@ -401,7 +397,7 @@ export function CreateInfluencerSteps({ onComplete }: CreateInfluencerStepsProps
               </Button>
             ) : (
               <Button 
-                onClick={handleSubmit} 
+                onClick={handleNext} 
                 disabled={isOptionsLoading}
                 className="px-6 bg-primary hover:bg-primary/90 transition-colors duration-300"
               >

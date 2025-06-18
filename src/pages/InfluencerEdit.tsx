@@ -328,6 +328,7 @@ export default function InfluencerEdit() {
     }
 
     if(location.state.create){
+      console.log(influencerData);
       const response = await fetch('https://db.nymia.ai/rest/v1/influencer', {
         method: 'POST',
         headers: {

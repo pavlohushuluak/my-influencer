@@ -37,7 +37,7 @@ export default function InfluencerTemplates() {
       user_id: userData.id,
       name_first: template.name_first,
       name_last: template.name_last,
-      image_url: template.image_url,
+      image_url: template.image_url || '',
       influencer_type: template.influencer_type || 'Lifestyle',
       visual_only: template.visual_only || false,
       sex: template.sex || '',
@@ -79,6 +79,8 @@ export default function InfluencerTemplates() {
       current_goals: template.current_goals || [],
       background_elements: template.background_elements || [],
     };
+
+    console.log(newInfluencerData);
 
     const response = await fetch('https://db.nymia.ai/rest/v1/influencer', {
       method: 'POST',

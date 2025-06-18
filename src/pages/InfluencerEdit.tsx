@@ -739,7 +739,9 @@ export default function InfluencerEdit() {
       <div className="flex flex-col md:flex-row items-center justify-between gap-5">
         <div>
           <h1 className="text-3xl font-bold tracking-tight bg-ai-gradient bg-clip-text text-transparent">
-            Edit Influencer
+            {
+              location.state?.create ? 'Create Influencer' : 'Edit Influencer'
+            }
           </h1>
           <p className="text-muted-foreground">
             Customize your influencer's appearance and personality
@@ -762,7 +764,9 @@ export default function InfluencerEdit() {
             ) : (
               <>
                 <Save className="w-4 h-4 mr-2" />
-                Save Changes
+                {
+                  location.state?.create ? 'Create Influencer' : 'Save Changes'
+                }
               </>
             )}
           </Button>

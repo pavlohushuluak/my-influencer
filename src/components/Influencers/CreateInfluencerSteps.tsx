@@ -6,21 +6,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { addInfluencer } from '@/store/slices/influencersSlice';
 import { ChevronRight, ChevronLeft, Loader2, Save, X, User, Sparkles, Palette, Settings } from 'lucide-react';
-import { Influencer } from '@/types/influencer';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import { RootState } from '@/store/store';
 import { toast } from 'sonner';
 interface CreateInfluencerStepsProps {
   onComplete: () => void;
-}
-
-interface Option {
-  label: string;
-  value: string;
-  image?: string;
 }
 
 interface InfluencerData {
@@ -106,7 +98,6 @@ export function CreateInfluencerSteps({ onComplete }: CreateInfluencerStepsProps
     clothing_style_sports: '',
     clothing_style_sexy_dress: '',
     home_environment: '',
-    // Full persona additional fields
     age_lifestyle: '',
     origin_birth: '',
     origin_residence: '',
@@ -354,15 +345,8 @@ export function CreateInfluencerSteps({ onComplete }: CreateInfluencerStepsProps
   };
 
   const handleSubmit = async() => {
-    const response = await fetch('https://db.nymia.ai/rest/v1/influencer', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer WeInfl3nc3withAI'
-      },
-      body: JSON.stringify(influencerData)
-    });
-    navigate('/influencers/edit', { state: { influencerData: influencerData } });
+    console.log(influencerData);
+    navigate('/influencers/edit', { state: { influencerData: influencerData, create: true } });
     onComplete();
   };
 
@@ -407,7 +391,7 @@ export function CreateInfluencerSteps({ onComplete }: CreateInfluencerStepsProps
                     Creating...
                   </>
                 ) : (
-                  'Create Influencer'
+                  'Create Basic Info'
                 )}
               </Button>
             )}

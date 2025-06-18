@@ -61,18 +61,22 @@ const SUBSCRIPTION_FEATURES = {
 // Feature restrictions by subscription level
 const FEATURE_RESTRICTIONS = {
   free: [
-    'cultural_background',
-    'hair_color',
-    'eye_color',
-    'skin_tone',
+    'facial_features',
+    'makeup',
     'color_palette',
-    'clothing_style_occasional',
+    'clothing_style_home',
+    'clothing_style_sports',
     'clothing_style_sexy_dress',
     'home_environment',
     'content_focus',
     'content_focus_areas',
+    'job_area',
+    'job_title',
     'job_vibe',
+    'hobbies',
     'social_circle',
+    'strengths',
+    'weaknesses',
     'speech_style',
     'humor',
     'core_values',
@@ -80,9 +84,12 @@ const FEATURE_RESTRICTIONS = {
     'background_elements'
   ],
   professional: [
-    'content_focus_areas',
-    'job_vibe',
-    'social_circle',
+    'strengths',
+    'weaknesses',
+    'speech_style',
+    'humor',
+    'core_values',
+    'current_goals',
     'background_elements'
   ],
   enterprise: []
@@ -242,11 +249,11 @@ export default function InfluencerEdit() {
   };
 
   const handleInputChange = (field: string, value: string) => {
-    // if (isFeatureLocked(field)) {
-    //   setLockedFeature(field);
-    //   setShowUpgradeModal(true);
-    //   return;
-    // }
+    if (isFeatureLocked(field)) {
+      setLockedFeature(field);
+      setShowUpgradeModal(true);
+      return;
+    }
 
     setInfluencerData(prev => ({
       ...prev,
@@ -284,6 +291,9 @@ export default function InfluencerEdit() {
   const validateFields = () => {
     const errors: { [key: string]: string } = {};
     const requiredFields = [
+      'name_first',
+      'name_last',
+      'influencer_type',
       'sex',
       'cultural_background',
       'hair_length',
@@ -835,23 +845,29 @@ export default function InfluencerEdit() {
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                     <div className="space-y-2">
-                      <Label>First Name</Label>
+                      <Label>First Name <span className="text-red-500">*</span></Label>
                       <Input
                         value={influencerData.name_first}
                         onChange={(e) => handleInputChange('name_first', e.target.value)}
                         placeholder="Enter first name"
                       />
+                      {validationErrors.name_first && (
+                        <p className="text-sm text-red-500 mt-1">{validationErrors.name_first}</p>
+                      )}
                     </div>
                     <div className="space-y-2">
-                      <Label>Last Name</Label>
+                      <Label>Last Name <span className="text-red-500">*</span></Label>
                       <Input
                         value={influencerData.name_last}
                         onChange={(e) => handleInputChange('name_last', e.target.value)}
                         placeholder="Enter last name"
                       />
+                      {validationErrors.name_last && (
+                        <p className="text-sm text-red-500 mt-1">{validationErrors.name_last}</p>
+                      )}
                     </div>
                     <div className="space-y-2">
-                      <Label>Influencer Type</Label>
+                      <Label>Influencer Type <span className="text-red-500">*</span></Label>
                       <Select
                         value={influencerData.influencer_type}
                         onValueChange={(value) => handleInputChange('influencer_type', value)}
@@ -867,6 +883,9 @@ export default function InfluencerEdit() {
                           ))}
                         </SelectContent>
                       </Select>
+                      {validationErrors.influencer_type && (
+                        <p className="text-sm text-red-500 mt-1">{validationErrors.influencer_type}</p>
+                      )}
                     </div>
                     <div className="space-y-2">
                       <Label>Sex <span className="text-red-500">*</span></Label>

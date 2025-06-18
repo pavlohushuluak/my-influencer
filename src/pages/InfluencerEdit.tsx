@@ -14,7 +14,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { DialogZoom, DialogContentZoom, DialogHeaderZoom, DialogTitleZoom, DialogDescriptionZoom } from '@/components/ui/zoomdialog';
-import { updateInfluencer, setInfluencers, setLoading, setError } from '@/store/slices/influencersSlice';
+import { updateInfluencer, setInfluencers, setLoading, setError, addInfluencer } from '@/store/slices/influencersSlice';
 import { X, Plus, Save, Crown, Lock, Image, Settings, User, ChevronRight, MoreHorizontal, Loader2, ZoomIn } from 'lucide-react';
 import { HexColorPicker } from 'react-colorful';
 import { toast } from 'sonner';
@@ -322,22 +322,28 @@ export default function InfluencerEdit() {
     return Object.keys(errors).length === 0;
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!validateFields()) {
       return;
     }
 
-    const updatedInfluencer = {
-      ...influencerData,
-      name: `${influencerData.name_first} ${influencerData.name_last}`,
-      description: `${influencerData.influencer_type} Influencer`,
-      personality: influencerData.speech_style.join(', '),
-      updated_at: new Date().toISOString().split('T')[0],
-      tags: influencerData.content_focus
-    };
-
-    dispatch(updateInfluencer(updatedInfluencer));
-    navigate('/influencers');
+    if(location.state.create){
+      const response = await fetch('https://db.nymia.ai/rest/v1/influencer', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify(influencerData)
+      });
+      dispatch(addInfluencer(influencerData));
+      if(response.ok){
+        navigate('/influencers');
+      }
+    }
+    else{
+      dispatch(updateInfluencer(influencerData));
+    }
   };
 
   const handleEditInfluencer = (id: string) => {

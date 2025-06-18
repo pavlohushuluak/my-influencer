@@ -120,6 +120,7 @@ export default function InfluencerEdit() {
   const [hairLengthOptions, setHairLengthOptions] = useState<Option[]>([]);
   const [showHairLengthSelector, setShowHairLengthSelector] = useState(false);
   const [influencerData, setInfluencerData] = useState(location.state?.influencerData || {
+    id: '',
     influencer_type: '',
     name_first: '',
     name_last: '',
@@ -293,24 +294,7 @@ export default function InfluencerEdit() {
     const requiredFields = [
       'name_first',
       'name_last',
-      'influencer_type',
-      'sex',
-      'cultural_background',
-      'hair_length',
-      'hair_color',
-      'hair_style',
-      'eye_color',
-      'lip_style',
-      'nose_style',
-      'eyebrow_style',
-      'face_shape',
-      'skin_tone',
-      'body_type',
-      'clothing_style_everyday',
-      'clothing_style_occasional',
-      'age_lifestyle',
-      'origin_birth',
-      'origin_residence'
+      'influencer_type'
     ];
     requiredFields.forEach(field => {
       if (!influencerData[field as keyof typeof influencerData]) {
@@ -327,7 +311,7 @@ export default function InfluencerEdit() {
       return;
     }
 
-    if(location.state.create){
+    if (location.state?.create) {
       console.log(influencerData);
       const response = await fetch('https://db.nymia.ai/rest/v1/influencer', {
         method: 'POST',
@@ -338,12 +322,24 @@ export default function InfluencerEdit() {
         body: JSON.stringify(influencerData)
       });
       dispatch(addInfluencer(influencerData));
-      if(response.ok){
+      if (response.ok) {
         navigate('/influencers');
       }
     }
-    else{
+    else {
+      console.log(influencerData);
+      const response = await fetch(`https://db.nymia.ai/rest/v1/influencer?id=eq.${influencerData.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify(influencerData)
+      });
       dispatch(updateInfluencer(influencerData));
+      if (response.ok) {
+        navigate('/influencers');
+      }
     }
   };
 
@@ -505,33 +501,34 @@ export default function InfluencerEdit() {
   const userData = useSelector((state: RootState) => state.user);
 
   // console.log('Cultural background options:', culturalBackgroundOptions);
-  useEffect(() => {
-    const fetchInfluencers = async () => {
-      setIsLoading(true);
-      try {
-        dispatch(setLoading(true));
-        const response = await fetch(`https://db.nymia.ai/rest/v1/influencer?user_id=eq.${userData.id}`, {
-          headers: {
-            'Authorization': 'Bearer WeInfl3nc3withAI'
-          }
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to fetch influencers');
+  const fetchInfluencers = async () => {
+    setIsLoading(true);
+    try {
+      dispatch(setLoading(true));
+      const response = await fetch(`https://db.nymia.ai/rest/v1/influencer?user_id=eq.${userData.id}`, {
+        headers: {
+          'Authorization': 'Bearer WeInfl3nc3withAI'
         }
+      });
 
-        const data = await response.json();
-        dispatch(setInfluencers(data));
-      } catch (error) {
-        dispatch(setError(error instanceof Error ? error.message : 'An error occurred'));
-      } finally {
-        dispatch(setLoading(false));
-        setIsLoading(false);
+      if (!response.ok) {
+        throw new Error('Failed to fetch influencers');
       }
-    };
 
+      const data = await response.json();
+      dispatch(setInfluencers(data));
+    } catch (error) {
+      dispatch(setError(error instanceof Error ? error.message : 'An error occurred'));
+    } finally {
+      dispatch(setLoading(false));
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    console.log('fetching influencers');
     fetchInfluencers();
-  }, [dispatch]);
+  }, [userData.id]);
 
   const ImagePreviewDialog = ({ imageUrl, onClose }: { imageUrl: string, onClose: () => void }) => (
     <DialogZoom open={true} onOpenChange={onClose}>
@@ -895,7 +892,7 @@ export default function InfluencerEdit() {
                       )}
                     </div>
                     <div className="space-y-2">
-                      <Label>Sex <span className="text-red-500">*</span></Label>
+                      <Label>Sex</Label>
                       <div className="flex flex-col gap-2">
                         <Select
                           value={influencerData.sex}
@@ -938,13 +935,10 @@ export default function InfluencerEdit() {
                               </Card>
                           }
                         </div>
-                        {validationErrors.sex && (
-                          <p className="text-sm text-red-500 mt-1">{validationErrors.sex}</p>
-                        )}
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <Label>Age & Lifestyle <span className="text-red-500">*</span></Label>
+                      <Label>Age & Lifestyle</Label>
                       <div className="flex flex-col gap-2">
                         <Select
                           value={influencerData.age_lifestyle}
@@ -987,13 +981,10 @@ export default function InfluencerEdit() {
                               </Card>
                           }
                         </div>
-                        {validationErrors.age_lifestyle && (
-                          <p className="text-sm text-red-500 mt-1">{validationErrors.age_lifestyle}</p>
-                        )}
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <Label>Cultural Background <span className="text-red-500">*</span></Label>
+                      <Label>Cultural Background</Label>
                       <div className="flex flex-col gap-2">
                         <Select
                           value={influencerData.cultural_background}
@@ -1008,7 +999,7 @@ export default function InfluencerEdit() {
                             ))}
                           </SelectContent>
                         </Select>
-                        
+
                         <div
                           onClick={() => setShowCulturalBackgroundSelector(true)}
                           className='flex items-center justify-center cursor-pointer w-full'
@@ -1037,35 +1028,26 @@ export default function InfluencerEdit() {
                               </Card>
                           }
                         </div>
-                        {validationErrors.cultural_background && (
-                          <p className="text-sm text-red-500 mt-1">{validationErrors.cultural_background}</p>
-                        )}
                       </div>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label>Birth Origin <span className="text-red-500">*</span></Label>
+                      <Label>Birth Origin</Label>
                       <Input
                         value={influencerData.origin_birth}
                         onChange={(e) => handleInputChange('origin_birth', e.target.value)}
                         placeholder="e.g., New York, USA"
                       />
-                      {validationErrors.origin_birth && (
-                        <p className="text-sm text-red-500 mt-1">{validationErrors.origin_birth}</p>
-                      )}
                     </div>
                     <div className="space-y-2">
-                      <Label>Current Residence <span className="text-red-500">*</span></Label>
+                      <Label>Current Residence</Label>
                       <Input
                         value={influencerData.origin_residence}
                         onChange={(e) => handleInputChange('origin_residence', e.target.value)}
                         placeholder="e.g., Los Angeles, USA"
                       />
-                      {validationErrors.origin_residence && (
-                        <p className="text-sm text-red-500 mt-1">{validationErrors.origin_residence}</p>
-                      )}
                     </div>
                   </div>
                 </CardContent>
@@ -1080,7 +1062,7 @@ export default function InfluencerEdit() {
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                     <div className="space-y-2">
-                      <Label>Hair Length <span className="text-red-500">*</span></Label>
+                      <Label>Hair Length</Label>
                       <div className="flex flex-col gap-2">
                         <Select
                           value={influencerData.hair_length}
@@ -1123,13 +1105,10 @@ export default function InfluencerEdit() {
                               </Card>
                           }
                         </div>
-                        {validationErrors.hair_length && (
-                          <p className="text-sm text-red-500 mt-1">{validationErrors.hair_length}</p>
-                        )}
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <Label>Hair Style <span className="text-red-500">*</span></Label>
+                      <Label>Hair Style</Label>
                       <div className="flex flex-col gap-2">
                         <Select
                           value={influencerData.hair_style}
@@ -1172,13 +1151,10 @@ export default function InfluencerEdit() {
                               </Card>
                           }
                         </div>
-                        {validationErrors.hair_style && (
-                          <p className="text-sm text-red-500 mt-1">{validationErrors.hair_style}</p>
-                        )}
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <Label>Hair Color <span className="text-red-500">*</span></Label>
+                      <Label>Hair Color</Label>
                       <div className="flex flex-col gap-2">
                         <Select
                           value={influencerData.hair_color}
@@ -1221,13 +1197,10 @@ export default function InfluencerEdit() {
                               </Card>
                           }
                         </div>
-                        {validationErrors.hair_color && (
-                          <p className="text-sm text-red-500 mt-1">{validationErrors.hair_color}</p>
-                        )}
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <Label>Face Shape <span className="text-red-500">*</span></Label>
+                      <Label>Face Shape</Label>
                       <div className="flex flex-col gap-2">
                         <Select
                           value={influencerData.face_shape}
@@ -1270,13 +1243,10 @@ export default function InfluencerEdit() {
                               </Card>
                           }
                         </div>
-                        {validationErrors.face_shape && (
-                          <p className="text-sm text-red-500 mt-1">{validationErrors.face_shape}</p>
-                        )}
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <Label>Eye Color <span className="text-red-500">*</span></Label>
+                      <Label>Eye Color</Label>
                       <div className="flex flex-col gap-2">
                         <Select
                           value={influencerData.eye_color}
@@ -1319,13 +1289,10 @@ export default function InfluencerEdit() {
                               </Card>
                           }
                         </div>
-                        {validationErrors.eye_color && (
-                          <p className="text-sm text-red-500 mt-1">{validationErrors.eye_color}</p>
-                        )}
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <Label>Lip Style <span className="text-red-500">*</span></Label>
+                      <Label>Lip Style</Label>
                       <div className="flex flex-col gap-2">
                         <Select
                           value={influencerData.lip_style}
@@ -1368,13 +1335,10 @@ export default function InfluencerEdit() {
                               </Card>
                           }
                         </div>
-                        {validationErrors.lip_style && (
-                          <p className="text-sm text-red-500 mt-1">{validationErrors.lip_style}</p>
-                        )}
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <Label>Nose Style <span className="text-red-500">*</span></Label>
+                      <Label>Nose Style</Label>
                       <div className="flex flex-col gap-2">
                         <Select
                           value={influencerData.nose_style}
@@ -1417,13 +1381,10 @@ export default function InfluencerEdit() {
                               </Card>
                           }
                         </div>
-                        {validationErrors.nose_style && (
-                          <p className="text-sm text-red-500 mt-1">{validationErrors.nose_style}</p>
-                        )}
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <Label>Eyebrow Style <span className="text-red-500">*</span></Label>
+                      <Label>Eyebrow Style</Label>
                       <div className="flex flex-col gap-2">
                         <Select
                           value={influencerData.eyebrow_style}
@@ -1466,13 +1427,10 @@ export default function InfluencerEdit() {
                               </Card>
                           }
                         </div>
-                        {validationErrors.eyebrow_style && (
-                          <p className="text-sm text-red-500 mt-1">{validationErrors.eyebrow_style}</p>
-                        )}
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <Label>Skin Tone <span className="text-red-500">*</span></Label>
+                      <Label>Skin Tone</Label>
                       <div className="flex flex-col gap-2">
                         <Select
                           value={influencerData.skin_tone}
@@ -1515,13 +1473,10 @@ export default function InfluencerEdit() {
                               </Card>
                           }
                         </div>
-                        {validationErrors.skin_tone && (
-                          <p className="text-sm text-red-500 mt-1">{validationErrors.skin_tone}</p>
-                        )}
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <Label>Body Type <span className="text-red-500">*</span></Label>
+                      <Label>Body Type</Label>
                       <div className="flex flex-col gap-2">
                         <Select
                           value={influencerData.body_type}
@@ -1564,9 +1519,6 @@ export default function InfluencerEdit() {
                               </Card>
                           }
                         </div>
-                        {validationErrors.body_type && (
-                          <p className="text-sm text-red-500 mt-1">{validationErrors.body_type}</p>
-                        )}
                       </div>
                     </div>
                     <div className="space-y-2">
@@ -1675,7 +1627,7 @@ export default function InfluencerEdit() {
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     <div className="space-y-2">
-                      <Label>Everyday Style <span className="text-red-500">*</span></Label>
+                      <Label>Everyday Style</Label>
                       <div className="flex flex-col gap-2">
                         <Select
                           value={influencerData.clothing_style_everyday}
@@ -1718,13 +1670,10 @@ export default function InfluencerEdit() {
                               </Card>
                           }
                         </div>
-                        {validationErrors.clothing_style_everyday && (
-                          <p className="text-sm text-red-500 mt-1">{validationErrors.clothing_style_everyday}</p>
-                        )}
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <Label>Occasional Style <span className="text-red-500">*</span></Label>
+                      <Label>Occasional Style</Label>
                       <div className="flex flex-col gap-2">
                         <Select
                           value={influencerData.clothing_style_occasional}
@@ -1767,9 +1716,6 @@ export default function InfluencerEdit() {
                               </Card>
                           }
                         </div>
-                        {validationErrors.clothing_style_occasional && (
-                          <p className="text-sm text-red-500 mt-1">{validationErrors.clothing_style_occasional}</p>
-                        )}
                       </div>
                     </div>
                     <div className="space-y-2">

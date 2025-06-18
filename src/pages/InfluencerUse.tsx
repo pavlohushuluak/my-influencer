@@ -108,7 +108,7 @@ export default function InfluencerUse() {
     };
 
     fetchInfluencers();
-  }, [dispatch]);
+  }, [userData.id]);
 
   const handleUseInfluencer = (influencerId: string) => {
     const influencer = influencers.find(i => i.id === influencerId);

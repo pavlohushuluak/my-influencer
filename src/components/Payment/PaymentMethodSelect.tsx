@@ -10,9 +10,10 @@ interface PaymentMethodSelectProps {
   onSelect: (method: string) => void;
   selectedPlan: string;
   isLoading?: boolean;
+  purchaseType?: 'subscription' | 'credits';
 }
 
-export function PaymentMethodSelect({ onSelect, selectedPlan, isLoading }: PaymentMethodSelectProps) {
+export function PaymentMethodSelect({ onSelect, selectedPlan, isLoading, purchaseType = 'subscription' }: PaymentMethodSelectProps) {
   const [selectedMethod, setSelectedMethod] = useState<string>('');
 
   const paymentMethods = [
@@ -45,12 +46,19 @@ export function PaymentMethodSelect({ onSelect, selectedPlan, isLoading }: Payme
     }
   };
 
+  const getDescription = () => {
+    if (purchaseType === 'credits') {
+      return `Choose your preferred payment method to complete your credit purchase`
+    }
+    return `Choose your preferred payment method to complete your ${selectedPlan} subscription`
+  };
+
   return (
     <div className="space-y-6">
       <div className="text-center space-y-2">
         <h2 className="text-2xl font-bold tracking-tight">Select Payment Method</h2>
         <p className="text-muted-foreground">
-          Choose your preferred payment method to complete your {selectedPlan} subscription
+          {getDescription()}
         </p>
       </div>
 

@@ -43,7 +43,7 @@ const CREDIT_PACKAGES: CreditPackage[] = [
   }
 ];
 
-type PaymentStep = 'select' | 'payoneer' | 'paypal' | 'crypto' | 'success';
+type PaymentStep = 'select' | 'payoneer' | 'paypal' | 'crypto' | 'success' | 'payment-method';
 
 interface CreditPurchaseProps {
   onSuccess: () => void;
@@ -145,7 +145,7 @@ export function CreditPurchase({ onSuccess, onCancel }: CreditPurchaseProps) {
 
         <Button
           className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white hover:from-purple-700 hover:to-blue-700"
-          onClick={() => handlePaymentMethodSelect('paypal')}
+          onClick={() => setPaymentStep('payment-method')}
           disabled={!selectedPackage || loading}
         >
           {loading ? (
@@ -158,6 +158,17 @@ export function CreditPurchase({ onSuccess, onCancel }: CreditPurchaseProps) {
           )}
         </Button>
       </div>
+    );
+  }
+
+  if (paymentStep === 'payment-method') {
+    return (
+      <PaymentMethodSelect
+        onSelect={handlePaymentMethodSelect}
+        selectedPlan={selectedPackage}
+        isLoading={loading}
+        purchaseType="credits"
+      />
     );
   }
 

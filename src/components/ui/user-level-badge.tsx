@@ -62,7 +62,7 @@ export function UserLevelBadge({
       className={cn(
         config.className,
         sizeClasses[size],
-        'font-semibold transition-all duration-300 ease-in-out',
+        'font-semibold transition-all duration-300 ease-in-out h-full py-2',
         'backdrop-blur-sm',
         'hover:scale-105 hover:shadow-xl',
         'active:scale-95',

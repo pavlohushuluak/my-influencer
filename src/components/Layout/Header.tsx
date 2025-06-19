@@ -145,8 +145,9 @@ export function Header() {
             {/* User Level Badge */}
             <button
               onClick={() => navigate('/pricing')}
+              className="flex items-center h-full py-2 px-1"
             >
-              <UserLevelBadge level={subscription as 'free' | 'starter' | 'professional' | 'enterprise'} />
+              <UserLevelBadge level={subscription as 'free' | 'starter' | 'professional' | 'enterprise'} size="md" />
             </button>
 
             {/* Theme toggle */}

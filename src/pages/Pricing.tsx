@@ -95,12 +95,13 @@ export default function Pricing() {
 
   const handlePaymentSuccess = async () => {
     if (!selectedPlan || !paymentMethod) return;
+    const billingDate = billingCycle === 'yearly' ? Date.now() + 1 * 365 * 24 * 60 * 60 * 1000 : Date.now() + 1 * 30 * 24 * 60 * 60 * 1000;
 
     try {
       await subscriptionService.updateSubscription({
         plan: selectedPlan as 'starter' | 'professional' | 'enterprise',
         user_id: userData.id,
-        billingDate: Date.now() + 1 * 30 * 24 * 60 * 60 * 1000,
+        billingDate: billingDate,
         billedDate: Date.now()
       });
 
@@ -131,7 +132,25 @@ export default function Pricing() {
       enterprise: 99.95
     }[plan] || 19.95;
     
-    return billingCycle === 'yearly' ? basePrice * 10 : basePrice;
+    if (billingCycle === 'yearly') {
+      // Yearly price with 20% discount: monthly_price * 12 * 0.8
+      return Math.round((basePrice * 12 * 0.8) * 100) / 100;
+    }
+    return basePrice;
+  };
+
+  const getDisplayPrice = (plan: string) => {
+    const basePrice = {
+      starter: 19.95,
+      professional: 49.95,
+      enterprise: 99.95
+    }[plan] || 19.95;
+    
+    if (billingCycle === 'yearly') {
+      const yearlyPrice = Math.round((basePrice * 12 * 0.8) * 100) / 100;
+      return `$${yearlyPrice}`;
+    }
+    return `$${basePrice}`;
   };
 
   if (paymentStep === 'success' && selectedPlan) {
@@ -219,7 +238,7 @@ export default function Pricing() {
               className="relative"
             >
               Yearly
-              <span className="ml-2 text-xs bg-primary/20 text-primary px-2 py-0.5 rounded-full">
+              <span className="ml-2 text-xs bg-amber-500 text-amber-900 px-2 py-0.5 rounded-full">
                 Save 20%
               </span>
               {billingCycle === 'yearly' && (
@@ -264,13 +283,21 @@ export default function Pricing() {
                   <CardDescription>{details.description}</CardDescription>
                   <div className="mt-4">
                     <span className="text-3xl font-bold">
-                      {details.price}
+                      {getDisplayPrice(plan)}
                       {plan !== 'free' && (
                         <span className="text-base font-normal text-muted-foreground">
                           /{billingCycle === 'yearly' ? 'year' : 'month'}
                         </span>
                       )}
                     </span>
+                    {billingCycle === 'yearly' && plan !== 'free' && (
+                      <div className="text-sm text-muted-foreground mt-1">
+                        <span className="line-through">
+                          ${(parseFloat(SUBSCRIPTION_FEATURES[plan as keyof typeof SUBSCRIPTION_FEATURES].price.replace('$', '')) * 12).toFixed(2)}
+                        </span>
+                        {' '}regular price
+                      </div>
+                    )}
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">

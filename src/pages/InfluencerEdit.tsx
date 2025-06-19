@@ -83,6 +83,29 @@ const FEATURE_RESTRICTIONS = {
     'current_goals',
     'background_elements'
   ],
+  starter: [
+    'facial_features',
+    'makeup',
+    'color_palette',
+    'clothing_style_home',
+    'clothing_style_sports',
+    'clothing_style_sexy_dress',
+    'home_environment',
+    'content_focus',
+    'content_focus_areas',
+    'job_area',
+    'job_title',
+    'job_vibe',
+    'hobbies',
+    'social_circle',
+    'strengths',
+    'weaknesses',
+    'speech_style',
+    'humor',
+    'core_values',
+    'current_goals',
+    'background_elements'
+  ],
   professional: [
     'strengths',
     'weaknesses',
@@ -113,7 +136,14 @@ export default function InfluencerEdit() {
   const [isOptionsLoading, setIsOptionsLoading] = useState(true);
 
   const [showEditView, setShowEditView] = useState(!!location.state?.influencerData);
-  const [subscriptionLevel, setSubscriptionLevel] = useState<'free' | 'professional' | 'enterprise'>('free');
+  
+  const userData = useSelector((state: RootState) => state.user);
+  const [subscriptionLevel, setSubscriptionLevel] = useState<'free' | 'starter' | 'professional' | 'enterprise'>('free');
+  
+  useEffect(() => {
+    setSubscriptionLevel(userData.subscription as 'free' | 'starter' | 'professional' | 'enterprise');
+  }, [userData.subscription]);
+  
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [lockedFeature, setLockedFeature] = useState<string | null>(null);
   const [backgroundOptions, setBackgroundOptions] = useState<Option[]>([]);
@@ -457,7 +487,7 @@ export default function InfluencerEdit() {
     fetchOptions();
   }, []);
 
-  const userData = useSelector((state: RootState) => state.user);
+  console.log('User Data:', userData);
 
   // console.log('Cultural background options:', culturalBackgroundOptions);
   const fetchInfluencers = async () => {
@@ -566,14 +596,22 @@ export default function InfluencerEdit() {
     );
   };
 
-  const OptionMultiSelector = ({ options, onSelect, onClose, title, selectedValues, maxSelections }: {
+  const OptionMultiSelector = ({ options, onSelect, onClose, title, selectedValues, maxSelections, field }: {
     options: Option[],
     onSelect: (label: string) => void,
     onClose: () => void,
     title: string,
     selectedValues: string[],
-    maxSelections: number
+    maxSelections: number,
+    field: string
   }) => {
+    if (isFeatureLocked(field)) {
+      setLockedFeature(field);
+      setShowUpgradeModal(true);
+      onClose();
+      return;
+    }
+
     const [localSelected, setLocalSelected] = useState<string[]>(selectedValues);
     const [previewImage, setPreviewImage] = useState<string | null>(null);
 
@@ -2573,8 +2611,7 @@ export default function InfluencerEdit() {
                     variant={level === subscriptionLevel ? "outline" : "default"}
                     className={level === subscriptionLevel ? "" : "bg-gradient-to-r from-purple-600 to-blue-600"}
                     onClick={() => {
-                      setSubscriptionLevel(level as 'free' | 'professional' | 'enterprise');
-                      setShowUpgradeModal(false);
+                      navigate('/pricing');
                     }}
                   >
                     {level === subscriptionLevel ? "Current Plan" : "Upgrade"}
@@ -2873,6 +2910,7 @@ export default function InfluencerEdit() {
             title="Select Content Focus"
             selectedValues={influencerData.content_focus}
             maxSelections={4}
+            field="content_focus"
           />
         )
       }
@@ -2892,6 +2930,7 @@ export default function InfluencerEdit() {
             title="Select Hobbies"
             selectedValues={influencerData.hobbies}
             maxSelections={5}
+            field="hobbies"
           />
         )
       }
@@ -2922,6 +2961,7 @@ export default function InfluencerEdit() {
             title="Select Speech Style"
             selectedValues={influencerData.speech_style}
             maxSelections={4}
+            field="speech_style"
           />
         )
       }
@@ -2941,6 +2981,7 @@ export default function InfluencerEdit() {
             title="Select Strengths"
             selectedValues={influencerData.strengths}
             maxSelections={3}
+            field="strengths"
           />
         )
       }
@@ -2960,6 +3001,7 @@ export default function InfluencerEdit() {
             title="Select Weaknesses"
             selectedValues={influencerData.weaknesses}
             maxSelections={2}
+            field="weaknesses"
           />
         )
       }
@@ -2978,6 +3020,7 @@ export default function InfluencerEdit() {
           title="Select Humor Style"
           selectedValues={influencerData.humor}
           maxSelections={4}
+          field="humor"
         />
       )}
 
@@ -2995,6 +3038,7 @@ export default function InfluencerEdit() {
           title="Select Core Values Style"
           selectedValues={influencerData.core_values}
           maxSelections={5}
+          field="core_values"
         />
       )}
 
@@ -3012,6 +3056,7 @@ export default function InfluencerEdit() {
           title="Select Current Goals"
           selectedValues={influencerData.current_goals}
           maxSelections={3}
+          field="current_goals"
         />
       )}
 
@@ -3029,6 +3074,7 @@ export default function InfluencerEdit() {
           title="Select Background Elements"
           selectedValues={influencerData.background_elements}
           maxSelections={4}
+          field="background_elements"
         />
       )}
 
@@ -3061,6 +3107,7 @@ export default function InfluencerEdit() {
           title="Select Content Focus Areas"
           selectedValues={influencerData.content_focus_areas}
           maxSelections={5}
+          field="content_focus_areas"
         />
       )}
       {previewImage && (

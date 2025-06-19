@@ -28,12 +28,12 @@ export function Header() {
     const breadcrumbs: Array<{ label: string; href: string; isLast?: boolean }> = [
       { label: 'Dashboard', href: '/dashboard' }
     ];
-    
+
     let currentPath = '';
     pathSegments.forEach((segment, index) => {
       currentPath += `/${segment}`;
       let label = segment.charAt(0).toUpperCase() + segment.slice(1);
-      
+
       // Custom labels for specific routes
       const customLabels: { [key: string]: string } = {
         'create': 'Create New',
@@ -53,24 +53,24 @@ export function Header() {
         'schedule': 'Schedule',
         'batch': 'Batch'
       };
-      
+
       if (customLabels[segment]) {
         label = customLabels[segment];
       }
-      
-      breadcrumbs.push({ 
-        label, 
+
+      breadcrumbs.push({
+        label,
         href: currentPath,
         isLast: index === pathSegments.length - 1
       });
     });
-    
+
     return breadcrumbs;
   };
 
   const handleLogout = async () => {
     const accessToken = sessionStorage.getItem('access_token');
-    
+
     if (accessToken) {
       try {
         const response = await fetch('https://api.nymia.ai/v1/logout', {
@@ -117,21 +117,21 @@ export function Header() {
           {/* Right side - Credits, Theme toggle and User menu */}
           <div className="flex items-center gap-3">
             {/* Credits display */}
-            <div 
-              className="hidden sm:flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500/15 via-blue-500/10 to-cyan-500/15 rounded-full border border-purple-300/30 dark:border-purple-700/30 hover:from-purple-500/25 hover:via-blue-500/20 hover:to-cyan-500/25 cursor-pointer transition-all duration-300 ease-in-out hover:scale-105 hover:shadow-lg hover:shadow-purple-500/20 backdrop-blur-sm relative overflow-hidden group" 
+            <div
+              className="hidden sm:flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500/15 via-blue-500/10 to-cyan-500/15 rounded-full border border-purple-300/30 dark:border-purple-700/30 hover:from-purple-500/25 hover:via-blue-500/20 hover:to-cyan-500/25 cursor-pointer transition-all duration-300 ease-in-out hover:scale-105 hover:shadow-lg hover:shadow-purple-500/20 backdrop-blur-sm relative overflow-hidden group"
               onClick={() => setShowCreditPurchase(true)}
             >
               {/* Animated background overlay */}
               <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 via-blue-500/5 to-cyan-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-              
+
               {/* Shimmer effect */}
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out" />
-              
+
               <Star className="w-4 h-4 text-purple-600 dark:text-purple-400 drop-shadow-sm group-hover:scale-110 transition-transform duration-300" />
               <span className="text-sm font-semibold text-foreground relative z-10 tracking-wide">
                 {credits.toLocaleString()} credits
               </span>
-              
+
               {/* Pulse indicator for low credits */}
               {credits < 10 && (
                 <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
@@ -139,14 +139,11 @@ export function Header() {
             </div>
 
             {/* User Level Badge */}
-            <Button
-              variant="ghost"
-              size="sm"
+            <button
               onClick={() => navigate('/pricing')}
-              className="hover:bg-accent transition-colors"
             >
-            <UserLevelBadge level={subscription as 'free' | 'professional' | 'enterprise'} />
-            </Button>
+              <UserLevelBadge level={subscription as 'free' | 'starter' | 'professional' | 'enterprise'} />
+            </button>
 
             {/* Theme toggle */}
             <Button
@@ -207,7 +204,7 @@ export function Header() {
                     {crumb.isLast ? (
                       <BreadcrumbPage className="text-foreground font-medium">{crumb.label}</BreadcrumbPage>
                     ) : (
-                      <BreadcrumbLink 
+                      <BreadcrumbLink
                         href={crumb.href}
                         className="text-muted-foreground hover:text-foreground transition-colors"
                       >

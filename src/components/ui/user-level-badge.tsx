@@ -13,25 +13,25 @@ const levelConfig = {
   free: {
     name: 'Free',
     icon: Star,
-    className: 'cursor-pointer bg-gradient-to-r from-slate-400 to-slate-600 hover:from-slate-500 hover:to-slate-700 text-white border border-slate-300/20 shadow-lg shadow-slate-400/25',
+    className: 'cursor-pointer bg-gradient-to-r from-slate-400 to-slate-600 hover:from-slate-500 hover:to-slate-700 text-white border border-slate-300/20 hover:shadow-sm hover:shadow-slate-400/20',
     iconClassName: 'text-white drop-shadow-sm'
   },
   starter: {
     name: 'Starter',
     icon: Sparkles,
-    className: 'cursor-pointer bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 hover:from-emerald-600 hover:via-teal-600 hover:to-cyan-600 text-white border border-emerald-300/30 shadow-lg shadow-emerald-500/30',
+    className: 'cursor-pointer bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 hover:from-emerald-600 hover:via-teal-600 hover:to-cyan-600 text-white border border-emerald-300/30 hover:shadow-sm hover:shadow-emerald-500/20',
     iconClassName: 'text-white drop-shadow-sm'
   },
   professional: {
     name: 'Professional',
     icon: Zap,
-    className: 'cursor-pointer bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-700 hover:via-purple-700 hover:to-indigo-700 text-white border border-violet-300/30 shadow-lg shadow-purple-500/40',
+    className: 'cursor-pointer bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-700 hover:via-purple-700 hover:to-indigo-700 text-white border border-violet-300/30 hover:shadow-sm hover:shadow-purple-500/20',
     iconClassName: 'text-white drop-shadow-sm'
   },
   enterprise: {
     name: 'Enterprise',
     icon: Crown,
-    className: 'cursor-pointer bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 hover:from-amber-600 hover:via-orange-600 hover:to-red-600 text-white border border-amber-300/30 shadow-lg shadow-orange-500/40',
+    className: 'cursor-pointer bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 hover:from-amber-600 hover:via-orange-600 hover:to-red-600 text-white border border-amber-300/30 hover:shadow-sm hover:shadow-orange-500/20',
     iconClassName: 'text-white drop-shadow-sm'
   }
 };

@@ -566,10 +566,10 @@ export default function InfluencerEdit() {
                         className="absolute inset-0 w-full h-full object-cover rounded-md"
                       />
                       <div
-                        className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
+                        className="absolute right-2 top-2 bg-black/50 rounded-full w-8 h-8 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
                         onClick={(e) => handleImageClick(e, `https://images.nymia.ai/cdn-cgi/image/w=800/wizard/${option.image}`)}
                       >
-                        <ZoomIn className="w-8 h-8 text-white" />
+                        <ZoomIn className="w-5 h-5 text-white" />
                       </div>
                     </div>
                     <p className="text-sm text-center font-medium mt-2">{option.label}</p>
@@ -661,10 +661,10 @@ export default function InfluencerEdit() {
                         className="absolute inset-0 w-full h-full object-cover rounded-md"
                       />
                       <div
-                        className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
+                        className="absolute right-2 top-2 bg-black/50 rounded-full w-8 h-8 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
                         onClick={(e) => handleImageClick(e, `https://images.nymia.ai/cdn-cgi/image/w=800/wizard/${option.image}`)}
                       >
-                        <ZoomIn className="w-8 h-8 text-white" />
+                        <ZoomIn className="w-5 h-5 text-white" />
                       </div>
                     </div>
                     <p className="text-sm text-center font-medium mt-2">{option.label}</p>
@@ -1955,13 +1955,13 @@ export default function InfluencerEdit() {
                                   className="absolute inset-0 w-full h-full object-cover rounded-md"
                                 />
                                 <div
-                                  className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
+                                  className="absolute right-2 top-2 bg-black/50 rounded-full w-8 h-8 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     setPreviewImage(`https://images.nymia.ai/cdn-cgi/image/w=800/wizard/${option.image}`);
                                   }}
                                 >
-                                  <ZoomIn className="w-8 h-8 text-white" />
+                                  <ZoomIn className="w-5 h-5 text-white" />
                                 </div>
                               </div>
                               <p className="text-sm text-center font-medium mt-2">{option.label}</p>
@@ -2016,10 +2016,10 @@ export default function InfluencerEdit() {
                                       className="absolute inset-0 w-full h-full object-cover rounded-md"
                                     />
                                     <div
-                                      className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
+                                      className="absolute right-2 top-2 bg-black/50 rounded-full w-8 h-8 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
                                       onClick={() => setPreviewImage(`https://images.nymia.ai/cdn-cgi/image/w=800/wizard/${option.image}`)}
                                     >
-                                      <ZoomIn className="w-8 h-8 text-white" />
+                                      <ZoomIn className="w-5 h-5 text-white" />
                                     </div>
                                   </div>
                                   <p className="text-sm text-center font-medium mt-2">{option.label}</p>
@@ -2069,10 +2069,10 @@ export default function InfluencerEdit() {
                                       className="absolute inset-0 w-full h-full object-cover rounded-md"
                                     />
                                     <div
-                                      className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
+                                      className="absolute right-2 top-2 bg-black/50 rounded-full w-8 h-8 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
                                       onClick={() => setPreviewImage(`https://images.nymia.ai/cdn-cgi/image/w=800/wizard/${option.image}`)}
                                     >
-                                      <ZoomIn className="w-8 h-8 text-white" />
+                                      <ZoomIn className="w-5 h-5 text-white" />
                                     </div>
                                   </div>
                                   <p className="text-sm text-center font-medium mt-2">{option.label}</p>
@@ -2102,10 +2102,10 @@ export default function InfluencerEdit() {
                                     className="absolute inset-0 w-full h-full object-cover rounded-md"
                                   />
                                   <div
-                                    className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
+                                    className="absolute right-2 top-2 bg-black/50 rounded-full w-8 h-8 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
                                     onClick={() => setPreviewImage(`https://images.nymia.ai/cdn-cgi/image/w=800/wizard/${jobAreaOptions.find(opt => opt.label === influencerData.job_area)?.image}`)}
                                   >
-                                    <ZoomIn className="w-8 h-8 text-white" />
+                                    <ZoomIn className="w-5 h-5 text-white" />
                                   </div>
                                 </div>
                                 <p className="text-sm text-center font-medium mt-2">{influencerData.job_area}</p>
@@ -2172,10 +2172,10 @@ export default function InfluencerEdit() {
                                       className="absolute inset-0 w-full h-full object-cover rounded-md"
                                     />
                                     <div
-                                      className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
+                                      className="absolute right-2 top-2 bg-black/50 rounded-full w-8 h-8 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
                                       onClick={() => setPreviewImage(`https://images.nymia.ai/cdn-cgi/image/w=800/wizard/${option.image}`)}
                                     >
-                                      <ZoomIn className="w-8 h-8 text-white" />
+                                      <ZoomIn className="w-5 h-5 text-white" />
                                     </div>
                                   </div>
                                   <p className="text-sm text-center font-medium mt-2">{option.label}</p>
@@ -2233,10 +2233,10 @@ export default function InfluencerEdit() {
                                       className="absolute inset-0 w-full h-full object-cover rounded-md"
                                     />
                                     <div
-                                      className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
+                                      className="absolute right-2 top-2 bg-black/50 rounded-full w-8 h-8 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
                                       onClick={() => setPreviewImage(`https://images.nymia.ai/cdn-cgi/image/w=800/wizard/${option.image}`)}
                                     >
-                                      <ZoomIn className="w-8 h-8 text-white" />
+                                      <ZoomIn className="w-5 h-5 text-white" />
                                     </div>
                                   </div>
                                   <p className="text-sm text-center font-medium mt-2">{option.label}</p>
@@ -2286,10 +2286,10 @@ export default function InfluencerEdit() {
                                       className="absolute inset-0 w-full h-full object-cover rounded-md"
                                     />
                                     <div
-                                      className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
+                                      className="absolute right-2 top-2 bg-black/50 rounded-full w-8 h-8 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
                                       onClick={() => setPreviewImage(`https://images.nymia.ai/cdn-cgi/image/w=800/wizard/${option.image}`)}
                                     >
-                                      <ZoomIn className="w-8 h-8 text-white" />
+                                      <ZoomIn className="w-5 h-5 text-white" />
                                     </div>
                                   </div>
                                   <p className="text-sm text-center font-medium mt-2">{option.label}</p>
@@ -2339,10 +2339,10 @@ export default function InfluencerEdit() {
                                       className="absolute inset-0 w-full h-full object-cover rounded-md"
                                     />
                                     <div
-                                      className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
+                                      className="absolute right-2 top-2 bg-black/50 rounded-full w-8 h-8 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
                                       onClick={() => setPreviewImage(`https://images.nymia.ai/cdn-cgi/image/w=800/wizard/${option.image}`)}
                                     >
-                                      <ZoomIn className="w-8 h-8 text-white" />
+                                      <ZoomIn className="w-5 h-5 text-white" />
                                     </div>
                                   </div>
                                   <p className="text-sm text-center font-medium mt-2">{option.label}</p>
@@ -2393,10 +2393,10 @@ export default function InfluencerEdit() {
                                         className="absolute inset-0 w-full h-full object-cover rounded-md"
                                       />
                                       <div
-                                        className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
+                                        className="absolute right-2 top-2 bg-black/50 rounded-full w-8 h-8 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
                                         onClick={() => setPreviewImage(`https://images.nymia.ai/cdn-cgi/image/w=800/wizard/${option.image}`)}
                                       >
-                                        <ZoomIn className="w-8 h-8 text-white" />
+                                        <ZoomIn className="w-5 h-5 text-white" />
                                       </div>
                                     </div>
                                     <p className="text-sm text-center font-medium mt-2">{option.label}</p>
@@ -2446,10 +2446,10 @@ export default function InfluencerEdit() {
                                         className="absolute inset-0 w-full h-full object-cover rounded-md"
                                       />
                                       <div
-                                        className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
+                                        className="absolute right-2 top-2 bg-black/50 rounded-full w-8 h-8 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
                                         onClick={() => setPreviewImage(`https://images.nymia.ai/cdn-cgi/image/w=800/wizard/${option.image}`)}
                                       >
-                                        <ZoomIn className="w-8 h-8 text-white" />
+                                        <ZoomIn className="w-5 h-5 text-white" />
                                       </div>
                                     </div>
                                     <p className="text-sm text-center font-medium mt-2">{option.label}</p>
@@ -2499,10 +2499,10 @@ export default function InfluencerEdit() {
                                         className="absolute inset-0 w-full h-full object-cover rounded-md"
                                       />
                                       <div
-                                        className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
+                                        className="absolute right-2 top-2 bg-black/50 rounded-full w-8 h-8 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
                                         onClick={() => setPreviewImage(`https://images.nymia.ai/cdn-cgi/image/w=800/wizard/${option.image}`)}
                                       >
-                                        <ZoomIn className="w-8 h-8 text-white" />
+                                        <ZoomIn className="w-5 h-5 text-white" />
                                       </div>
                                     </div>
                                     <p className="text-sm text-center font-medium mt-2">{option.label}</p>
@@ -2552,10 +2552,10 @@ export default function InfluencerEdit() {
                                         className="absolute inset-0 w-full h-full object-cover rounded-md"
                                       />
                                       <div
-                                        className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
+                                        className="absolute right-2 top-2 bg-black/50 rounded-full w-8 h-8 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
                                         onClick={() => setPreviewImage(`https://images.nymia.ai/cdn-cgi/image/w=800/wizard/${option.image}`)}
                                       >
-                                        <ZoomIn className="w-8 h-8 text-white" />
+                                        <ZoomIn className="w-5 h-5 text-white" />
                                       </div>
                                     </div>
                                     <p className="text-sm text-center font-medium mt-2">{option.label}</p>

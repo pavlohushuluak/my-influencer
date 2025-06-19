@@ -14,7 +14,7 @@ import { motion } from 'framer-motion';
 import { RootState } from '@/store/store';
 import { updatePlan, updateBillingCycle, updatePaymentMethod } from '@/store/slices/subscriptionSlice';
 import { subscriptionService } from '@/services/subscriptionService';
-
+import { setUser } from '@/store/slices/userSlice';
 const SUBSCRIPTION_FEATURES = {
   starter: {
     name: 'Starter',
@@ -108,6 +108,10 @@ export default function Pricing() {
       dispatch(updatePaymentMethod(paymentMethod));
 
       setPaymentStep('success');
+      dispatch(setUser({
+        ...userData,
+        subscription: selectedPlan as 'starter' | 'professional' | 'enterprise'
+      }));
     } catch (error) {
       toast.error('Failed to update subscription');
       setPaymentStep('select');
@@ -132,7 +136,7 @@ export default function Pricing() {
   if (paymentStep === 'success' && selectedPlan) {
     return (
       <SubscriptionSuccess
-        plan={selectedPlan === 'professional' ? 'Professional' : 'Enterprise'}
+        plan={selectedPlan === 'professional' ? 'Professional' : selectedPlan === 'enterprise' ? 'Enterprise' : 'Starter'}
       />
     );
   }

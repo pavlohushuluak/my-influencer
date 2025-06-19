@@ -13,6 +13,8 @@ import { cn } from '@/lib/utils';
 import { creditService } from '@/services/creditService';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/store/store';
+import { setUser } from '@/store/slices/userSlice';
+import { useDispatch } from 'react-redux';
 interface CreditPackage {
   id: string;
   credits: number;
@@ -56,7 +58,7 @@ export function CreditPurchase({ onSuccess, onCancel }: CreditPurchaseProps) {
   const [paymentMethod, setPaymentMethod] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const userData = useSelector((state: RootState) => state.user);
-
+  const dispatch = useDispatch();
   const handlePaymentMethodSelect = (method: string) => {
     setPaymentMethod(method);
     setPaymentStep(method as PaymentStep);
@@ -78,6 +80,11 @@ export function CreditPurchase({ onSuccess, onCancel }: CreditPurchaseProps) {
       toast.success('Credits purchased successfully!', {
         description: `Added ${packageData.credits + packageData.bonus} credits to your account.`
       });
+
+      dispatch(setUser({
+        ...userData,
+        credits: packageData.credits + packageData.bonus + userData.credits
+      }));
       
       onSuccess();
     } catch (error) {

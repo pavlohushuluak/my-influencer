@@ -101,6 +101,7 @@ export default function Pricing() {
         plan: selectedPlan as 'starter' | 'professional' | 'enterprise',
         user_id: userData.id,
         billingDate: Date.now() + 1 * 30 * 24 * 60 * 60 * 1000,
+        billedDate: Date.now()
       });
 
       dispatch(updatePlan(selectedPlan as 'starter' | 'professional' | 'enterprise'));

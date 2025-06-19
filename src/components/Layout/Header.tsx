@@ -12,12 +12,12 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useNavigate } from 'react-router-dom';
 import { CreditPurchaseDialog } from '@/components/Payment/CreditPurchaseDialog';
 import { useState } from 'react';
-
+import { toast } from 'sonner';
 export function Header() {
   const dispatch = useDispatch();
   const location = useLocation();
   const { theme } = useSelector((state: RootState) => state.ui);
-  const { firstName, lastName, email, credits, subscription } = useSelector((state: RootState) => state.user);
+  const { firstName, lastName, email, credits, subscription, free_purchase } = useSelector((state: RootState) => state.user);
   const name = `${firstName} ${lastName}`;
   const navigate = useNavigate();
   const [showCreditPurchase, setShowCreditPurchase] = useState(false);
@@ -104,6 +104,16 @@ export function Header() {
     dispatch(toggleTheme());
   };
 
+  const handleCreditPurchase = () => {
+    if(free_purchase) {
+      setShowCreditPurchase(true);
+    }
+    else {
+      toast.error('You can purchase credits only once on a free plan. Please upgrade to continue.');
+      navigate('/pricing');
+    }
+  }
+
   return (
     <>
       {/* Main Header */}
@@ -119,7 +129,7 @@ export function Header() {
             {/* Credits display */}
             <div
               className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500/15 via-blue-500/10 to-cyan-500/15 rounded-full border border-purple-300/30 dark:border-purple-700/30 hover:from-purple-500/25 hover:via-blue-500/20 hover:to-cyan-500/25 cursor-pointer transition-all duration-300 ease-in-out hover:scale-105 hover:shadow-lg hover:shadow-purple-500/20 backdrop-blur-sm relative overflow-hidden group"
-              onClick={() => setShowCreditPurchase(true)}
+              onClick={() => handleCreditPurchase()}
             >
               {/* Animated background overlay */}
               <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 via-blue-500/5 to-cyan-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />

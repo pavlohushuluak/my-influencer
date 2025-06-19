@@ -10,6 +10,7 @@ import { Plus, Settings, MoreHorizontal, Filter } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { StoryContentCard } from '@/components/Dashboard/StoryContentCard';
 import { ScheduleCard } from '@/components/Dashboard/ScheduleCard';
+import axios from 'axios';
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -64,6 +65,61 @@ export default function Dashboard() {
   const displayedStoryContent = showAllStoryContent ? mockStoryContent : mockStoryContent.slice(0, 2);
 
   const userData = useSelector((state: RootState) => state.user);
+
+  useEffect(() => {
+    const checkSubscription = async () => {
+      let credits = userData.credits;
+      const subscription = userData.subscription;
+      if (subscription === 'enterprise' && credits > 300) {
+        credits = 300;
+      }
+      else if (subscription === 'professional' && credits > 200) {
+        credits = 200;
+      }
+      else if (subscription === 'starter' && credits > 100) {
+        credits = 100;
+      }
+      if (userData.billing_date <= Date.now() && userData.subscription !== 'free') {
+        try {
+          const response = await axios.patch(`https://db.nymia.ai/rest/v1/user?uuid=eq.${userData.id}`, JSON.stringify({
+            subscription: 'free',
+            billing_date: 0,
+            free_purchase: true,
+            credits: credits
+          }), {
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer WeInfl3nc3withAI`,
+            },
+          });
+          return response.data;
+        } catch (error) {
+          console.error('Subscription update failed:', error);
+          throw error;
+        }
+      }
+      else if (userData.billing_date > Date.now() && userData.subscription !== 'free' && userData.billed_date + 1 * 30 * 24 * 60 * 60 * 1000 >= Date.now()) {
+        try {
+          const response = await axios.patch(`https://db.nymia.ai/rest/v1/user?uuid=eq.${userData.id}`, JSON.stringify({
+            billed_date: userData.billed_date + 1 * 30 * 24 * 60 * 60 * 1000,
+            credits: credits
+          }), {
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer WeInfl3nc3withAI`,
+            },
+          });
+          return response.data;
+        } catch (error) {
+          console.error('Subscription update failed:', error);
+          throw error;
+        }
+      }
+    };
+
+    checkSubscription();
+  }, [userData.billing_date, userData.id]);
+
   // console.log('User Data:', userData);
   useEffect(() => {
     const fetchInfluencers = async () => {
@@ -112,8 +168,8 @@ export default function Dashboard() {
   const handleUseInfluencer = (id: string) => {
     const selectedInfluencer = influencers.find(inf => inf.id === id);
     if (selectedInfluencer) {
-      navigate('/content/create', { 
-        state: { 
+      navigate('/content/create', {
+        state: {
           influencerData: selectedInfluencer,
           mode: 'create'
         }
@@ -176,20 +232,20 @@ export default function Dashboard() {
                 <CardContent className="p-6">
                   <div className="space-y-4">
                     <div className="w-full h-48 bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg overflow-hidden">
-                      <img 
-                        src={influencer.image_url} 
+                      <img
+                        src={influencer.image_url}
                         alt={`${influencer.name_first} ${influencer.name_last}`}
                         className="w-full h-full object-cover"
                       />
                     </div>
-                    
+
                     <div>
                       <div className="flex items-center justify-between mb-2">
                         <h3 className="font-semibold text-lg group-hover:text-ai-purple-500 transition-colors">
                           {influencer.name_first} {influencer.name_last}
                         </h3>
                       </div>
-                      
+
                       <div className="flex flex-col gap-1 mb-3">
                         <div className="flex text-sm text-muted-foreground flex-col">
                           <span className="font-medium mr-2">Age/Lifestyle:</span>
@@ -200,7 +256,7 @@ export default function Dashboard() {
                           {influencer.influencer_type}
                         </div>
                       </div>
-                      
+
                       <div className="flex gap-2">
                         <Button
                           size="sm"

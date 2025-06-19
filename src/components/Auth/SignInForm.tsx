@@ -92,7 +92,10 @@ export function SignInForm({ onToggleMode }: SignInFormProps) {
           lastName: userData[0].last_name,
           nickname: userData[0].nickname,
           credits: userData[0].credits || 0,
-          subscription: userData[0].subscription || 'free'
+          subscription: userData[0].subscription || 'free',
+          billing_date: userData[0].billing_date || 0,
+          billed_date: userData[0].billed_date || 0,
+          free_purchase: userData[0].free_purchase
         }));
 
         toast.success('Sign in successful');

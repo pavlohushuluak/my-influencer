@@ -4,6 +4,7 @@ export interface SubscriptionData {
   plan: 'free' | 'starter' | 'professional' | 'enterprise';
   billingDate: number;
   user_id: string;
+  billedDate: number;
 }
 
 export const subscriptionService = {
@@ -13,6 +14,7 @@ export const subscriptionService = {
       const response = await axios.patch(`https://db.nymia.ai/rest/v1/user?uuid=eq.${data.user_id}`, JSON.stringify({
         subscription: data.plan,
         billing_date: data.billingDate,
+        billed_date: data.billedDate
       }), {
         headers: {
           'Content-Type': 'application/json',

@@ -74,18 +74,28 @@ export function CreditPurchase({ onSuccess, onCancel }: CreditPurchaseProps) {
 
       await creditService.purchaseCredits({
         user_id: userData.id,
-        credits: packageData.credits + packageData.bonus + userData.credits
+        credits: packageData.credits + packageData.bonus + userData.credits,
+        subscription: userData.subscription
       });
 
       toast.success('Credits purchased successfully!', {
         description: `Added ${packageData.credits + packageData.bonus} credits to your account.`
       });
 
-      dispatch(setUser({
-        ...userData,
-        credits: packageData.credits + packageData.bonus + userData.credits
-      }));
-      
+      if (userData.subscription === 'free') {
+        dispatch(setUser({
+          ...userData,
+          credits: packageData.credits + packageData.bonus + userData.credits,
+          free_purchase: false
+        }));
+      }
+      else {
+        dispatch(setUser({
+          ...userData,
+          credits: packageData.credits + packageData.bonus + userData.credits
+        }));
+      }
+
       onSuccess();
     } catch (error) {
       toast.error('Failed to purchase credits');
@@ -120,9 +130,7 @@ export function CreditPurchase({ onSuccess, onCancel }: CreditPurchaseProps) {
               key={pkg.id}
               htmlFor={pkg.id}
               className={cn(
-                "flex cursor-pointer items-center justify-between rounded-lg border p-4 hover:bg-accent",
-                selectedPackage === pkg.id && "border-primary",
-                pkg.popular && "border-ai-purple-500"
+                "flex cursor-pointer items-center justify-between rounded-lg border p-4 hover:bg-accent"
               )}
             >
               <div className="flex items-center gap-4">

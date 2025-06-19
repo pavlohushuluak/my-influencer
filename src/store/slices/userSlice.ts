@@ -10,6 +10,9 @@ interface UserState {
   subscription: string;
   loading: boolean;
   error: string | null;
+  billing_date: number;
+  free_purchase: boolean;
+  billed_date: number;
 }
 
 const initialState: UserState = {
@@ -21,7 +24,10 @@ const initialState: UserState = {
   credits: 0,
   subscription: 'free',
   loading: false,
-  error: null
+  error: null,
+  billing_date: 0,
+  free_purchase: true,
+  billed_date: 0
 };
 
 const userSlice = createSlice({

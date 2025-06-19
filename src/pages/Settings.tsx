@@ -333,7 +333,7 @@ export default function Settings() {
                         <h4 className="font-medium">Next Billing Date</h4>
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <Calendar className="w-4 h-4" />
-                          {new Date(subscriptionData.nextBillingDate).toLocaleDateString()}
+                          {new Date(user.billing_date).toLocaleDateString()}
                         </div>
                       </div>
                     </div>

@@ -91,15 +91,16 @@ export default function Pricing() {
     setPaymentStep(method as PaymentStep);
   };
 
+  const userData = useSelector((state: RootState) => state.user);
+
   const handlePaymentSuccess = async () => {
     if (!selectedPlan || !paymentMethod) return;
 
     try {
       await subscriptionService.updateSubscription({
         plan: selectedPlan as 'starter' | 'professional' | 'enterprise',
-        billingCycle,
-        paymentMethod,
-        amount: getPlanPrice(selectedPlan)
+        user_id: userData.id,
+        billingDate: Date.now() + 1 * 30 * 24 * 60 * 60 * 1000,
       });
 
       dispatch(updatePlan(selectedPlan as 'starter' | 'professional' | 'enterprise'));

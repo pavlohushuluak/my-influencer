@@ -338,7 +338,7 @@ export default function Settings() {
                       </div>
                     </div>
 
-                    <div className="space-y-1">
+                    {/* <div className="space-y-1">
                       <h4 className="font-medium">Payment Method</h4>
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <CreditCard className="w-4 h-4" />
@@ -364,7 +364,7 @@ export default function Settings() {
                       <Button type="submit" disabled={isLoading}>
                         {isLoading ? 'Updating...' : 'Update Payment Method'}
                       </Button>
-                    </form>
+                    </form> */}
                   </div>
                 </>
               )}

@@ -1,21 +1,22 @@
 import axios from 'axios';
 
-const API_URL = 'https://nymia.ai';
-
 export interface SubscriptionData {
   plan: 'free' | 'starter' | 'professional' | 'enterprise';
-  billingCycle: 'monthly' | 'yearly';
-  paymentMethod: string;
-  amount: number;
+  billingDate: number;
+  user_id: string;
 }
 
 export const subscriptionService = {
   async updateSubscription(data: SubscriptionData) {
     try {
-      const response = await axios.post(`${API_URL}/subscription/`, data, {
+      console.log(data);
+      const response = await axios.patch(`https://db.nymia.ai/rest/v1/user?uuid=eq.${data.user_id}`, JSON.stringify({
+        subscription: data.plan,
+        billing_date: data.billingDate,
+      }), {
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${sessionStorage.getItem('access_token')}`,
+          'Authorization': `Bearer WeInfl3nc3withAI`,
         },
       });
       return response.data;
@@ -23,19 +24,5 @@ export const subscriptionService = {
       console.error('Subscription update failed:', error);
       throw error;
     }
-  },
-
-  async getSubscriptionStatus() {
-    try {
-      const response = await axios.get(`${API_URL}/subscription/status`, {
-        headers: {
-          'Authorization': `Bearer ${sessionStorage.getItem('access_token')}`,
-        },
-      });
-      return response.data;
-    } catch (error) {
-      console.error('Failed to fetch subscription status:', error);
-      throw error;
-    }
-  },
+  }
 }; 

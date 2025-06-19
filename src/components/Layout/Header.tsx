@@ -117,17 +117,25 @@ export function Header() {
           {/* Right side - Credits, Theme toggle and User menu */}
           <div className="flex items-center gap-3">
             {/* Credits display */}
-            <div className="hidden sm:flex items-center gap-2 px-3 py-1 bg-gradient-to-r from-purple-500/10 to-blue-500/10 rounded-full border border-purple-200/20 dark:border-purple-800/20">
-              <Star className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-              <span className="text-sm font-medium text-foreground">{credits} credits</span>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-6 px-2 text-xs hover:bg-purple-500/20"
-                onClick={() => setShowCreditPurchase(true)}
-              >
-                Buy More
-              </Button>
+            <div 
+              className="hidden sm:flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500/15 via-blue-500/10 to-cyan-500/15 rounded-full border border-purple-300/30 dark:border-purple-700/30 hover:from-purple-500/25 hover:via-blue-500/20 hover:to-cyan-500/25 cursor-pointer transition-all duration-300 ease-in-out hover:scale-105 hover:shadow-lg hover:shadow-purple-500/20 backdrop-blur-sm relative overflow-hidden group" 
+              onClick={() => setShowCreditPurchase(true)}
+            >
+              {/* Animated background overlay */}
+              <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 via-blue-500/5 to-cyan-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              
+              {/* Shimmer effect */}
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out" />
+              
+              <Star className="w-4 h-4 text-purple-600 dark:text-purple-400 drop-shadow-sm group-hover:scale-110 transition-transform duration-300" />
+              <span className="text-sm font-semibold text-foreground relative z-10 tracking-wide">
+                {credits.toLocaleString()} credits
+              </span>
+              
+              {/* Pulse indicator for low credits */}
+              {credits < 10 && (
+                <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+              )}
             </div>
 
             {/* User Level Badge */}

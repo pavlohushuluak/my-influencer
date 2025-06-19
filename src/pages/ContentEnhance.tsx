@@ -26,17 +26,6 @@ export default function ContentEnhance() {
 
   const handleEnhance = () => {
     setIsProcessing(true);
-    console.log('Enhancing content:', {
-      file: selectedFile?.name,
-      type: enhanceType,
-      brightness: brightness[0],
-      contrast: contrast[0],
-      saturation: saturation[0]
-    });
-    
-    setTimeout(() => {
-      setIsProcessing(false);
-    }, 3000);
   };
 
   return (

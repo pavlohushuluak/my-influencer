@@ -118,7 +118,7 @@ export function Header() {
           <div className="flex items-center gap-3">
             {/* Credits display */}
             <div
-              className="hidden sm:flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500/15 via-blue-500/10 to-cyan-500/15 rounded-full border border-purple-300/30 dark:border-purple-700/30 hover:from-purple-500/25 hover:via-blue-500/20 hover:to-cyan-500/25 cursor-pointer transition-all duration-300 ease-in-out hover:scale-105 hover:shadow-lg hover:shadow-purple-500/20 backdrop-blur-sm relative overflow-hidden group"
+              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500/15 via-blue-500/10 to-cyan-500/15 rounded-full border border-purple-300/30 dark:border-purple-700/30 hover:from-purple-500/25 hover:via-blue-500/20 hover:to-cyan-500/25 cursor-pointer transition-all duration-300 ease-in-out hover:scale-105 hover:shadow-lg hover:shadow-purple-500/20 backdrop-blur-sm relative overflow-hidden group"
               onClick={() => setShowCreditPurchase(true)}
             >
               {/* Animated background overlay */}
@@ -128,10 +128,14 @@ export function Header() {
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out" />
 
               <Star className="w-4 h-4 text-purple-600 dark:text-purple-400 drop-shadow-sm group-hover:scale-110 transition-transform duration-300" />
-              <span className="text-sm font-semibold text-foreground relative z-10 tracking-wide">
-                {credits.toLocaleString()} credits
-              </span>
-
+              <div className='flex'>
+                <span className="text-sm font-semibold text-foreground relative z-10 tracking-wide">
+                  {credits.toLocaleString()}
+                </span>
+                <span className="hidden md:flex text-sm font-semibold text-foreground relative z-10 tracking-wide">
+                  credits
+                </span>
+              </div>
               {/* Pulse indicator for low credits */}
               {credits < 10 && (
                 <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
@@ -146,18 +150,24 @@ export function Header() {
             </button>
 
             {/* Theme toggle */}
-            <Button
-              variant="ghost"
-              size="icon"
+            <button
               onClick={handleThemeToggle}
-              className="w-9 h-9 hover:bg-accent transition-colors"
+              className="relative w-10 h-10 rounded-full bg-gradient-to-r from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-700 border border-slate-300/50 dark:border-slate-600/50 hover:from-slate-200 hover:to-slate-300 dark:hover:from-slate-700 dark:hover:to-slate-600 transition-all duration-300 ease-in-out hover:scale-110 hover:shadow-lg hover:shadow-slate-500/20 dark:hover:shadow-slate-400/20 backdrop-blur-sm group overflow-hidden"
             >
-              {theme === 'dark' ? (
-                <Sun className="w-4 h-4 transition-all" />
-              ) : (
-                <Moon className="w-4 h-4 transition-all" />
-              )}
-            </Button>
+              {/* Animated background overlay */}
+              <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
+              {/* Shimmer effect */}
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out" />
+
+              <div className="relative z-10 flex items-center justify-center w-full h-full">
+                {theme === 'dark' ? (
+                  <Sun className="w-5 h-5 text-amber-500 drop-shadow-sm group-hover:scale-110 transition-transform duration-300 group-hover:rotate-12" />
+                ) : (
+                  <Moon className="w-5 h-5 text-slate-600 dark:text-slate-300 drop-shadow-sm group-hover:scale-110 transition-transform duration-300 group-hover:-rotate-12" />
+                )}
+              </div>
+            </button>
 
             {/* User menu */}
             <DropdownMenu>

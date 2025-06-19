@@ -331,7 +331,6 @@ export default function InfluencerEdit() {
         errors[field] = 'This field is required';
       }
     });
-    console.log(errors);
     setValidationErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -342,7 +341,6 @@ export default function InfluencerEdit() {
     }
 
     if (location.state?.create) {
-      console.log(influencerData);
       const response = await fetch('https://db.nymia.ai/rest/v1/influencer', {
         method: 'POST',
         headers: {
@@ -357,7 +355,6 @@ export default function InfluencerEdit() {
       }
     }
     else {
-      console.log(influencerData);
       const response = await fetch(`https://db.nymia.ai/rest/v1/influencer?id=eq.${influencerData.id}`, {
         method: 'PATCH',
         headers: {
@@ -413,7 +410,6 @@ export default function InfluencerEdit() {
         });
         if (backgroundResponse.ok) {
           const responseData = await backgroundResponse.json();
-          console.log('Background response:', responseData); // Debug log
           if (responseData && responseData.fieldoptions && Array.isArray(responseData.fieldoptions)) {
             setCulturalBackgroundOptions(responseData.fieldoptions.map((item: any) => ({
               label: item.label,
@@ -487,8 +483,6 @@ export default function InfluencerEdit() {
     fetchOptions();
   }, []);
 
-  console.log('User Data:', userData);
-
   // console.log('Cultural background options:', culturalBackgroundOptions);
   const fetchInfluencers = async () => {
     setIsLoading(true);
@@ -515,7 +509,6 @@ export default function InfluencerEdit() {
   };
 
   useEffect(() => {
-    console.log('fetching influencers');
     fetchInfluencers();
   }, [userData.id]);
 

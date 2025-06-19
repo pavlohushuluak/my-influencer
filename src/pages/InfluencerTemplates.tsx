@@ -17,8 +17,6 @@ export default function InfluencerTemplates() {
   const dispatch = useDispatch<AppDispatch>();
   const { templates, loading, error } = useSelector((state: RootState) => state.templateInfluencer);
 
-  console.log(templates);
-
   useEffect(() => {
     dispatch(fetchTemplateInfluencers());
   }, [dispatch]);
@@ -79,8 +77,6 @@ export default function InfluencerTemplates() {
       current_goals: template.current_goals || [],
       background_elements: template.background_elements || [],
     };
-
-    console.log(newInfluencerData);
 
     const response = await fetch('https://db.nymia.ai/rest/v1/influencer', {
       method: 'POST',

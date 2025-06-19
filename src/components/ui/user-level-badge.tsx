@@ -75,7 +75,7 @@ export function UserLevelBadge({
       {showIcon && (
         <Icon className={cn(iconSizes[size], config.iconClassName, 'transition-transform duration-300 group-hover:scale-110')} />
       )}
-      <span className="relative z-10 font-medium tracking-wide">
+      <span className="z-10 font-medium tracking-wide hidden md:flex">
         {config.name}
       </span>
     </Badge>

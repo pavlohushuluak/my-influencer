@@ -81,7 +81,7 @@ export function MainLayout() {
         });
 
         const userData = await userResponse.json();
-        
+
         // Update user data in Redux store
         dispatch(setUser({
           id: userData[0].uuid,
@@ -112,21 +112,6 @@ export function MainLayout() {
       root.classList.remove('dark');
     }
   }, [theme]);
-
-  // Log user data from Redux store
-  useEffect(() => {
-    console.log('User Data from Redux Store:', {
-      id: userData.id,
-      email: userData.email,
-      firstName: userData.firstName,
-      lastName: userData.lastName,
-      nickname: userData.nickname,
-      credits: userData.credits,
-      subscription: userData.subscription,
-      loading: userData.loading,
-      error: userData.error
-    });
-  }, [userData]);
 
   return (
     <div className={`min-h-screen w-full ${theme === 'dark' ? 'dark' : ''}`}>

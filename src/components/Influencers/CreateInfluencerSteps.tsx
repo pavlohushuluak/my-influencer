@@ -345,7 +345,7 @@ export function CreateInfluencerSteps({ onComplete }: CreateInfluencerStepsProps
   };
 
   const handleSubmit = async() => {
-    console.log(influencerData);
+    // console.log(influencerData);
     navigate('/influencers/edit', { state: { influencerData: influencerData, create: true } });
     onComplete();
   };

@@ -11,7 +11,8 @@ import { PayPalPayment } from './PayPalPayment';
 import { CryptoPayment } from './CryptoPayment';
 import { cn } from '@/lib/utils';
 import { creditService } from '@/services/creditService';
-
+import { useSelector } from 'react-redux';
+import { RootState } from '@/store/store';
 interface CreditPackage {
   id: string;
   credits: number;
@@ -54,6 +55,7 @@ export function CreditPurchase({ onSuccess, onCancel }: CreditPurchaseProps) {
   const [paymentStep, setPaymentStep] = useState<PaymentStep>('select');
   const [paymentMethod, setPaymentMethod] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const userData = useSelector((state: RootState) => state.user);
 
   const handlePaymentMethodSelect = (method: string) => {
     setPaymentMethod(method);
@@ -69,10 +71,8 @@ export function CreditPurchase({ onSuccess, onCancel }: CreditPurchaseProps) {
       if (!packageData) throw new Error('Invalid package selected');
 
       await creditService.purchaseCredits({
-        packageId: selectedPackage,
-        amount: packageData.price,
-        paymentMethod,
-        credits: packageData.credits + packageData.bonus
+        user_id: userData.id,
+        credits: packageData.credits + packageData.bonus + userData.credits
       });
 
       toast.success('Credits purchased successfully!', {

@@ -1,6 +1,5 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { CreditPurchase } from './CreditPurchase';
-import { toast } from 'sonner';
 
 interface CreditPurchaseDialogProps {
   open: boolean;
@@ -10,7 +9,6 @@ interface CreditPurchaseDialogProps {
 export function CreditPurchaseDialog({ open, onOpenChange }: CreditPurchaseDialogProps) {
   const handleSuccess = () => {
     onOpenChange(false);
-    toast.success('Credits added to your account');
   };
 
   const handleCancel = () => {

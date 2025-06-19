@@ -53,7 +53,7 @@ export function AppHeader({ showAuthButtons = true }: AppHeaderProps) {
     sessionStorage.removeItem('access_token');
     sessionStorage.removeItem('refresh_token');
     toast.success('Signed out successfully');
-    navigate('/');
+    navigate('/signin');
   };
 
   const handleNavigation = (href: string) => {

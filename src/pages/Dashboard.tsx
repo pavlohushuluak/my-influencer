@@ -64,6 +64,7 @@ export default function Dashboard() {
   const displayedStoryContent = showAllStoryContent ? mockStoryContent : mockStoryContent.slice(0, 2);
 
   const userData = useSelector((state: RootState) => state.user);
+  console.log('User Data:', userData);
   useEffect(() => {
     const fetchInfluencers = async () => {
       try {

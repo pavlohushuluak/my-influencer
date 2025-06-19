@@ -6,7 +6,6 @@ interface UserState {
   firstName: string;
   lastName: string;
   nickname: string;
-  level: number;
   credits: number;
   subscription: string;
   loading: boolean;
@@ -19,7 +18,6 @@ const initialState: UserState = {
   firstName: '',
   lastName: '',
   nickname: '',
-  level: 0,
   credits: 0,
   subscription: 'free',
   loading: false,

@@ -71,16 +71,26 @@ export function MainLayout() {
         }
 
         const data = await response.json();
+
+        const userResponse = await fetch(`https://db.nymia.ai/rest/v1/user?uuid=eq.${data.id}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer WeInfl3nc3withAI'
+          }
+        });
+
+        const userData = await userResponse.json();
         
+        // Update user data in Redux store
         dispatch(setUser({
-          id: data.id,
-          email: data.email,
-          firstName: data.user_metadata.first_name,
-          lastName: data.user_metadata.last_name,
-          nickname: data.user_metadata.nickname,
-          level: data.user_metadata.level,
-          credits: data.user_metadata.credits || 0,
-          subscription: data.user_metadata.subscription || 'free'
+          id: userData[0].uuid,
+          email: userData[0].email,
+          firstName: userData[0].first_name,
+          lastName: userData[0].last_name,
+          nickname: userData[0].nickname,
+          credits: userData[0].credits || 0,
+          subscription: userData[0].subscription || 'free'
         }));
       } catch (error) {
         console.error('Error fetching user data:', error);
@@ -111,7 +121,6 @@ export function MainLayout() {
       firstName: userData.firstName,
       lastName: userData.lastName,
       nickname: userData.nickname,
-      level: userData.level,
       credits: userData.credits,
       subscription: userData.subscription,
       loading: userData.loading,

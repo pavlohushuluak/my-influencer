@@ -74,7 +74,6 @@ export function SignUpForm({ onToggleMode }: SignUpFormProps) {
             first_name: formData.firstName,
             last_name: formData.lastName,
             nickname: formData.nickname,
-            level: 0
           }
         })
       });

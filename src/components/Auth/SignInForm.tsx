@@ -74,19 +74,27 @@ export function SignInForm({ onToggleMode }: SignInFormProps) {
         // Save tokens to session storage
         sessionStorage.setItem('access_token', data.access_token);
         sessionStorage.setItem('refresh_token', data.refresh_token);
-        
+        const userResponse = await fetch(`https://db.nymia.ai/rest/v1/user?uuid=eq.${data.user.id}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer WeInfl3nc3withAI'
+          }
+        });
+
+        const userData = await userResponse.json();
+
         // Update user data in Redux store
         dispatch(setUser({
-          id: data.user.id,
-          email: data.user.email,
-          firstName: data.user.user_metadata.first_name,
-          lastName: data.user.user_metadata.last_name,
-          nickname: data.user.user_metadata.nickname,
-          level: data.user.user_metadata.level,
-          credits: data.user.user_metadata.credits || 0,
-          subscription: data.user.user_metadata.subscription || 'free'
+          id: userData[0].uuid,
+          email: userData[0].email,
+          firstName: userData[0].first_name,
+          lastName: userData[0].last_name,
+          nickname: userData[0].nickname,
+          credits: userData[0].credits || 0,
+          subscription: userData[0].subscription || 'free'
         }));
-        
+
         toast.success('Sign in successful');
         navigate('/dashboard');
       } else {

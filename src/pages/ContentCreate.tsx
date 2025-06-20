@@ -14,7 +14,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
-import { ArrowLeft, Wand2, Settings, Image as ImageIcon, Sparkles, Loader2, Play, Eye, Palette, Camera, Zap, Search, X, Filter, Plus } from 'lucide-react';
+import { ArrowLeft, Wand2, Settings, Image as ImageIcon, Sparkles, Loader2, Play, Eye, Palette, Camera, Zap, Search, X, Filter, Plus, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -52,6 +52,31 @@ const LIGHTING_SITUATIONS = [
   'Low key', 'High key', 'Split lighting', 'Butterfly lighting'
 ];
 
+const SCENE_SETTINGS = [
+  'Beach', 'Studio', 'City street', 'Park', 'Office', 'Home interior',
+  'Restaurant', 'Gym', 'Shopping mall', 'Airport', 'Hotel room',
+  'Outdoor garden', 'Mountain', 'Forest', 'Desert', 'Urban rooftop',
+  'Subway station', 'Library', 'Museum', 'Cafe', 'Bar', 'Nightclub',
+  'School', 'Hospital', 'Airplane', 'Train', 'Car', 'Boat', 'Yacht'
+];
+
+const POSE_OPTIONS = [
+  'Standing', 'Sitting', 'Walking', 'Running', 'Lying down', 'Kneeling',
+  'Crouching', 'Leaning', 'Dancing', 'Jumping', 'Stretching', 'Yoga pose',
+  'Hands on hips', 'Arms crossed', 'Pointing', 'Waving', 'Clapping',
+  'Reading', 'Writing', 'Typing', 'Cooking', 'Cleaning', 'Exercising',
+  'Meditating', 'Praying', 'Celebrating', 'Thinking', 'Laughing',
+  'Smiling', 'Serious', 'Confident', 'Casual', 'Professional', 'Relaxed'
+];
+
+const MAKEUP_OPTIONS = [
+  'Natural', 'Soft Glam', 'Dramatic', 'No Makeup', 'Minimal', 'Full Face',
+  'Smokey Eye', 'Winged Liner', 'Red Lip', 'Nude Lip', 'Glitter', 'Matte',
+  'Dewy', 'Contoured', 'Highlighted', 'Bronzed', 'Blushed', 'Gothic',
+  'Vintage', 'Modern', 'Bridal', 'Party', 'Professional', 'Casual',
+  'Bold', 'Subtle', 'Colorful', 'Neutral', 'Glamorous', 'Simple'
+];
+
 const SEARCH_FIELDS = [
   { id: 'all', label: 'All Fields' },
   { id: 'name', label: 'Name' },
@@ -70,6 +95,9 @@ export default function ContentCreate() {
 
   // Get influencer data from navigation state
   const influencerData = location.state?.influencerData;
+
+  // Model data state to store influencer information
+  const [modelData, setModelData] = useState<Influencer | null>(null);
 
   // Search state for influencer selection
   const [searchTerm, setSearchTerm] = useState('');
@@ -95,9 +123,9 @@ export default function ContentCreate() {
   const [sceneSpecs, setSceneSpecs] = useState({
     framing: '',
     rotation: '',
-    lighting: '',
-    nsfw: false,
-    additionalText: ''
+    lighting_preset: '',
+    scene_setting: '',
+    pose: ''
   });
 
   // Model description sections
@@ -114,7 +142,12 @@ export default function ContentCreate() {
     eyes: '',
     nose: '',
     makeup: '',
-    clothing: ''
+    clothing: '',
+    sex: '',
+    bust: '',
+    eyebrowStyle: '',
+    faceShape: '',
+    colorPalette: ''
   });
 
   // Filtered influencers for search
@@ -122,7 +155,7 @@ export default function ContentCreate() {
     if (!debouncedSearchTerm) return true;
 
     const searchLower = debouncedSearchTerm.toLowerCase();
-    
+
     switch (selectedSearchField.id) {
       case 'name':
         return `${influencer.name_first} ${influencer.name_last}`.toLowerCase().includes(searchLower);
@@ -167,6 +200,9 @@ export default function ContentCreate() {
 
   useEffect(() => {
     if (influencerData) {
+      // Save influencer data to modelData state
+      setModelData(influencerData);
+
       // Auto-populate model description from influencer data
       setModelDescription({
         appearance: `${influencerData.name_first} ${influencerData.name_last}, ${influencerData.age_lifestyle || ''}`,
@@ -180,9 +216,44 @@ export default function ContentCreate() {
         lips: influencerData.lip_style || '',
         eyes: influencerData.eye_color || '',
         nose: influencerData.nose_style || '',
-        makeup: '',
-        clothing: `${influencerData.clothing_style_everyday || ''} ${influencerData.clothing_style_occasional || ''}`.trim()
+        makeup: '', // No makeup_style property in Influencer interface
+        clothing: `${influencerData.clothing_style_everyday || ''} ${influencerData.clothing_style_occasional || ''}`.trim(),
+        sex: influencerData.sex || '',
+        bust: '', // No bust property in Influencer interface
+        eyebrowStyle: '', // No eyebrow_style property in Influencer interface
+        faceShape: influencerData.face_shape || '',
+        colorPalette: influencerData.color_palette ? influencerData.color_palette.join(', ') : ''
       });
+
+      // Generate the model description automatically
+      const parts = [];
+
+      if (influencerData.name_first && influencerData.name_last) {
+        parts.push(`${influencerData.name_first} ${influencerData.name_last}`);
+      }
+      if (influencerData.age_lifestyle) parts.push(influencerData.age_lifestyle);
+      if (influencerData.cultural_background) parts.push(`Ethnic background: ${influencerData.cultural_background}`);
+      if (influencerData.body_type) parts.push(`Body type: ${influencerData.body_type}`);
+      if (influencerData.facial_features) parts.push(`Facial features: ${influencerData.facial_features}`);
+      if (influencerData.hair_color && influencerData.hair_length && influencerData.hair_style) {
+        parts.push(`${influencerData.hair_length} ${influencerData.hair_color} hair, ${influencerData.hair_style} style`);
+      }
+      if (influencerData.skin_tone) parts.push(`Skin: ${influencerData.skin_tone}`);
+      if (influencerData.lip_style) parts.push(`Lips: ${influencerData.lip_style}`);
+      if (influencerData.eye_color) parts.push(`Eyes: ${influencerData.eye_color}`);
+      if (influencerData.nose_style) parts.push(`Nose: ${influencerData.nose_style}`);
+      if (modelDescription.makeup) parts.push(`Makeup: ${modelDescription.makeup}`);
+      if (influencerData.clothing_style_everyday || influencerData.clothing_style_occasional) {
+        parts.push(`Clothing: ${influencerData.clothing_style_everyday || ''} ${influencerData.clothing_style_occasional || ''}`.trim());
+      }
+
+      const fullDescription = parts.join(', ');
+      setFormData(prev => ({
+        ...prev,
+        model: fullDescription
+      }));
+
+      toast.success(`Using ${influencerData.name_first} ${influencerData.name_last} for content generation`);
     }
   }, [influencerData]);
 
@@ -208,6 +279,9 @@ export default function ContentCreate() {
   };
 
   const handleUseInfluencer = (influencer: Influencer) => {
+    // Save selected influencer to modelData state
+    setModelData(influencer);
+
     // Populate model description from selected influencer
     setModelDescription({
       appearance: `${influencer.name_first} ${influencer.name_last}, ${influencer.age_lifestyle || ''}`,
@@ -221,13 +295,18 @@ export default function ContentCreate() {
       lips: influencer.lip_style || '',
       eyes: influencer.eye_color || '',
       nose: influencer.nose_style || '',
-      makeup: '',
-      clothing: `${influencer.clothing_style_everyday || ''} ${influencer.clothing_style_occasional || ''}`.trim()
+      makeup: '', // No makeup_style property in Influencer interface
+      clothing: `${influencer.clothing_style_everyday || ''} ${influencer.clothing_style_occasional || ''}`.trim(),
+      sex: influencer.sex || '',
+      bust: '', // No bust property in Influencer interface
+      eyebrowStyle: '', // No eyebrow_style property in Influencer interface
+      faceShape: influencer.face_shape || '',
+      colorPalette: influencer.color_palette ? influencer.color_palette.join(', ') : ''
     });
 
     // Generate the model description automatically
     const parts = [];
-    
+
     if (influencer.name_first && influencer.name_last) {
       parts.push(`${influencer.name_first} ${influencer.name_last}`);
     }
@@ -242,6 +321,7 @@ export default function ContentCreate() {
     if (influencer.lip_style) parts.push(`Lips: ${influencer.lip_style}`);
     if (influencer.eye_color) parts.push(`Eyes: ${influencer.eye_color}`);
     if (influencer.nose_style) parts.push(`Nose: ${influencer.nose_style}`);
+    if (modelDescription.makeup) parts.push(`Makeup: ${modelDescription.makeup}`);
     if (influencer.clothing_style_everyday || influencer.clothing_style_occasional) {
       parts.push(`Clothing: ${influencer.clothing_style_everyday || ''} ${influencer.clothing_style_occasional || ''}`.trim());
     }
@@ -265,7 +345,7 @@ export default function ContentCreate() {
 
   const generateModelDescription = () => {
     const parts = [];
-
+    
     if (modelDescription.appearance) parts.push(modelDescription.appearance);
     if (modelDescription.ethnicBackground) parts.push(`Ethnic background: ${modelDescription.ethnicBackground}`);
     if (modelDescription.bodyType) parts.push(`Body type: ${modelDescription.bodyType}`);
@@ -279,6 +359,11 @@ export default function ContentCreate() {
     if (modelDescription.nose) parts.push(`Nose: ${modelDescription.nose}`);
     if (modelDescription.makeup) parts.push(`Makeup: ${modelDescription.makeup}`);
     if (modelDescription.clothing) parts.push(`Clothing: ${modelDescription.clothing}`);
+    if (modelDescription.sex) parts.push(`Sex: ${modelDescription.sex}`);
+    if (modelDescription.bust) parts.push(`Bust: ${modelDescription.bust}`);
+    if (modelDescription.eyebrowStyle) parts.push(`Eyebrows: ${modelDescription.eyebrowStyle}`);
+    if (modelDescription.faceShape) parts.push(`Face shape: ${modelDescription.faceShape}`);
+    if (modelDescription.colorPalette) parts.push(`Color palette: ${modelDescription.colorPalette}`);
 
     const fullDescription = parts.join(', ');
     setFormData(prev => ({
@@ -291,12 +376,12 @@ export default function ContentCreate() {
 
   const generateSceneDescription = () => {
     const parts = [];
-
+    
     if (sceneSpecs.framing) parts.push(`Framing: ${sceneSpecs.framing}`);
     if (sceneSpecs.rotation) parts.push(`Rotation: ${sceneSpecs.rotation}`);
-    if (sceneSpecs.lighting) parts.push(`Lighting: ${sceneSpecs.lighting}`);
-    if (sceneSpecs.nsfw) parts.push('NSFW content');
-    if (sceneSpecs.additionalText) parts.push(sceneSpecs.additionalText);
+    if (sceneSpecs.lighting_preset) parts.push(`Lighting: ${sceneSpecs.lighting_preset}`);
+    if (sceneSpecs.scene_setting) parts.push(`Scene: ${sceneSpecs.scene_setting}`);
+    if (sceneSpecs.pose) parts.push(`Pose: ${sceneSpecs.pose}`);
 
     const fullDescription = parts.join(', ');
     setFormData(prev => ({
@@ -309,26 +394,26 @@ export default function ContentCreate() {
 
   const generatePrompt = () => {
     let prompt = '';
-
+    
     if (formData.lora) {
       prompt += 'AIMod3l ';
     }
-
+    
     if (formData.model) {
       prompt += `${formData.model}, `;
     }
-
+    
     if (formData.scene) {
       prompt += `${formData.scene}, `;
     }
-
+    
     if (formData.prompt) {
       prompt += formData.prompt;
     }
 
     // Clean up the prompt
     prompt = prompt.replace(/,\s*$/, '').trim();
-
+    
     setFormData(prev => ({
       ...prev,
       prompt: prompt
@@ -344,20 +429,20 @@ export default function ContentCreate() {
     }
 
     setIsGenerating(true);
-
+    
     try {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 2000));
-
+      
       toast.success('Content generation started successfully');
-
+      
       // Here you would make the actual API call to your content generation service
       console.log('Generation request:', {
         ...formData,
         sceneSpecs,
         modelDescription
       });
-
+      
     } catch (error) {
       console.error('Generation error:', error);
       toast.error('Failed to start content generation');
@@ -382,27 +467,18 @@ export default function ContentCreate() {
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row items-center justify-between gap-5">
         <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate(-1)}
-            className="flex items-center gap-2"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back
-          </Button>
           <div>
             <h1 className="text-3xl font-bold tracking-tight bg-ai-gradient bg-clip-text text-transparent">
               Create Content
             </h1>
             <p className="text-muted-foreground">
-              {influencerData ? `Creating content for ${influencerData.name_first} ${influencerData.name_last}` : 'Generate new content'}
+              {modelData ? `Creating content for ${modelData.name_first} ${modelData.name_last}` : 'Generate new content'}
             </p>
           </div>
         </div>
-
+        
         <Button
           onClick={handleGenerate}
           disabled={!validateForm() || isGenerating}
@@ -426,7 +502,7 @@ export default function ContentCreate() {
       {/* Generation Summary - Top Section */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Influencer Info */}
-        {influencerData && (
+        {modelData && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -437,17 +513,17 @@ export default function ContentCreate() {
             <CardContent className="space-y-4">
               <div className="w-full h-48 bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg overflow-hidden">
                 <img
-                  src={influencerData.image_url}
-                  alt={`${influencerData.name_first} ${influencerData.name_last}`}
+                  src={modelData.image_url}
+                  alt={`${modelData.name_first} ${modelData.name_last}`}
                   className="w-full h-full object-cover"
                 />
               </div>
               <div>
                 <h3 className="font-semibold text-lg">
-                  {influencerData.name_first} {influencerData.name_last}
+                  {modelData.name_first} {modelData.name_last}
                 </h3>
-                <p className="text-sm text-muted-foreground">
-                  {influencerData.age_lifestyle} • {influencerData.influencer_type}
+                <p className="text-sm text-muted-foreground mb-3">
+                  {formData.model}
                 </p>
               </div>
             </CardContent>
@@ -455,7 +531,7 @@ export default function ContentCreate() {
         )}
 
         {/* Generation Summary */}
-        <Card className={influencerData ? "lg:col-span-2" : "lg:col-span-3"}>
+        <Card className={modelData ? "lg:col-span-2" : "lg:col-span-3"}>
           <CardHeader className="pb-4">
             <CardTitle className="flex items-center gap-3 text-xl">
               <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg">
@@ -531,29 +607,12 @@ export default function ContentCreate() {
             </div>
 
             {/* Content Descriptions */}
-            {(formData.model || formData.scene || formData.prompt) && (
+            {(formData.scene || formData.prompt) && (
               <div className="space-y-4">
                 <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide">
                   Content Specifications
                 </h3>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {formData.model && (
-                    <div className="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-lg p-4">
-                      <div className="flex items-center gap-2 mb-3">
-                        <div className="p-1.5 bg-blue-100 dark:bg-blue-900/30 rounded-md">
-                          <ImageIcon className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-                        </div>
-                        <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide">
-                          Model Description
-                        </Label>
-                      </div>
-                      <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-                        {formData.model}
-                      </p>
-                    </div>
-                  )}
-
+                <div className='grid grid-cols-1 xl:grid-cols-2 gap-2'>
                   {formData.scene && (
                     <div className="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-lg p-4">
                       <div className="flex items-center gap-2 mb-3">
@@ -593,158 +652,158 @@ export default function ContentCreate() {
       </div>
 
       {/* Settings Tabs - Bottom Section */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="basic">Basic</TabsTrigger>
-          <TabsTrigger value="model">Model</TabsTrigger>
-          <TabsTrigger value="scene">Scene</TabsTrigger>
-          <TabsTrigger value="advanced">Advanced</TabsTrigger>
-        </TabsList>
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+            <TabsList className="grid w-full grid-cols-4">
+              <TabsTrigger value="basic">Basic</TabsTrigger>
+              <TabsTrigger value="model">Model</TabsTrigger>
+              <TabsTrigger value="scene">Scene</TabsTrigger>
+              <TabsTrigger value="advanced">Advanced</TabsTrigger>
+            </TabsList>
 
-        {/* Basic Tab */}
-        <TabsContent value="basic" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+            {/* Basic Tab */}
+            <TabsContent value="basic" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
                 <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg">
                   <Sparkles className="w-5 h-5 text-white" />
                 </div>
-                Basic Settings
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Task Type</Label>
-                  <Select
-                    value={formData.task}
-                    onValueChange={(value) => handleInputChange('task', value)}
-                  >
-                    <SelectTrigger>
+                    Basic Settings
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Task Type</Label>
+                      <Select
+                        value={formData.task}
+                        onValueChange={(value) => handleInputChange('task', value)}
+                      >
+                        <SelectTrigger>
                       <div className='pl-10'>
                         {TASK_OPTIONS.find(opt => opt.value === formData.task)?.label}
                       </div>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {TASK_OPTIONS.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          <div>
-                            <div className="font-medium">{option.label}</div>
-                            <div className="text-sm text-muted-foreground">{option.description}</div>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                        </SelectTrigger>
+                        <SelectContent>
+                          {TASK_OPTIONS.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              <div>
+                                <div className="font-medium">{option.label}</div>
+                                <div className="text-sm text-muted-foreground">{option.description}</div>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
 
-                <div className="space-y-2">
-                  <Label>Format</Label>
-                  <Select
-                    value={formData.format}
-                    onValueChange={(value) => handleInputChange('format', value)}
-                  >
-                    <SelectTrigger>
+                    <div className="space-y-2">
+                      <Label>Format</Label>
+                      <Select
+                        value={formData.format}
+                        onValueChange={(value) => handleInputChange('format', value)}
+                      >
+                        <SelectTrigger>
                       <div className='pl-10'>
                         {FORMAT_OPTIONS.find(opt => opt.value === formData.format)?.label}
                       </div>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {FORMAT_OPTIONS.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          <div>
-                            <div className="font-medium">{option.label}</div>
-                            <div className="text-sm text-muted-foreground">{option.description}</div>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Number of Images: {formData.numberOfImages}</Label>
-                  <Slider
-                    value={[formData.numberOfImages]}
-                    onValueChange={([value]) => handleInputChange('numberOfImages', value)}
-                    max={20}
-                    min={1}
-                    step={1}
-                    className="w-full"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Guidance: {formData.guidance}</Label>
-                  <Slider
-                    value={[formData.guidance]}
-                    onValueChange={([value]) => handleInputChange('guidance', value)}
-                    max={8.0}
-                    min={1.0}
-                    step={0.1}
-                    className="w-full"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>LORA Model</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Enable LORA model (adds "AIMod3l" trigger)
-                    </p>
+                        </SelectTrigger>
+                        <SelectContent>
+                          {FORMAT_OPTIONS.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              <div>
+                                <div className="font-medium">{option.label}</div>
+                                <div className="text-sm text-muted-foreground">{option.description}</div>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
-                  <Switch
-                    checked={formData.lora}
-                    onCheckedChange={(checked) => handleInputChange('lora', checked)}
-                  />
-                </div>
 
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>No AI Optimization</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Pass user input unfiltered (no AI processing)
-                    </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Number of Images: {formData.numberOfImages}</Label>
+                      <Slider
+                        value={[formData.numberOfImages]}
+                        onValueChange={([value]) => handleInputChange('numberOfImages', value)}
+                        max={20}
+                        min={1}
+                        step={1}
+                        className="w-full"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Guidance: {formData.guidance}</Label>
+                      <Slider
+                        value={[formData.guidance]}
+                        onValueChange={([value]) => handleInputChange('guidance', value)}
+                        max={8.0}
+                        min={1.0}
+                        step={0.1}
+                        className="w-full"
+                      />
+                    </div>
                   </div>
-                  <Switch
-                    checked={formData.noAI}
-                    onCheckedChange={(checked) => handleInputChange('noAI', checked)}
-                  />
-                </div>
-              </div>
 
-              <div className="space-y-2">
-                <Label>Seed (Optional)</Label>
-                <Input
-                  value={formData.seed}
-                  onChange={(e) => handleInputChange('seed', e.target.value)}
-                  placeholder="Enter seed value for reproducible results"
-                />
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label>LORA Model</Label>
+                        <p className="text-sm text-muted-foreground">
+                          Enable LORA model (adds "AIMod3l" trigger)
+                        </p>
+                      </div>
+                      <Switch
+                        checked={formData.lora}
+                        onCheckedChange={(checked) => handleInputChange('lora', checked)}
+                      />
+                    </div>
 
-        {/* Model Tab */}
-        <TabsContent value="model" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label>No AI Optimization</Label>
+                        <p className="text-sm text-muted-foreground">
+                          Pass user input unfiltered (no AI processing)
+                        </p>
+                      </div>
+                      <Switch
+                        checked={formData.noAI}
+                        onCheckedChange={(checked) => handleInputChange('noAI', checked)}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Seed (Optional)</Label>
+                    <Input
+                      value={formData.seed}
+                      onChange={(e) => handleInputChange('seed', e.target.value)}
+                      placeholder="Enter seed value for reproducible results"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Model Tab */}
+            <TabsContent value="model" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
                 <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg">
                   <ImageIcon className="w-5 h-5 text-white" />
                 </div>
-                Model Description
-              </CardTitle>
+                    Model Description
+                  </CardTitle>
               <p className="text-sm text-muted-foreground">
                 {formData.model ? 'Selected influencer model configuration' : 'Select an influencer to use for content generation'}
               </p>
-            </CardHeader>
+                </CardHeader>
             <CardContent className="space-y-6">
-              {/* Show Influencer Selection or Manual Configuration */}
+              {/* Show Influencer Selection or Selected Influencer */}
               {!formData.model ? (
                 // Show only influencer selection when no model is selected
                 <div className="space-y-4">
@@ -856,8 +915,84 @@ export default function ContentCreate() {
                   </div>
                 </div>
               ) : (
-                // Show manual configuration when model is selected
+                // Show selected influencer card when model is selected
                 <div className="space-y-6">
+                  {/* Selected Influencer Card */}
+                  <div className="max-w-md mx-auto">
+                    <Card className="group hover:shadow-lg transition-all duration-300 border-border/50">
+                      <CardContent className="p-6">
+                        <div className="space-y-4">
+                          <div className="w-full h-48 bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg overflow-hidden">
+                            <img
+                              src={modelData?.image_url}
+                              alt={`${modelData?.name_first} ${modelData?.name_last}`}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+
+                          <div>
+                            <div className="flex items-center justify-between mb-2">
+                              <h3 className="font-semibold text-lg">
+                                {modelData?.name_first} {modelData?.name_last}
+                              </h3>
+                            </div>
+
+                            <div className="flex flex-col gap-1 mb-3">
+                              <div className="flex text-sm text-muted-foreground flex-col">
+                                <span className="font-medium mr-2">Age/Lifestyle:</span>
+                                {modelData?.age_lifestyle}
+                              </div>
+                              <div className="flex items-center text-sm text-muted-foreground">
+                                <span className="font-medium mr-2">Type:</span>
+                                {modelData?.influencer_type}
+                              </div>
+                            </div>
+
+                            {/* Makeup Selection */}
+                            <div className="space-y-2 mb-3">
+                              <Label className="text-sm font-medium">Makeup Style</Label>
+                              <Select
+                                value={modelDescription.makeup}
+                                onValueChange={(value) => handleModelDescriptionChange('makeup', value)}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select makeup style" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {MAKEUP_OPTIONS.map((makeup) => (
+                                    <SelectItem key={makeup} value={makeup}>
+                                      {makeup}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+
+                            {/* Update Model Description Button */}
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={generateModelDescription}
+                              className="w-full mb-3"
+                            >
+                              <Wand2 className="w-4 h-4 mr-2" />
+                              Update Model Description
+                            </Button>
+
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              disabled
+                              className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 text-white w-full cursor-not-allowed"
+                            >
+                              <Check className="w-4 h-4 mr-2" />
+                              Using
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
 
                   {/* Select Another Influencer Button */}
                   <div className="flex justify-center">
@@ -878,8 +1013,14 @@ export default function ContentCreate() {
                           eyes: '',
                           nose: '',
                           makeup: '',
-                          clothing: ''
+                          clothing: '',
+                          sex: '',
+                          bust: '',
+                          eyebrowStyle: '',
+                          faceShape: '',
+                          colorPalette: ''
                         });
+                        setModelData(null);
                       }}
                       className="gap-2"
                     >
@@ -887,283 +1028,163 @@ export default function ContentCreate() {
                       Select Another Influencer
                     </Button>
                   </div>
-
-                  <Separator />
-
-                  {/* Manual Model Description */}
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-lg font-semibold">Manual Configuration</h3>
-                      <Button
-                        onClick={generateModelDescription}
-                        variant="outline"
-                        size="sm"
-                      >
-                        <Wand2 className="w-4 h-4 mr-2" />
-                        Generate Description
-                      </Button>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label>Appearance</Label>
-                        <Input
-                          value={modelDescription.appearance}
-                          onChange={(e) => handleModelDescriptionChange('appearance', e.target.value)}
-                          placeholder="General appearance description"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label>Ethnic Background</Label>
-                        <Input
-                          value={modelDescription.ethnicBackground}
-                          onChange={(e) => handleModelDescriptionChange('ethnicBackground', e.target.value)}
-                          placeholder="Ethnic background"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label>Body Type</Label>
-                        <Input
-                          value={modelDescription.bodyType}
-                          onChange={(e) => handleModelDescriptionChange('bodyType', e.target.value)}
-                          placeholder="Body type description"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label>Facial Features</Label>
-                        <Input
-                          value={modelDescription.facialFeatures}
-                          onChange={(e) => handleModelDescriptionChange('facialFeatures', e.target.value)}
-                          placeholder="Distinctive facial features"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label>Hair Color</Label>
-                        <Input
-                          value={modelDescription.hairColor}
-                          onChange={(e) => handleModelDescriptionChange('hairColor', e.target.value)}
-                          placeholder="Hair color"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label>Hair Length</Label>
-                        <Input
-                          value={modelDescription.hairLength}
-                          onChange={(e) => handleModelDescriptionChange('hairLength', e.target.value)}
-                          placeholder="Hair length"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label>Hair Style</Label>
-                        <Input
-                          value={modelDescription.hairStyle}
-                          onChange={(e) => handleModelDescriptionChange('hairStyle', e.target.value)}
-                          placeholder="Hair style"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label>Skin</Label>
-                        <Input
-                          value={modelDescription.skin}
-                          onChange={(e) => handleModelDescriptionChange('skin', e.target.value)}
-                          placeholder="Skin description"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label>Lips</Label>
-                        <Input
-                          value={modelDescription.lips}
-                          onChange={(e) => handleModelDescriptionChange('lips', e.target.value)}
-                          placeholder="Lip description"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label>Eyes</Label>
-                        <Input
-                          value={modelDescription.eyes}
-                          onChange={(e) => handleModelDescriptionChange('eyes', e.target.value)}
-                          placeholder="Eye description"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label>Nose</Label>
-                        <Input
-                          value={modelDescription.nose}
-                          onChange={(e) => handleModelDescriptionChange('nose', e.target.value)}
-                          placeholder="Nose description"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label>Makeup</Label>
-                        <Input
-                          value={modelDescription.makeup}
-                          onChange={(e) => handleModelDescriptionChange('makeup', e.target.value)}
-                          placeholder="Makeup style"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label>Clothing</Label>
-                        <Input
-                          value={modelDescription.clothing}
-                          onChange={(e) => handleModelDescriptionChange('clothing', e.target.value)}
-                          placeholder="Clothing description"
-                        />
-                      </div>
-                    </div>
-                  </div>
                 </div>
               )}
-            </CardContent>
-          </Card>
-        </TabsContent>
+                </CardContent>
+              </Card>
+            </TabsContent>
 
-        {/* Scene Tab */}
-        <TabsContent value="scene" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Camera className="w-5 h-5" />
-                Scene Specifications
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Framing Variant</Label>
-                  <Select
-                    value={sceneSpecs.framing}
-                    onValueChange={(value) => handleSceneSpecChange('framing', value)}
+            {/* Scene Tab */}
+            <TabsContent value="scene" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Camera className="w-5 h-5" />
+                    Scene Specifications
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Framing</Label>
+                      <Select
+                        value={sceneSpecs.framing}
+                        onValueChange={(value) => handleSceneSpecChange('framing', value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select framing" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {FRAMING_VARIANTS.map((variant) => (
+                            <SelectItem key={variant} value={variant}>
+                              {variant}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Rotation</Label>
+                      <Select
+                        value={sceneSpecs.rotation}
+                        onValueChange={(value) => handleSceneSpecChange('rotation', value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select rotation" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {ROTATION_OPTIONS.map((option) => (
+                            <SelectItem key={option} value={option}>
+                              {option}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Lighting Preset</Label>
+                      <Select
+                        value={sceneSpecs.lighting_preset}
+                        onValueChange={(value) => handleSceneSpecChange('lighting_preset', value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select lighting preset" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {LIGHTING_SITUATIONS.map((lighting) => (
+                            <SelectItem key={lighting} value={lighting}>
+                              {lighting}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Scene Setting</Label>
+                      <Select
+                        value={sceneSpecs.scene_setting}
+                        onValueChange={(value) => handleSceneSpecChange('scene_setting', value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select scene setting" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {SCENE_SETTINGS.map((setting) => (
+                            <SelectItem key={setting} value={setting}>
+                              {setting}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Pose</Label>
+                      <Select
+                        value={sceneSpecs.pose}
+                        onValueChange={(value) => handleSceneSpecChange('pose', value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select pose" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {POSE_OPTIONS.map((pose) => (
+                            <SelectItem key={pose} value={pose}>
+                              {pose}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <Button
+                    onClick={generateSceneDescription}
+                    variant="outline"
+                    className="w-full"
                   >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select framing" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {FRAMING_VARIANTS.map((variant) => (
-                        <SelectItem key={variant} value={variant}>
-                          {variant}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                    <Wand2 className="w-4 h-4 mr-2" />
+                    Generate Scene Description
+                  </Button>
+                </CardContent>
+              </Card>
+            </TabsContent>
 
-                <div className="space-y-2">
-                  <Label>Rotation</Label>
-                  <Select
-                    value={sceneSpecs.rotation}
-                    onValueChange={(value) => handleSceneSpecChange('rotation', value)}
+            {/* Advanced Tab */}
+            <TabsContent value="advanced" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Settings className="w-5 h-5" />
+                    Advanced Settings
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Custom Prompt</Label>
+                    <Textarea
+                      value={formData.prompt}
+                      onChange={(e) => handleInputChange('prompt', e.target.value)}
+                      placeholder="Enter your custom prompt here..."
+                      rows={6}
+                    />
+                  </div>
+
+                  <Button
+                    onClick={generatePrompt}
+                    variant="outline"
+                    className="w-full"
                   >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select rotation" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {ROTATION_OPTIONS.map((option) => (
-                        <SelectItem key={option} value={option}>
-                          {option}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Lighting Situation</Label>
-                  <Select
-                    value={sceneSpecs.lighting}
-                    onValueChange={(value) => handleSceneSpecChange('lighting', value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select lighting" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {LIGHTING_SITUATIONS.map((lighting) => (
-                        <SelectItem key={lighting} value={lighting}>
-                          {lighting}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Additional Text</Label>
-                  <Input
-                    value={sceneSpecs.additionalText}
-                    onChange={(e) => handleSceneSpecChange('additionalText', e.target.value)}
-                    placeholder="Additional scene details"
-                  />
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>NSFW Content</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Mark content as not safe for work
-                  </p>
-                </div>
-                <Switch
-                  checked={sceneSpecs.nsfw}
-                  onCheckedChange={(checked) => handleSceneSpecChange('nsfw', checked)}
-                />
-              </div>
-
-              <Button
-                onClick={generateSceneDescription}
-                variant="outline"
-                className="w-full"
-              >
-                <Wand2 className="w-4 h-4 mr-2" />
-                Generate Scene Description
-              </Button>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Advanced Tab */}
-        <TabsContent value="advanced" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Settings className="w-5 h-5" />
-                Advanced Settings
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label>Custom Prompt</Label>
-                <Textarea
-                  value={formData.prompt}
-                  onChange={(e) => handleInputChange('prompt', e.target.value)}
-                  placeholder="Enter your custom prompt here..."
-                  rows={6}
-                />
-              </div>
-
-              <Button
-                onClick={generatePrompt}
-                variant="outline"
-                className="w-full"
-              >
-                <Wand2 className="w-4 h-4 mr-2" />
+                    <Wand2 className="w-4 h-4 mr-2" />
                 Generate Custom Prompt
-              </Button>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+                  </Button>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
     </div>
   );
 }

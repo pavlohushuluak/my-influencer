@@ -134,6 +134,7 @@ export default function InfluencerEdit() {
   const [showAllInfluencers, setShowAllInfluencers] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isOptionsLoading, setIsOptionsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
 
   const [showEditView, setShowEditView] = useState(!!location.state?.influencerData);
   
@@ -340,35 +341,49 @@ export default function InfluencerEdit() {
       return;
     }
 
-    if (location.state?.create) {
-      const response = await fetch('https://db.nymia.ai/rest/v1/influencer', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer WeInfl3nc3withAI'
-        },
-        body: JSON.stringify(influencerData)
-      });
-      dispatch(addInfluencer(influencerData));
-      if (response.ok) {
-        setShowEditView(false);
-        setActiveTab('basic');
+    setIsSaving(true);
+    try {
+      if (location.state?.create) {
+        const response = await fetch('https://db.nymia.ai/rest/v1/influencer', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer WeInfl3nc3withAI'
+          },
+          body: JSON.stringify(influencerData)
+        });
+        dispatch(addInfluencer(influencerData));
+        if (response.ok) {
+          setShowEditView(false);
+          setActiveTab('basic');
+          toast.success('Influencer created successfully');
+        } else {
+          toast.error('Failed to create influencer');
+        }
       }
-    }
-    else {
-      const response = await fetch(`https://db.nymia.ai/rest/v1/influencer?id=eq.${influencerData.id}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer WeInfl3nc3withAI'
-        },
-        body: JSON.stringify(influencerData)
-      });
-      dispatch(updateInfluencer(influencerData));
-      if (response.ok) {
-        setShowEditView(false);
-        setActiveTab('basic');
+      else {
+        const response = await fetch(`https://db.nymia.ai/rest/v1/influencer?id=eq.${influencerData.id}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer WeInfl3nc3withAI'
+          },
+          body: JSON.stringify(influencerData)
+        });
+        dispatch(updateInfluencer(influencerData));
+        if (response.ok) {
+          setShowEditView(false);
+          setActiveTab('basic');
+          toast.success('Influencer updated successfully');
+        } else {
+          toast.error('Failed to update influencer');
+        }
       }
+    } catch (error) {
+      console.error('Save error:', error);
+      toast.error('An error occurred while saving');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -800,12 +815,17 @@ export default function InfluencerEdit() {
           <Button
             onClick={handleSave}
             className="bg-gradient-to-r from-purple-600 to-blue-600"
-            disabled={isOptionsLoading}
+            disabled={isOptionsLoading || isSaving}
           >
             {isOptionsLoading ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                 Loading...
+              </>
+            ) : isSaving ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Saving...
               </>
             ) : (
               <>

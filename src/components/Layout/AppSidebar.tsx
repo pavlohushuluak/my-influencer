@@ -63,16 +63,16 @@ const menuItems = [
       { title: "Templates", url: "/influencers/templates", icon: BookOpen },
     ]
   },
-  {
-    title: "Catalog",
-    icon: BookOpen,
-    items: [
-      { title: "Clothing", url: "/catalog/clothing", icon: Shirt },
-      { title: "Location", url: "/catalog/location", icon: MapPin },
-      { title: "Poses", url: "/catalog/poses", icon: Palette },
-      { title: "Accessories", url: "/catalog/accessories", icon: Watch },
-    ]
-  },
+  // {
+  //   title: "Catalog",
+  //   icon: BookOpen,
+  //   items: [
+  //     { title: "Clothing", url: "/catalog/clothing", icon: Shirt },
+  //     { title: "Location", url: "/catalog/location", icon: MapPin },
+  //     { title: "Poses", url: "/catalog/poses", icon: Palette },
+  //     { title: "Accessories", url: "/catalog/accessories", icon: Watch },
+  //   ]
+  // },
   {
     title: "Content",
     icon: Image,

@@ -351,7 +351,8 @@ export default function InfluencerEdit() {
       });
       dispatch(addInfluencer(influencerData));
       if (response.ok) {
-        navigate('/influencers');
+        setShowEditView(false);
+        setActiveTab('basic');
       }
     }
     else {
@@ -365,7 +366,8 @@ export default function InfluencerEdit() {
       });
       dispatch(updateInfluencer(influencerData));
       if (response.ok) {
-        navigate('/influencers');
+        setShowEditView(false);
+        setActiveTab('basic');
       }
     }
   };
@@ -789,7 +791,10 @@ export default function InfluencerEdit() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button onClick={() => setShowEditView(false)} variant="outline">
+          <Button onClick={() => {
+            setShowEditView(false);
+            setActiveTab('basic');
+          }} variant="outline">
             Back to List
           </Button>
           <Button

@@ -22,6 +22,8 @@ import { cn } from '@/lib/utils';
 import { useDebounce } from '@/hooks/useDebounce';
 import { Influencer } from '@/store/slices/influencersSlice';
 import { setInfluencers, setLoading, setError } from '@/store/slices/influencersSlice';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { ZoomIn } from 'lucide-react';
 
 const TASK_OPTIONS = [
   { value: 'create', label: 'Create', description: 'Generate new content from scratch' },
@@ -69,20 +71,17 @@ const POSE_OPTIONS = [
   'Smiling', 'Serious', 'Confident', 'Casual', 'Professional', 'Relaxed'
 ];
 
-const MAKEUP_OPTIONS = [
-  'Natural', 'Soft Glam', 'Dramatic', 'No Makeup', 'Minimal', 'Full Face',
-  'Smokey Eye', 'Winged Liner', 'Red Lip', 'Nude Lip', 'Glitter', 'Matte',
-  'Dewy', 'Contoured', 'Highlighted', 'Bronzed', 'Blushed', 'Gothic',
-  'Vintage', 'Modern', 'Bridal', 'Party', 'Professional', 'Casual',
-  'Bold', 'Subtle', 'Colorful', 'Neutral', 'Glamorous', 'Simple'
-];
-
 const SEARCH_FIELDS = [
   { id: 'all', label: 'All Fields' },
   { id: 'name', label: 'Name' },
   { id: 'age_lifestyle', label: 'Age/Lifestyle' },
   { id: 'influencer_type', label: 'Type' }
 ];
+
+interface Option {
+  label: string;
+  image: string;
+}
 
 export default function ContentCreate() {
   const navigate = useNavigate();
@@ -149,6 +148,11 @@ export default function ContentCreate() {
     faceShape: '',
     colorPalette: ''
   });
+
+  // Makeup options and modal state
+  const [makeupOptions, setMakeupOptions] = useState<Option[]>([]);
+  const [showMakeupSelector, setShowMakeupSelector] = useState(false);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
 
   // Filtered influencers for search
   const filteredInfluencers = influencers.filter(influencer => {
@@ -256,6 +260,37 @@ export default function ContentCreate() {
       toast.success(`Using ${influencerData.name_first} ${influencerData.name_last} for content generation`);
     }
   }, [influencerData]);
+
+  // Fetch makeup options from API
+  useEffect(() => {
+    const fetchMakeupOptions = async () => {
+      try {
+        console.log('Fetching makeup options...');
+        const response = await fetch('https://api.nymia.ai/v1/fieldoptions?fieldtype=makeup', {
+          headers: {
+            'Authorization': 'Bearer WeInfl3nc3withAI'
+          }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          console.log('Makeup options response:', data);
+          if (data && data.fieldoptions && Array.isArray(data.fieldoptions)) {
+            const options = data.fieldoptions.map((item: any) => ({
+              label: item.label,
+              image: item.image
+            }));
+            console.log('Processed makeup options:', options);
+            setMakeupOptions(options);
+          }
+        } else {
+          console.error('Failed to fetch makeup options:', response.status, response.statusText);
+        }
+      } catch (error) {
+        console.error('Error fetching makeup options:', error);
+      }
+    };
+    fetchMakeupOptions();
+  }, []);
 
   const handleInputChange = (field: string, value: any) => {
     setFormData(prev => ({
@@ -462,6 +497,68 @@ export default function ContentCreate() {
       return false;
     }
     return true;
+  };
+
+  // OptionSelector for makeup (copied from InfluencerEdit)
+  const OptionSelector = ({ options, onSelect, onClose, title }: {
+    options: Option[],
+    onSelect: (label: string) => void,
+    onClose: () => void,
+    title: string
+  }) => {
+    const [localPreview, setLocalPreview] = useState<string | null>(null);
+    const handleImageClick = (e: React.MouseEvent, imageUrl: string) => {
+      e.stopPropagation();
+      setLocalPreview(imageUrl);
+    };
+    const handleSelect = (label: string) => {
+      onSelect(label);
+      onClose();
+    };
+    return (
+      <>
+        <Dialog open={true} onOpenChange={onClose}>
+          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>{title}</DialogTitle>
+            </DialogHeader>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 p-4">
+              {options.map((option, index) => (
+                <Card
+                  key={index}
+                  className="cursor-pointer hover:shadow-lg transition-all duration-300"
+                  onClick={() => handleSelect(option.label)}
+                >
+                  <CardContent className="p-4">
+                    <div className="relative w-full group" style={{ paddingBottom: '100%' }}>
+                      <img
+                        src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
+                        alt={option.label}
+                        className="absolute inset-0 w-full h-full object-cover rounded-md"
+                      />
+                      <div
+                        className="absolute right-2 top-2 bg-black/50 rounded-full w-8 h-8 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
+                        onClick={(e) => handleImageClick(e, `https://images.nymia.ai/cdn-cgi/image/w=800/wizard/${option.image}`)}
+                      >
+                        <ZoomIn className="w-5 h-5 text-white" />
+                      </div>
+                    </div>
+                    <p className="text-sm text-center font-medium mt-2">{option.label}</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </DialogContent>
+        </Dialog>
+        {localPreview && (
+          <Dialog open={true} onOpenChange={() => setLocalPreview(null)}>
+            <DialogContent className="max-w-2xl">
+              <img src={localPreview} alt="Preview" className="w-full h-auto rounded-lg" />
+            </DialogContent>
+          </Dialog>
+        )}
+      </>
+    );
   };
 
   return (
@@ -959,13 +1056,54 @@ export default function ContentCreate() {
                                   <SelectValue placeholder="Select makeup style" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  {MAKEUP_OPTIONS.map((makeup) => (
-                                    <SelectItem key={makeup} value={makeup}>
-                                      {makeup}
-                                    </SelectItem>
+                                  {makeupOptions.map((option) => (
+                                    <SelectItem key={option.label} value={option.label}>{option.label}</SelectItem>
                                   ))}
                                 </SelectContent>
                               </Select>
+                              <div
+                                onClick={() => setShowMakeupSelector(true)}
+                                className='flex items-center justify-center cursor-pointer w-full'
+                              >
+                                {(() => {
+                                  console.log('Makeup display debug:', {
+                                    modelDescriptionMakeup: modelDescription.makeup,
+                                    makeupOptions: makeupOptions,
+                                    foundOption: makeupOptions.find(option => option.label === modelDescription.makeup)
+                                  });
+                                  return modelDescription.makeup && makeupOptions.find(option => option.label === modelDescription.makeup)?.image ? (
+                                    <Card className="relative w-full max-w-[250px]">
+                                      <CardContent className="p-4">
+                                        <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
+                                          <img
+                                            src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${makeupOptions.find(option => option.label === modelDescription.makeup)?.image}`}
+                                            className="absolute inset-0 w-full h-full object-cover rounded-md"
+                                          />
+                                        </div>
+                                        <p className="text-sm text-center font-medium mt-2">{makeupOptions.find(option => option.label === modelDescription.makeup)?.label}</p>
+                                      </CardContent>
+                                    </Card>
+                                  ) : (
+                                    <Card className="relative w-full border max-w-[250px]">
+                                      <CardContent className="p-4">
+                                        <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
+                                          <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
+                                            Select makeup style
+                                          </div>
+                                        </div>
+                                      </CardContent>
+                                    </Card>
+                                  );
+                                })()}
+                              </div>
+                              {showMakeupSelector && (
+                                <OptionSelector
+                                  options={makeupOptions}
+                                  onSelect={(label) => handleModelDescriptionChange('makeup', label)}
+                                  onClose={() => setShowMakeupSelector(false)}
+                                  title="Select Makeup Style"
+                                />
+                              )}
                             </div>
 
                             {/* Update Model Description Button */}

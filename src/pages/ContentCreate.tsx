@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '@/store/store';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -14,8 +14,14 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
-import { ArrowLeft, Wand2, Settings, Image as ImageIcon, Sparkles, Loader2, Play, Eye, Palette, Camera, Zap } from 'lucide-react';
+import { ArrowLeft, Wand2, Settings, Image as ImageIcon, Sparkles, Loader2, Play, Eye, Palette, Camera, Zap, Search, X, Filter, Plus } from 'lucide-react';
 import { toast } from 'sonner';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
+import { useDebounce } from '@/hooks/useDebounce';
+import { Influencer } from '@/store/slices/influencersSlice';
+import { setInfluencers, setLoading, setError } from '@/store/slices/influencersSlice';
 
 const TASK_OPTIONS = [
   { value: 'create', label: 'Create', description: 'Generate new content from scratch' },
@@ -46,15 +52,30 @@ const LIGHTING_SITUATIONS = [
   'Low key', 'High key', 'Split lighting', 'Butterfly lighting'
 ];
 
+const SEARCH_FIELDS = [
+  { id: 'all', label: 'All Fields' },
+  { id: 'name', label: 'Name' },
+  { id: 'age_lifestyle', label: 'Age/Lifestyle' },
+  { id: 'influencer_type', label: 'Type' }
+];
+
 export default function ContentCreate() {
   const navigate = useNavigate();
   const location = useLocation();
+  const dispatch = useDispatch();
   const userData = useSelector((state: RootState) => state.user);
+  const influencers = useSelector((state: RootState) => state.influencers.influencers);
   const [activeTab, setActiveTab] = useState('basic');
   const [isGenerating, setIsGenerating] = useState(false);
 
   // Get influencer data from navigation state
   const influencerData = location.state?.influencerData;
+
+  // Search state for influencer selection
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedSearchField, setSelectedSearchField] = useState(SEARCH_FIELDS[0]);
+  const [openFilter, setOpenFilter] = useState(false);
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -96,6 +117,54 @@ export default function ContentCreate() {
     clothing: ''
   });
 
+  // Filtered influencers for search
+  const filteredInfluencers = influencers.filter(influencer => {
+    if (!debouncedSearchTerm) return true;
+
+    const searchLower = debouncedSearchTerm.toLowerCase();
+    
+    switch (selectedSearchField.id) {
+      case 'name':
+        return `${influencer.name_first} ${influencer.name_last}`.toLowerCase().includes(searchLower);
+      case 'age_lifestyle':
+        return influencer.age_lifestyle.toLowerCase().includes(searchLower);
+      case 'influencer_type':
+        return influencer.influencer_type.toLowerCase().includes(searchLower);
+      default:
+        return (
+          `${influencer.name_first} ${influencer.name_last}`.toLowerCase().includes(searchLower) ||
+          influencer.age_lifestyle.toLowerCase().includes(searchLower) ||
+          influencer.influencer_type.toLowerCase().includes(searchLower)
+        );
+    }
+  });
+
+  useEffect(() => {
+    const fetchInfluencers = async () => {
+      try {
+        dispatch(setLoading(true));
+        const response = await fetch(`https://db.nymia.ai/rest/v1/influencer?user_id=eq.${userData.id}`, {
+          headers: {
+            'Authorization': 'Bearer WeInfl3nc3withAI'
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch influencers');
+        }
+
+        const data = await response.json();
+        dispatch(setInfluencers(data));
+      } catch (error) {
+        dispatch(setError(error instanceof Error ? error.message : 'An error occurred'));
+      } finally {
+        dispatch(setLoading(false));
+      }
+    };
+
+    fetchInfluencers();
+  }, [userData.id, dispatch]);
+
   useEffect(() => {
     if (influencerData) {
       // Auto-populate model description from influencer data
@@ -111,7 +180,7 @@ export default function ContentCreate() {
         lips: influencerData.lip_style || '',
         eyes: influencerData.eye_color || '',
         nose: influencerData.nose_style || '',
-        makeup: influencerData.makeup_style || '',
+        makeup: '',
         clothing: `${influencerData.clothing_style_everyday || ''} ${influencerData.clothing_style_occasional || ''}`.trim()
       });
     }
@@ -136,6 +205,62 @@ export default function ContentCreate() {
       ...prev,
       [field]: value
     }));
+  };
+
+  const handleUseInfluencer = (influencer: Influencer) => {
+    // Populate model description from selected influencer
+    setModelDescription({
+      appearance: `${influencer.name_first} ${influencer.name_last}, ${influencer.age_lifestyle || ''}`,
+      ethnicBackground: influencer.cultural_background || '',
+      bodyType: influencer.body_type || '',
+      facialFeatures: influencer.facial_features || '',
+      hairColor: influencer.hair_color || '',
+      hairLength: influencer.hair_length || '',
+      hairStyle: influencer.hair_style || '',
+      skin: influencer.skin_tone || '',
+      lips: influencer.lip_style || '',
+      eyes: influencer.eye_color || '',
+      nose: influencer.nose_style || '',
+      makeup: '',
+      clothing: `${influencer.clothing_style_everyday || ''} ${influencer.clothing_style_occasional || ''}`.trim()
+    });
+
+    // Generate the model description automatically
+    const parts = [];
+    
+    if (influencer.name_first && influencer.name_last) {
+      parts.push(`${influencer.name_first} ${influencer.name_last}`);
+    }
+    if (influencer.age_lifestyle) parts.push(influencer.age_lifestyle);
+    if (influencer.cultural_background) parts.push(`Ethnic background: ${influencer.cultural_background}`);
+    if (influencer.body_type) parts.push(`Body type: ${influencer.body_type}`);
+    if (influencer.facial_features) parts.push(`Facial features: ${influencer.facial_features}`);
+    if (influencer.hair_color && influencer.hair_length && influencer.hair_style) {
+      parts.push(`${influencer.hair_length} ${influencer.hair_color} hair, ${influencer.hair_style} style`);
+    }
+    if (influencer.skin_tone) parts.push(`Skin: ${influencer.skin_tone}`);
+    if (influencer.lip_style) parts.push(`Lips: ${influencer.lip_style}`);
+    if (influencer.eye_color) parts.push(`Eyes: ${influencer.eye_color}`);
+    if (influencer.nose_style) parts.push(`Nose: ${influencer.nose_style}`);
+    if (influencer.clothing_style_everyday || influencer.clothing_style_occasional) {
+      parts.push(`Clothing: ${influencer.clothing_style_everyday || ''} ${influencer.clothing_style_occasional || ''}`.trim());
+    }
+
+    const fullDescription = parts.join(', ');
+    setFormData(prev => ({
+      ...prev,
+      model: fullDescription
+    }));
+
+    toast.success(`Using ${influencer.name_first} ${influencer.name_last} for content generation`);
+  };
+
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value);
+  };
+
+  const handleSearchClear = () => {
+    setSearchTerm('');
   };
 
   const generateModelDescription = () => {
@@ -423,7 +548,7 @@ export default function ContentCreate() {
                           Model Description
                         </Label>
                       </div>
-                      <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed line-clamp-4">
+                      <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
                         {formData.model}
                       </p>
                     </div>
@@ -439,7 +564,7 @@ export default function ContentCreate() {
                           Scene Description
                         </Label>
                       </div>
-                      <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed line-clamp-4">
+                      <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
                         {formData.scene}
                       </p>
                     </div>
@@ -452,10 +577,10 @@ export default function ContentCreate() {
                           <Sparkles className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
                         </div>
                         <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide">
-                          Final Prompt
+                          Custom Prompt
                         </Label>
                       </div>
-                      <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed line-clamp-4">
+                      <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
                         {formData.prompt}
                       </p>
                     </div>
@@ -609,138 +734,297 @@ export default function ContentCreate() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <ImageIcon className="w-5 h-5" />
+                <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg">
+                  <ImageIcon className="w-5 h-5 text-white" />
+                </div>
                 Model Description
               </CardTitle>
+              <p className="text-sm text-muted-foreground">
+                {formData.model ? 'Selected influencer model configuration' : 'Select an influencer to use for content generation'}
+              </p>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Appearance</Label>
-                  <Input
-                    value={modelDescription.appearance}
-                    onChange={(e) => handleModelDescriptionChange('appearance', e.target.value)}
-                    placeholder="General appearance description"
-                  />
-                </div>
+            <CardContent className="space-y-6">
+              {/* Show Influencer Selection or Manual Configuration */}
+              {!formData.model ? (
+                // Show only influencer selection when no model is selected
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-semibold">Select Influencer</h3>
+                    <Badge variant="secondary" className="text-xs">
+                      {filteredInfluencers.length} available
+                    </Badge>
+                  </div>
 
-                <div className="space-y-2">
-                  <Label>Ethnic Background</Label>
-                  <Input
-                    value={modelDescription.ethnicBackground}
-                    onChange={(e) => handleModelDescriptionChange('ethnicBackground', e.target.value)}
-                    placeholder="Ethnic background"
-                  />
-                </div>
+                  {/* Search Section */}
+                  <div className="flex gap-4">
+                    <div className="relative flex-1">
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                        <Input
+                          type="text"
+                          placeholder="Search influencers..."
+                          value={searchTerm}
+                          onChange={(e) => handleSearchChange(e.target.value)}
+                          className="pl-10 pr-10"
+                        />
+                        {searchTerm && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
+                            onClick={handleSearchClear}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <Popover open={openFilter} onOpenChange={setOpenFilter}>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" className="gap-2">
+                          <Filter className="h-4 w-4" />
+                          {selectedSearchField.label}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[200px] p-0">
+                        <Command>
+                          <CommandList>
+                            {SEARCH_FIELDS.map((field) => (
+                              <CommandItem
+                                key={field.id}
+                                onSelect={() => {
+                                  setSelectedSearchField(field);
+                                  setOpenFilter(false);
+                                }}
+                              >
+                                {field.label}
+                              </CommandItem>
+                            ))}
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
 
-                <div className="space-y-2">
-                  <Label>Body Type</Label>
-                  <Input
-                    value={modelDescription.bodyType}
-                    onChange={(e) => handleModelDescriptionChange('bodyType', e.target.value)}
-                    placeholder="Body type description"
-                  />
-                </div>
+                  {/* Influencers Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    {filteredInfluencers.map((influencer) => (
+                      <Card key={influencer.id} className="group hover:shadow-lg transition-all duration-300 border-border/50 hover:border-ai-purple-500/20">
+                        <CardContent className="p-6">
+                          <div className="space-y-4">
+                            <div className="w-full h-48 bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg overflow-hidden">
+                              <img
+                                src={influencer.image_url}
+                                alt={`${influencer.name_first} ${influencer.name_last}`}
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
 
-                <div className="space-y-2">
-                  <Label>Facial Features</Label>
-                  <Input
-                    value={modelDescription.facialFeatures}
-                    onChange={(e) => handleModelDescriptionChange('facialFeatures', e.target.value)}
-                    placeholder="Distinctive facial features"
-                  />
-                </div>
+                            <div>
+                              <div className="flex items-center justify-between mb-2">
+                                <h3 className="font-semibold text-lg group-hover:text-ai-purple-500 transition-colors">
+                                  {influencer.name_first} {influencer.name_last}
+                                </h3>
+                              </div>
 
-                <div className="space-y-2">
-                  <Label>Hair Color</Label>
-                  <Input
-                    value={modelDescription.hairColor}
-                    onChange={(e) => handleModelDescriptionChange('hairColor', e.target.value)}
-                    placeholder="Hair color"
-                  />
-                </div>
+                              <div className="flex flex-col gap-1 mb-3">
+                                <div className="flex text-sm text-muted-foreground flex-col">
+                                  <span className="font-medium mr-2">Age/Lifestyle:</span>
+                                  {influencer.age_lifestyle}
+                                </div>
+                                <div className="flex items-center text-sm text-muted-foreground">
+                                  <span className="font-medium mr-2">Type:</span>
+                                  {influencer.influencer_type}
+                                </div>
+                              </div>
 
-                <div className="space-y-2">
-                  <Label>Hair Length</Label>
-                  <Input
-                    value={modelDescription.hairLength}
-                    onChange={(e) => handleModelDescriptionChange('hairLength', e.target.value)}
-                    placeholder="Hair length"
-                  />
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleUseInfluencer(influencer)}
+                                className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 w-full"
+                              >
+                                <Plus className="w-4 h-4 mr-2" />
+                                Use
+                              </Button>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
                 </div>
+              ) : (
+                // Show manual configuration when model is selected
+                <div className="space-y-6">
 
-                <div className="space-y-2">
-                  <Label>Hair Style</Label>
-                  <Input
-                    value={modelDescription.hairStyle}
-                    onChange={(e) => handleModelDescriptionChange('hairStyle', e.target.value)}
-                    placeholder="Hair style"
-                  />
+                  {/* Select Another Influencer Button */}
+                  <div className="flex justify-center">
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setFormData(prev => ({ ...prev, model: '' }));
+                        setModelDescription({
+                          appearance: '',
+                          ethnicBackground: '',
+                          bodyType: '',
+                          facialFeatures: '',
+                          hairColor: '',
+                          hairLength: '',
+                          hairStyle: '',
+                          skin: '',
+                          lips: '',
+                          eyes: '',
+                          nose: '',
+                          makeup: '',
+                          clothing: ''
+                        });
+                      }}
+                      className="gap-2"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Select Another Influencer
+                    </Button>
+                  </div>
+
+                  <Separator />
+
+                  {/* Manual Model Description */}
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-lg font-semibold">Manual Configuration</h3>
+                      <Button
+                        onClick={generateModelDescription}
+                        variant="outline"
+                        size="sm"
+                      >
+                        <Wand2 className="w-4 h-4 mr-2" />
+                        Generate Description
+                      </Button>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Appearance</Label>
+                        <Input
+                          value={modelDescription.appearance}
+                          onChange={(e) => handleModelDescriptionChange('appearance', e.target.value)}
+                          placeholder="General appearance description"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Ethnic Background</Label>
+                        <Input
+                          value={modelDescription.ethnicBackground}
+                          onChange={(e) => handleModelDescriptionChange('ethnicBackground', e.target.value)}
+                          placeholder="Ethnic background"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Body Type</Label>
+                        <Input
+                          value={modelDescription.bodyType}
+                          onChange={(e) => handleModelDescriptionChange('bodyType', e.target.value)}
+                          placeholder="Body type description"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Facial Features</Label>
+                        <Input
+                          value={modelDescription.facialFeatures}
+                          onChange={(e) => handleModelDescriptionChange('facialFeatures', e.target.value)}
+                          placeholder="Distinctive facial features"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Hair Color</Label>
+                        <Input
+                          value={modelDescription.hairColor}
+                          onChange={(e) => handleModelDescriptionChange('hairColor', e.target.value)}
+                          placeholder="Hair color"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Hair Length</Label>
+                        <Input
+                          value={modelDescription.hairLength}
+                          onChange={(e) => handleModelDescriptionChange('hairLength', e.target.value)}
+                          placeholder="Hair length"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Hair Style</Label>
+                        <Input
+                          value={modelDescription.hairStyle}
+                          onChange={(e) => handleModelDescriptionChange('hairStyle', e.target.value)}
+                          placeholder="Hair style"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Skin</Label>
+                        <Input
+                          value={modelDescription.skin}
+                          onChange={(e) => handleModelDescriptionChange('skin', e.target.value)}
+                          placeholder="Skin description"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Lips</Label>
+                        <Input
+                          value={modelDescription.lips}
+                          onChange={(e) => handleModelDescriptionChange('lips', e.target.value)}
+                          placeholder="Lip description"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Eyes</Label>
+                        <Input
+                          value={modelDescription.eyes}
+                          onChange={(e) => handleModelDescriptionChange('eyes', e.target.value)}
+                          placeholder="Eye description"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Nose</Label>
+                        <Input
+                          value={modelDescription.nose}
+                          onChange={(e) => handleModelDescriptionChange('nose', e.target.value)}
+                          placeholder="Nose description"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Makeup</Label>
+                        <Input
+                          value={modelDescription.makeup}
+                          onChange={(e) => handleModelDescriptionChange('makeup', e.target.value)}
+                          placeholder="Makeup style"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Clothing</Label>
+                        <Input
+                          value={modelDescription.clothing}
+                          onChange={(e) => handleModelDescriptionChange('clothing', e.target.value)}
+                          placeholder="Clothing description"
+                        />
+                      </div>
+                    </div>
+                  </div>
                 </div>
-
-                <div className="space-y-2">
-                  <Label>Skin</Label>
-                  <Input
-                    value={modelDescription.skin}
-                    onChange={(e) => handleModelDescriptionChange('skin', e.target.value)}
-                    placeholder="Skin description"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Lips</Label>
-                  <Input
-                    value={modelDescription.lips}
-                    onChange={(e) => handleModelDescriptionChange('lips', e.target.value)}
-                    placeholder="Lip description"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Eyes</Label>
-                  <Input
-                    value={modelDescription.eyes}
-                    onChange={(e) => handleModelDescriptionChange('eyes', e.target.value)}
-                    placeholder="Eye description"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Nose</Label>
-                  <Input
-                    value={modelDescription.nose}
-                    onChange={(e) => handleModelDescriptionChange('nose', e.target.value)}
-                    placeholder="Nose description"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Makeup</Label>
-                  <Input
-                    value={modelDescription.makeup}
-                    onChange={(e) => handleModelDescriptionChange('makeup', e.target.value)}
-                    placeholder="Makeup style"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Clothing</Label>
-                  <Input
-                    value={modelDescription.clothing}
-                    onChange={(e) => handleModelDescriptionChange('clothing', e.target.value)}
-                    placeholder="Clothing description"
-                  />
-                </div>
-              </div>
-
-              <Button
-                onClick={generateModelDescription}
-                variant="outline"
-                className="w-full"
-              >
-                <Wand2 className="w-4 h-4 mr-2" />
-                Generate Model Description
-              </Button>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -874,7 +1158,7 @@ export default function ContentCreate() {
                 className="w-full"
               >
                 <Wand2 className="w-4 h-4 mr-2" />
-                Generate Complete Prompt
+                Generate Custom Prompt
               </Button>
             </CardContent>
           </Card>

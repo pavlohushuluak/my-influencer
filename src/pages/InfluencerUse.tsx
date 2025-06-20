@@ -4,7 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useState, useEffect } from 'react';
-import { Search, MessageCircle, Instagram, Send, X, Filter, Crown, Plus } from 'lucide-react';
+import { Search, MessageCircle, Instagram, Send, X, Filter, Crown, Plus, Sparkles } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -127,6 +127,20 @@ export default function InfluencerUse() {
         state: {
           influencerData: influencer,
           platform: platform,
+          mode: 'create'
+        }
+      });
+      setShowPlatformModal(false);
+    }
+  };
+
+  const handleContentCreate = () => {
+    const influencer = influencers.find(inf => inf.id === selectedInfluencer);
+    
+    if (influencer) {
+      navigate('/content/create', {
+        state: {
+          influencerData: influencer,
           mode: 'create'
         }
       });
@@ -286,6 +300,31 @@ export default function InfluencerUse() {
 
               <div className="space-y-3">
                 <p className="text-sm font-medium">Select a platform to create content:</p>
+                
+                {/* Content Create Option */}
+                <Button
+                  variant="outline"
+                  className="w-full justify-start h-auto p-4 border-2 border-ai-purple-500/20 hover:border-ai-purple-500/40 bg-gradient-to-r from-ai-purple-50 to-blue-50 dark:from-ai-purple-900/10 dark:to-blue-900/10"
+                  onClick={handleContentCreate}
+                >
+                  <div className="w-10 h-10 rounded-lg bg-gradient-to-r from-ai-purple-500 to-blue-500 flex items-center justify-center mr-3">
+                    <Sparkles className="w-5 h-5 text-white" />
+                  </div>
+                  <div className="text-left">
+                    <div className="font-medium">Content Create</div>
+                    <div className="text-sm text-muted-foreground">Advanced content generation</div>
+                  </div>
+                </Button>
+
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-background px-2 text-muted-foreground">Or select platform</span>
+                  </div>
+                </div>
+
                 {PLATFORMS.map((platform) => (
                   <Button
                     key={platform.id}

@@ -154,6 +154,10 @@ export default function ContentCreate() {
   const [showMakeupSelector, setShowMakeupSelector] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
 
+  // Framing options and modal state
+  const [framingOptions, setFramingOptions] = useState<Option[]>([]);
+  const [showFramingSelector, setShowFramingSelector] = useState(false);
+
   // Filtered influencers for search
   const filteredInfluencers = influencers.filter(influencer => {
     if (!debouncedSearchTerm) return true;
@@ -265,7 +269,6 @@ export default function ContentCreate() {
   useEffect(() => {
     const fetchMakeupOptions = async () => {
       try {
-        console.log('Fetching makeup options...');
         const response = await fetch('https://api.nymia.ai/v1/fieldoptions?fieldtype=makeup', {
           headers: {
             'Authorization': 'Bearer WeInfl3nc3withAI'
@@ -273,13 +276,11 @@ export default function ContentCreate() {
         });
         if (response.ok) {
           const data = await response.json();
-          console.log('Makeup options response:', data);
           if (data && data.fieldoptions && Array.isArray(data.fieldoptions)) {
             const options = data.fieldoptions.map((item: any) => ({
               label: item.label,
               image: item.image
             }));
-            console.log('Processed makeup options:', options);
             setMakeupOptions(options);
           }
         } else {
@@ -290,6 +291,34 @@ export default function ContentCreate() {
       }
     };
     fetchMakeupOptions();
+  }, []);
+
+  // Fetch framing options from API
+  useEffect(() => {
+    const fetchFramingOptions = async () => {
+      try {
+        const response = await fetch('https://api.nymia.ai/v1/promptoptions?fieldtype=framing', {
+          headers: {
+            'Authorization': 'Bearer WeInfl3nc3withAI'
+          }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          if (data && data.fieldoptions && Array.isArray(data.fieldoptions)) {
+            const options = data.fieldoptions.map((item: any) => ({
+              label: item.label,
+              image: item.image
+            }));
+            setFramingOptions(options);
+          }
+        } else {
+          console.error('Failed to fetch framing options:', response.status, response.statusText);
+        }
+      } catch (error) {
+        console.error('Error fetching framing options:', error);
+      }
+    };
+    fetchFramingOptions();
   }, []);
 
   const handleInputChange = (field: string, value: any) => {
@@ -1066,11 +1095,6 @@ export default function ContentCreate() {
                                 className='flex items-center justify-center cursor-pointer w-full'
                               >
                                 {(() => {
-                                  console.log('Makeup display debug:', {
-                                    modelDescriptionMakeup: modelDescription.makeup,
-                                    makeupOptions: makeupOptions,
-                                    foundOption: makeupOptions.find(option => option.label === modelDescription.makeup)
-                                  });
                                   return modelDescription.makeup && makeupOptions.find(option => option.label === modelDescription.makeup)?.image ? (
                                     <Card className="relative w-full max-w-[250px]">
                                       <CardContent className="p-4">
@@ -1193,13 +1217,47 @@ export default function ContentCreate() {
                           <SelectValue placeholder="Select framing" />
                         </SelectTrigger>
                         <SelectContent>
-                          {FRAMING_VARIANTS.map((variant) => (
-                            <SelectItem key={variant} value={variant}>
-                              {variant}
-                            </SelectItem>
+                          {framingOptions.map((option) => (
+                            <SelectItem key={option.label} value={option.label}>{option.label}</SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
+                      <div
+                        onClick={() => setShowFramingSelector(true)}
+                        className='flex items-center justify-center cursor-pointer w-full'
+                      >
+                        {sceneSpecs.framing && framingOptions.find(option => option.label === sceneSpecs.framing)?.image ? (
+                          <Card className="relative w-full max-w-[250px]">
+                            <CardContent className="p-4">
+                              <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
+                                <img
+                                  src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${framingOptions.find(option => option.label === sceneSpecs.framing)?.image}`}
+                                  className="absolute inset-0 w-full h-full object-cover rounded-md"
+                                />
+                              </div>
+                              <p className="text-sm text-center font-medium mt-2">{framingOptions.find(option => option.label === sceneSpecs.framing)?.label}</p>
+                            </CardContent>
+                          </Card>
+                        ) : (
+                          <Card className="relative w-full border max-w-[250px]">
+                            <CardContent className="p-4">
+                              <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
+                                <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
+                                  Select framing style
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        )}
+                      </div>
+                      {showFramingSelector && (
+                        <OptionSelector
+                          options={framingOptions}
+                          onSelect={(label) => handleSceneSpecChange('framing', label)}
+                          onClose={() => setShowFramingSelector(false)}
+                          title="Select Framing Style"
+                        />
+                      )}
                     </div>
 
                     <div className="space-y-2">

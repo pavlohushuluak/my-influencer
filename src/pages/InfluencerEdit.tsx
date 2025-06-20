@@ -62,7 +62,7 @@ const SUBSCRIPTION_FEATURES = {
 const FEATURE_RESTRICTIONS = {
   free: [
     'facial_features',
-    'makeup',
+    'bust',
     'color_palette',
     'clothing_style_home',
     'clothing_style_sports',
@@ -85,7 +85,7 @@ const FEATURE_RESTRICTIONS = {
   ],
   starter: [
     'facial_features',
-    'makeup',
+    'bust',
     'color_palette',
     'clothing_style_home',
     'clothing_style_sports',
@@ -206,7 +206,7 @@ export default function InfluencerEdit() {
   const [facialFeaturesOptions, setFacialFeaturesOptions] = useState<Option[]>([]);
   const [skinToneOptions, setSkinToneOptions] = useState<Option[]>([]);
   const [bodyTypeOptions, setBodyTypeOptions] = useState<Option[]>([]);
-  const [makeupOptions, setMakeupOptions] = useState<Option[]>([]);
+  const [bustOptions, setBustOptions] = useState<Option[]>([]);
   const [colorPaletteOptions, setColorPaletteOptions] = useState<Option[]>([]);
   const [clothingEverydayOptions, setClothingEverydayOptions] = useState<Option[]>([]);
   const [clothingOccasionalOptions, setClothingOccasionalOptions] = useState<Option[]>([]);
@@ -226,7 +226,7 @@ export default function InfluencerEdit() {
   const [showFacialFeaturesSelector, setShowFacialFeaturesSelector] = useState(false);
   const [showSkinToneSelector, setShowSkinToneSelector] = useState(false);
   const [showBodyTypeSelector, setShowBodyTypeSelector] = useState(false);
-  const [showMakeupSelector, setShowMakeupSelector] = useState(false);
+  const [showBustSelector, setShowBustSelector] = useState(false);
   const [showColorPaletteSelector, setShowColorPaletteSelector] = useState(false);
   const [showClothingEverydaySelector, setShowClothingEverydaySelector] = useState(false);
   const [showClothingOccasionalSelector, setShowClothingOccasionalSelector] = useState(false);
@@ -341,6 +341,8 @@ export default function InfluencerEdit() {
       return;
     }
 
+    console.log('Influencer data before saving:', influencerData);
+
     setIsSaving(true);
     try {
       if (location.state?.create) {
@@ -447,7 +449,7 @@ export default function InfluencerEdit() {
           facialfeatures: setFacialFeaturesOptions,
           skin: setSkinToneOptions,
           bodytype: setBodyTypeOptions,
-          makeup: setMakeupOptions,
+          bust: setBustOptions,
           colorpalette: setColorPaletteOptions,
           clothing_everyday: setClothingEverydayOptions,
           clothing_occasional: setClothingOccasionalOptions,
@@ -1591,37 +1593,37 @@ export default function InfluencerEdit() {
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <Label>Makeup Style</Label>
+                      <Label>Bust Size</Label>
                       <div className="flex flex-col gap-2">
                         <Select
-                          value={influencerData.makeup_style}
-                          onValueChange={(value) => handleInputChange('makeup_style', value)}
+                          value={influencerData.bust_size}
+                          onValueChange={(value) => handleInputChange('bust_size', value)}
                         >
                           <SelectTrigger>
-                            <SelectValue placeholder="Select makeup style" />
+                            <SelectValue placeholder="Select bust size" />
                           </SelectTrigger>
                           <SelectContent>
-                            {makeupOptions.map((option, index) => (
+                            {bustOptions.map((option, index) => (
                               <SelectItem key={index} value={option.label}>{option.label}</SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
                         <div
-                          onClick={() => setShowMakeupSelector(true)}
+                          onClick={() => setShowBustSelector(true)}
                           className='flex items-center justify-center cursor-pointer w-full'
                         >
                           {
-                            makeupOptions.find(option => option.label === influencerData.makeup_style)?.image ? (
+                            bustOptions.find(option => option.label === influencerData.bust_size)?.image ? (
                               <Card className="relative w-full max-w-[250px]">
                                 <CardContent className="p-4">
                                   <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
 
                                     <img
-                                      src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${makeupOptions.find(option => option.label === influencerData.makeup_style)?.image}`}
+                                      src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${bustOptions.find(option => option.label === influencerData.bust_size)?.image}`}
                                       className="absolute inset-0 w-full h-full object-cover rounded-md"
                                     />
                                   </div>
-                                  <p className="text-sm text-center font-medium mt-2">{makeupOptions.find(option => option.label === influencerData.makeup_style)?.label}</p>
+                                  <p className="text-sm text-center font-medium mt-2">{bustOptions.find(option => option.label === influencerData.bust_size)?.label}</p>
                                 </CardContent>
                               </Card>
                             )
@@ -2892,12 +2894,12 @@ export default function InfluencerEdit() {
       }
 
       {
-        showMakeupSelector && (
+        showBustSelector && (
           <OptionSelector
-            options={makeupOptions}
-            onSelect={(label) => handleInputChange('makeup_style', label)}
-            onClose={() => setShowMakeupSelector(false)}
-            title="Select Makeup Style"
+            options={bustOptions}
+            onSelect={(label) => handleInputChange('bust_size', label)}
+            onClose={() => setShowBustSelector(false)}
+            title="Select Bust Size"
           />
         )
       }

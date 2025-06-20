@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Check, Crown, Loader2, Sparkles, Zap, Shield, Users, BarChart } from 'lucide-react';
+import { Check, Crown, Loader2, Sparkles, Zap, Shield, Users, BarChart, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 import { PaymentMethodSelect } from '@/components/Payment/PaymentMethodSelect';
 import { PayoneerPayment } from '@/components/Payment/PayoneerPayment';
@@ -15,6 +15,7 @@ import { RootState } from '@/store/store';
 import { updatePlan, updateBillingCycle, updatePaymentMethod } from '@/store/slices/subscriptionSlice';
 import { subscriptionService } from '@/services/subscriptionService';
 import { setUser } from '@/store/slices/userSlice';
+import axios from 'axios';
 const SUBSCRIPTION_FEATURES = {
   starter: {
     name: 'Starter',
@@ -80,6 +81,33 @@ export default function Pricing() {
   const [paymentStep, setPaymentStep] = useState<PaymentStep>('select');
   const [paymentMethod, setPaymentMethod] = useState<string | null>(null);
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>(currentBillingCycle);
+
+  const handleMonthPassed = async () => {
+    try {
+      const newBillingDate = userData.billing_date - 1 * 30 * 24 * 60 * 60 * 1000;
+      const response = await axios.patch(
+        `https://db.nymia.ai/rest/v1/user?uuid=eq.${userData.id}`, 
+        JSON.stringify({ billing_date: newBillingDate }), 
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer WeInfl3nc3withAI`,
+          },
+        }
+      );
+      
+      // Update local state
+      dispatch(setUser({
+        ...userData,
+        billing_date: newBillingDate
+      }));
+      
+      toast.success('Billed date updated successfully');
+    } catch (error) {
+      console.error('Failed to update billed date:', error);
+      toast.error('Failed to update billed date');
+    }
+  };
 
   const handleSubscribe = async (plan: string) => {
     setSelectedPlan(plan);
@@ -209,6 +237,15 @@ export default function Pricing() {
           animate={{ opacity: 1, y: 0 }}
           className="flex flex-col items-center text-center space-y-4"
         >
+          <Button
+            onClick={handleMonthPassed}
+            variant="outline"
+            size="sm"
+            className="mb-4 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white border-0"
+          >
+            <Clock className="w-4 h-4 mr-2" />
+            A month has passed
+          </Button>
           <h1 className="text-4xl font-bold tracking-tight bg-ai-gradient bg-clip-text text-transparent">
             Choose Your Plan
           </h1>

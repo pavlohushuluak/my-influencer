@@ -839,10 +839,7 @@ export default function ContentCreate() {
             <CardContent className="space-y-6">
               {/* Settings Overview */}
               <div className="bg-gradient-to-r from-slate-50 to-blue-50 dark:from-slate-900/50 dark:to-blue-900/20 rounded-xl p-6">
-                <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-4 uppercase tracking-wide">
-                  Configuration
-                </h3>
-                <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   <div className="flex flex-col space-y-2">
                     <span className="text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wide">
                       Task Type

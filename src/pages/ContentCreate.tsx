@@ -611,7 +611,7 @@ export default function ContentCreate() {
 
   const generateModelDescription = () => {
     const parts = [];
-    
+
     if (modelDescription.appearance) parts.push(modelDescription.appearance);
     if (modelDescription.culturalBackground) parts.push(`Cultural background: ${modelDescription.culturalBackground}`);
     if (modelDescription.bodyType) parts.push(`Body type: ${modelDescription.bodyType}`);
@@ -642,7 +642,7 @@ export default function ContentCreate() {
 
   const generateSceneDescription = () => {
     const parts = [];
-    
+
     if (sceneSpecs.framing) parts.push(`Framing: ${sceneSpecs.framing}`);
     if (sceneSpecs.rotation) parts.push(`Rotation: ${sceneSpecs.rotation}`);
     if (sceneSpecs.lighting_preset) parts.push(`Lighting: ${sceneSpecs.lighting_preset}`);
@@ -661,26 +661,26 @@ export default function ContentCreate() {
 
   const generatePrompt = () => {
     let prompt = '';
-    
+
     if (formData.lora) {
       prompt += 'AIMod3l ';
     }
-    
+
     if (formData.model) {
       prompt += `${formData.model}, `;
     }
-    
+
     if (formData.scene) {
       prompt += `${formData.scene}, `;
     }
-    
+
     if (formData.prompt) {
       prompt += formData.prompt;
     }
 
     // Clean up the prompt
     prompt = prompt.replace(/,\s*$/, '').trim();
-    
+
     setFormData(prev => ({
       ...prev,
       prompt: prompt
@@ -696,7 +696,7 @@ export default function ContentCreate() {
     }
 
     setIsGenerating(true);
-    
+
     try {
       // Create the JSON data structure
       const requestData = {
@@ -759,9 +759,9 @@ export default function ContentCreate() {
 
       // const result = await response.json();
       // console.log('Generation response:', result);
-      
+
       toast.success('Content generation started successfully');
-      
+
     } catch (error) {
       console.error('Generation error:', error);
       toast.error('Failed to start content generation');
@@ -866,7 +866,7 @@ export default function ContentCreate() {
             </p>
           </div>
         </div>
-        
+
         <Button
           onClick={handleGenerate}
           disabled={!validateForm() || isGenerating}
@@ -976,7 +976,7 @@ export default function ContentCreate() {
 
                 <div className="flex flex-col space-y-2">
                   <span className="text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wide">
-                    LORA Model
+                    CONSISTENCY
                   </span>
                   <Badge variant={formData.lora ? "default" : "secondary"} className={`w-fit ${formData.lora ? 'bg-gradient-to-r from-purple-500 to-blue-500 text-white' : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300'}`}>
                     {formData.lora ? "Enabled" : "Disabled"}
@@ -985,7 +985,7 @@ export default function ContentCreate() {
 
                 <div className="flex flex-col space-y-2">
                   <span className="text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wide">
-                    No AI Filter
+                    AI OPTIMIZE
                   </span>
                   <Badge variant={formData.noAI ? "default" : "secondary"} className={`w-fit ${formData.noAI ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white' : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300'}`}>
                     {formData.noAI ? "Enabled" : "Disabled"}
@@ -1040,100 +1040,100 @@ export default function ContentCreate() {
       </div>
 
       {/* Settings Tabs - Bottom Section */}
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="basic">Basic</TabsTrigger>
-              <TabsTrigger value="model">Model</TabsTrigger>
-              <TabsTrigger value="scene">Scene</TabsTrigger>
-              <TabsTrigger value="advanced">Advanced</TabsTrigger>
-            </TabsList>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="basic">Basic</TabsTrigger>
+          <TabsTrigger value="model">Model</TabsTrigger>
+          <TabsTrigger value="scene">Scene</TabsTrigger>
+          <TabsTrigger value="advanced">Advanced</TabsTrigger>
+        </TabsList>
 
-            {/* Basic Tab */}
-            <TabsContent value="basic" className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
+        {/* Basic Tab */}
+        <TabsContent value="basic" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
                 <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg">
                   <Sparkles className="w-5 h-5 text-white" />
                 </div>
-                    Basic Settings
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
+                Basic Settings
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 <div className='grid grid-cols-1 gap-3'>
-                    <div className="space-y-2">
-                      <Label>Task Type</Label>
-                      <Select
-                        value={formData.task}
-                        onValueChange={(value) => handleInputChange('task', value)}
-                      >
-                        <SelectTrigger>
+                  <div className="space-y-2">
+                    <Label>Task Type</Label>
+                    <Select
+                      value={formData.task}
+                      onValueChange={(value) => handleInputChange('task', value)}
+                    >
+                      <SelectTrigger>
                         <div className='pl-10'>
                           {TASK_OPTIONS.find(opt => opt.value === formData.task)?.label}
                         </div>
-                        </SelectTrigger>
-                        <SelectContent>
-                          {TASK_OPTIONS.map((option) => (
-                            <SelectItem key={option.value} value={option.value}>
-                              <div>
-                                <div className="font-medium">{option.label}</div>
-                                <div className="text-sm text-muted-foreground">{option.description}</div>
-                              </div>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Number of Images: {formData.numberOfImages}</Label>
-                      <Slider
-                        value={[formData.numberOfImages]}
-                        onValueChange={([value]) => handleInputChange('numberOfImages', value)}
-                        max={20}
-                        min={1}
-                        step={1}
-                        className="w-full"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>Guidance: {formData.guidance}</Label>
-                      <Slider
-                        value={[formData.guidance]}
-                        onValueChange={([value]) => handleInputChange('guidance', value)}
-                        max={8.0}
-                        min={1.0}
-                        step={0.1}
-                        className="w-full"
-                      />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {TASK_OPTIONS.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            <div>
+                              <div className="font-medium">{option.label}</div>
+                              <div className="text-sm text-muted-foreground">{option.description}</div>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Number of Images: {formData.numberOfImages}</Label>
+                    <Slider
+                      value={[formData.numberOfImages]}
+                      onValueChange={([value]) => handleInputChange('numberOfImages', value)}
+                      max={20}
+                      min={1}
+                      step={1}
+                      className="w-full"
+                    />
                   </div>
 
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label>LORA Model</Label>
-                        <p className="text-sm text-muted-foreground">
-                          Enable LORA model (adds "AIMod3l" trigger)
-                        </p>
-                      </div>
-                      <Switch
-                        checked={formData.lora}
-                        onCheckedChange={(checked) => handleInputChange('lora', checked)}
-                      />
-                    </div>
+                  <div className="space-y-2">
+                    <Label>Guidance: {formData.guidance}</Label>
+                    <Slider
+                      value={[formData.guidance]}
+                      onValueChange={([value]) => handleInputChange('guidance', value)}
+                      max={8.0}
+                      min={1.0}
+                      step={0.1}
+                      className="w-full"
+                    />
+                  </div>
 
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label>No AI Optimization</Label>
-                        <p className="text-sm text-muted-foreground">
-                          Pass user input unfiltered (no AI processing)
-                        </p>
-                      </div>
-                      <Switch
-                        checked={formData.noAI}
-                        onCheckedChange={(checked) => handleInputChange('noAI', checked)}
-                      />
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>CONSISTENCY</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Activates the LoRA model.
+                      </p>
                     </div>
+                    <Switch
+                      checked={formData.lora}
+                      onCheckedChange={(checked) => handleInputChange('lora', checked)}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>AI Optimization</Label>
+                      <p className="text-sm text-muted-foreground">
+                        User input is passed directly without AI modification or interpretation.
+                      </p>
+                    </div>
+                    <Switch
+                      checked={formData.noAI}
+                      onCheckedChange={(checked) => handleInputChange('noAI', checked)}
+                    />
+                  </div>
                 </div>
 
                 <div className="space-y-2">
@@ -1192,34 +1192,34 @@ export default function ContentCreate() {
 
               <div className="space-y-4">
 
-                  </div>
+              </div>
 
-                  <div className="space-y-2">
-                    <Label>Seed (Optional)</Label>
-                    <Input
-                      value={formData.seed}
-                      onChange={(e) => handleInputChange('seed', e.target.value)}
-                      placeholder="Enter seed value for reproducible results"
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
+              <div className="space-y-2">
+                <Label>Seed (Optional)</Label>
+                <Input
+                  value={formData.seed}
+                  onChange={(e) => handleInputChange('seed', e.target.value)}
+                  placeholder="Enter seed value for reproducible results"
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-            {/* Model Tab */}
-            <TabsContent value="model" className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
+        {/* Model Tab */}
+        <TabsContent value="model" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
                 <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg">
                   <ImageIcon className="w-5 h-5 text-white" />
                 </div>
-                    Model Description
-                  </CardTitle>
+                Model Description
+              </CardTitle>
               <p className="text-sm text-muted-foreground">
                 {formData.model ? 'Selected influencer model configuration' : 'Select an influencer to use for content generation'}
               </p>
-                </CardHeader>
+            </CardHeader>
             <CardContent className="space-y-6">
               {/* Show Influencer Selection or Selected Influencer */}
               {!formData.model ? (
@@ -1230,14 +1230,14 @@ export default function ContentCreate() {
                     <Badge variant="secondary" className="text-xs">
                       {filteredInfluencers.length} available
                     </Badge>
-                    </div>
+                  </div>
 
                   {/* Search Section */}
                   <div className="flex gap-4">
                     <div className="relative flex-1">
                       <div className="relative">
                         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                      <Input
+                        <Input
                           type="text"
                           placeholder="Search influencers..."
                           value={searchTerm}
@@ -1254,7 +1254,7 @@ export default function ContentCreate() {
                             <X className="h-4 w-4" />
                           </Button>
                         )}
-                    </div>
+                      </div>
                     </div>
 
                     <Popover open={openFilter} onOpenChange={setOpenFilter}>
@@ -1282,7 +1282,7 @@ export default function ContentCreate() {
                         </Command>
                       </PopoverContent>
                     </Popover>
-                    </div>
+                  </div>
 
                   {/* Influencers Grid */}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -1295,26 +1295,26 @@ export default function ContentCreate() {
                                 src={influencer.image_url}
                                 alt={`${influencer.name_first} ${influencer.name_last}`}
                                 className="w-full h-full object-cover"
-                      />
-                    </div>
+                              />
+                            </div>
 
                             <div>
                               <div className="flex items-center justify-between mb-2">
                                 <h3 className="font-semibold text-lg group-hover:text-ai-purple-500 transition-colors">
                                   {influencer.name_first} {influencer.name_last}
                                 </h3>
-                    </div>
+                              </div>
 
                               <div className="flex flex-col gap-1 mb-3">
                                 <div className="flex text-sm text-muted-foreground flex-col">
                                   <span className="font-medium mr-2">Age/Lifestyle:</span>
                                   {influencer.age_lifestyle}
-                    </div>
+                                </div>
                                 <div className="flex items-center text-sm text-muted-foreground">
                                   <span className="font-medium mr-2">Type:</span>
                                   {influencer.influencer_type}
                                 </div>
-                    </div>
+                              </div>
 
                               <Button
                                 size="sm"
@@ -1345,15 +1345,15 @@ export default function ContentCreate() {
                               src={modelData?.image_url}
                               alt={`${modelData?.name_first} ${modelData?.name_last}`}
                               className="w-full h-full object-cover"
-                      />
-                    </div>
+                            />
+                          </div>
 
                           <div>
                             <div className="flex items-center justify-between mb-2">
                               <h3 className="font-semibold text-lg">
                                 {modelData?.name_first} {modelData?.name_last}
                               </h3>
-                    </div>
+                            </div>
 
                             <div className="flex flex-col gap-1 mb-3">
                               <div className="flex text-sm text-muted-foreground flex-col">
@@ -1364,13 +1364,13 @@ export default function ContentCreate() {
                                 <span className="font-medium mr-2">Type:</span>
                                 {modelData?.influencer_type}
                               </div>
-                    </div>
+                            </div>
 
                             {/* Makeup Selection */}
                             <div className="space-y-2 mb-3">
                               <Label className="text-sm font-medium">Makeup Style</Label>
                               <Select
-                        value={modelDescription.makeup}
+                                value={modelDescription.makeup}
                                 onValueChange={(value) => handleModelDescriptionChange('makeup', value)}
                               >
                                 <SelectTrigger>
@@ -1394,8 +1394,8 @@ export default function ContentCreate() {
                                           <img
                                             src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${makeupOptions.find(option => option.label === modelDescription.makeup)?.image}`}
                                             className="absolute inset-0 w-full h-full object-cover rounded-md"
-                      />
-                    </div>
+                                          />
+                                        </div>
                                         <p className="text-sm text-center font-medium mt-2">{makeupOptions.find(option => option.label === modelDescription.makeup)?.label}</p>
                                       </CardContent>
                                     </Card>
@@ -1405,7 +1405,7 @@ export default function ContentCreate() {
                                         <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                                           <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
                                             Select makeup style
-                    </div>
+                                          </div>
                                         </div>
                                       </CardContent>
                                     </Card>
@@ -1420,18 +1420,18 @@ export default function ContentCreate() {
                                   title="Select Makeup Style"
                                 />
                               )}
-                  </div>
+                            </div>
 
                             {/* Update Model Description Button */}
-                  <Button
+                            <Button
                               size="sm"
-                    variant="outline"
+                              variant="outline"
                               onClick={generateModelDescription}
                               className="w-full mb-3"
-                  >
-                    <Wand2 className="w-4 h-4 mr-2" />
+                            >
+                              <Wand2 className="w-4 h-4 mr-2" />
                               Update Model Description
-                  </Button>
+                            </Button>
 
                             <Button
                               size="sm"
@@ -1484,36 +1484,36 @@ export default function ContentCreate() {
                   </div>
                 </div>
               )}
-                </CardContent>
-              </Card>
-            </TabsContent>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-            {/* Scene Tab */}
-            <TabsContent value="scene" className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Camera className="w-5 h-5" />
-                    Scene Specifications
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
+        {/* Scene Tab */}
+        <TabsContent value="scene" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Camera className="w-5 h-5" />
+                Scene Specifications
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="space-y-2">
                   <Label>Framing</Label>
-                      <Select
-                        value={sceneSpecs.framing}
-                        onValueChange={(value) => handleSceneSpecChange('framing', value)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select framing" />
-                        </SelectTrigger>
-                        <SelectContent>
+                  <Select
+                    value={sceneSpecs.framing}
+                    onValueChange={(value) => handleSceneSpecChange('framing', value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select framing" />
+                    </SelectTrigger>
+                    <SelectContent>
                       {framingOptions.map((option) => (
                         <SelectItem key={option.label} value={option.label}>{option.label}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <div
                     onClick={() => setShowFramingSelector(true)}
                     className='flex items-center justify-center cursor-pointer w-full'
@@ -1550,23 +1550,23 @@ export default function ContentCreate() {
                       title="Select Framing Style"
                     />
                   )}
-                    </div>
+                </div>
 
-                    <div className="space-y-2">
-                      <Label>Rotation</Label>
-                      <Select
-                        value={sceneSpecs.rotation}
-                        onValueChange={(value) => handleSceneSpecChange('rotation', value)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select rotation" />
-                        </SelectTrigger>
-                        <SelectContent>
+                <div className="space-y-2">
+                  <Label>Rotation</Label>
+                  <Select
+                    value={sceneSpecs.rotation}
+                    onValueChange={(value) => handleSceneSpecChange('rotation', value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select rotation" />
+                    </SelectTrigger>
+                    <SelectContent>
                       {rotationOptions.map((option) => (
                         <SelectItem key={option.label} value={option.label}>{option.label}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <div
                     onClick={() => setShowRotationSelector(true)}
                     className='flex items-center justify-center cursor-pointer w-full'
@@ -1603,23 +1603,23 @@ export default function ContentCreate() {
                       title="Select Rotation Style"
                     />
                   )}
-                    </div>
+                </div>
 
-                    <div className="space-y-2">
+                <div className="space-y-2">
                   <Label>Lighting Preset</Label>
-                      <Select
+                  <Select
                     value={sceneSpecs.lighting_preset}
                     onValueChange={(value) => handleSceneSpecChange('lighting_preset', value)}
-                      >
-                        <SelectTrigger>
+                  >
+                    <SelectTrigger>
                       <SelectValue placeholder="Select lighting preset" />
-                        </SelectTrigger>
-                        <SelectContent>
+                    </SelectTrigger>
+                    <SelectContent>
                       {lightingOptions.map((option) => (
                         <SelectItem key={option.label} value={option.label}>{option.label}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <div
                     onClick={() => setShowLightingSelector(true)}
                     className='flex items-center justify-center cursor-pointer w-full'
@@ -1656,9 +1656,9 @@ export default function ContentCreate() {
                       title="Select Lighting Style"
                     />
                   )}
-                    </div>
+                </div>
 
-                    <div className="space-y-2">
+                <div className="space-y-2">
                   <Label>Scene Setting</Label>
                   <Select
                     value={sceneSpecs.scene_setting}
@@ -1684,8 +1684,8 @@ export default function ContentCreate() {
                             <img
                               src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${sceneSettingsOptions.find(option => option.label === sceneSpecs.scene_setting)?.image}`}
                               className="absolute inset-0 w-full h-full object-cover rounded-md"
-                      />
-                    </div>
+                            />
+                          </div>
                           <p className="text-sm text-center font-medium mt-2">{sceneSettingsOptions.find(option => option.label === sceneSpecs.scene_setting)?.label}</p>
                         </CardContent>
                       </Card>
@@ -1709,7 +1709,7 @@ export default function ContentCreate() {
                       title="Select Scene Setting"
                     />
                   )}
-                  </div>
+                </div>
 
                 <div className="space-y-2">
                   <Label>Pose</Label>
@@ -1738,7 +1738,7 @@ export default function ContentCreate() {
                               src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${poseOptions.find(option => option.label === sceneSpecs.pose)?.image}`}
                               className="absolute inset-0 w-full h-full object-cover rounded-md"
                             />
-                    </div>
+                          </div>
                           <p className="text-sm text-center font-medium mt-2">{poseOptions.find(option => option.label === sceneSpecs.pose)?.label}</p>
                         </CardContent>
                       </Card>
@@ -1816,52 +1816,52 @@ export default function ContentCreate() {
                     />
                   )}
                 </div>
-                  </div>
+              </div>
 
-                  <Button
-                    onClick={generateSceneDescription}
-                    variant="outline"
-                    className="w-full"
-                  >
-                    <Wand2 className="w-4 h-4 mr-2" />
-                    Generate Scene Description
-                  </Button>
-                </CardContent>
-              </Card>
-            </TabsContent>
+              <Button
+                onClick={generateSceneDescription}
+                variant="outline"
+                className="w-full"
+              >
+                <Wand2 className="w-4 h-4 mr-2" />
+                Generate Scene Description
+              </Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-            {/* Advanced Tab */}
-            <TabsContent value="advanced" className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Settings className="w-5 h-5" />
-                    Advanced Settings
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>Custom Prompt</Label>
-                    <Textarea
-                      value={formData.prompt}
-                      onChange={(e) => handleInputChange('prompt', e.target.value)}
-                      placeholder="Enter your custom prompt here..."
-                      rows={6}
-                    />
-                  </div>
+        {/* Advanced Tab */}
+        <TabsContent value="advanced" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Settings className="w-5 h-5" />
+                Advanced Settings
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label>Custom Prompt</Label>
+                <Textarea
+                  value={formData.prompt}
+                  onChange={(e) => handleInputChange('prompt', e.target.value)}
+                  placeholder="Enter your custom prompt here..."
+                  rows={6}
+                />
+              </div>
 
-                  <Button
-                    onClick={generatePrompt}
-                    variant="outline"
-                    className="w-full"
-                  >
-                    <Wand2 className="w-4 h-4 mr-2" />
+              <Button
+                onClick={generatePrompt}
+                variant="outline"
+                className="w-full"
+              >
+                <Wand2 className="w-4 h-4 mr-2" />
                 Generate Custom Prompt
-                  </Button>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
+              </Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

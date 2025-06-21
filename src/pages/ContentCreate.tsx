@@ -116,10 +116,10 @@ export default function ContentCreate() {
     numberOfImages: 1,
     seed: '',
     guidance: 3.5,
-    negativePrompt: '',
-    sfwLevel: 0,
-    loraStrength: 0,
-    imageQuality: 'Basic'
+    negative_prompt: '',
+    nsfw_strength: 0,
+    lora_strength: 0,
+    quality: 'Basic'
   });
 
   // Scene specifications
@@ -612,91 +612,13 @@ export default function ContentCreate() {
     setSearchTerm('');
   };
 
-  const generateModelDescription = () => {
-    const parts = [];
-
-    if (modelDescription.appearance) parts.push(modelDescription.appearance);
-    if (modelDescription.culturalBackground) parts.push(`Cultural background: ${modelDescription.culturalBackground}`);
-    if (modelDescription.bodyType) parts.push(`Body type: ${modelDescription.bodyType}`);
-    if (modelDescription.facialFeatures) parts.push(`Facial features: ${modelDescription.facialFeatures}`);
-    if (modelDescription.hairColor && modelDescription.hairLength && modelDescription.hairStyle) {
-      parts.push(`${modelDescription.hairLength} ${modelDescription.hairColor} hair, ${modelDescription.hairStyle} style`);
-    }
-    if (modelDescription.skin) parts.push(`Skin: ${modelDescription.skin}`);
-    if (modelDescription.lips) parts.push(`Lips: ${modelDescription.lips}`);
-    if (modelDescription.eyes) parts.push(`Eyes: ${modelDescription.eyes}`);
-    if (modelDescription.nose) parts.push(`Nose: ${modelDescription.nose}`);
-    if (modelDescription.makeup) parts.push(`Makeup: ${modelDescription.makeup}`);
-    if (modelDescription.clothing) parts.push(`Clothing: ${modelDescription.clothing}`);
-    if (modelDescription.sex) parts.push(`Sex: ${modelDescription.sex}`);
-    if (modelDescription.bust) parts.push(`Bust: ${modelDescription.bust}`);
-    if (modelDescription.eyebrowStyle) parts.push(`Eyebrows: ${modelDescription.eyebrowStyle}`);
-    if (modelDescription.faceShape) parts.push(`Face shape: ${modelDescription.faceShape}`);
-    if (modelDescription.colorPalette) parts.push(`Color palette: ${modelDescription.colorPalette}`);
-
-    const fullDescription = parts.join(', ');
-    setFormData(prev => ({
-      ...prev,
-      model: fullDescription
-    }));
-
-    toast.success('Model description generated successfully');
-  };
-
-  const generateSceneDescription = () => {
-    const parts = [];
-
-    if (sceneSpecs.framing) parts.push(`Framing: ${sceneSpecs.framing}`);
-    if (sceneSpecs.rotation) parts.push(`Rotation: ${sceneSpecs.rotation}`);
-    if (sceneSpecs.lighting_preset) parts.push(`Lighting: ${sceneSpecs.lighting_preset}`);
-    if (sceneSpecs.scene_setting) parts.push(`Scene: ${sceneSpecs.scene_setting}`);
-    if (sceneSpecs.pose) parts.push(`Pose: ${sceneSpecs.pose}`);
-    if (sceneSpecs.clothes) parts.push(`Clothes: ${sceneSpecs.clothes}`);
-
-    const fullDescription = parts.join(', ');
-    setFormData(prev => ({
-      ...prev,
-      scene: fullDescription
-    }));
-
-    toast.success('Scene description generated successfully');
-  };
-
-  const generatePrompt = () => {
-    let prompt = '';
-
-    if (formData.lora) {
-      prompt += 'AIMod3l ';
-    }
-
-    if (formData.model) {
-      prompt += `${formData.model}, `;
-    }
-
-    if (formData.scene) {
-      prompt += `${formData.scene}, `;
-    }
-
-    if (formData.prompt) {
-      prompt += formData.prompt;
-    }
-
-    // Clean up the prompt
-    prompt = prompt.replace(/,\s*$/, '').trim();
-
-    setFormData(prev => ({
-      ...prev,
-      prompt: prompt
-    }));
-
-    toast.success('Prompt generated successfully');
-  };
-
   const handleGenerate = async () => {
     if (!formData.model && !formData.prompt) {
       toast.error('Please provide either a model description or a prompt');
       return;
     }
+
+    // console.log('formData', formData);
 
     setIsGenerating(true);
 
@@ -707,6 +629,10 @@ export default function ContentCreate() {
         lora: formData.lora,
         noAI: formData.noAI,
         prompt: formData.prompt,
+        negative_prompt: formData.negative_prompt,
+        nsfw_strength: formData.nsfw_strength,
+        lora_strength: formData.lora_strength,
+        quality: formData.quality,
         seed: formData.seed ? parseInt(formData.seed) : -1,
         guidance: formData.guidance,
         number_of_images: formData.numberOfImages,
@@ -996,48 +922,6 @@ export default function ContentCreate() {
                 </div>
               </div>
             </div>
-
-            {/* Content Descriptions */}
-            {(formData.scene || formData.prompt) && (
-              <div className="space-y-4">
-                <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide">
-                  Content Specifications
-                </h3>
-                <div className='grid grid-cols-1 xl:grid-cols-2 gap-2'>
-                  {formData.scene && (
-                    <div className="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-lg p-4">
-                      <div className="flex items-center gap-2 mb-3">
-                        <div className="p-1.5 bg-green-100 dark:bg-green-900/30 rounded-md">
-                          <Camera className="w-3.5 h-3.5 text-green-600 dark:text-green-400" />
-                        </div>
-                        <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide">
-                          Scene Description
-                        </Label>
-                      </div>
-                      <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-                        {formData.scene}
-                      </p>
-                    </div>
-                  )}
-
-                  {formData.prompt && (
-                    <div className="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-lg p-4">
-                      <div className="flex items-center gap-2 mb-3">
-                        <div className="p-1.5 bg-purple-100 dark:bg-purple-900/30 rounded-md">
-                          <Sparkles className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
-                        </div>
-                        <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide">
-                          Custom Prompt
-                        </Label>
-                      </div>
-                      <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-                        {formData.prompt}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
           </CardContent>
         </Card>
       </div>
@@ -1425,17 +1309,6 @@ export default function ContentCreate() {
                               )}
                             </div>
 
-                            {/* Update Model Description Button */}
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={generateModelDescription}
-                              className="w-full mb-3"
-                            >
-                              <Wand2 className="w-4 h-4 mr-2" />
-                              Update Model Description
-                            </Button>
-
                             <Button
                               size="sm"
                               variant="outline"
@@ -1506,10 +1379,10 @@ export default function ContentCreate() {
             <CardContent className="space-y-4">
               {/* Text Input - First Option */}
               <div className="space-y-2">
-                <Label>Text input</Label>
+                <Label>Prompt</Label>
                 <Textarea
-                  value={formData.scene}
-                  onChange={(e) => handleInputChange('scene', e.target.value)}
+                  value={formData.prompt}
+                  onChange={(e) => handleInputChange('prompt', e.target.value)}
                   placeholder="Describe what you want to see... (e.g., 'Model is sitting at the beach and enjoys the sun' or 'white shirt and blue jeans')"
                   rows={3}
                 />
@@ -1858,8 +1731,8 @@ export default function ContentCreate() {
                   Describe things you don't want to see. Optional, we take care of the essentials for you anyway.
                 </p>
                 <Textarea
-                  value={formData.negativePrompt || ''}
-                  onChange={(e) => handleInputChange('negativePrompt', e.target.value)}
+                  value={formData.negative_prompt || ''}
+                  onChange={(e) => handleInputChange('negative_prompt', e.target.value)}
                   placeholder="Enter negative prompt here..."
                   rows={3}
                 />
@@ -1869,8 +1742,8 @@ export default function ContentCreate() {
                 <div className="space-y-2">
                   <Label>SFW &lt;----&gt; NSFW</Label>
                   <Slider
-                    value={[formData.sfwLevel || 0]}
-                    onValueChange={([value]) => handleInputChange('sfwLevel', value)}
+                    value={[formData.nsfw_strength || 0]}
+                    onValueChange={([value]) => handleInputChange('nsfw_strength', value)}
                     max={1}
                     min={-1}
                     step={0.1}
@@ -1885,8 +1758,8 @@ export default function ContentCreate() {
                 <div className="space-y-2">
                   <Label>LORA Strength</Label>
                   <Slider
-                    value={[formData.loraStrength || 0]}
-                    onValueChange={([value]) => handleInputChange('loraStrength', value)}
+                    value={[formData.lora_strength || 0]}
+                    onValueChange={([value]) => handleInputChange('lora_strength', value)}
                     max={1}
                     min={-1}
                     step={0.1}
@@ -1901,8 +1774,8 @@ export default function ContentCreate() {
                 <div className="space-y-2">
                   <Label>Image Quality</Label>
                   <Select
-                    value={formData.imageQuality || 'Basic'}
-                    onValueChange={(value) => handleInputChange('imageQuality', value)}
+                    value={formData.quality || 'Basic'}
+                    onValueChange={(value) => handleInputChange('quality', value)}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select quality" />

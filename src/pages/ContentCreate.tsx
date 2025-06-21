@@ -132,7 +132,7 @@ export default function ContentCreate() {
   // Model description sections
   const [modelDescription, setModelDescription] = useState({
     appearance: '',
-    ethnicBackground: '',
+    culturalBackground: '',
     bodyType: '',
     facialFeatures: '',
     hairColor: '',
@@ -143,9 +143,9 @@ export default function ContentCreate() {
     eyes: '',
     nose: '',
     makeup: '',
+    bust: '',
     clothing: '',
     sex: '',
-    bust: '',
     eyebrowStyle: '',
     faceShape: '',
     colorPalette: ''
@@ -179,6 +179,10 @@ export default function ContentCreate() {
   // Scene settings options and modal state
   const [sceneSettingsOptions, setSceneSettingsOptions] = useState<Option[]>([]);
   const [showSceneSettingsSelector, setShowSceneSettingsSelector] = useState(false);
+
+  // Format options and modal state
+  const [formatOptions, setFormatOptions] = useState<Option[]>([]);
+  const [showFormatSelector, setShowFormatSelector] = useState(false);
 
   // Filtered influencers for search
   const filteredInfluencers = influencers.filter(influencer => {
@@ -236,7 +240,7 @@ export default function ContentCreate() {
       // Auto-populate model description from influencer data
       setModelDescription({
         appearance: `${influencerData.name_first} ${influencerData.name_last}, ${influencerData.age_lifestyle || ''}`,
-        ethnicBackground: influencerData.cultural_background || '',
+        culturalBackground: influencerData.cultural_background || '',
         bodyType: influencerData.body_type || '',
         facialFeatures: influencerData.facial_features || '',
         hairColor: influencerData.hair_color || '',
@@ -249,7 +253,7 @@ export default function ContentCreate() {
         makeup: '', // No makeup_style property in Influencer interface
         clothing: `${influencerData.clothing_style_everyday || ''} ${influencerData.clothing_style_occasional || ''}`.trim(),
         sex: influencerData.sex || '',
-        bust: '', // No bust property in Influencer interface
+        bust: influencerData.bust_size || '', // No bust property in Influencer interface
         eyebrowStyle: '', // No eyebrow_style property in Influencer interface
         faceShape: influencerData.face_shape || '',
         colorPalette: influencerData.color_palette ? influencerData.color_palette.join(', ') : ''
@@ -262,7 +266,7 @@ export default function ContentCreate() {
         parts.push(`${influencerData.name_first} ${influencerData.name_last}`);
       }
       if (influencerData.age_lifestyle) parts.push(influencerData.age_lifestyle);
-      if (influencerData.cultural_background) parts.push(`Ethnic background: ${influencerData.cultural_background}`);
+      if (influencerData.cultural_background) parts.push(`Cultural background: ${influencerData.cultural_background}`);
       if (influencerData.body_type) parts.push(`Body type: ${influencerData.body_type}`);
       if (influencerData.facial_features) parts.push(`Facial features: ${influencerData.facial_features}`);
       if (influencerData.hair_color && influencerData.hair_length && influencerData.hair_style) {
@@ -490,6 +494,35 @@ export default function ContentCreate() {
     fetchSceneSettingsOptions();
   }, []);
 
+  // Fetch format options from API
+  useEffect(() => {
+    const fetchFormatOptions = async () => {
+      try {
+        const response = await fetch('https://api.nymia.ai/v1/promptoptions?fieldtype=format', {
+          headers: {
+            'Authorization': 'Bearer WeInfl3nc3withAI'
+          }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          if (data && data.fieldoptions && Array.isArray(data.fieldoptions)) {
+            const options = data.fieldoptions.map((item: any) => ({
+              label: item.label,
+              image: item.image,
+              description: item.description
+            }));
+            setFormatOptions(options);
+          }
+        } else {
+          console.error('Failed to fetch format options:', response.status, response.statusText);
+        }
+      } catch (error) {
+        console.error('Error fetching format options:', error);
+      }
+    };
+    fetchFormatOptions();
+  }, []);
+
   const handleInputChange = (field: string, value: any) => {
     setFormData(prev => ({
       ...prev,
@@ -518,7 +551,7 @@ export default function ContentCreate() {
     // Populate model description from selected influencer
     setModelDescription({
       appearance: `${influencer.name_first} ${influencer.name_last}, ${influencer.age_lifestyle || ''}`,
-      ethnicBackground: influencer.cultural_background || '',
+      culturalBackground: influencer.cultural_background || '',
       bodyType: influencer.body_type || '',
       facialFeatures: influencer.facial_features || '',
       hairColor: influencer.hair_color || '',
@@ -531,7 +564,7 @@ export default function ContentCreate() {
       makeup: '', // No makeup_style property in Influencer interface
       clothing: `${influencer.clothing_style_everyday || ''} ${influencer.clothing_style_occasional || ''}`.trim(),
       sex: influencer.sex || '',
-      bust: '', // No bust property in Influencer interface
+      bust: influencer.bust_size || '', // No bust property in Influencer interface
       eyebrowStyle: '', // No eyebrow_style property in Influencer interface
       faceShape: influencer.face_shape || '',
       colorPalette: influencer.color_palette ? influencer.color_palette.join(', ') : ''
@@ -544,7 +577,7 @@ export default function ContentCreate() {
       parts.push(`${influencer.name_first} ${influencer.name_last}`);
     }
     if (influencer.age_lifestyle) parts.push(influencer.age_lifestyle);
-    if (influencer.cultural_background) parts.push(`Ethnic background: ${influencer.cultural_background}`);
+    if (influencer.cultural_background) parts.push(`Cultural background: ${influencer.cultural_background}`);
     if (influencer.body_type) parts.push(`Body type: ${influencer.body_type}`);
     if (influencer.facial_features) parts.push(`Facial features: ${influencer.facial_features}`);
     if (influencer.hair_color && influencer.hair_length && influencer.hair_style) {
@@ -580,7 +613,7 @@ export default function ContentCreate() {
     const parts = [];
     
     if (modelDescription.appearance) parts.push(modelDescription.appearance);
-    if (modelDescription.ethnicBackground) parts.push(`Ethnic background: ${modelDescription.ethnicBackground}`);
+    if (modelDescription.culturalBackground) parts.push(`Cultural background: ${modelDescription.culturalBackground}`);
     if (modelDescription.bodyType) parts.push(`Body type: ${modelDescription.bodyType}`);
     if (modelDescription.facialFeatures) parts.push(`Facial features: ${modelDescription.facialFeatures}`);
     if (modelDescription.hairColor && modelDescription.hairLength && modelDescription.hairStyle) {
@@ -665,17 +698,69 @@ export default function ContentCreate() {
     setIsGenerating(true);
     
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Create the JSON data structure
+      const requestData = {
+        task: formData.task,
+        lora: formData.lora,
+        noAI: formData.noAI,
+        prompt: formData.prompt,
+        seed: formData.seed ? parseInt(formData.seed) : -1,
+        guidance: formData.guidance,
+        number_of_images: formData.numberOfImages,
+        format: formData.format,
+        model: modelData ? {
+          id: modelData.id,
+          influencer_type: modelData.influencer_type,
+          sex: modelData.sex,
+          cultural_background: modelData.cultural_background,
+          hair_length: modelData.hair_length,
+          hair_color: modelData.hair_color,
+          hair_style: modelData.hair_style,
+          eye_color: modelData.eye_color,
+          lip_style: modelData.lip_style,
+          nose_style: modelData.nose_style,
+          face_shape: modelData.face_shape,
+          facial_features: modelData.facial_features,
+          skin_tone: modelData.skin_tone,
+          bust: modelData.bust_size, // Default value since not in Influencer type
+          body_type: modelData.body_type,
+          color_palette: modelData.color_palette || [],
+          clothing_style_everyday: modelData.clothing_style_everyday,
+          eyebrow_style: modelData.eyebrow_style, // Default value since not in Influencer type
+          makeup_style: modelDescription.makeup || "Natural", // Use from modelDescription or default
+          name_first: modelData.name_first,
+          name_last: modelData.name_last,
+          visual_only: true
+        } : null,
+        scene: {
+          framing: sceneSpecs.framing,
+          rotation: sceneSpecs.rotation,
+          lighting_preset: sceneSpecs.lighting_preset,
+          scene_setting: sceneSpecs.scene_setting,
+          pose: sceneSpecs.pose,
+          clothes: sceneSpecs.clothes
+        }
+      };
+
+      console.log('Sending generation request:', requestData);
+
+      // Send the request to localhost:2000
+      // const response = await fetch('http://localhost:2000', {
+      //   method: 'POST',
+      //   headers: {
+      //     'Content-Type': 'application/json',
+      //   },
+      //   body: JSON.stringify(requestData)
+      // });
+
+      // if (!response.ok) {
+      //   throw new Error(`HTTP error! status: ${response.status}`);
+      // }
+
+      // const result = await response.json();
+      // console.log('Generation response:', result);
       
       toast.success('Content generation started successfully');
-      
-      // Here you would make the actual API call to your content generation service
-      console.log('Generation request:', {
-        ...formData,
-        sceneSpecs,
-        modelDescription
-      });
       
     } catch (error) {
       console.error('Generation error:', error);
@@ -867,7 +952,7 @@ export default function ContentCreate() {
                     Format
                   </span>
                   <Badge variant="secondary" className="w-fit bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300">
-                    {FORMAT_OPTIONS.find(opt => opt.value === formData.format)?.label}
+                    {formatOptions.find(opt => opt.label === formData.format)?.label || formData.format}
                   </Badge>
                 </div>
 
@@ -975,7 +1060,8 @@ export default function ContentCreate() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div className='grid grid-cols-1 gap-3'>
                     <div className="space-y-2">
                       <Label>Task Type</Label>
                       <Select
@@ -983,9 +1069,9 @@ export default function ContentCreate() {
                         onValueChange={(value) => handleInputChange('task', value)}
                       >
                         <SelectTrigger>
-                      <div className='pl-10'>
-                        {TASK_OPTIONS.find(opt => opt.value === formData.task)?.label}
-                      </div>
+                        <div className='pl-10'>
+                          {TASK_OPTIONS.find(opt => opt.value === formData.task)?.label}
+                        </div>
                         </SelectTrigger>
                         <SelectContent>
                           {TASK_OPTIONS.map((option) => (
@@ -999,33 +1085,6 @@ export default function ContentCreate() {
                         </SelectContent>
                       </Select>
                     </div>
-
-                    <div className="space-y-2">
-                      <Label>Format</Label>
-                      <Select
-                        value={formData.format}
-                        onValueChange={(value) => handleInputChange('format', value)}
-                      >
-                        <SelectTrigger>
-                      <div className='pl-10'>
-                        {FORMAT_OPTIONS.find(opt => opt.value === formData.format)?.label}
-                      </div>
-                        </SelectTrigger>
-                        <SelectContent>
-                          {FORMAT_OPTIONS.map((option) => (
-                            <SelectItem key={option.value} value={option.value}>
-                              <div>
-                                <div className="font-medium">{option.label}</div>
-                                <div className="text-sm text-muted-foreground">{option.description}</div>
-                              </div>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>Number of Images: {formData.numberOfImages}</Label>
                       <Slider
@@ -1048,10 +1107,8 @@ export default function ContentCreate() {
                         step={0.1}
                         className="w-full"
                       />
-                    </div>
                   </div>
 
-                  <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <div className="space-y-0.5">
                         <Label>LORA Model</Label>
@@ -1077,6 +1134,64 @@ export default function ContentCreate() {
                         onCheckedChange={(checked) => handleInputChange('noAI', checked)}
                       />
                     </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Format</Label>
+                  <Select
+                    value={formData.format}
+                    onValueChange={(value) => handleInputChange('format', value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select format" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {formatOptions.map((option) => (
+                        <SelectItem key={option.label} value={option.label}>{option.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <div
+                    onClick={() => setShowFormatSelector(true)}
+                    className='flex items-center justify-center cursor-pointer w-full'
+                  >
+                    {formData.format && formatOptions.find(option => option.label === formData.format)?.image ? (
+                      <Card className="relative w-full max-w-[250px]">
+                        <CardContent className="p-4">
+                          <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
+                            <img
+                              src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${formatOptions.find(option => option.label === formData.format)?.image}`}
+                              className="absolute inset-0 w-full h-full object-cover rounded-md"
+                            />
+                          </div>
+                          <p className="text-sm text-center font-medium mt-2">{formatOptions.find(option => option.label === formData.format)?.label}</p>
+                        </CardContent>
+                      </Card>
+                    ) : (
+                      <Card className="relative w-full border max-w-[250px]">
+                        <CardContent className="p-4">
+                          <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
+                            <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
+                              Select format style
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+                  </div>
+                  {showFormatSelector && (
+                    <OptionSelector
+                      options={formatOptions}
+                      onSelect={(label) => handleInputChange('format', label)}
+                      onClose={() => setShowFormatSelector(false)}
+                      title="Select Format Style"
+                    />
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-4">
+
                   </div>
 
                   <div className="space-y-2">
@@ -1115,14 +1230,14 @@ export default function ContentCreate() {
                     <Badge variant="secondary" className="text-xs">
                       {filteredInfluencers.length} available
                     </Badge>
-                  </div>
+                    </div>
 
                   {/* Search Section */}
                   <div className="flex gap-4">
                     <div className="relative flex-1">
                       <div className="relative">
                         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                        <Input
+                      <Input
                           type="text"
                           placeholder="Search influencers..."
                           value={searchTerm}
@@ -1139,9 +1254,9 @@ export default function ContentCreate() {
                             <X className="h-4 w-4" />
                           </Button>
                         )}
-                      </div>
                     </div>
-                    
+                    </div>
+
                     <Popover open={openFilter} onOpenChange={setOpenFilter}>
                       <PopoverTrigger asChild>
                         <Button variant="outline" className="gap-2">
@@ -1167,7 +1282,7 @@ export default function ContentCreate() {
                         </Command>
                       </PopoverContent>
                     </Popover>
-                  </div>
+                    </div>
 
                   {/* Influencers Grid */}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -1180,26 +1295,26 @@ export default function ContentCreate() {
                                 src={influencer.image_url}
                                 alt={`${influencer.name_first} ${influencer.name_last}`}
                                 className="w-full h-full object-cover"
-                              />
-                            </div>
+                      />
+                    </div>
 
                             <div>
                               <div className="flex items-center justify-between mb-2">
                                 <h3 className="font-semibold text-lg group-hover:text-ai-purple-500 transition-colors">
                                   {influencer.name_first} {influencer.name_last}
                                 </h3>
-                              </div>
+                    </div>
 
                               <div className="flex flex-col gap-1 mb-3">
                                 <div className="flex text-sm text-muted-foreground flex-col">
                                   <span className="font-medium mr-2">Age/Lifestyle:</span>
                                   {influencer.age_lifestyle}
-                                </div>
+                    </div>
                                 <div className="flex items-center text-sm text-muted-foreground">
                                   <span className="font-medium mr-2">Type:</span>
                                   {influencer.influencer_type}
                                 </div>
-                              </div>
+                    </div>
 
                               <Button
                                 size="sm"
@@ -1230,15 +1345,15 @@ export default function ContentCreate() {
                               src={modelData?.image_url}
                               alt={`${modelData?.name_first} ${modelData?.name_last}`}
                               className="w-full h-full object-cover"
-                            />
-                          </div>
+                      />
+                    </div>
 
                           <div>
                             <div className="flex items-center justify-between mb-2">
                               <h3 className="font-semibold text-lg">
                                 {modelData?.name_first} {modelData?.name_last}
                               </h3>
-                            </div>
+                    </div>
 
                             <div className="flex flex-col gap-1 mb-3">
                               <div className="flex text-sm text-muted-foreground flex-col">
@@ -1249,13 +1364,13 @@ export default function ContentCreate() {
                                 <span className="font-medium mr-2">Type:</span>
                                 {modelData?.influencer_type}
                               </div>
-                            </div>
+                    </div>
 
                             {/* Makeup Selection */}
                             <div className="space-y-2 mb-3">
                               <Label className="text-sm font-medium">Makeup Style</Label>
                               <Select
-                                value={modelDescription.makeup}
+                        value={modelDescription.makeup}
                                 onValueChange={(value) => handleModelDescriptionChange('makeup', value)}
                               >
                                 <SelectTrigger>
@@ -1279,8 +1394,8 @@ export default function ContentCreate() {
                                           <img
                                             src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${makeupOptions.find(option => option.label === modelDescription.makeup)?.image}`}
                                             className="absolute inset-0 w-full h-full object-cover rounded-md"
-                                          />
-                                        </div>
+                      />
+                    </div>
                                         <p className="text-sm text-center font-medium mt-2">{makeupOptions.find(option => option.label === modelDescription.makeup)?.label}</p>
                                       </CardContent>
                                     </Card>
@@ -1290,7 +1405,7 @@ export default function ContentCreate() {
                                         <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                                           <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
                                             Select makeup style
-                                          </div>
+                    </div>
                                         </div>
                                       </CardContent>
                                     </Card>
@@ -1305,18 +1420,18 @@ export default function ContentCreate() {
                                   title="Select Makeup Style"
                                 />
                               )}
-                            </div>
+                  </div>
 
                             {/* Update Model Description Button */}
-                            <Button
+                  <Button
                               size="sm"
-                              variant="outline"
+                    variant="outline"
                               onClick={generateModelDescription}
                               className="w-full mb-3"
-                            >
-                              <Wand2 className="w-4 h-4 mr-2" />
+                  >
+                    <Wand2 className="w-4 h-4 mr-2" />
                               Update Model Description
-                            </Button>
+                  </Button>
 
                             <Button
                               size="sm"
@@ -1341,7 +1456,7 @@ export default function ContentCreate() {
                         setFormData(prev => ({ ...prev, model: '' }));
                         setModelDescription({
                           appearance: '',
-                          ethnicBackground: '',
+                          culturalBackground: '',
                           bodyType: '',
                           facialFeatures: '',
                           hairColor: '',
@@ -1352,9 +1467,9 @@ export default function ContentCreate() {
                           eyes: '',
                           nose: '',
                           makeup: '',
+                          bust: '',
                           clothing: '',
                           sex: '',
-                          bust: '',
                           eyebrowStyle: '',
                           faceShape: '',
                           colorPalette: ''
@@ -1385,7 +1500,7 @@ export default function ContentCreate() {
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label>Framing</Label>
+                  <Label>Framing</Label>
                       <Select
                         value={sceneSpecs.framing}
                         onValueChange={(value) => handleSceneSpecChange('framing', value)}
@@ -1394,47 +1509,47 @@ export default function ContentCreate() {
                           <SelectValue placeholder="Select framing" />
                         </SelectTrigger>
                         <SelectContent>
-                          {framingOptions.map((option) => (
-                            <SelectItem key={option.label} value={option.label}>{option.label}</SelectItem>
+                      {framingOptions.map((option) => (
+                        <SelectItem key={option.label} value={option.label}>{option.label}</SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
-                      <div
-                        onClick={() => setShowFramingSelector(true)}
-                        className='flex items-center justify-center cursor-pointer w-full'
-                      >
-                        {sceneSpecs.framing && framingOptions.find(option => option.label === sceneSpecs.framing)?.image ? (
-                          <Card className="relative w-full max-w-[250px]">
-                            <CardContent className="p-4">
-                              <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
-                                <img
-                                  src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${framingOptions.find(option => option.label === sceneSpecs.framing)?.image}`}
-                                  className="absolute inset-0 w-full h-full object-cover rounded-md"
-                                />
-                              </div>
-                              <p className="text-sm text-center font-medium mt-2">{framingOptions.find(option => option.label === sceneSpecs.framing)?.label}</p>
-                            </CardContent>
-                          </Card>
-                        ) : (
-                          <Card className="relative w-full border max-w-[250px]">
-                            <CardContent className="p-4">
-                              <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
-                                <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
-                                  Select framing style
-                                </div>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        )}
-                      </div>
-                      {showFramingSelector && (
-                        <OptionSelector
-                          options={framingOptions}
-                          onSelect={(label) => handleSceneSpecChange('framing', label)}
-                          onClose={() => setShowFramingSelector(false)}
-                          title="Select Framing Style"
-                        />
-                      )}
+                  <div
+                    onClick={() => setShowFramingSelector(true)}
+                    className='flex items-center justify-center cursor-pointer w-full'
+                  >
+                    {sceneSpecs.framing && framingOptions.find(option => option.label === sceneSpecs.framing)?.image ? (
+                      <Card className="relative w-full max-w-[250px]">
+                        <CardContent className="p-4">
+                          <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
+                            <img
+                              src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${framingOptions.find(option => option.label === sceneSpecs.framing)?.image}`}
+                              className="absolute inset-0 w-full h-full object-cover rounded-md"
+                            />
+                          </div>
+                          <p className="text-sm text-center font-medium mt-2">{framingOptions.find(option => option.label === sceneSpecs.framing)?.label}</p>
+                        </CardContent>
+                      </Card>
+                    ) : (
+                      <Card className="relative w-full border max-w-[250px]">
+                        <CardContent className="p-4">
+                          <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
+                            <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
+                              Select framing style
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+                  </div>
+                  {showFramingSelector && (
+                    <OptionSelector
+                      options={framingOptions}
+                      onSelect={(label) => handleSceneSpecChange('framing', label)}
+                      onClose={() => setShowFramingSelector(false)}
+                      title="Select Framing Style"
+                    />
+                  )}
                     </div>
 
                     <div className="space-y-2">
@@ -1447,260 +1562,260 @@ export default function ContentCreate() {
                           <SelectValue placeholder="Select rotation" />
                         </SelectTrigger>
                         <SelectContent>
-                          {rotationOptions.map((option) => (
-                            <SelectItem key={option.label} value={option.label}>{option.label}</SelectItem>
+                      {rotationOptions.map((option) => (
+                        <SelectItem key={option.label} value={option.label}>{option.label}</SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
-                      <div
-                        onClick={() => setShowRotationSelector(true)}
-                        className='flex items-center justify-center cursor-pointer w-full'
-                      >
-                        {sceneSpecs.rotation && rotationOptions.find(option => option.label === sceneSpecs.rotation)?.image ? (
-                          <Card className="relative w-full max-w-[250px]">
-                            <CardContent className="p-4">
-                              <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
-                                <img
-                                  src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${rotationOptions.find(option => option.label === sceneSpecs.rotation)?.image}`}
-                                  className="absolute inset-0 w-full h-full object-cover rounded-md"
-                                />
-                              </div>
-                              <p className="text-sm text-center font-medium mt-2">{rotationOptions.find(option => option.label === sceneSpecs.rotation)?.label}</p>
-                            </CardContent>
-                          </Card>
-                        ) : (
-                          <Card className="relative w-full border max-w-[250px]">
-                            <CardContent className="p-4">
-                              <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
-                                <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
-                                  Select rotation style
-                                </div>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        )}
-                      </div>
-                      {showRotationSelector && (
-                        <OptionSelector
-                          options={rotationOptions}
-                          onSelect={(label) => handleSceneSpecChange('rotation', label)}
-                          onClose={() => setShowRotationSelector(false)}
-                          title="Select Rotation Style"
-                        />
-                      )}
+                  <div
+                    onClick={() => setShowRotationSelector(true)}
+                    className='flex items-center justify-center cursor-pointer w-full'
+                  >
+                    {sceneSpecs.rotation && rotationOptions.find(option => option.label === sceneSpecs.rotation)?.image ? (
+                      <Card className="relative w-full max-w-[250px]">
+                        <CardContent className="p-4">
+                          <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
+                            <img
+                              src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${rotationOptions.find(option => option.label === sceneSpecs.rotation)?.image}`}
+                              className="absolute inset-0 w-full h-full object-cover rounded-md"
+                            />
+                          </div>
+                          <p className="text-sm text-center font-medium mt-2">{rotationOptions.find(option => option.label === sceneSpecs.rotation)?.label}</p>
+                        </CardContent>
+                      </Card>
+                    ) : (
+                      <Card className="relative w-full border max-w-[250px]">
+                        <CardContent className="p-4">
+                          <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
+                            <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
+                              Select rotation style
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+                  </div>
+                  {showRotationSelector && (
+                    <OptionSelector
+                      options={rotationOptions}
+                      onSelect={(label) => handleSceneSpecChange('rotation', label)}
+                      onClose={() => setShowRotationSelector(false)}
+                      title="Select Rotation Style"
+                    />
+                  )}
                     </div>
 
                     <div className="space-y-2">
-                      <Label>Lighting Preset</Label>
+                  <Label>Lighting Preset</Label>
                       <Select
-                        value={sceneSpecs.lighting_preset}
-                        onValueChange={(value) => handleSceneSpecChange('lighting_preset', value)}
+                    value={sceneSpecs.lighting_preset}
+                    onValueChange={(value) => handleSceneSpecChange('lighting_preset', value)}
                       >
                         <SelectTrigger>
-                          <SelectValue placeholder="Select lighting preset" />
+                      <SelectValue placeholder="Select lighting preset" />
                         </SelectTrigger>
                         <SelectContent>
-                          {lightingOptions.map((option) => (
-                            <SelectItem key={option.label} value={option.label}>{option.label}</SelectItem>
+                      {lightingOptions.map((option) => (
+                        <SelectItem key={option.label} value={option.label}>{option.label}</SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
-                      <div
-                        onClick={() => setShowLightingSelector(true)}
-                        className='flex items-center justify-center cursor-pointer w-full'
-                      >
-                        {sceneSpecs.lighting_preset && lightingOptions.find(option => option.label === sceneSpecs.lighting_preset)?.image ? (
-                          <Card className="relative w-full max-w-[250px]">
-                            <CardContent className="p-4">
-                              <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
-                                <img
-                                  src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${lightingOptions.find(option => option.label === sceneSpecs.lighting_preset)?.image}`}
-                                  className="absolute inset-0 w-full h-full object-cover rounded-md"
-                                />
-                              </div>
-                              <p className="text-sm text-center font-medium mt-2">{lightingOptions.find(option => option.label === sceneSpecs.lighting_preset)?.label}</p>
-                            </CardContent>
-                          </Card>
-                        ) : (
-                          <Card className="relative w-full border max-w-[250px]">
-                            <CardContent className="p-4">
-                              <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
-                                <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
-                                  Select lighting style
-                                </div>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        )}
-                      </div>
-                      {showLightingSelector && (
-                        <OptionSelector
-                          options={lightingOptions}
-                          onSelect={(label) => handleSceneSpecChange('lighting_preset', label)}
-                          onClose={() => setShowLightingSelector(false)}
-                          title="Select Lighting Style"
-                        />
-                      )}
+                  <div
+                    onClick={() => setShowLightingSelector(true)}
+                    className='flex items-center justify-center cursor-pointer w-full'
+                  >
+                    {sceneSpecs.lighting_preset && lightingOptions.find(option => option.label === sceneSpecs.lighting_preset)?.image ? (
+                      <Card className="relative w-full max-w-[250px]">
+                        <CardContent className="p-4">
+                          <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
+                            <img
+                              src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${lightingOptions.find(option => option.label === sceneSpecs.lighting_preset)?.image}`}
+                              className="absolute inset-0 w-full h-full object-cover rounded-md"
+                            />
+                          </div>
+                          <p className="text-sm text-center font-medium mt-2">{lightingOptions.find(option => option.label === sceneSpecs.lighting_preset)?.label}</p>
+                        </CardContent>
+                      </Card>
+                    ) : (
+                      <Card className="relative w-full border max-w-[250px]">
+                        <CardContent className="p-4">
+                          <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
+                            <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
+                              Select lighting style
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+                  </div>
+                  {showLightingSelector && (
+                    <OptionSelector
+                      options={lightingOptions}
+                      onSelect={(label) => handleSceneSpecChange('lighting_preset', label)}
+                      onClose={() => setShowLightingSelector(false)}
+                      title="Select Lighting Style"
+                    />
+                  )}
                     </div>
 
                     <div className="space-y-2">
-                      <Label>Scene Setting</Label>
-                      <Select
-                        value={sceneSpecs.scene_setting}
-                        onValueChange={(value) => handleSceneSpecChange('scene_setting', value)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select scene setting" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {sceneSettingsOptions.map((option) => (
-                            <SelectItem key={option.label} value={option.label}>{option.label}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <div
-                        onClick={() => setShowSceneSettingsSelector(true)}
-                        className='flex items-center justify-center cursor-pointer w-full'
-                      >
-                        {sceneSpecs.scene_setting && sceneSettingsOptions.find(option => option.label === sceneSpecs.scene_setting)?.image ? (
-                          <Card className="relative w-full max-w-[250px]">
-                            <CardContent className="p-4">
-                              <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
-                                <img
-                                  src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${sceneSettingsOptions.find(option => option.label === sceneSpecs.scene_setting)?.image}`}
-                                  className="absolute inset-0 w-full h-full object-cover rounded-md"
-                                />
-                              </div>
-                              <p className="text-sm text-center font-medium mt-2">{sceneSettingsOptions.find(option => option.label === sceneSpecs.scene_setting)?.label}</p>
-                            </CardContent>
-                          </Card>
-                        ) : (
-                          <Card className="relative w-full border max-w-[250px]">
-                            <CardContent className="p-4">
-                              <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
-                                <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
-                                  Select scene setting
-                                </div>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        )}
-                      </div>
-                      {showSceneSettingsSelector && (
-                        <OptionSelector
-                          options={sceneSettingsOptions}
-                          onSelect={(label) => handleSceneSpecChange('scene_setting', label)}
-                          onClose={() => setShowSceneSettingsSelector(false)}
-                          title="Select Scene Setting"
-                        />
-                      )}
+                  <Label>Scene Setting</Label>
+                  <Select
+                    value={sceneSpecs.scene_setting}
+                    onValueChange={(value) => handleSceneSpecChange('scene_setting', value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select scene setting" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {sceneSettingsOptions.map((option) => (
+                        <SelectItem key={option.label} value={option.label}>{option.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <div
+                    onClick={() => setShowSceneSettingsSelector(true)}
+                    className='flex items-center justify-center cursor-pointer w-full'
+                  >
+                    {sceneSpecs.scene_setting && sceneSettingsOptions.find(option => option.label === sceneSpecs.scene_setting)?.image ? (
+                      <Card className="relative w-full max-w-[250px]">
+                        <CardContent className="p-4">
+                          <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
+                            <img
+                              src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${sceneSettingsOptions.find(option => option.label === sceneSpecs.scene_setting)?.image}`}
+                              className="absolute inset-0 w-full h-full object-cover rounded-md"
+                      />
                     </div>
+                          <p className="text-sm text-center font-medium mt-2">{sceneSettingsOptions.find(option => option.label === sceneSpecs.scene_setting)?.label}</p>
+                        </CardContent>
+                      </Card>
+                    ) : (
+                      <Card className="relative w-full border max-w-[250px]">
+                        <CardContent className="p-4">
+                          <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
+                            <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
+                              Select scene setting
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+                  </div>
+                  {showSceneSettingsSelector && (
+                    <OptionSelector
+                      options={sceneSettingsOptions}
+                      onSelect={(label) => handleSceneSpecChange('scene_setting', label)}
+                      onClose={() => setShowSceneSettingsSelector(false)}
+                      title="Select Scene Setting"
+                    />
+                  )}
+                  </div>
 
-                    <div className="space-y-2">
-                      <Label>Pose</Label>
-                      <Select
-                        value={sceneSpecs.pose}
-                        onValueChange={(value) => handleSceneSpecChange('pose', value)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select pose" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {poseOptions.map((option) => (
-                            <SelectItem key={option.label} value={option.label}>{option.label}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <div
-                        onClick={() => setShowPoseSelector(true)}
-                        className='flex items-center justify-center cursor-pointer w-full'
-                      >
-                        {sceneSpecs.pose && poseOptions.find(option => option.label === sceneSpecs.pose)?.image ? (
-                          <Card className="relative w-full max-w-[250px]">
-                            <CardContent className="p-4">
-                              <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
-                                <img
-                                  src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${poseOptions.find(option => option.label === sceneSpecs.pose)?.image}`}
-                                  className="absolute inset-0 w-full h-full object-cover rounded-md"
-                                />
-                              </div>
-                              <p className="text-sm text-center font-medium mt-2">{poseOptions.find(option => option.label === sceneSpecs.pose)?.label}</p>
-                            </CardContent>
-                          </Card>
-                        ) : (
-                          <Card className="relative w-full border max-w-[250px]">
-                            <CardContent className="p-4">
-                              <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
-                                <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
-                                  Select pose style
-                                </div>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        )}
-                      </div>
-                      {showPoseSelector && (
-                        <OptionSelector
-                          options={poseOptions}
-                          onSelect={(label) => handleSceneSpecChange('pose', label)}
-                          onClose={() => setShowPoseSelector(false)}
-                          title="Select Pose Style"
-                        />
-                      )}
+                <div className="space-y-2">
+                  <Label>Pose</Label>
+                  <Select
+                    value={sceneSpecs.pose}
+                    onValueChange={(value) => handleSceneSpecChange('pose', value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select pose" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {poseOptions.map((option) => (
+                        <SelectItem key={option.label} value={option.label}>{option.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <div
+                    onClick={() => setShowPoseSelector(true)}
+                    className='flex items-center justify-center cursor-pointer w-full'
+                  >
+                    {sceneSpecs.pose && poseOptions.find(option => option.label === sceneSpecs.pose)?.image ? (
+                      <Card className="relative w-full max-w-[250px]">
+                        <CardContent className="p-4">
+                          <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
+                            <img
+                              src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${poseOptions.find(option => option.label === sceneSpecs.pose)?.image}`}
+                              className="absolute inset-0 w-full h-full object-cover rounded-md"
+                            />
                     </div>
+                          <p className="text-sm text-center font-medium mt-2">{poseOptions.find(option => option.label === sceneSpecs.pose)?.label}</p>
+                        </CardContent>
+                      </Card>
+                    ) : (
+                      <Card className="relative w-full border max-w-[250px]">
+                        <CardContent className="p-4">
+                          <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
+                            <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
+                              Select pose style
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+                  </div>
+                  {showPoseSelector && (
+                    <OptionSelector
+                      options={poseOptions}
+                      onSelect={(label) => handleSceneSpecChange('pose', label)}
+                      onClose={() => setShowPoseSelector(false)}
+                      title="Select Pose Style"
+                    />
+                  )}
+                </div>
 
-                    <div className="space-y-2">
-                      <Label>Clothes</Label>
-                      <Select
-                        value={sceneSpecs.clothes}
-                        onValueChange={(value) => handleSceneSpecChange('clothes', value)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select clothes" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {clothesOptions.map((option) => (
-                            <SelectItem key={option.label} value={option.label}>{option.label}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <div
-                        onClick={() => setShowClothesSelector(true)}
-                        className='flex items-center justify-center cursor-pointer w-full'
-                      >
-                        {sceneSpecs.clothes && clothesOptions.find(option => option.label === sceneSpecs.clothes)?.image ? (
-                          <Card className="relative w-full max-w-[250px]">
-                            <CardContent className="p-4">
-                              <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
-                                <img
-                                  src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${clothesOptions.find(option => option.label === sceneSpecs.clothes)?.image}`}
-                                  className="absolute inset-0 w-full h-full object-cover rounded-md"
-                                />
-                              </div>
-                              <p className="text-sm text-center font-medium mt-2">{clothesOptions.find(option => option.label === sceneSpecs.clothes)?.label}</p>
-                            </CardContent>
-                          </Card>
-                        ) : (
-                          <Card className="relative w-full border max-w-[250px]">
-                            <CardContent className="p-4">
-                              <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
-                                <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
-                                  Select clothes style
-                                </div>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        )}
-                      </div>
-                      {showClothesSelector && (
-                        <OptionSelector
-                          options={clothesOptions}
-                          onSelect={(label) => handleSceneSpecChange('clothes', label)}
-                          onClose={() => setShowClothesSelector(false)}
-                          title="Select Clothes Style"
-                        />
-                      )}
-                    </div>
+                <div className="space-y-2">
+                  <Label>Clothes</Label>
+                  <Select
+                    value={sceneSpecs.clothes}
+                    onValueChange={(value) => handleSceneSpecChange('clothes', value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select clothes" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {clothesOptions.map((option) => (
+                        <SelectItem key={option.label} value={option.label}>{option.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <div
+                    onClick={() => setShowClothesSelector(true)}
+                    className='flex items-center justify-center cursor-pointer w-full'
+                  >
+                    {sceneSpecs.clothes && clothesOptions.find(option => option.label === sceneSpecs.clothes)?.image ? (
+                      <Card className="relative w-full max-w-[250px]">
+                        <CardContent className="p-4">
+                          <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
+                            <img
+                              src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${clothesOptions.find(option => option.label === sceneSpecs.clothes)?.image}`}
+                              className="absolute inset-0 w-full h-full object-cover rounded-md"
+                            />
+                          </div>
+                          <p className="text-sm text-center font-medium mt-2">{clothesOptions.find(option => option.label === sceneSpecs.clothes)?.label}</p>
+                        </CardContent>
+                      </Card>
+                    ) : (
+                      <Card className="relative w-full border max-w-[250px]">
+                        <CardContent className="p-4">
+                          <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
+                            <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
+                              Select clothes style
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+                  </div>
+                  {showClothesSelector && (
+                    <OptionSelector
+                      options={clothesOptions}
+                      onSelect={(label) => handleSceneSpecChange('clothes', label)}
+                      onClose={() => setShowClothesSelector(false)}
+                      title="Select Clothes Style"
+                    />
+                  )}
+                </div>
                   </div>
 
                   <Button

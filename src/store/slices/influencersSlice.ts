@@ -19,8 +19,10 @@ export interface Influencer {
   eye_color: string;
   lip_style: string;
   nose_style: string;
+  eyebrow_style: string;
   face_shape: string;
   facial_features: string;
+  bust_size: string;
   skin_tone: string;
   body_type: string;
   color_palette: string[];

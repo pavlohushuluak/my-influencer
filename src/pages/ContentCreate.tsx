@@ -616,7 +616,7 @@ export default function ContentCreate() {
           color_palette: modelData.color_palette || [],
           clothing_style_everyday: modelData.clothing_style_everyday,
           eyebrow_style: modelData.eyebrow_style, // Default value since not in Influencer type
-          makeup_style: modelDescription.makeup || "Natural / No-Makeup Look", // Use from modelDescription or default
+          makeup_style: modelDescription.makeup, // Use from modelDescription or default
           name_first: modelData.name_first,
           name_last: modelData.name_last,
           visual_only: modelData.visual_only

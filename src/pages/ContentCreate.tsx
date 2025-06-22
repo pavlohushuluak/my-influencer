@@ -30,46 +30,6 @@ const TASK_OPTIONS = [
   { value: 'generate_series', label: 'Generate Image Series', description: 'Generate multiple images in a series' }
 ];
 
-const FORMAT_OPTIONS = [
-  { value: 'square', label: 'Square (1:1)', description: 'Perfect for Instagram posts' },
-  { value: 'portrait', label: 'Portrait (3:4)', description: 'Great for stories and mobile' },
-  { value: 'landscape', label: 'Landscape (16:9)', description: 'Ideal for desktop and videos' },
-  { value: 'ultrawide', label: 'Ultrawide (21:9)', description: 'Cinematic and dramatic' }
-];
-
-const FRAMING_VARIANTS = [
-  'Close-up', 'Medium shot', 'Full body', 'Wide shot', 'Extreme close-up',
-  'Head and shoulders', 'Three-quarter shot', 'Low angle', 'High angle', 'Dutch angle'
-];
-
-const ROTATION_OPTIONS = [
-  'Front view', 'Side view', 'Back view', 'Three-quarter view',
-  'Profile left', 'Profile right', 'Over-the-shoulder', 'Bird\'s eye', 'Worm\'s eye'
-];
-
-const LIGHTING_SITUATIONS = [
-  'Natural daylight', 'Golden hour', 'Blue hour', 'Studio lighting',
-  'Soft lighting', 'Dramatic lighting', 'Rim lighting', 'Backlighting',
-  'Low key', 'High key', 'Split lighting', 'Butterfly lighting'
-];
-
-const SCENE_SETTINGS = [
-  'Beach', 'Studio', 'City street', 'Park', 'Office', 'Home interior',
-  'Restaurant', 'Gym', 'Shopping mall', 'Airport', 'Hotel room',
-  'Outdoor garden', 'Mountain', 'Forest', 'Desert', 'Urban rooftop',
-  'Subway station', 'Library', 'Museum', 'Cafe', 'Bar', 'Nightclub',
-  'School', 'Hospital', 'Airplane', 'Train', 'Car', 'Boat', 'Yacht'
-];
-
-const POSE_OPTIONS = [
-  'Standing', 'Sitting', 'Walking', 'Running', 'Lying down', 'Kneeling',
-  'Crouching', 'Leaning', 'Dancing', 'Jumping', 'Stretching', 'Yoga pose',
-  'Hands on hips', 'Arms crossed', 'Pointing', 'Waving', 'Clapping',
-  'Reading', 'Writing', 'Typing', 'Cooking', 'Cleaning', 'Exercising',
-  'Meditating', 'Praying', 'Celebrating', 'Thinking', 'Laughing',
-  'Smiling', 'Serious', 'Confident', 'Casual', 'Professional', 'Relaxed'
-];
-
 const SEARCH_FIELDS = [
   { id: 'all', label: 'All Fields' },
   { id: 'name', label: 'Name' },
@@ -84,7 +44,6 @@ interface Option {
 }
 
 export default function ContentCreate() {
-  const navigate = useNavigate();
   const location = useLocation();
   const dispatch = useDispatch();
   const userData = useSelector((state: RootState) => state.user);
@@ -621,8 +580,6 @@ export default function ContentCreate() {
       return;
     }
 
-    // console.log('formData', formData);
-
     setIsGenerating(true);
 
     try {
@@ -674,25 +631,60 @@ export default function ContentCreate() {
         }
       };
 
-      console.log('Sending generation request:', requestData);
+      const useridResponse = await fetch(`https://db.nymia.ai/rest/v1/user?uuid=eq.${userData.id}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        }
+      });
+
+      const useridData = await useridResponse.json();
 
       // Send the request to localhost:2000
-      // const response = await fetch('http://localhost:2000', {
-      //   method: 'POST',
-      //   headers: {
-      //     'Content-Type': 'application/json',
-      //   },
-      //   body: JSON.stringify(requestData)
-      // });
+      const response = await fetch(`https://api.nymia.ai/v1/createtask?userid=${useridData[0].userid}&type=createimage`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify(requestData)
+      });
 
-      // if (!response.ok) {
-      //   throw new Error(`HTTP error! status: ${response.status}`);
-      // }
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
 
-      // const result = await response.json();
-      // console.log('Generation response:', result);
+      const result = await response.json();
 
       toast.success('Content generation started successfully');
+
+      setFormData({
+        model: '',
+        scene: '',
+        task: 'generate_image',
+        lora: false,
+        noAI: true,
+        prompt: '',
+        format: 'square',
+        numberOfImages: 1,
+        seed: '',
+        guidance: 3.5,
+        negative_prompt: '',
+        nsfw_strength: 0,
+        lora_strength: 0,
+        quality: 'Basic'
+      });
+
+      setModelData(null);
+      setActiveTab('scene');
+      setSceneSpecs({
+        framing: '',
+        rotation: '',
+        lighting_preset: '',
+        scene_setting: '',
+        pose: '',
+        clothes: ''
+      });
 
     } catch (error) {
       console.error('Generation error:', error);

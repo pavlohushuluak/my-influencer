@@ -946,12 +946,12 @@ export default function ContentCreate() {
       <div className="space-y-6 lg:hidden">
         {/* Influencer Info */}
         <Card>
-          <CardHeader>
+          <CardHeader className='flex flex-col items-center'>
             <CardTitle className="flex items-center gap-2">
               <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg">
                 <ImageIcon className="w-5 h-5 text-white" />
               </div>
-              Influencer
+              {modelData ? `${modelData.name_first} ${modelData.name_last}` : "Influencer"}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -959,9 +959,6 @@ export default function ContentCreate() {
               <>
                 <div className="grid gap-4 items-start">
                   <div className="flex flex-col items-center gap-4">
-                    <h3 className="font-semibold text-md">
-                      {modelData.name_first} {modelData.name_last}
-                    </h3>
                     <div className="w-48 h-48 bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg overflow-hidden flex-shrink-0">
                       <img
                         src={modelData.image_url}
@@ -1110,8 +1107,8 @@ export default function ContentCreate() {
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="scene">Scene</TabsTrigger>
-              <TabsTrigger value="basic">Basic</TabsTrigger>
-              <TabsTrigger value="advanced">Advanced</TabsTrigger>
+              <TabsTrigger value="basic">Basic Settings</TabsTrigger>
+              <TabsTrigger value="advanced">Advanced Settings</TabsTrigger>
             </TabsList>
 
             {/* Basic Tab */}
@@ -1122,7 +1119,7 @@ export default function ContentCreate() {
                     <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg">
                       <Sparkles className="w-5 h-5 text-white" />
                     </div>
-                    Basic Options
+                    Basic Settings
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
@@ -1300,19 +1297,32 @@ export default function ContentCreate() {
                     Scene Specifications
                   </CardTitle>
                   <p className="text-sm text-muted-foreground">
-                    Just select some of the presets below or describe in the text input below what you want to see. This can be just in your words like "Model is sitting at the beach and enjoys the sun" or "white shirt and blue jeans". You may add specific image prompting here, too. Anything entered here overrules settings on the model or in the presets.
+                    Just select some of the presets below or describe in the text input below what you want to see. Anything entered on prompt overrules settings on the model or in the presets.
                   </p>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {/* Text Input - First Option */}
                   <div className="space-y-2">
-                    <Label>Prompt</Label>
-                    <Textarea
-                      value={formData.prompt}
-                      onChange={(e) => handleInputChange('prompt', e.target.value)}
-                      placeholder="Describe what you want to see... (e.g., 'Model is sitting at the beach and enjoys the sun' or 'white shirt and blue jeans')"
-                      rows={3}
-                    />
+                    <Label className="flex items-center gap-2">
+                      <div className="p-1.5 bg-gradient-to-br from-green-500 to-emerald-600 rounded-md">
+                        <Sparkles className="w-3.5 h-3.5 text-white" />
+                      </div>
+                      Prompt
+                    </Label>
+                    <div className="relative">
+                      <Textarea
+                        value={formData.prompt}
+                        onChange={(e) => handleInputChange('prompt', e.target.value)}
+                        placeholder="Describe what you want to see... (e.g., 'Model is sitting at the beach and enjoys the sun' or 'white shirt and blue jeans')"
+                        rows={3}
+                        className="pl-10 pr-4 border-2 focus:border-green-500/50 focus:ring-green-500/20 transition-all duration-200"
+                      />
+                      <div className="absolute left-3 top-3 text-muted-foreground">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                      </div>
+                    </div>
                   </div>
 
                   {/* Scene Presets - 2x3 Grid */}
@@ -1728,22 +1738,31 @@ export default function ContentCreate() {
                     </div>
                     Advanced Settings
                   </CardTitle>
-                  <p className="text-sm text-muted-foreground">
-                    This is your place for advanced tweaking of the image generation.
-                  </p>
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div className="space-y-2">
-                    <Label>Negative Prompt</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Describe things you don't want to see. Optional, we take care of the essentials for you anyway.
-                    </p>
-                    <Textarea
-                      value={formData.negative_prompt || ''}
-                      onChange={(e) => handleInputChange('negative_prompt', e.target.value)}
-                      placeholder="Enter negative prompt here..."
-                      rows={3}
-                    />
+                    <Label className="flex items-center gap-2">
+                      <div className="p-1.5 bg-gradient-to-br from-red-500 to-rose-600 rounded-md">
+                        <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728L5.636 5.636m12.728 12.728L18.364 5.636M5.636 18.364l12.728-12.728" />
+                        </svg>
+                      </div>
+                      Negative Prompt
+                    </Label>
+                    <div className="relative">
+                      <Textarea
+                        value={formData.negative_prompt || ''}
+                        onChange={(e) => handleInputChange('negative_prompt', e.target.value)}
+                        placeholder="Describe things you don't want to see. Optional, we take care of the essentials for you anyway."
+                        rows={3}
+                        className="pl-10 pr-4 border-2 focus:border-red-500/50 focus:ring-red-500/20 transition-all duration-200"
+                      />
+                      <div className="absolute left-3 top-3 text-muted-foreground">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                      </div>
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-2 xl:grid-cols-3 gap-4">
@@ -1839,25 +1858,22 @@ export default function ContentCreate() {
             </TabsContent>
           </Tabs>
         </div>
-        <div className="space-y-6 hidden lg:block">
+        <div className="space-y-3 hidden lg:block">
           {/* Influencer Info */}
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+            <CardHeader className='pb-3'>
+              <CardTitle className="flex items-center gap-2 text-lg font-semibold">
                 <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg">
                   <ImageIcon className="w-5 h-5 text-white" />
                 </div>
-                Influencer
+                {modelData ? `${modelData.name_first} ${modelData.name_last}` : "Influencer"}
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-2">
               {modelData ? (
                 <>
                   <div className="grid gap-4 items-start">
                     <div className="flex flex-col items-center gap-4">
-                      <h3 className="font-semibold text-md">
-                        {modelData.name_first} {modelData.name_last}
-                      </h3>
                       <div className="w-48 h-48 bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg overflow-hidden flex-shrink-0">
                         <img
                           src={modelData.image_url}

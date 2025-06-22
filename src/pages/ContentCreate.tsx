@@ -921,7 +921,9 @@ export default function ContentCreate() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <ImageIcon className="w-5 h-5" />
+                <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg">
+                  <ImageIcon className="w-5 h-5 text-white" />
+                </div>
                 Influencer
               </CardTitle>
             </CardHeader>
@@ -1548,7 +1550,9 @@ export default function ContentCreate() {
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <Camera className="w-5 h-5" />
+                    <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg">
+                      <Camera className="w-5 h-5 text-white" />
+                    </div>
                     Scene Specifications
                   </CardTitle>
                   <p className="text-sm text-muted-foreground">
@@ -1975,7 +1979,9 @@ export default function ContentCreate() {
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <Settings className="w-5 h-5" />
+                    <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg">
+                      <Settings className="w-5 h-5 text-white" />
+                    </div>
                     Advanced Settings
                   </CardTitle>
                   <p className="text-sm text-muted-foreground">

@@ -961,60 +961,63 @@ export default function ContentCreate() {
                     <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg">
                       <Sparkles className="w-5 h-5 text-white" />
                     </div>
-                    Basic Settings
+                    Basic Options
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                    <div className='grid grid-cols-1 gap-3'>
-                      <div className="space-y-2">
-                        <Label>Task Type</Label>
-                        <Select
-                          value={formData.task}
-                          onValueChange={(value) => handleInputChange('task', value)}
-                        >
-                          <SelectTrigger>
+                <CardContent className="space-y-6">
+                  {/* First Row: Task Type, Number of Images, Guidance */}
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label>Task Type</Label>
+                      <Select
+                        value={formData.task}
+                        onValueChange={(value) => handleInputChange('task', value)}
+                      >
+                        <SelectTrigger>
                             <div className='pl-10'>
                               {TASK_OPTIONS.find(opt => opt.value === formData.task)?.label}
                             </div>
-                          </SelectTrigger>
-                          <SelectContent>
-                            {TASK_OPTIONS.map((option) => (
-                              <SelectItem key={option.value} value={option.value}>
-                                <div>
-                                  <div className="font-medium">{option.label}</div>
-                                  <div className="text-sm text-muted-foreground">{option.description}</div>
-                                </div>
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Number of Images: {formData.numberOfImages}</Label>
-                        <Slider
-                          value={[formData.numberOfImages]}
-                          onValueChange={([value]) => handleInputChange('numberOfImages', value)}
-                          max={20}
-                          min={1}
-                          step={1}
-                          className="w-full"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label>Guidance: {formData.guidance}</Label>
-                        <Slider
-                          value={[formData.guidance]}
-                          onValueChange={([value]) => handleInputChange('guidance', value)}
-                          max={8.0}
-                          min={1.0}
-                          step={0.1}
-                          className="w-full"
-                        />
-                      </div>
+                        </SelectTrigger>
+                        <SelectContent>
+                          {TASK_OPTIONS.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              <div>
+                                <div className="font-medium">{option.label}</div>
+                                <div className="text-sm text-muted-foreground">{option.description}</div>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
 
+                    <div className="space-y-2">
+                      <Label>Number of Images: {formData.numberOfImages}</Label>
+                      <Slider
+                        value={[formData.numberOfImages]}
+                        onValueChange={([value]) => handleInputChange('numberOfImages', value)}
+                        max={20}
+                        min={1}
+                        step={1}
+                        className="w-full"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Guidance: {formData.guidance}</Label>
+                      <Slider
+                        value={[formData.guidance]}
+                        onValueChange={([value]) => handleInputChange('guidance', value)}
+                        max={8.0}
+                        min={1.0}
+                        step={0.1}
+                        className="w-full"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Second Row: Format and Makeup Style */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>Format</Label>
                       <Select
@@ -1064,6 +1067,59 @@ export default function ContentCreate() {
                           onSelect={(label) => handleInputChange('format', label)}
                           onClose={() => setShowFormatSelector(false)}
                           title="Select Format Style"
+                        />
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Makeup Style</Label>
+                      <Select
+                        value={modelDescription.makeup}
+                        onValueChange={(value) => handleModelDescriptionChange('makeup', value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select makeup style" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {makeupOptions.map((option) => (
+                            <SelectItem key={option.label} value={option.label}>{option.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <div
+                        onClick={() => setShowMakeupSelector(true)}
+                        className='flex items-center justify-center cursor-pointer w-full'
+                      >
+                        {modelDescription.makeup && makeupOptions.find(option => option.label === modelDescription.makeup)?.image ? (
+                          <Card className="relative w-full max-w-[250px]">
+                            <CardContent className="p-4">
+                              <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
+                                <img
+                                  src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${makeupOptions.find(option => option.label === modelDescription.makeup)?.image}`}
+                                  className="absolute inset-0 w-full h-full object-cover rounded-md"
+                                />
+                              </div>
+                              <p className="text-sm text-center font-medium mt-2">{makeupOptions.find(option => option.label === modelDescription.makeup)?.label}</p>
+                            </CardContent>
+                          </Card>
+                        ) : (
+                          <Card className="relative w-full border max-w-[250px]">
+                            <CardContent className="p-4">
+                              <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
+                                <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
+                                  Select makeup style
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        )}
+                      </div>
+                      {showMakeupSelector && (
+                        <OptionSelector
+                          options={makeupOptions}
+                          onSelect={(label) => handleModelDescriptionChange('makeup', label)}
+                          onClose={() => setShowMakeupSelector(false)}
+                          title="Select Makeup Style"
                         />
                       )}
                     </div>
@@ -1928,65 +1984,6 @@ export default function ContentCreate() {
                             {modelData.age_lifestyle}
                           </Badge>
                         </p>
-                      </div>
-                    </div>
-                    <div className="space-y-3">
-                      {/* Makeup Selection */}
-                      <div className="space-y-2 flex flex-col items-center">
-                        <Label className="text-md font-medium flex flex-col items-center">Makeup Style</Label>
-                        <div
-                          onClick={() => setShowMakeupSelector(true)}
-                          className='flex flex-col items-center justify-center cursor-pointer w-full max-w-[200px]'
-                        >
-                          {(() => {
-                            return modelDescription.makeup && makeupOptions.find(option => option.label === modelDescription.makeup)?.image ? (
-                              <Card className="relative w-full">
-                                <CardContent className="p-4">
-                                  <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
-                                    <img
-                                      src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${makeupOptions.find(option => option.label === modelDescription.makeup)?.image}`}
-                                      className="absolute inset-0 w-full h-full object-cover rounded-md"
-                                    />
-                                  </div>
-                                  <p className="text-sm text-center font-medium mt-2">{makeupOptions.find(option => option.label === modelDescription.makeup)?.label}</p>
-                                </CardContent>
-                              </Card>
-                            ) : (
-                              <Card className="relative w-full border">
-                                <CardContent className="p-4">
-                                  <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
-                                    <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
-                                      Select makeup style
-                                    </div>
-                                  </div>
-                                </CardContent>
-                              </Card>
-                            );
-                          })()}
-                        </div>
-                        {showMakeupSelector && (
-                          <OptionSelector
-                            options={makeupOptions}
-                            onSelect={(label) => handleModelDescriptionChange('makeup', label)}
-                            onClose={() => setShowMakeupSelector(false)}
-                            title="Select Makeup Style"
-                          />
-                        )}
-                        <div className="w-full max-w-[200px] mt-4">
-                          <Select
-                            value={modelDescription.makeup}
-                            onValueChange={(value) => handleModelDescriptionChange('makeup', value)}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select makeup style" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {makeupOptions.map((option) => (
-                                <SelectItem key={option.label} value={option.label}>{option.label}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
                       </div>
                     </div>
                   </div>

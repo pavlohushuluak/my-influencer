@@ -777,7 +777,7 @@ export default function ContentCreate() {
   };
 
   return (
-    <div className="px-6 space-y-6">
+    <div className="px-6 space-y-4">
       {/* Header */}
       <div className="flex flex-col md:flex-row items-center justify-between gap-5">
         <div className="flex items-center gap-4">
@@ -1404,6 +1404,72 @@ export default function ContentCreate() {
                       </div>
 
                       <div className="space-y-2">
+                        <Label>Rotation</Label>
+                        <Select
+                          value={sceneSpecs.rotation}
+                          onValueChange={(value) => handleSceneSpecChange('rotation', value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select rotation" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {rotationOptions.map((option) => (
+                              <SelectItem key={option.label} value={option.label}>{option.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <div
+                          onClick={() => setShowRotationSelector(true)}
+                          className='flex items-center justify-center cursor-pointer w-full'
+                        >
+                          {sceneSpecs.rotation && rotationOptions.find(option => option.label === sceneSpecs.rotation)?.image ? (
+                            <Card className="relative w-full max-w-[250px]">
+                              <CardContent className="p-4">
+                                <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
+                                  <img
+                                    src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${rotationOptions.find(option => option.label === sceneSpecs.rotation)?.image}`}
+                                    className="absolute inset-0 w-full h-full object-cover rounded-md"
+                                  />
+                                  <Button
+                                    variant="destructive"
+                                    size="sm"
+                                    className="absolute bottom-2 right-2 w-8 h-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleSceneSpecChange('rotation', '');
+                                    }}
+                                  >
+                                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                  </Button>
+                                </div>
+                                <p className="text-sm text-center font-medium mt-2">{rotationOptions.find(option => option.label === sceneSpecs.rotation)?.label}</p>
+                              </CardContent>
+                            </Card>
+                          ) : (
+                            <Card className="relative w-full border max-w-[250px]">
+                              <CardContent className="p-4">
+                                <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
+                                  <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
+                                    Select rotation style
+                                  </div>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          )}
+                        </div>
+                        {showRotationSelector && (
+                          <OptionSelector
+                            options={rotationOptions}
+                            onSelect={(label) => handleSceneSpecChange('rotation', label)}
+                            onClose={() => setShowRotationSelector(false)}
+                            title="Select Rotation Style"
+                          />
+                        )}
+                      </div>
+
+                      <div className="space-y-2">
                         <Label>Lighting Preset</Label>
                         <Select
                           value={sceneSpecs.lighting_preset}
@@ -1964,7 +2030,7 @@ export default function ContentCreate() {
         <Card className='hidden lg:block'>
           <CardContent className='pt-2'>
             {/* Scene Presets - 2x3 Grid */}
-            <div className="hidden lg:grid grid-cols-3 xl:grid-cols-5 gap-4">
+            <div className="hidden lg:grid grid-cols-3 xl:grid-cols-6 gap-4">
               <div className="space-y-2">
                 <Label>Framing</Label>
                 <Select
@@ -1985,7 +2051,7 @@ export default function ContentCreate() {
                   className='flex items-center justify-center cursor-pointer w-full'
                 >
                   {sceneSpecs.framing && framingOptions.find(option => option.label === sceneSpecs.framing)?.image ? (
-                    <Card className="relative w-full max-w-[250px]">
+                    <Card className="relative w-full max-w-[200px]">
                       <CardContent className="p-4">
                         <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                           <img
@@ -2010,7 +2076,7 @@ export default function ContentCreate() {
                       </CardContent>
                     </Card>
                   ) : (
-                    <Card className="relative w-full border max-w-[250px]">
+                    <Card className="relative w-full border max-w-[200px]">
                       <CardContent className="p-4">
                         <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                           <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
@@ -2027,6 +2093,72 @@ export default function ContentCreate() {
                     onSelect={(label) => handleSceneSpecChange('framing', label)}
                     onClose={() => setShowFramingSelector(false)}
                     title="Select Framing Style"
+                  />
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label>Rotation</Label>
+                <Select
+                  value={sceneSpecs.rotation}
+                  onValueChange={(value) => handleSceneSpecChange('rotation', value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select rotation" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {rotationOptions.map((option) => (
+                      <SelectItem key={option.label} value={option.label}>{option.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <div
+                  onClick={() => setShowRotationSelector(true)}
+                  className='flex items-center justify-center cursor-pointer w-full'
+                >
+                  {sceneSpecs.rotation && rotationOptions.find(option => option.label === sceneSpecs.rotation)?.image ? (
+                    <Card className="relative w-full max-w-[200px]">
+                      <CardContent className="p-4">
+                        <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
+                          <img
+                            src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${rotationOptions.find(option => option.label === sceneSpecs.rotation)?.image}`}
+                            className="absolute inset-0 w-full h-full object-cover rounded-md"
+                          />
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            className="absolute bottom-2 right-2 w-8 h-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleSceneSpecChange('rotation', '');
+                            }}
+                          >
+                            <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </Button>
+                        </div>
+                        <p className="text-sm text-center font-medium mt-2">{rotationOptions.find(option => option.label === sceneSpecs.rotation)?.label}</p>
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    <Card className="relative w-full border max-w-[200px]">
+                      <CardContent className="p-4">
+                        <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
+                          <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
+                            Select rotation style
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
+                {showRotationSelector && (
+                  <OptionSelector
+                    options={rotationOptions}
+                    onSelect={(label) => handleSceneSpecChange('rotation', label)}
+                    onClose={() => setShowRotationSelector(false)}
+                    title="Select Rotation Style"
                   />
                 )}
               </div>
@@ -2051,7 +2183,7 @@ export default function ContentCreate() {
                   className='flex items-center justify-center cursor-pointer w-full'
                 >
                   {sceneSpecs.lighting_preset && lightingOptions.find(option => option.label === sceneSpecs.lighting_preset)?.image ? (
-                    <Card className="relative w-full max-w-[250px]">
+                    <Card className="relative w-full max-w-[200px]">
                       <CardContent className="p-4">
                         <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                           <img
@@ -2076,7 +2208,7 @@ export default function ContentCreate() {
                       </CardContent>
                     </Card>
                   ) : (
-                    <Card className="relative w-full border max-w-[250px]">
+                    <Card className="relative w-full border max-w-[200px]">
                       <CardContent className="p-4">
                         <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                           <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
@@ -2117,7 +2249,7 @@ export default function ContentCreate() {
                   className='flex items-center justify-center cursor-pointer w-full'
                 >
                   {sceneSpecs.scene_setting && sceneSettingsOptions.find(option => option.label === sceneSpecs.scene_setting)?.image ? (
-                    <Card className="relative w-full max-w-[250px]">
+                    <Card className="relative w-full max-w-[200px]">
                       <CardContent className="p-4">
                         <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                           <img
@@ -2142,7 +2274,7 @@ export default function ContentCreate() {
                       </CardContent>
                     </Card>
                   ) : (
-                    <Card className="relative w-full border max-w-[250px]">
+                    <Card className="relative w-full border max-w-[200px]">
                       <CardContent className="p-4">
                         <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                           <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
@@ -2183,7 +2315,7 @@ export default function ContentCreate() {
                   className='flex items-center justify-center cursor-pointer w-full'
                 >
                   {sceneSpecs.pose && poseOptions.find(option => option.label === sceneSpecs.pose)?.image ? (
-                    <Card className="relative w-full max-w-[250px]">
+                    <Card className="relative w-full max-w-[200px]">
                       <CardContent className="p-4">
                         <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                           <img
@@ -2208,7 +2340,7 @@ export default function ContentCreate() {
                       </CardContent>
                     </Card>
                   ) : (
-                    <Card className="relative w-full border max-w-[250px]">
+                    <Card className="relative w-full border max-w-[200px]">
                       <CardContent className="p-4">
                         <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                           <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
@@ -2249,7 +2381,7 @@ export default function ContentCreate() {
                   className='flex items-center justify-center cursor-pointer w-full'
                 >
                   {sceneSpecs.clothes && clothesOptions.find(option => option.label === sceneSpecs.clothes)?.image ? (
-                    <Card className="relative w-full max-w-[250px]">
+                    <Card className="relative w-full max-w-[200px]">
                       <CardContent className="p-4">
                         <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                           <img
@@ -2274,7 +2406,7 @@ export default function ContentCreate() {
                       </CardContent>
                     </Card>
                   ) : (
-                    <Card className="relative w-full border max-w-[250px]">
+                    <Card className="relative w-full border max-w-[200px]">
                       <CardContent className="p-4">
                         <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                           <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">

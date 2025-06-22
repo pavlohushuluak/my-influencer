@@ -1149,7 +1149,7 @@ export default function ContentCreate() {
                       </Select>
                     </div>
 
-                    <div className="space-y-2">
+                    <div className="space-y-6">
                       <Label>Number of Images: {formData.numberOfImages}</Label>
                       <Slider
                         value={[formData.numberOfImages]}
@@ -1161,7 +1161,7 @@ export default function ContentCreate() {
                       />
                     </div>
 
-                    <div className="space-y-2">
+                    <div className="space-y-6">
                       <Label>Guidance: {formData.guidance}</Label>
                       <Slider
                         value={[formData.guidance]}
@@ -1776,7 +1776,7 @@ export default function ContentCreate() {
                   </div>
 
                   <div className="grid grid-cols-2 xl:grid-cols-3 gap-4">
-                    <div>
+                    <div className="space-y-6">
                       <Label>SFW &lt;----&gt; NSFW</Label>
                       <Slider
                         value={[formData.nsfw_strength || 0]}
@@ -1792,7 +1792,7 @@ export default function ContentCreate() {
                       </div>
                     </div>
 
-                    <div>
+                    <div className="space-y-6">
                       <Label>LORA Strength</Label>
                       <Slider
                         value={[formData.lora_strength || 0]}

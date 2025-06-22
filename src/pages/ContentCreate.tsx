@@ -619,7 +619,7 @@ export default function ContentCreate() {
           makeup_style: modelDescription.makeup || "Natural / No-Makeup Look", // Use from modelDescription or default
           name_first: modelData.name_first,
           name_last: modelData.name_last,
-          visual_only: true
+          visual_only: modelData.visual_only
         } : null,
         scene: {
           framing: sceneSpecs.framing,

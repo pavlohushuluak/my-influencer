@@ -943,8 +943,169 @@ export default function ContentCreate() {
         </div>
       </div>
 
+      <div className="space-y-6 lg:hidden">
+        {/* Influencer Info */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg">
+                <ImageIcon className="w-5 h-5 text-white" />
+              </div>
+              Influencer
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {modelData ? (
+              <>
+                <div className="grid gap-4 items-start">
+                  <div className="flex flex-col items-center gap-4">
+                    <h3 className="font-semibold text-md">
+                      {modelData.name_first} {modelData.name_last}
+                    </h3>
+                    <div className="w-48 h-48 bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg overflow-hidden flex-shrink-0">
+                      <img
+                        src={modelData.image_url}
+                        alt={`${modelData.name_first} ${modelData.name_last}`}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Select Another Influencer Button */}
+                {modelData && (
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowInfluencerSelector(true)}
+                    className="w-full gap-2 mt-4"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Select Another Influencer
+                  </Button>
+                )}
+
+                {/* Influencer Selection */}
+                {!modelData && (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-lg font-semibold">Select Influencer</h3>
+                      <Badge variant="secondary" className="text-xs">
+                        {filteredInfluencers.length} available
+                      </Badge>
+                    </div>
+
+                    {/* Search Section */}
+                    <div className="space-y-2">
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                        <Input
+                          type="text"
+                          placeholder="Search influencers..."
+                          value={searchTerm}
+                          onChange={(e) => handleSearchChange(e.target.value)}
+                          className="pl-10 pr-10"
+                        />
+                        {searchTerm && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
+                            onClick={handleSearchClear}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+
+                      <Popover open={openFilter} onOpenChange={setOpenFilter}>
+                        <PopoverTrigger asChild>
+                          <Button variant="outline" className="gap-2 w-full">
+                            <Filter className="h-4 w-4" />
+                            {selectedSearchField.label}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[200px] p-0">
+                          <Command>
+                            <CommandList>
+                              {SEARCH_FIELDS.map((field) => (
+                                <CommandItem
+                                  key={field.id}
+                                  onSelect={() => {
+                                    setSelectedSearchField(field);
+                                    setOpenFilter(false);
+                                  }}
+                                >
+                                  {field.label}
+                                </CommandItem>
+                              ))}
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+
+                    {/* Influencers List */}
+                    <ScrollArea className="h-64">
+                      <div className="space-y-2">
+                        {filteredInfluencers.map((influencer) => (
+                          <Card key={influencer.id} className="group hover:shadow-lg transition-all duration-300 border-border/50 hover:border-ai-purple-500/20 cursor-pointer" onClick={() => handleUseInfluencer(influencer)}>
+                            <CardContent className="p-3">
+                              <div className="flex items-center space-x-3">
+                                <div className="w-12 h-12 bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg overflow-hidden flex-shrink-0">
+                                  <img
+                                    src={influencer.image_url}
+                                    alt={`${influencer.name_first} ${influencer.name_last}`}
+                                    className="w-full h-full object-cover"
+                                  />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <h4 className="font-semibold text-sm group-hover:text-ai-purple-500 transition-colors truncate">
+                                    {influencer.name_first} {influencer.name_last}
+                                  </h4>
+                                  <p className="text-xs text-muted-foreground truncate">
+                                    {influencer.age_lifestyle}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground truncate">
+                                    {influencer.influencer_type}
+                                  </p>
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    </ScrollArea>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="w-full from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-700 rounded-lg flex items-center justify-center">
+                <div className="text-center space-y-2">
+                  <ImageIcon className="w-12 h-12 text-slate-400 mx-auto" />
+                  <p className="text-slate-600 dark:text-slate-400 font-medium">
+                    Please select influencer below
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Select Influencer Button - shown when no influencer is selected */}
+            {!modelData && (
+              <Button
+                variant="outline"
+                onClick={() => setShowInfluencerSelector(true)}
+                className="w-full gap-2"
+              >
+                <Plus className="w-4 h-4" />
+                Select Influencer
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
       {/* Main Layout - 2 Columns */}
-      <div className="grid grid-cols-1 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_250px] gap-6">
         <div className="space-y-6">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
             <TabsList className="grid w-full grid-cols-3">
@@ -974,9 +1135,9 @@ export default function ContentCreate() {
                         onValueChange={(value) => handleInputChange('task', value)}
                       >
                         <SelectTrigger>
-                            <div className='pl-10'>
-                              {TASK_OPTIONS.find(opt => opt.value === formData.task)?.label}
-                            </div>
+                          <div className='pl-10'>
+                            {TASK_OPTIONS.find(opt => opt.value === formData.task)?.label}
+                          </div>
                         </SelectTrigger>
                         <SelectContent>
                           {TASK_OPTIONS.map((option) => (
@@ -1124,277 +1285,6 @@ export default function ContentCreate() {
                       )}
                     </div>
                   </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            {/* Model Tab */}
-            <TabsContent value="model" className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg">
-                      <ImageIcon className="w-5 h-5 text-white" />
-                    </div>
-                    Model Description
-                  </CardTitle>
-                  <p className="text-sm text-muted-foreground">
-                    {formData.model ? 'Selected influencer model configuration' : 'Select an influencer to use for content generation'}
-                  </p>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  {/* Show Influencer Selection or Selected Influencer */}
-                  {!formData.model ? (
-                    // Show only influencer selection when no model is selected
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <h3 className="text-lg font-semibold">Select Influencer</h3>
-                        <Badge variant="secondary" className="text-xs">
-                          {filteredInfluencers.length} available
-                        </Badge>
-                      </div>
-
-                      {/* Search Section */}
-                      <div className="flex gap-4">
-                        <div className="relative flex-1">
-                          <div className="relative">
-                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                            <Input
-                              type="text"
-                              placeholder="Search influencers..."
-                              value={searchTerm}
-                              onChange={(e) => handleSearchChange(e.target.value)}
-                              className="pl-10 pr-10"
-                            />
-                            {searchTerm && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
-                                onClick={handleSearchClear}
-                              >
-                                <X className="h-4 w-4" />
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-
-                        <Popover open={openFilter} onOpenChange={setOpenFilter}>
-                          <PopoverTrigger asChild>
-                            <Button variant="outline" className="gap-2">
-                              <Filter className="h-4 w-4" />
-                              {selectedSearchField.label}
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-[200px] p-0">
-                            <Command>
-                              <CommandList>
-                                {SEARCH_FIELDS.map((field) => (
-                                  <CommandItem
-                                    key={field.id}
-                                    onSelect={() => {
-                                      setSelectedSearchField(field);
-                                      setOpenFilter(false);
-                                    }}
-                                  >
-                                    {field.label}
-                                  </CommandItem>
-                                ))}
-                              </CommandList>
-                            </Command>
-                          </PopoverContent>
-                        </Popover>
-                      </div>
-
-                      {/* Influencers Grid */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                        {filteredInfluencers.map((influencer) => (
-                          <Card key={influencer.id} className="group hover:shadow-lg transition-all duration-300 border-border/50 hover:border-ai-purple-500/20">
-                            <CardContent className="p-6">
-                              <div className="space-y-4">
-                                <div className="w-full h-48 bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg overflow-hidden">
-                                  <img
-                                    src={influencer.image_url}
-                                    alt={`${influencer.name_first} ${influencer.name_last}`}
-                                    className="w-full h-full object-cover"
-                                  />
-                                </div>
-
-                                <div>
-                                  <div className="flex items-center justify-between mb-2">
-                                    <h3 className="font-semibold text-lg group-hover:text-ai-purple-500 transition-colors">
-                                      {influencer.name_first} {influencer.name_last}
-                                    </h3>
-                                  </div>
-
-                                  <div className="flex flex-col gap-1 mb-3">
-                                    <div className="flex text-sm text-muted-foreground flex-col">
-                                      <span className="font-medium mr-2">Age/Lifestyle:</span>
-                                      {influencer.age_lifestyle}
-                                    </div>
-                                    <div className="flex items-center text-sm text-muted-foreground">
-                                      <span className="font-medium mr-2">Type:</span>
-                                      {influencer.influencer_type}
-                                    </div>
-                                  </div>
-
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => handleUseInfluencer(influencer)}
-                                    className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 w-full"
-                                  >
-                                    <Plus className="w-4 h-4 mr-2" />
-                                    Use
-                                  </Button>
-                                </div>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        ))}
-                      </div>
-                    </div>
-                  ) : (
-                    // Show selected influencer card when model is selected
-                    <div className="space-y-6">
-                      {/* Selected Influencer Card */}
-                      <div className="max-w-md mx-auto">
-                        <Card className="group hover:shadow-lg transition-all duration-300 border-border/50">
-                          <CardContent className="p-6">
-                            <div className="space-y-4">
-                              <div className="w-full h-48 bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg overflow-hidden">
-                                <img
-                                  src={modelData?.image_url}
-                                  alt={`${modelData?.name_first} ${modelData?.name_last}`}
-                                  className="w-full h-full object-cover"
-                                />
-                              </div>
-
-                              <div>
-                                <div className="flex items-center justify-between mb-2">
-                                  <h3 className="font-semibold text-lg">
-                                    {modelData?.name_first} {modelData?.name_last}
-                                  </h3>
-                                </div>
-
-                                <div className="flex flex-col gap-1 mb-3">
-                                  <div className="flex text-sm text-muted-foreground flex-col">
-                                    <span className="font-medium mr-2">Age/Lifestyle:</span>
-                                    {modelData?.age_lifestyle}
-                                  </div>
-                                  <div className="flex items-center text-sm text-muted-foreground">
-                                    <span className="font-medium mr-2">Type:</span>
-                                    {modelData?.influencer_type}
-                                  </div>
-                                </div>
-
-                                {/* Makeup Selection */}
-                                <div className="space-y-2 mb-3">
-                                  <Label className="text-sm font-medium">Makeup Style</Label>
-                                  <Select
-                                    value={modelDescription.makeup}
-                                    onValueChange={(value) => handleModelDescriptionChange('makeup', value)}
-                                  >
-                                    <SelectTrigger>
-                                      <SelectValue placeholder="Select makeup style" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      {makeupOptions.map((option) => (
-                                        <SelectItem key={option.label} value={option.label}>{option.label}</SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
-                                  <div
-                                    onClick={() => setShowMakeupSelector(true)}
-                                    className='flex items-center justify-center cursor-pointer w-full'
-                                  >
-                                    {(() => {
-                                      return modelDescription.makeup && makeupOptions.find(option => option.label === modelDescription.makeup)?.image ? (
-                                        <Card className="relative w-full">
-                                          <CardContent className="p-4">
-                                            <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
-                                              <img
-                                                src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${makeupOptions.find(option => option.label === modelDescription.makeup)?.image}`}
-                                                className="absolute inset-0 w-full h-full object-cover rounded-md"
-                                              />
-                                            </div>
-                                            <p className="text-sm text-center font-medium mt-2">{makeupOptions.find(option => option.label === modelDescription.makeup)?.label}</p>
-                                          </CardContent>
-                                        </Card>
-                                      ) : (
-                                        <Card className="relative w-full border">
-                                          <CardContent className="p-4">
-                                            <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
-                                              <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
-                                                Select makeup style
-                                              </div>
-                                            </div>
-                                          </CardContent>
-                                        </Card>
-                                      );
-                                    })()}
-                                  </div>
-                                  {showMakeupSelector && (
-                                    <OptionSelector
-                                      options={makeupOptions}
-                                      onSelect={(label) => handleModelDescriptionChange('makeup', label)}
-                                      onClose={() => setShowMakeupSelector(false)}
-                                      title="Select Makeup Style"
-                                    />
-                                  )}
-                                </div>
-
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  disabled
-                                  className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 text-white w-full cursor-not-allowed"
-                                >
-                                  <Check className="w-4 h-4 mr-2" />
-                                  Using
-                                </Button>
-                              </div>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      </div>
-
-                      {/* Select Influencer Button */}
-                      <div className="flex justify-center">
-                        <Button
-                          variant="outline"
-                          onClick={() => {
-                            setFormData(prev => ({ ...prev, model: '' }));
-                            setModelDescription({
-                              appearance: '',
-                              culturalBackground: '',
-                              bodyType: '',
-                              facialFeatures: '',
-                              hairColor: '',
-                              hairLength: '',
-                              hairStyle: '',
-                              skin: '',
-                              lips: '',
-                              eyes: '',
-                              nose: '',
-                              makeup: '',
-                              bust: '',
-                              clothing: '',
-                              sex: '',
-                              eyebrowStyle: '',
-                              faceShape: '',
-                              colorPalette: ''
-                            });
-                            setModelData(null);
-                          }}
-                          className="gap-2"
-                        >
-                          <Plus className="w-4 h-4" />
-                          Select Influencer
-                        </Button>
-                      </div>
-                    </div>
-                  )}
                 </CardContent>
               </Card>
             </TabsContent>
@@ -1856,8 +1746,8 @@ export default function ContentCreate() {
                     />
                   </div>
 
-                  <div className="space-y-4">
-                    <div className="space-y-2">
+                  <div className="grid grid-cols-2 xl:grid-cols-3 gap-4">
+                    <div>
                       <Label>SFW &lt;----&gt; NSFW</Label>
                       <Slider
                         value={[formData.nsfw_strength || 0]}
@@ -1873,7 +1763,7 @@ export default function ContentCreate() {
                       </div>
                     </div>
 
-                    <div className="space-y-2">
+                    <div>
                       <Label>LORA Strength</Label>
                       <Slider
                         value={[formData.lora_strength || 0]}
@@ -1949,7 +1839,7 @@ export default function ContentCreate() {
             </TabsContent>
           </Tabs>
         </div>
-        <div className="space-y-6">
+        <div className="space-y-6 hidden lg:block">
           {/* Influencer Info */}
           <Card>
             <CardHeader>
@@ -1963,7 +1853,7 @@ export default function ContentCreate() {
             <CardContent className="space-y-4">
               {modelData ? (
                 <>
-                  <div className="grid 2xl:grid-cols-2 lg:grid-cols-1 sm:grid-cols-2 gap-4 items-start">
+                  <div className="grid gap-4 items-start">
                     <div className="flex flex-col items-center gap-4">
                       <h3 className="font-semibold text-md">
                         {modelData.name_first} {modelData.name_last}
@@ -1974,16 +1864,6 @@ export default function ContentCreate() {
                           alt={`${modelData.name_first} ${modelData.name_last}`}
                           className="w-full h-full object-cover"
                         />
-                      </div>
-                      <div className='flex flex-col gap-2 items-center'>
-                        <p className="text-sm text-muted-foreground flex flex-col gap-2 items-center">
-                          <Badge variant="secondary" className="text-xs mr-2">
-                            {modelData.influencer_type}
-                          </Badge>
-                          <Badge variant="secondary" className="text-xs mr-2">
-                            {modelData.age_lifestyle}
-                          </Badge>
-                        </p>
                       </div>
                     </div>
                   </div>

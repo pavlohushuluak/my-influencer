@@ -86,8 +86,48 @@ export default function Vault() {
       return sortOrder === 'desc' ? -comparison : comparison; 
     });
 
-  const handleRemoveFromVault = (contentId: string) => {
-    dispatch(removeFromVault(contentId));
+  const handleRemoveFromVault = async (contentId: string) => {
+    try {
+      // Delete from database
+      const dbResponse = await fetch(`https://db.nymia.ai/rest/v1/tasks?uuid=eq.${userData.id}&id=eq.${contentId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        }
+      });
+
+      if (!dbResponse.ok) {
+        throw new Error('Failed to delete from database');
+      }
+
+      // Delete file from API
+      const fileResponse = await fetch('https://api.nymia.ai/v1/deletefile', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          user: userData.id,
+          filename: `output/${contentId}.png`
+        })
+      });
+
+      if (!fileResponse.ok) {
+        throw new Error('Failed to delete file');
+      }
+
+      // Remove from local state
+      dispatch(removeFromVault(contentId));
+      
+      // Update local vault items
+      setVaultItems(prev => prev.filter(item => item.id !== contentId));
+      
+      toast.success('Item deleted successfully');
+    } catch (error) {
+      console.error('Error deleting item:', error);
+      toast.error('Failed to delete item');
+    }
   };
 
   const handleDownload = async (itemId: string) => {

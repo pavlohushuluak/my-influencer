@@ -61,12 +61,12 @@ export default function Vault() {
     .filter(item => {
       const matchesSearch = item.id;
       const matchesType = typeFilter === 'all' || item.type === typeFilter;
-      
+
       return matchesSearch && matchesType;
     })
     .sort((a, b) => {
       let comparison = 0;
-      
+
       switch (sortBy) {
         case 'newest':
           comparison = new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
@@ -77,7 +77,7 @@ export default function Vault() {
         default:
           comparison = 0;
       }
-      
+
       return sortOrder === 'desc' ? -comparison : comparison;
     });
 
@@ -185,7 +185,7 @@ export default function Vault() {
                 {sortOrder === 'asc' ? <SortAsc className="w-3 h-3" /> : <SortDesc className="w-3 h-3" />}
                 {sortOrder === 'asc' ? 'Ascending' : 'Descending'}
               </Button>
-              
+
               {hasActiveFilters && (
                 <Button variant="outline" size="sm" onClick={clearFilters}>
                   Clear All
@@ -224,17 +224,17 @@ export default function Vault() {
       {filteredAndSortedItems.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {filteredAndSortedItems.map((item) => (
-            <Card 
-              key={item.id} 
+            <Card
+              key={item.id}
               className="group hover:shadow-lg transition-all duration-300 border-border/50 hover:border-yellow-500/20 bg-gradient-to-br from-yellow-50/30 to-orange-50/30 dark:from-yellow-950/10 dark:to-orange-950/10"
             >
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    {item.type === 'image' ? (
-                      <Image className="w-4 h-4 text-blue-500" />
-                    ) : (
+                    {item.type === 'video' ? (
                       <Video className="w-4 h-4 text-purple-500" />
+                    ) : (
+                      <Image className="w-4 h-4 text-blue-500" />
                     )}
                   </div>
                   <Star className="w-4 h-4 text-yellow-500 fill-current" />
@@ -242,12 +242,12 @@ export default function Vault() {
                 <CardTitle className="text-lg">{item.id}</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="relative w-full h-48 bg-gradient-to-br from-yellow-500/20 to-orange-500/20 rounded-lg mb-4 overflow-hidden group-hover:shadow-md transition-all duration-300">
+                <div className="relative w-full h-full bg-gradient-to-br from-yellow-500/20 to-orange-500/20 rounded-lg mb-4 overflow-hidden group-hover:shadow-md transition-all duration-300">
                   {item.id ? (
-                    <img 
-                      src={item.id} 
-                      alt={item.id} 
-                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" 
+                    <img
+                      src={`https://images.nymia.ai/cdn-cgi/image/w=400/${userData.id}/output/${item.id}.png`}
+                      alt={item.id}
+                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
@@ -264,8 +264,8 @@ export default function Vault() {
                       <Button size="sm" variant="secondary">
                         <Share className="w-3 h-3" />
                       </Button>
-                      <Button 
-                        size="sm" 
+                      <Button
+                        size="sm"
                         variant="destructive"
                         onClick={() => handleRemoveFromVault(item.id)}
                       >

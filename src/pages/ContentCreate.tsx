@@ -14,7 +14,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
-import { ArrowLeft, Wand2, Settings, Image as ImageIcon, Sparkles, Loader2, Play, Eye, Palette, Camera, Zap, Search, X, Filter, Plus, Check } from 'lucide-react';
+import { ArrowLeft, Wand2, Settings, Image as ImageIcon, Sparkles, Loader2, Play, Eye, Palette, Camera, Zap, Search, X, Filter, Plus, Check, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -658,33 +658,7 @@ export default function ContentCreate() {
 
       toast.success('Content generation started successfully');
 
-      setFormData({
-        model: '',
-        scene: '',
-        task: 'generate_image',
-        lora: false,
-        noAI: true,
-        prompt: '',
-        format: 'square',
-        numberOfImages: 1,
-        seed: '',
-        guidance: 3.5,
-        negative_prompt: '',
-        nsfw_strength: 0,
-        lora_strength: 0,
-        quality: 'Basic'
-      });
-
-      setModelData(null);
       setActiveTab('scene');
-      setSceneSpecs({
-        framing: '',
-        rotation: '',
-        lighting_preset: '',
-        scene_setting: '',
-        pose: '',
-        clothes: ''
-      });
 
     } catch (error) {
       console.error('Generation error:', error);
@@ -776,6 +750,34 @@ export default function ContentCreate() {
     );
   };
 
+  const handleClear = () => {
+    setFormData({
+      model: '',
+      scene: '',
+      task: 'generate_image',
+      lora: false,
+      noAI: true,
+      prompt: '',
+      format: 'square',
+      numberOfImages: 1,
+      seed: '',
+      guidance: 3.5,
+      negative_prompt: '',
+      nsfw_strength: 0,
+      lora_strength: 0,
+      quality: 'Basic'
+    });
+    setModelData(null);
+    setSceneSpecs({
+      framing: '',
+      rotation: '',
+      lighting_preset: '',
+      scene_setting: '',
+      pose: '',
+      clothes: ''
+    });
+  }
+
   return (
     <div className="px-6 space-y-4">
       {/* Header */}
@@ -857,24 +859,34 @@ export default function ContentCreate() {
           </div>
         </div>
 
-        <Button
-          onClick={handleGenerate}
-          disabled={!validateForm() || isGenerating}
-          className="bg-gradient-to-r from-purple-600 to-blue-600"
-          size="lg"
-        >
-          {isGenerating ? (
-            <>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Generating...
-            </>
-          ) : (
-            <>
-              <Wand2 className="w-4 h-4 mr-2" />
-              Generate Content
-            </>
-          )}
-        </Button>
+        <div className="flex flex-col space-y-2">
+          <Button
+            onClick={handleGenerate}
+            disabled={!validateForm() || isGenerating}
+            className="bg-gradient-to-r from-purple-600 to-blue-600"
+            size="lg"
+          >
+            {isGenerating ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Generating...
+              </>
+            ) : (
+              <>
+                <Wand2 className="w-4 h-4 mr-2" />
+                Generate Content
+              </>
+            )}
+          </Button>
+          <Button
+            onClick={handleClear}
+            variant="outline"
+            className="bg-gradient-to-r from-red-600 to-orange-600"
+          >
+            <RotateCcw className="w-4 h-4 mr-2" />
+            Reset Form
+          </Button>
+        </div>
       </div>
       <div className="xl:hidden bg-gradient-to-r from-slate-50 to-blue-50 dark:from-slate-900/50 dark:to-blue-900/20 rounded-xl p-6">
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">

@@ -214,11 +214,11 @@ export function CreateInfluencerSteps({ onComplete }: CreateInfluencerStepsProps
               <Label className="text-lg font-semibold">Influencer Type</Label>
               <div className="grid grid-cols-2 gap-4">
                 <Button
-                  variant={influencerData.visual_only === false ? 'default' : 'outline'}
-                  onClick={() => handleOptionSelect('visual_only', false)}
+                  variant={influencerData.visual_only === true ? 'default' : 'outline'}
+                  onClick={() => handleOptionSelect('visual_only', true)}
                   className={cn(
                     "h-24 transition-all duration-300",
-                    influencerData.visual_only === false 
+                    influencerData.visual_only === true 
                       ? "bg-primary hover:bg-primary/90" 
                       : "hover:bg-amber-500"
                   )}
@@ -229,11 +229,11 @@ export function CreateInfluencerSteps({ onComplete }: CreateInfluencerStepsProps
                   </div>
                 </Button>
                 <Button
-                  variant={influencerData.visual_only === true ? 'default' : 'outline'}
-                  onClick={() => handleOptionSelect('visual_only', true)}
+                  variant={influencerData.visual_only === false ? 'default' : 'outline'}
+                  onClick={() => handleOptionSelect('visual_only', false)}
                   className={cn(
                     "h-24 transition-all duration-300",
-                    influencerData.visual_only === true 
+                    influencerData.visual_only === false 
                       ? "bg-primary hover:bg-primary/90" 
                       : "hover:bg-amber-500"
                   )}

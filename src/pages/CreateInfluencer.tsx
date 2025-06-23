@@ -3,13 +3,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { CreateInfluencerSteps } from '@/components/Influencers/CreateInfluencerSteps';
 import { CreateInfluencerWizard } from '@/components/Influencers/CreateInfluencerWizard';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from '@/components/ui/dialog';
 import { useNavigate } from 'react-router-dom';
 
 export function CreateInfluencer() {

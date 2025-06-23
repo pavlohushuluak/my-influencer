@@ -137,14 +137,14 @@ export default function InfluencerEdit() {
   const [isSaving, setIsSaving] = useState(false);
 
   const [showEditView, setShowEditView] = useState(!!location.state?.influencerData);
-  
+
   const userData = useSelector((state: RootState) => state.user);
   const [subscriptionLevel, setSubscriptionLevel] = useState<'free' | 'starter' | 'professional' | 'enterprise'>('free');
-  
+
   useEffect(() => {
     setSubscriptionLevel(userData.subscription as 'free' | 'starter' | 'professional' | 'enterprise');
   }, [userData.subscription]);
-  
+
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [lockedFeature, setLockedFeature] = useState<string | null>(null);
   const [backgroundOptions, setBackgroundOptions] = useState<Option[]>([]);
@@ -152,6 +152,8 @@ export default function InfluencerEdit() {
   const [showHairLengthSelector, setShowHairLengthSelector] = useState(false);
   const [influencerData, setInfluencerData] = useState(location.state?.influencerData || {
     id: '',
+    visual_only: false,
+    eyebrow_style: '',
     influencer_type: '',
     name_first: '',
     name_last: '',
@@ -352,9 +354,46 @@ export default function InfluencerEdit() {
             'Content-Type': 'application/json',
             'Authorization': 'Bearer WeInfl3nc3withAI'
           },
-          body: JSON.stringify(influencerData)
+          body: JSON.stringify({...influencerData, new: true})
         });
+
+        const responseId = await fetch(`https://db.nymia.ai/rest/v1/influencer?user_id=eq.${userData.id}&new=eq.true`, {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer WeInfl3nc3withAI'
+          }
+        });
+
+        const data = await responseId.json();
+        console.log(data);
+        
+
         dispatch(addInfluencer(influencerData));
+
+        const responseFile = await fetch('https://api.nymia.ai/v1/createfolder', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer WeInfl3nc3withAI'
+          },
+          body: JSON.stringify({
+            user: userData.id,
+            parentfolder: "models/",
+            folder: data[0].id
+          })
+        })
+
+        const responseUpdate = await fetch(`https://db.nymia.ai/rest/v1/influencer?id=eq.${data[0].id}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer WeInfl3nc3withAI'
+          },
+          body: JSON.stringify({
+            new: false
+          })
+        });
+
         if (response.ok) {
           setShowEditView(false);
           setActiveTab('basic');

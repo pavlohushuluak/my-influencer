@@ -20,7 +20,7 @@ export interface TemplateInfluencer {
     eyebrow_style: string;
     face_shape: string;
     facial_features: string;
-    makeup_style: string;
+    bust_size: string;
     skin_tone: string;
     body_type: string;
     color_palette: string[];

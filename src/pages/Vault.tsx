@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '@/store/store';
 import { removeFromVault } from '@/store/slices/contentSlice';
@@ -9,98 +9,70 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Star, Search, Download, Share, Trash2, Filter, Calendar, Image, Video, SortAsc, SortDesc } from 'lucide-react';
 
-// Example vault items
-const exampleVaultItems = [
-  {
-    id: '1',
-    title: 'Summer Beach Collection',
-    type: 'image',
-    platform: 'instagram',
-    url: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&h=600&fit=crop',
-    tags: ['summer', 'beach', 'fashion', 'lifestyle'],
-    createdAt: '2024-03-15T10:30:00Z'
-  },
-  {
-    id: '2',
-    title: 'Tech Review Video',
-    type: 'video',
-    platform: 'tiktok',
-    url: 'https://images.unsplash.com/photo-1498049794561-7780e7231661?w=800&h=600&fit=crop',
-    tags: ['tech', 'review', 'gadgets', 'tutorial'],
-    createdAt: '2024-03-14T15:45:00Z'
-  },
-  {
-    id: '3',
-    title: 'Fitness Motivation',
-    type: 'image',
-    platform: 'fanvue',
-    url: 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=800&h=600&fit=crop',
-    tags: ['fitness', 'motivation', 'health', 'lifestyle'],
-    createdAt: '2024-03-13T09:15:00Z'
-  },
-  {
-    id: '4',
-    title: 'Cooking Tutorial',
-    type: 'video',
-    platform: 'instagram',
-    url: 'https://images.unsplash.com/photo-1495521821757-a1efb6729352?w=800&h=600&fit=crop',
-    tags: ['cooking', 'food', 'tutorial', 'recipe'],
-    createdAt: '2024-03-12T14:20:00Z'
-  },
-  {
-    id: '5',
-    title: 'Travel Vlog',
-    type: 'video',
-    platform: 'tiktok',
-    url: 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=800&h=600&fit=crop',
-    tags: ['travel', 'vlog', 'adventure', 'explore'],
-    createdAt: '2024-03-11T11:10:00Z'
-  },
-  {
-    id: '6',
-    title: 'Product Showcase',
-    type: 'image',
-    platform: 'general',
-    url: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=800&h=600&fit=crop',
-    tags: ['product', 'showcase', 'marketing', 'brand'],
-    createdAt: '2024-03-10T16:30:00Z'
-  }
-];
+// Interface for task data from API
+interface TaskData {
+  id: string;
+  type: string;
+  created_at: string;
+}
 
 export default function Vault() {
   const dispatch = useDispatch();
-  const vaultItemsFromStore = useSelector((state: RootState) => state.content.vaultItems);
-  const vaultItems = vaultItemsFromStore?.length ? vaultItemsFromStore : exampleVaultItems;
+  const userData = useSelector((state: RootState) => state.user);
+  const [vaultItems, setVaultItems] = useState<TaskData[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [platformFilter, setPlatformFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
   const [sortBy, setSortBy] = useState('newest');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
+  // Fetch data from API
+  useEffect(() => {
+    const fetchVaultData = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch(`https://db.nymia.ai/rest/v1/tasks?uuid=eq.${userData.id}`, {
+          headers: {
+            'Authorization': 'Bearer WeInfl3nc3withAI'
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch vault data');
+        }
+
+        const data = await response.json();
+        console.log(data);
+        setVaultItems(data);
+      } catch (error) {
+        console.error('Error fetching vault data:', error);
+        setVaultItems([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (userData.id) {
+      fetchVaultData();
+    }
+  }, [userData.id]);
+
   const filteredAndSortedItems = vaultItems
     .filter(item => {
-      const matchesSearch = item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           item.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
-      const matchesPlatform = platformFilter === 'all' || item.platform === platformFilter;
+      const matchesSearch = item.id;
       const matchesType = typeFilter === 'all' || item.type === typeFilter;
       
-      return matchesSearch && matchesPlatform && matchesType;
+      return matchesSearch && matchesType;
     })
     .sort((a, b) => {
       let comparison = 0;
       
       switch (sortBy) {
         case 'newest':
-          comparison = new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+          comparison = new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
           break;
         case 'oldest':
-          comparison = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-          break;
-        case 'title':
-          comparison = a.title.localeCompare(b.title);
-          break;
-        case 'platform':
-          comparison = a.platform.localeCompare(b.platform);
+          comparison = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
           break;
         default:
           comparison = 0;
@@ -115,13 +87,33 @@ export default function Vault() {
 
   const clearFilters = () => {
     setSearchTerm('');
-    setPlatformFilter('all');
     setTypeFilter('all');
     setSortBy('newest');
     setSortOrder('desc');
   };
 
-  const hasActiveFilters = searchTerm || platformFilter !== 'all' || typeFilter !== 'all' || sortBy !== 'newest' || sortOrder !== 'desc';
+  const hasActiveFilters = searchTerm || typeFilter !== 'all' || sortBy !== 'newest' || sortOrder !== 'desc';
+
+  if (loading) {
+    return (
+      <div className="p-6 space-y-6 animate-fade-in">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-5">
+          <div>
+            <h1 className="flex flex-col items-center md:items-start text-3xl font-bold tracking-tight bg-ai-gradient bg-clip-text text-transparent">
+              Vault
+            </h1>
+            <p className="text-muted-foreground">
+              Your premium collection of saved content that never expires
+            </p>
+          </div>
+        </div>
+        <div className="text-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-500 mx-auto"></div>
+          <p className="text-muted-foreground mt-2">Loading vault items...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 space-y-6 animate-fade-in">
@@ -153,7 +145,7 @@ export default function Vault() {
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
             <Input
-              placeholder="Search vault by title, tags, or content..."
+              placeholder="Search vault by title..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10 bg-background/50"
@@ -161,20 +153,7 @@ export default function Vault() {
           </div>
 
           {/* Filter Controls */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-            <Select value={platformFilter} onValueChange={setPlatformFilter}>
-              <SelectTrigger>
-                <SelectValue placeholder="All Platforms" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Platforms</SelectItem>
-                <SelectItem value="instagram">Instagram</SelectItem>
-                <SelectItem value="tiktok">TikTok</SelectItem>
-                <SelectItem value="fanvue">FanVue</SelectItem>
-                <SelectItem value="general">General</SelectItem>
-              </SelectContent>
-            </Select>
-
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <Select value={typeFilter} onValueChange={setTypeFilter}>
               <SelectTrigger>
                 <SelectValue placeholder="All Types" />
@@ -193,7 +172,6 @@ export default function Vault() {
               <SelectContent>
                 <SelectItem value="newest">Date Added</SelectItem>
                 <SelectItem value="title">Title</SelectItem>
-                <SelectItem value="platform">Platform</SelectItem>
               </SelectContent>
             </Select>
 
@@ -221,19 +199,14 @@ export default function Vault() {
             <div className="flex flex-wrap gap-2">
               <span className="text-sm text-muted-foreground">Active filters:</span>
               {searchTerm && (
-                <Badge variant="secondary" className="text-xs">
+                <span className="text-sm text-muted-foreground">
                   Search: "{searchTerm}"
-                </Badge>
-              )}
-              {platformFilter !== 'all' && (
-                <Badge variant="secondary" className="text-xs">
-                  Platform: {platformFilter}
-                </Badge>
+                </span>
               )}
               {typeFilter !== 'all' && (
-                <Badge variant="secondary" className="text-xs">
+                <span className="text-sm text-muted-foreground">
                   Type: {typeFilter}
-                </Badge>
+                </span>
               )}
             </div>
           )}
@@ -263,31 +236,17 @@ export default function Vault() {
                     ) : (
                       <Video className="w-4 h-4 text-purple-500" />
                     )}
-                    <Badge variant="secondary" className="bg-yellow-500/20 text-yellow-700 dark:text-yellow-400">
-                      {item.type}
-                    </Badge>
-                    <Badge 
-                      variant="outline"
-                      className={`text-xs ${
-                        item.platform === 'instagram' ? 'border-pink-500 text-pink-700' :
-                        item.platform === 'tiktok' ? 'border-amber text-amber' :
-                        item.platform === 'fanvue' ? 'border-purple-500 text-purple-700' :
-                        'border-gray-500 text-gray-700'
-                      }`}
-                    >
-                      {item.platform}
-                    </Badge>
                   </div>
                   <Star className="w-4 h-4 text-yellow-500 fill-current" />
                 </div>
-                <CardTitle className="text-lg">{item.title}</CardTitle>
+                <CardTitle className="text-lg">{item.id}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="relative w-full h-48 bg-gradient-to-br from-yellow-500/20 to-orange-500/20 rounded-lg mb-4 overflow-hidden group-hover:shadow-md transition-all duration-300">
-                  {item.url ? (
+                  {item.id ? (
                     <img 
-                      src={item.url} 
-                      alt={item.title} 
+                      src={item.id} 
+                      alt={item.id} 
                       className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" 
                     />
                   ) : (
@@ -316,20 +275,9 @@ export default function Vault() {
                   </div>
                 </div>
                 <div className="space-y-3">
-                  <div className="flex flex-wrap gap-1">
-                    {item.tags.map((tag, index) => (
-                      <Badge 
-                        key={index} 
-                        variant="outline" 
-                        className="text-xs hover:bg-yellow-500/10 transition-colors cursor-pointer"
-                      >
-                        {tag}
-                      </Badge>
-                    ))}
-                  </div>
                   <div className="flex items-center gap-1 text-xs text-muted-foreground">
                     <Calendar className="w-3 h-3" />
-                    Added {new Date(item.createdAt).toLocaleDateString()}
+                    Added {new Date(item.created_at).toLocaleDateString()}
                   </div>
                 </div>
               </CardContent>

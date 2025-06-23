@@ -100,7 +100,7 @@ export default function InfluencerTemplates() {
     const data = await responseId.json();
     console.log(data);
 
-    const responseFile = await fetch('https://api.nymia.ai/v1/createfolder', {
+    await fetch('https://api.nymia.ai/v1/createfolder', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -108,8 +108,47 @@ export default function InfluencerTemplates() {
       },
       body: JSON.stringify({
         user: userData.id,
-        parentfolder: "models/",
-        folder: data[0].id
+        parentfolder: `models/${data[0].id}/`,
+        folder: "lora"
+      })
+    });
+
+    await fetch('https://api.nymia.ai/v1/createfolder', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer WeInfl3nc3withAI'
+      },
+      body: JSON.stringify({
+        user: userData.id,
+        parentfolder: `models/${data[0].id}/`,
+        folder: "loratraining"
+      })
+    });
+
+    await fetch('https://api.nymia.ai/v1/createfolder', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer WeInfl3nc3withAI'
+      },
+      body: JSON.stringify({
+        user: userData.id,
+        parentfolder: `models/${data[0].id}/`,
+        folder: "profilepic"
+      })
+    });
+
+    await fetch('https://api.nymia.ai/v1/createfolder', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer WeInfl3nc3withAI'
+      },
+      body: JSON.stringify({
+        user: userData.id,
+        parentfolder: `models/${data[0].id}/`,
+        folder: "reference"
       })
     });
 
@@ -124,7 +163,7 @@ export default function InfluencerTemplates() {
       })
     });
 
-    if (response.ok && responseFile.ok) {
+    if (response.ok) {
       navigate('/influencers/edit', { state: { influencerData: data[0] } });
     }
   };

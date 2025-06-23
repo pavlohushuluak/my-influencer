@@ -15,7 +15,7 @@ import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { DialogZoom, DialogContentZoom, DialogHeaderZoom, DialogTitleZoom, DialogDescriptionZoom } from '@/components/ui/zoomdialog';
 import { updateInfluencer, setInfluencers, setLoading, setError, addInfluencer } from '@/store/slices/influencersSlice';
-import { X, Plus, Save, Crown, Lock, Image, Settings, User, ChevronRight, MoreHorizontal, Loader2, ZoomIn } from 'lucide-react';
+import { X, Plus, Save, Crown, Lock, Image, Settings, User, ChevronRight, MoreHorizontal, Loader2, ZoomIn, Pencil } from 'lucide-react';
 import { HexColorPicker } from 'react-colorful';
 import { toast } from 'sonner';
 
@@ -135,7 +135,7 @@ export default function InfluencerEdit() {
   const [isLoading, setIsLoading] = useState(true);
   const [isOptionsLoading, setIsOptionsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-
+  const [isUpdating, setIsUpdating] = useState(false);
   const [showEditView, setShowEditView] = useState(!!location.state?.influencerData);
 
   const userData = useSelector((state: RootState) => state.user);
@@ -354,7 +354,7 @@ export default function InfluencerEdit() {
             'Content-Type': 'application/json',
             'Authorization': 'Bearer WeInfl3nc3withAI'
           },
-          body: JSON.stringify({...influencerData, new: true})
+          body: JSON.stringify({ ...influencerData, new: true })
         });
 
         const responseId = await fetch(`https://db.nymia.ai/rest/v1/influencer?user_id=eq.${userData.id}&new=eq.true`, {
@@ -366,11 +366,11 @@ export default function InfluencerEdit() {
 
         const data = await responseId.json();
         console.log(data);
-        
+
 
         dispatch(addInfluencer(influencerData));
 
-        const responseFile = await fetch('https://api.nymia.ai/v1/createfolder', {
+        await fetch('https://api.nymia.ai/v1/createfolder', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -378,10 +378,49 @@ export default function InfluencerEdit() {
           },
           body: JSON.stringify({
             user: userData.id,
-            parentfolder: "models/",
-            folder: data[0].id
+            parentfolder: `models/${data[0].id}/`,
+            folder: "lora"
           })
-        })
+        });
+
+        await fetch('https://api.nymia.ai/v1/createfolder', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer WeInfl3nc3withAI'
+          },
+          body: JSON.stringify({
+            user: userData.id,
+            parentfolder: `models/${data[0].id}/`,
+            folder: "loratraining"
+          })
+        });
+
+        await fetch('https://api.nymia.ai/v1/createfolder', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer WeInfl3nc3withAI'
+          },
+          body: JSON.stringify({
+            user: userData.id,
+            parentfolder: `models/${data[0].id}/`,
+            folder: "profilepic"
+          })
+        });
+
+        await fetch('https://api.nymia.ai/v1/createfolder', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer WeInfl3nc3withAI'
+          },
+          body: JSON.stringify({
+            user: userData.id,
+            parentfolder: `models/${data[0].id}/`,
+            folder: "reference"
+          })
+        });
 
         const responseUpdate = await fetch(`https://db.nymia.ai/rest/v1/influencer?id=eq.${data[0].id}`, {
           method: 'PATCH',
@@ -427,6 +466,37 @@ export default function InfluencerEdit() {
       setIsSaving(false);
     }
   };
+
+  const handleOnlySave = async () => {
+    if (!validateFields()) {
+      return;
+    }
+
+    console.log('Influencer data before saving:', influencerData);
+
+    setIsUpdating(true);
+    try {
+      const response = await fetch(`https://db.nymia.ai/rest/v1/influencer?id=eq.${influencerData.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify(influencerData)
+      });
+      dispatch(updateInfluencer(influencerData));
+      if (response.ok) {
+        toast.success('Influencer updated successfully');
+      } else {
+        toast.error('Failed to update influencer');
+      }
+    } catch (error) {
+      console.error('Save error:', error);
+      toast.error('An error occurred while saving');
+    } finally {
+      setIsUpdating(false);
+    }
+  }
 
   const handleEditInfluencer = (id: string) => {
     const influencer = influencers.find(inf => inf.id === id);
@@ -877,6 +947,33 @@ export default function InfluencerEdit() {
               </>
             )}
           </Button>
+          {
+            location.state?.create ?
+              null
+              :
+              <Button
+                onClick={handleOnlySave}
+                className="bg-gradient-to-r from-amber-600 to-purple-600"
+                disabled={isOptionsLoading || isUpdating}
+              >
+                {isOptionsLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Loading...
+                  </>
+                ) : isUpdating ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Updating...
+                  </>
+                ) : (
+                  <>
+                    <Pencil className="w-4 h-4 mr-2" />
+                    Update Changes
+                  </>
+                )}
+              </Button>
+          }
         </div>
       </div>
 

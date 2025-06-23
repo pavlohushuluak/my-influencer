@@ -582,6 +582,17 @@ export default function ContentCreate() {
 
     setIsGenerating(true);
 
+    const response = await fetch(`https://db.nymia.ai/rest/v1/influencer?id=eq.${modelData.id}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': 'Bearer WeInfl3nc3withAI'
+      }
+    });
+
+    const data = await response.json();
+
+    console.log(data);
+
     try {
       // Create the JSON data structure
       const requestData = {
@@ -597,29 +608,29 @@ export default function ContentCreate() {
         guidance: formData.guidance,
         number_of_images: formData.numberOfImages,
         format: formData.format,
-        model: modelData ? {
-          id: modelData.id,
-          influencer_type: modelData.influencer_type,
-          sex: modelData.sex,
-          cultural_background: modelData.cultural_background,
-          hair_length: modelData.hair_length,
-          hair_color: modelData.hair_color,
-          hair_style: modelData.hair_style,
-          eye_color: modelData.eye_color,
-          lip_style: modelData.lip_style,
-          nose_style: modelData.nose_style,
-          face_shape: modelData.face_shape,
-          facial_features: modelData.facial_features,
-          skin_tone: modelData.skin_tone,
-          bust: modelData.bust_size, // Default value since not in Influencer type
-          body_type: modelData.body_type,
-          color_palette: modelData.color_palette || [],
-          clothing_style_everyday: modelData.clothing_style_everyday,
-          eyebrow_style: modelData.eyebrow_style, // Default value since not in Influencer type
-          makeup_style: modelDescription.makeup, // Use from modelDescription or default
-          name_first: modelData.name_first,
-          name_last: modelData.name_last,
-          visual_only: modelData.visual_only
+        model: data[0] ? {
+          id: data[0].id,
+          influencer_type: data[0].influencer_type,
+          sex: data[0].sex,
+          cultural_background: data[0].cultural_background,
+          hair_length: data[0].hair_length,
+          hair_color: data[0].hair_color,
+          hair_style: data[0].hair_style,
+          eye_color: data[0].eye_color,
+          lip_style: data[0].lip_style,
+          nose_style: data[0].nose_style,
+          face_shape: data[0].face_shape,
+          facial_features: data[0].facial_features,
+          skin_tone: data[0].skin_tone,
+          bust: data[0].bust_size, // Default value since not in Influencer type
+          body_type: data[0].body_type,
+          color_palette: data[0].color_palette || [],
+          clothing_style_everyday: data[0].clothing_style_everyday,
+          eyebrow_style: data[0].eyebrow_style, // Default value since not in Influencer type
+          makeup_style: data[0].makeup, // Use from modelDescription or default
+          name_first: data[0].name_first,
+          name_last: data[0].name_last,
+          visual_only: data[0].visual_only
         } : null,
         scene: {
           framing: sceneSpecs.framing,

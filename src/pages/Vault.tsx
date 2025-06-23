@@ -256,13 +256,13 @@ export default function Vault() {
 
       {/* Professional Search and Filter Bar */}
       <Card className="border-yellow-500/20 bg-gradient-to-r from-yellow-50/50 to-orange-50/50 dark:from-yellow-950/20 dark:to-orange-950/20">
-        <CardHeader className="pb-4">
+        <CardHeader className="pt-5 pb-2">
           <CardTitle className="text-lg flex items-center gap-2">
             <Filter className="w-5 h-5" />
             Search & Filter
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-2 pb-4">
           {/* Search Bar */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
@@ -344,11 +344,11 @@ export default function Vault() {
 
       {/* Content Grid */}
       {filteredAndSortedItems.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
           {filteredAndSortedItems.map((item) => (
             <Card
               key={item.id}
-              className="group hover:shadow-lg transition-all duration-300 border-border/50 hover:border-yellow-500/20 bg-gradient-to-br from-yellow-50/30 to-orange-50/30 dark:from-yellow-950/10 dark:to-orange-950/10"
+              className="group hover:shadow-xl transition-all duration-300 border-border/50 hover:border-yellow-500/30 bg-gradient-to-br from-yellow-50/20 to-orange-50/20 dark:from-yellow-950/5 dark:to-orange-950/5 backdrop-blur-sm"
             >
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
@@ -361,14 +361,14 @@ export default function Vault() {
                   </div>
                   <Star className="w-4 h-4 text-yellow-500 fill-current" />
                 </div>
-                <CardTitle className="text-lg">{item.id}</CardTitle>
+                <CardTitle className="text-lg font-semibold text-gray-800 dark:text-gray-200">{item.id}</CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-4">
                 <div className="relative w-full group mb-4" style={{ paddingBottom: '100%' }}>
                   <img
                     src={`https://images.nymia.ai/cdn-cgi/image/w=400/${userData.id}/output/${item.id}.png`}
                     alt={item.id}
-                    className="absolute inset-0 w-full h-full object-cover rounded-md"
+                    className="absolute inset-0 w-full h-full object-cover rounded-md shadow-sm"
                   />
                   <div
                     className="absolute right-2 top-2 bg-black/50 rounded-full w-10 h-10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
@@ -382,28 +382,28 @@ export default function Vault() {
                     <Calendar className="w-3 h-3" />
                     Added {new Date(item.created_at).toLocaleDateString()}
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-1.5">
                     <Button 
-                      size="sm" 
+                      size="sm"
                       variant="outline" 
-                      className="flex-1 text-xs"
+                      className="flex-1 h-8 text-xs font-medium hover:bg-blue-50 hover:border-blue-200 transition-colors"
                       onClick={() => handleDownload(item.id)}
                     >
-                      <Download className="w-3 h-3 mr-1" />
-                      Download
+                      <Download className="w-3 h-3 mr-1.5" />
+                      <span className="hidden sm:inline">Download</span>
                     </Button>
                     <Button 
-                      size="sm" 
+                      size="sm"
                       variant="outline" 
-                      className="text-xs"
+                      className="h-8 w-8 p-0 hover:bg-green-50 hover:border-green-200 transition-colors"
                       onClick={() => handleShare(item.id)}
                     >
                       <Share className="w-3 h-3" />
                     </Button>
                     <Button 
-                      size="sm" 
+                      size="sm"
                       variant="outline"
-                      className="text-xs text-red-600 hover:text-red-700 hover:bg-red-50"
+                      className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 hover:border-red-200 transition-colors"
                       onClick={() => handleRemoveFromVault(item.id)}
                     >
                       <Trash2 className="w-3 h-3" />

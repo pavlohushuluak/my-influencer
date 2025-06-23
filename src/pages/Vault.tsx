@@ -7,7 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Star, Search, Download, Share, Trash2, Filter, Calendar, Image, Video, SortAsc, SortDesc } from 'lucide-react';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Star, Search, Download, Share, Trash2, Filter, Calendar, Image, Video, SortAsc, SortDesc, ZoomIn } from 'lucide-react';
 
 // Interface for task data from API
 interface TaskData {
@@ -25,6 +26,7 @@ export default function Vault() {
   const [typeFilter, setTypeFilter] = useState('all');
   const [sortBy, setSortBy] = useState('newest');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   // Fetch data from API
   useEffect(() => {
@@ -83,6 +85,44 @@ export default function Vault() {
 
   const handleRemoveFromVault = (contentId: string) => {
     dispatch(removeFromVault(contentId));
+  };
+
+  const handleDownload = async (itemId: string) => {
+    try {
+      const response = await fetch('https://api.nymia.ai/v1/downloadfile', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          user: userData.id,
+          filename: `output/${itemId}.png`
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to download file');
+      }
+
+      const blob = await response.blob();
+      
+      // Create a download link
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${itemId}.png`;
+      
+      // Trigger download
+      document.body.appendChild(link);
+      link.click();
+      
+      // Cleanup
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error downloading image:', error);
+    }
   };
 
   const clearFilters = () => {
@@ -242,42 +282,45 @@ export default function Vault() {
                 <CardTitle className="text-lg">{item.id}</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="relative w-full h-full bg-gradient-to-br from-yellow-500/20 to-orange-500/20 rounded-lg mb-4 overflow-hidden group-hover:shadow-md transition-all duration-300">
-                  {item.id ? (
-                    <img
-                      src={`https://images.nymia.ai/cdn-cgi/image/w=400/${userData.id}/output/${item.id}.png`}
-                      alt={item.id}
-                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <Star className="w-8 h-8 text-yellow-500" />
-                    </div>
-                  )}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                  <div className="absolute bottom-0 left-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    <div className="flex gap-2">
-                      <Button size="sm" variant="secondary" className="flex-1">
-                        <Download className="w-3 h-3 mr-1" />
-                        Download
-                      </Button>
-                      <Button size="sm" variant="secondary">
-                        <Share className="w-3 h-3" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => handleRemoveFromVault(item.id)}
-                      >
-                        <Trash2 className="w-3 h-3" />
-                      </Button>
-                    </div>
+                <div className="relative w-full group mb-4" style={{ paddingBottom: '100%' }}>
+                  <img
+                    src={`https://images.nymia.ai/cdn-cgi/image/w=400/${userData.id}/output/${item.id}.png`}
+                    alt={item.id}
+                    className="absolute inset-0 w-full h-full object-cover rounded-md"
+                  />
+                  <div
+                    className="absolute right-2 top-2 bg-black/50 rounded-full w-10 h-10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
+                    onClick={() => setSelectedImage(`https://images.nymia.ai/cdn-cgi/image/w=800/${userData.id}/output/${item.id}.png`)}
+                  >
+                    <ZoomIn className="w-6 h-6 text-white" />
                   </div>
                 </div>
                 <div className="space-y-3">
                   <div className="flex items-center gap-1 text-xs text-muted-foreground">
                     <Calendar className="w-3 h-3" />
                     Added {new Date(item.created_at).toLocaleDateString()}
+                  </div>
+                  <div className="flex gap-2">
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="flex-1 text-xs"
+                      onClick={() => handleDownload(item.id)}
+                    >
+                      <Download className="w-3 h-3 mr-1" />
+                      Download
+                    </Button>
+                    <Button size="sm" variant="outline" className="text-xs">
+                      <Share className="w-3 h-3" />
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      className="text-xs text-red-600 hover:text-red-700 hover:bg-red-50"
+                      onClick={() => handleRemoveFromVault(item.id)}
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </Button>
                   </div>
                 </div>
               </CardContent>
@@ -293,6 +336,19 @@ export default function Vault() {
           </p>
         </div>
       )}
+
+      {/* Image Zoom Modal */}
+      <Dialog open={!!selectedImage} onOpenChange={() => setSelectedImage(null)}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden">
+          {selectedImage && (
+            <img
+              src={selectedImage}
+              alt="Full size image"
+              className="w-full h-auto max-h-[80vh] object-contain rounded-lg"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

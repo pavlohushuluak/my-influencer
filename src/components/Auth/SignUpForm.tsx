@@ -80,6 +80,51 @@ export function SignUpForm({ onToggleMode }: SignUpFormProps) {
 
       const data = await response.json();
       console.log('Registration response:', data);
+
+      await fetch('https://api.nymia.ai/v1/createfolder', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          user: data.body.user.id,
+          folder: "input"
+        })
+      });
+      await fetch('https://api.nymia.ai/v1/createfolder', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          user: data.body.user.id,
+          folder: "models"
+        })
+      });
+      await fetch('https://api.nymia.ai/v1/createfolder', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          user: data.body.user.id,
+          folder: "output"
+        })
+      });
+      await fetch('https://api.nymia.ai/v1/createfolder', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          user: data.body.user.id,
+          folder: "vault"
+        })
+      });
       // console.log('Registration response:', data);
 
       if (response.ok) {

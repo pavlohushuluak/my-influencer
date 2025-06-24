@@ -192,7 +192,8 @@ export default function InfluencerEdit() {
     humor: [],
     core_values: [],
     current_goals: [],
-    background_elements: []
+    background_elements: [],
+    image_url: ''
   });
 
   const [newTag, setNewTag] = useState('');
@@ -278,6 +279,11 @@ export default function InfluencerEdit() {
 
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
+  // Add state for image selection modal
+  const [showImageSelector, setShowImageSelector] = useState(false);
+  const [vaultImages, setVaultImages] = useState<{ id: string; image_url: string; created_at: string }[]>([]);
+  const [loadingVaultImages, setLoadingVaultImages] = useState(false);
+
   const isFeatureLocked = (feature: string) => {
     return FEATURE_RESTRICTIONS[subscriptionLevel].includes(feature);
   };
@@ -336,6 +342,52 @@ export default function InfluencerEdit() {
     });
     setValidationErrors(errors);
     return Object.keys(errors).length === 0;
+  };
+
+  // Function to fetch vault images
+  const fetchVaultImages = async () => {
+    try {
+      setLoadingVaultImages(true);
+      const response = await fetch(`https://db.nymia.ai/rest/v1/tasks?uuid=eq.${userData.id}`, {
+        headers: {
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch vault images');
+      }
+
+      const data = await response.json();
+      const imagesWithUrls = data.map((item: any) => ({
+        id: item.id,
+        image_url: `https://images.nymia.ai/cdn-cgi/image/w=400/${userData.id}/output/${item.id}.png`,
+        created_at: item.created_at
+      }));
+      
+      setVaultImages(imagesWithUrls);
+    } catch (error) {
+      console.error('Error fetching vault images:', error);
+      toast.error('Failed to fetch vault images');
+    } finally {
+      setLoadingVaultImages(false);
+    }
+  };
+
+  // Function to handle image selection
+  const handleImageSelect = (imageUrl: string) => {
+    setInfluencerData(prev => ({
+      ...prev,
+      image_url: imageUrl
+    }));
+    setShowImageSelector(false);
+    toast.success('Image selected successfully');
+  };
+
+  // Function to open image selector
+  const openImageSelector = () => {
+    setShowImageSelector(true);
+    fetchVaultImages();
   };
 
   const handleSave = async () => {
@@ -853,14 +905,23 @@ export default function InfluencerEdit() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {displayedInfluencers.map((influencer) => (
             <Card key={influencer.id} className="group hover:shadow-lg transition-all duration-300 border-border/50 hover:border-ai-purple-500/20">
-              <CardContent className="p-6">
-                <div className="space-y-4">
-                  <div className="w-full h-48 bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg overflow-hidden">
-                    <img
-                      src={influencer.image_url}
+              <CardContent className="p-6 h-full">
+                <div className="flex flex-col justify-between h-full space-y-4">
+                  <div className="w-full h-full bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg overflow-hidden">
+                    {
+                      influencer.image_url ? (
+                        <img
+                          src={influencer.image_url}
                       alt={`${influencer.name_first} ${influencer.name_last}`}
                       className="w-full h-full object-cover"
                     />
+                      ) : (
+                        <div className="flex flex-col w-full h-full items-center justify-center max-h-48 min-h-40">
+                          <Image className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                          <h3 className="text-lg font-semibold mb-2">No image found</h3>
+                        </div>
+                      )
+                    }
                   </div>
 
                   <div>
@@ -1045,6 +1106,76 @@ export default function InfluencerEdit() {
                       {validationErrors.influencer_type && (
                         <p className="text-sm text-red-500 mt-1">{validationErrors.influencer_type}</p>
                       )}
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Profile Image</Label>
+                      <div className="flex flex-col gap-2">
+                        <div className="flex items-center justify-center cursor-pointer w-full">
+                          {influencerData.image_url ? (
+                            <Card className="relative w-full max-w-[250px] group">
+                              <CardContent className="p-4">
+                                <div className="relative w-full text-center" style={{ paddingBottom: '100%' }}>
+                                  <img
+                                    src={influencerData.image_url}
+                                    alt="Profile"
+                                    className="absolute inset-0 w-full h-full object-cover rounded-md"
+                                  />
+                                  <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <Button
+                                      size="sm"
+                                      variant="secondary"
+                                      className="h-8 w-8 p-0 bg-white/90 hover:bg-white shadow-md"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        openImageSelector();
+                                      }}
+                                    >
+                                      <Image className="w-4 h-4" />
+                                    </Button>
+                                  </div>
+                                </div>
+                                <p className="text-sm text-center font-medium mt-2">Profile Image</p>
+                              </CardContent>
+                            </Card>
+                          ) : (
+                            <Card className="relative w-full border max-w-[250px] group">
+                              <CardContent className="p-4">
+                                <div className="relative w-full text-center" style={{ paddingBottom: '100%' }}>
+                                  <div className="absolute inset-0 flex items-center justify-center bg-gray-100 dark:bg-gray-800 rounded-md">
+                                    <div className="text-center">
+                                      <Image className="w-8 h-8 mx-auto text-gray-400 mb-2" />
+                                      <p className="text-sm text-gray-500">No image selected</p>
+                                    </div>
+                                  </div>
+                                  <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <Button
+                                      size="sm"
+                                      variant="secondary"
+                                      className="h-8 w-8 p-0 bg-white/90 hover:bg-white shadow-md"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        openImageSelector();
+                                      }}
+                                    >
+                                      <Image className="w-4 h-4" />
+                                    </Button>
+                                  </div>
+                                </div>
+                                <p className="text-sm text-center font-medium mt-2">Select Image</p>
+                              </CardContent>
+                            </Card>
+                          )}
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={openImageSelector}
+                          className="w-full"
+                        >
+                          <Image className="w-4 h-4 mr-2" />
+                          Select from Vault
+                        </Button>
+                      </div>
                     </div>
                     <div className="space-y-2">
                       <Label>Sex</Label>
@@ -3272,6 +3403,71 @@ export default function InfluencerEdit() {
           onClose={() => setPreviewImage(null)}
         />
       )}
+
+      {/* Image Selection Modal */}
+      <Dialog open={showImageSelector} onOpenChange={setShowImageSelector}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden">
+          <DialogHeader>
+            <DialogTitle>Select Profile Image from Vault</DialogTitle>
+            <DialogDescription>
+              Choose an image from your vault to use as the influencer's profile picture
+            </DialogDescription>
+          </DialogHeader>
+          
+          {loadingVaultImages ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="flex flex-col items-center gap-4">
+                <Loader2 className="w-8 h-8 animate-spin text-ai-purple-500" />
+                <p className="text-muted-foreground">Loading vault images...</p>
+              </div>
+            </div>
+          ) : vaultImages.length > 0 ? (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 max-h-[60vh] overflow-y-auto">
+              {vaultImages.map((item) => (
+                <Card
+                  key={item.id}
+                  className="group hover:shadow-lg transition-all duration-300 border-border/50 hover:border-ai-purple-500/20 cursor-pointer"
+                  onClick={() => handleImageSelect(item.image_url)}
+                >
+                  <CardContent className="p-3">
+                    <div className="relative w-full" style={{ paddingBottom: '100%' }}>
+                      <img
+                        src={item.image_url}
+                        alt={`Vault image ${item.id}`}
+                        className="absolute inset-0 w-full h-full object-cover rounded-md"
+                      />
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors rounded-md flex items-center justify-center">
+                        <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            className="bg-white/90 hover:bg-white shadow-md"
+                          >
+                            Select
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="mt-2 text-center">
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(item.created_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <Image className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold mb-2">No images found</h3>
+              <p className="text-muted-foreground">
+                You don't have any images in your vault yet. Create some content first!
+              </p>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

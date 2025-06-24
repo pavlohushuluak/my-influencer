@@ -6,7 +6,7 @@ import { setInfluencers, setLoading, setError } from '@/store/slices/influencers
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Settings, MoreHorizontal, Filter } from 'lucide-react';
+import { Plus, Settings, MoreHorizontal, Filter, Image } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { StoryContentCard } from '@/components/Dashboard/StoryContentCard';
 import { ScheduleCard } from '@/components/Dashboard/ScheduleCard';
@@ -229,14 +229,23 @@ export default function Dashboard() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {displayedInfluencers.map((influencer) => (
               <Card key={influencer.id} className="group hover:shadow-lg transition-all duration-300 border-border/50 hover:border-ai-purple-500/20">
-                <CardContent className="p-6">
-                  <div className="space-y-4">
-                    <div className="w-full h-48 bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg overflow-hidden">
-                      <img
-                        src={influencer.image_url}
-                        alt={`${influencer.name_first} ${influencer.name_last}`}
-                        className="w-full h-full object-cover"
-                      />
+                <CardContent className="p-6 h-full">
+                  <div className="flex flex-col justify-between h-full space-y-4">
+                    <div className="w-full h-full bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg overflow-hidden">
+                      {
+                        influencer.image_url ? (
+                          <img
+                            src={influencer.image_url}
+                            alt={`${influencer.name_first} ${influencer.name_last}`}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="flex flex-col w-full h-full items-center justify-center">
+                            <Image className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                            <h3 className="text-lg font-semibold mb-2">No image found</h3>
+                          </div>
+                        )
+                      }
                     </div>
 
                     <div>

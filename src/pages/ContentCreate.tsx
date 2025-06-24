@@ -71,14 +71,14 @@ export default function ContentCreate() {
     lora: false,
     noAI: true,
     prompt: '',
-    format: 'square',
+    format: 'Portrait (4:5)',
     numberOfImages: 1,
     seed: '',
     guidance: 3.5,
     negative_prompt: '',
     nsfw_strength: 0,
-    lora_strength: 0,
-    quality: 'Basic'
+    lora_strength: 0.9,
+    quality: 'Quality'
   });
 
   // Scene specifications
@@ -769,14 +769,14 @@ export default function ContentCreate() {
       lora: false,
       noAI: true,
       prompt: '',
-      format: 'square',
+      format: 'Portrait (4:5)',
       numberOfImages: 1,
       seed: '',
       guidance: 3.5,
       negative_prompt: '',
       nsfw_strength: 0,
-      lora_strength: 0,
-      quality: 'Basic'
+      lora_strength: 0.9,
+      quality: 'Quality'
     });
     setModelData(null);
     setSceneSpecs({
@@ -1818,7 +1818,7 @@ export default function ContentCreate() {
                     <div className="space-y-6">
                       <Label>LORA Strength</Label>
                       <Slider
-                        value={[formData.lora_strength || 0]}
+                        value={[formData.lora_strength || 0.9]}
                         onValueChange={([value]) => handleInputChange('lora_strength', value)}
                         max={1}
                         min={-1}
@@ -1834,7 +1834,7 @@ export default function ContentCreate() {
                     <div className="space-y-2">
                       <Label>Image Quality</Label>
                       <Select
-                        value={formData.quality || 'Basic'}
+                        value={formData.quality || 'Quality'}
                         onValueChange={(value) => handleInputChange('quality', value)}
                       >
                         <SelectTrigger>

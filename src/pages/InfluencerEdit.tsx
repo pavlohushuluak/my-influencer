@@ -283,6 +283,7 @@ export default function InfluencerEdit() {
   const [showImageSelector, setShowImageSelector] = useState(false);
   const [vaultImages, setVaultImages] = useState<{ id: string; image_url: string; created_at: string }[]>([]);
   const [loadingVaultImages, setLoadingVaultImages] = useState(false);
+  const [profileImageId, setProfileImageId] = useState<string | null>(null);
 
   const isFeatureLocked = (feature: string) => {
     return FEATURE_RESTRICTIONS[subscriptionLevel].includes(feature);
@@ -395,9 +396,38 @@ export default function InfluencerEdit() {
       return;
     }
 
-    console.log('Influencer data before saving:', influencerData);
-
     setIsSaving(true);
+
+    if (profileImageId) {
+      await fetch('https://api.nymia.ai/v1/deletefile', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          user: userData.id,
+          filename: `models/${influencerData.id}/profilepic/profilepic.png`
+        })
+      });
+
+      await fetch('https://api.nymia.ai/v1/copyfile', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          user: userData.id,
+          sourcefilename: `output/${profileImageId}.png`,
+          destinationfilename: `models/${influencerData.id}/profilepic/profilepic.png`
+        })
+      });
+
+      influencerData.image_url = `https://images.nymia.ai/cdn-cgi/image/w=400/${userData.id}/models/${influencerData.id}/profilepic/profilepic.png`;
+      console.log(influencerData.image_url);
+    }
+
     try {
       if (location.state?.create) {
         const response = await fetch('https://db.nymia.ai/rest/v1/influencer', {
@@ -474,7 +504,7 @@ export default function InfluencerEdit() {
           })
         });
 
-        const responseUpdate = await fetch(`https://db.nymia.ai/rest/v1/influencer?id=eq.${data[0].id}`, {
+        await fetch(`https://db.nymia.ai/rest/v1/influencer?id=eq.${data[0].id}`, {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
@@ -527,6 +557,37 @@ export default function InfluencerEdit() {
     console.log('Influencer data before saving:', influencerData);
 
     setIsUpdating(true);
+
+    if (profileImageId) {
+      await fetch('https://api.nymia.ai/v1/deletefile', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          user: userData.id,
+          filename: `models/${influencerData.id}/profilepic/profilepic.png`
+        })
+      });
+
+      await fetch('https://api.nymia.ai/v1/copyfile', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          user: userData.id,
+          sourcefilename: `output/${profileImageId}.png`,
+          destinationfilename: `models/${influencerData.id}/profilepic/profilepic.png`
+        })
+      });
+
+      influencerData.image_url = `https://images.nymia.ai/cdn-cgi/image/w=400/${userData.id}/models/${influencerData.id}/profilepic/profilepic.png`;
+      console.log(influencerData.image_url);
+    }
+
     try {
       const response = await fetch(`https://db.nymia.ai/rest/v1/influencer?id=eq.${influencerData.id}`, {
         method: 'PATCH',
@@ -3404,7 +3465,10 @@ export default function InfluencerEdit() {
                 <Card
                   key={item.id}
                   className="cursor-pointer hover:shadow-lg transition-all duration-300"
-                  onClick={() => handleImageSelect(item.image_url)}
+                  onClick={() => {
+                    setProfileImageId(item.id);
+                    handleImageSelect(item.image_url);
+                  }}
                 >
                   <CardContent className="p-4">
                     <div className="relative w-full group" style={{ paddingBottom: '100%' }}>

@@ -4,7 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useState, useEffect } from 'react';
-import { Search, MessageCircle, Instagram, Send, X, Filter, Crown, Plus, Sparkles } from 'lucide-react';
+import { Search, MessageCircle, Instagram, Send, X, Filter, Crown, Plus, Sparkles, Image } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -64,7 +64,7 @@ export default function InfluencerUse() {
     if (!debouncedSearchTerm) return true;
 
     const searchLower = debouncedSearchTerm.toLowerCase();
-    
+
     switch (selectedSearchField.id) {
       case 'name':
         return `${influencer.name_first} ${influencer.name_last}`.toLowerCase().includes(searchLower);
@@ -136,7 +136,7 @@ export default function InfluencerUse() {
 
   const handleContentCreate = () => {
     const influencer = influencers.find(inf => inf.id === selectedInfluencer);
-    
+
     if (influencer) {
       navigate('/content/create', {
         state: {
@@ -193,7 +193,7 @@ export default function InfluencerUse() {
               )}
             </div>
           </div>
-          
+
           <Popover open={openFilter} onOpenChange={setOpenFilter}>
             <PopoverTrigger asChild>
               <Button variant="outline" className="gap-2">
@@ -231,14 +231,23 @@ export default function InfluencerUse() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {filteredInfluencers.map((influencer) => (
           <Card key={influencer.id} className="group hover:shadow-lg transition-all duration-300 border-border/50 hover:border-ai-purple-500/20">
-            <CardContent className="p-6">
-              <div className="space-y-4">
-                <div className="w-full h-48 bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg overflow-hidden">
-                  <img
-                    src={influencer.image_url}
-                    alt={`${influencer.name_first} ${influencer.name_last}`}
-                    className="w-full h-full object-cover"
-                  />
+            <CardContent className="p-6 h-full">
+              <div className="space-y-4 flex flex-col justify-between h-full">
+                <div className="w-full h-full bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg overflow-hidden">
+                  {
+                    influencer.image_url ? (
+                      <img
+                        src={influencer.image_url}
+                        alt={`${influencer.name_first} ${influencer.name_last}`}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex flex-col w-full h-full items-center justify-center max-h-48 min-h-40">
+                        <Image className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                        <h3 className="text-lg font-semibold mb-2">No image found</h3>
+                      </div>
+                    )
+                  }
                 </div>
 
                 <div>
@@ -251,11 +260,11 @@ export default function InfluencerUse() {
                   <div className="flex flex-col gap-1 mb-3">
                     <div className="flex text-sm text-muted-foreground flex-col">
                       <span className="font-medium mr-2">Age/Lifestyle:</span>
-                      {influencer.age_lifestyle}
+                      {influencer.age_lifestyle || 'No age/lifestyle selected'}
                     </div>
                     <div className="flex items-center text-sm text-muted-foreground">
                       <span className="font-medium mr-2">Type:</span>
-                      {influencer.influencer_type}
+                      {influencer.influencer_type || 'No type selected'}
                     </div>
                   </div>
 
@@ -300,7 +309,7 @@ export default function InfluencerUse() {
 
               <div className="space-y-3">
                 <p className="text-sm font-medium">Select a platform to create content:</p>
-                
+
                 {/* Content Create Option */}
                 <Button
                   variant="outline"

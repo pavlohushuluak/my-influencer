@@ -240,7 +240,7 @@ export default function Dashboard() {
                             className="w-full h-full object-cover"
                           />
                         ) : (
-                          <div className="flex flex-col w-full h-full items-center justify-center">
+                          <div className="flex flex-col w-full h-full items-center justify-center max-h-48 min-h-40">
                             <Image className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                             <h3 className="text-lg font-semibold mb-2">No image found</h3>
                           </div>
@@ -258,11 +258,11 @@ export default function Dashboard() {
                       <div className="flex flex-col gap-1 mb-3">
                         <div className="flex text-sm text-muted-foreground flex-col">
                           <span className="font-medium mr-2">Age/Lifestyle:</span>
-                          {influencer.age_lifestyle}
+                          {influencer.age_lifestyle || 'No age/lifestyle selected'}
                         </div>
                         <div className="flex items-center text-sm text-muted-foreground">
                           <span className="font-medium mr-2">Type:</span>
-                          {influencer.influencer_type}
+                          {influencer.influencer_type || 'No type selected'}
                         </div>
                       </div>
 

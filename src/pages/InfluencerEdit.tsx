@@ -934,11 +934,11 @@ export default function InfluencerEdit() {
                     <div className="flex flex-col gap-1 mb-3">
                       <div className="flex text-sm text-muted-foreground flex-col">
                         <span className="font-medium mr-2">Age/Lifestyle:</span>
-                        {influencer.age_lifestyle}
+                        {influencer.age_lifestyle || 'No age/lifestyle selected'}
                       </div>
                       <div className="flex items-center text-sm text-muted-foreground">
                         <span className="font-medium mr-2">Type:</span>
-                        {influencer.influencer_type}
+                        {influencer.influencer_type || 'No type selected'}
                       </div>
                     </div>
 

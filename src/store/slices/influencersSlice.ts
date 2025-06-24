@@ -48,6 +48,7 @@ export interface Influencer {
   background_elements: string[];
   created_at: string;
   updated_at: string;
+  image_num: number;
 }
 
 interface InfluencersState {

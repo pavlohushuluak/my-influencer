@@ -1191,11 +1191,11 @@ export default function InfluencerEdit() {
                   <div className="w-full h-full bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg overflow-hidden">
                     {
                       influencer.image_url ? (
-                        <img
-                          src={influencer.image_url}
-                          alt={`${influencer.name_first} ${influencer.name_last}`}
-                          className="w-full h-full object-cover"
-                        />
+                    <img
+                      src={influencer.image_url}
+                      alt={`${influencer.name_first} ${influencer.name_last}`}
+                      className="w-full h-full object-cover"
+                    />
                       ) : (
                         <div className="flex flex-col w-full h-full items-center justify-center max-h-48 min-h-40">
                           <Image className="w-12 h-12 text-gray-400 mx-auto mb-4" />

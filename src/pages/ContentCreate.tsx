@@ -896,7 +896,7 @@ export default function ContentCreate() {
           >
             <RotateCcw className="w-4 h-4 mr-2" />
             Reset Form
-          </Button>
+        </Button>
         </div>
       </div>
       <div className="xl:hidden bg-gradient-to-r from-slate-50 to-blue-50 dark:from-slate-900/50 dark:to-blue-900/20 rounded-xl p-6">

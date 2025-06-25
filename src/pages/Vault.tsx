@@ -47,7 +47,7 @@ export default function Vault() {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [shareModal, setShareModal] = useState<{ open: boolean; itemId: string | null }>({ open: false, itemId: null });
-  
+
   // New folder modal state
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
@@ -77,32 +77,32 @@ export default function Vault() {
     const structure: FolderStructure[] = [];
     const pathMap = new Map<string, FolderStructure>();
 
-    console.log('Building folder structure from:', folderData);
+    // console.log('Building folder structure from:', folderData);
 
     folderData.forEach(folder => {
-      console.log('Processing folder:', folder);
-      console.log('Folder key:', folder.Key);
-      
+      // console.log('Processing folder:', folder);
+      // console.log('Folder key:', folder.Key);
+
       // Extract the folder path from the key
       const folderPath = extractFolderName(folder.Key);
-      console.log('Extracted folder path:', folderPath);
-      
+      // console.log('Extracted folder path:', folderPath);
+
       if (!folderPath) {
-        console.log('No folder path extracted, skipping');
+        // console.log('No folder path extracted, skipping');
         return;
       }
 
       const pathParts = folderPath.split('/').filter(part => part.length > 0);
-      console.log('Path parts:', pathParts);
-      
+      // console.log('Path parts:', pathParts);
+
       let currentPath = '';
-      
+
       pathParts.forEach((part, index) => {
         const parentPath = currentPath;
         currentPath = currentPath ? `${currentPath}/${part}` : part;
-        
-        console.log(`Processing part "${part}", currentPath: "${currentPath}", parentPath: "${parentPath}"`);
-        
+
+        // console.log(`Processing part "${part}", currentPath: "${currentPath}", parentPath: "${parentPath}"`);
+
         if (!pathMap.has(currentPath)) {
           const folderNode: FolderStructure = {
             name: part,
@@ -110,22 +110,22 @@ export default function Vault() {
             children: [],
             isFolder: true
           };
-          
+
           pathMap.set(currentPath, folderNode);
-          console.log(`Created folder node:`, folderNode);
-          
+          // console.log(`Created folder node:`, folderNode);
+
           if (parentPath && pathMap.has(parentPath)) {
-            console.log(`Adding to parent "${parentPath}"`);
+            // console.log(`Adding to parent "${parentPath}"`);
             pathMap.get(parentPath)!.children.push(folderNode);
           } else if (!parentPath) {
-            console.log(`Adding to root structure`);
+            // console.log(`Adding to root structure`);
             structure.push(folderNode);
           }
         }
       });
     });
 
-    console.log('Final folder structure:', structure);
+    // console.log('Final folder structure:', structure);
     return structure;
   };
 
@@ -134,7 +134,7 @@ export default function Vault() {
     if (!currentPath) {
       return vaultItems;
     }
-    
+
     // Filter items that belong to the current folder path
     // This is a simplified implementation - in a real system, items would have folder metadata
     return vaultItems.filter(item => {
@@ -173,11 +173,11 @@ export default function Vault() {
   // Get breadcrumb items
   const getBreadcrumbItems = () => {
     if (!currentPath) return [];
-    
+
     const pathParts = currentPath.split('/');
     const breadcrumbs = [];
     let currentPathBuilt = '';
-    
+
     pathParts.forEach((part, index) => {
       currentPathBuilt = currentPathBuilt ? `${currentPathBuilt}/${part}` : part;
       breadcrumbs.push({
@@ -185,7 +185,7 @@ export default function Vault() {
         path: currentPathBuilt
       });
     });
-    
+
     return breadcrumbs;
   };
 
@@ -211,24 +211,24 @@ export default function Vault() {
         }
 
         const data = await response.json();
-        console.log('Raw folders data from API:', data);
+        // console.log('Raw folders data from API:', data);
         setFolders(data);
-        
+
         // Build folder structure
         const structure = buildFolderStructure(data);
-        console.log('Built folder structure:', structure);
+        // console.log('Built folder structure:', structure);
         setFolderStructure(structure);
-        
+
         // If no structure was built, create a fallback from the raw data
         if (structure.length === 0 && data.length > 0) {
-          console.log('No structure built, creating fallback folders');
+          // console.log('No structure built, creating fallback folders');
           const fallbackFolders = data.map((folder: FolderData) => ({
             name: folder.Key || extractFolderName(folder.Key) || 'Unknown Folder',
             path: folder.Key || extractFolderName(folder.Key) || 'unknown',
             children: [],
             isFolder: true
           }));
-          console.log('Fallback folders:', fallbackFolders);
+          // console.log('Fallback folders:', fallbackFolders);
           setFolderStructure(fallbackFolders);
         }
       } catch (error) {
@@ -261,7 +261,7 @@ export default function Vault() {
         }
 
         const data = await response.json();
-        console.log(data);
+        // console.log(data);
         setVaultItems(data);
         setCurrentFolderItems(data);
       } catch (error) {
@@ -282,12 +282,12 @@ export default function Vault() {
     .filter(item => {
       const matchesSearch = item.id;
       const matchesType = typeFilter === 'all' || item.type === typeFilter;
-      
+
       return matchesSearch && matchesType;
     })
     .sort((a, b) => {
       let comparison = 0;
-      
+
       switch (sortBy) {
         case 'newest':
           comparison = new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
@@ -298,7 +298,7 @@ export default function Vault() {
         default:
           comparison = 0;
       }
-      
+
       return sortOrder === 'desc' ? -comparison : comparison;
     });
 
@@ -336,7 +336,7 @@ export default function Vault() {
       }
 
       // Remove from local state
-    dispatch(removeFromVault(contentId));
+      dispatch(removeFromVault(contentId));
 
       // Update local vault items
       setVaultItems(prev => prev.filter(item => item.id !== contentId));
@@ -442,7 +442,7 @@ export default function Vault() {
 
     try {
       const folderPath = currentPath ? `${currentPath}/${newFolderName}` : newFolderName;
-      
+
       const response = await fetch('https://api.nymia.ai/v1/createfolder', {
         method: 'POST',
         headers: {
@@ -517,7 +517,7 @@ export default function Vault() {
     if (!currentPath) {
       return folderStructure;
     }
-    
+
     // Find the current folder and return its children
     const findFolder = (folders: FolderStructure[], path: string): FolderStructure | null => {
       for (const folder of folders) {
@@ -531,7 +531,7 @@ export default function Vault() {
       }
       return null;
     };
-    
+
     const currentFolder = findFolder(folderStructure, currentPath);
     return currentFolder ? currentFolder.children : [];
   };
@@ -543,60 +543,115 @@ export default function Vault() {
       return folders.filter(folder => {
         const folderPath = extractFolderName(folder.Key);
         if (!folderPath || folderPath.trim() === '') return false;
-        
+
         // Only show root level folders (single part paths)
         const pathParts = folderPath.split('/').filter(part => part.length > 0);
         return pathParts.length === 1;
       });
     }
-    
+
     // Filter folders that belong to the current path
     return folders.filter(folder => {
       const folderPath = extractFolderName(folder.Key);
       if (!folderPath || folderPath.trim() === '') return false;
-      
+
       // Check if this folder is a direct child of the current path
       const pathParts = folderPath.split('/').filter(part => part.length > 0);
       const currentPathParts = currentPath.split('/').filter(part => part.length > 0);
-      
+
       // Check if this folder is one level deeper than current path
       if (pathParts.length !== currentPathParts.length + 1) {
         return false;
       }
-      
+
       // Check if the folder path starts with current path
       return folderPath.startsWith(currentPath + '/');
     });
   };
 
-  // Handle folder rename
-  const handleFolderRename = async (oldPath: string, newName: string) => {
-    if (!newName.trim() || newName === editingFolderName) {
-      setEditingFolder(null);
-      setEditingFolderName('');
-      return;
-    }
-
+  // Get all subfolders in a folder recursively
+  const getAllSubfolders = async (folderPath: string): Promise<string[]> => {
     try {
-      // Extract the folder name from the path
-      const pathParts = oldPath.split('/');
-      const oldName = pathParts[pathParts.length - 1];
-      
-      if (oldName === newName) {
-        setEditingFolder(null);
-        setEditingFolderName('');
-        return;
-      }
-
-      // Create new path
-      pathParts[pathParts.length - 1] = newName;
-      const newPath = pathParts.join('/');
-
-      toast.info('Renaming folder...', {
-        description: 'This may take a moment depending on the number of files'
+      const response = await fetch('https://api.nymia.ai/v1/getfoldernames', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          user: userData.id,
+          folder: `vault/${folderPath}`
+        })
       });
 
-      // Step 1: Create new folder
+      if (!response.ok) {
+        return [];
+      }
+
+      const folders = await response.json();
+      const subfolders: string[] = [];
+
+      for (const folder of folders) {
+        const extractedPath = extractFolderName(folder.Key);
+        if (extractedPath && extractedPath.startsWith(folderPath + '/')) {
+          subfolders.push(extractedPath);
+          // Recursively get subfolders of this subfolder
+          const nestedSubfolders = await getAllSubfolders(extractedPath);
+          subfolders.push(...nestedSubfolders);
+        }
+      }
+
+      return subfolders;
+    } catch (error) {
+      console.error('Error getting subfolders:', error);
+      return [];
+    }
+  };
+
+  // Create folder structure recursively
+  const createFolderStructure = async (basePath: string, subfolders: string[]): Promise<void> => {
+    for (const subfolder of subfolders) {
+      const relativePath = subfolder.replace(basePath + '/', '');
+      if (relativePath) {
+        try {
+          const response = await fetch('https://api.nymia.ai/v1/createfolder', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer WeInfl3nc3withAI'
+            },
+            body: JSON.stringify({
+              user: userData.id,
+              parentfolder: `vault/${basePath}/`,
+              folder: relativePath
+            })
+          });
+
+          if (!response.ok) {
+            console.warn(`Failed to create subfolder: ${relativePath}`);
+          }
+        } catch (error) {
+          console.error(`Error creating subfolder ${relativePath}:`, error);
+        }
+      }
+    }
+  };
+
+  // Handle folder rename
+  const handleFolderRename = async (oldPath: string, newName: string) => {
+    try {
+      console.log('Renaming folder:', oldPath, 'to:', newName);
+
+      // Get the parent path and construct the new path
+      const pathParts = oldPath.split('/');
+      const oldFolderName = pathParts.pop() || '';
+      const parentPath = pathParts.join('/');
+      const newPath = parentPath ? `${parentPath}/${newName}` : newName;
+
+      console.log('Parent path:', parentPath);
+      console.log('New path:', newPath);
+
+      // Step 1: Create the new folder
       const createResponse = await fetch('https://api.nymia.ai/v1/createfolder', {
         method: 'POST',
         headers: {
@@ -605,7 +660,7 @@ export default function Vault() {
         },
         body: JSON.stringify({
           user: userData.id,
-          parentfolder: `vault/${pathParts.slice(0, -1).join('/')}/`,
+          parentfolder: `vault/${parentPath ? parentPath + '/' : ''}`,
           folder: newName
         })
       });
@@ -614,27 +669,192 @@ export default function Vault() {
         throw new Error('Failed to create new folder');
       }
 
-      // Step 2: Get all files in the old folder and copy them
-      // Note: This is a simplified approach. In a real system, you'd need to:
-      // 1. Get the list of files from the API that belong to this specific folder
-      // 2. Copy only those files
-      // For now, we'll show a message that this needs to be implemented based on your data structure
-      
-      toast.info('Copying files...', {
-        description: 'Copying files to new folder location'
+      console.log('New folder created successfully');
+
+      // Step 2: Get all files and subfolders from the old folder
+      const getFilesResponse = await fetch('https://api.nymia.ai/v1/getfilenames', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          user: userData.id,
+          folder: `vault/${oldPath}`
+        })
       });
 
-      // TODO: Replace this with actual file filtering based on your data structure
-      // You'll need to implement this based on how files are associated with folders
-      const filesInFolder = vaultItems.filter(item => {
-        // This should be replaced with actual folder association logic
-        // For example: item.folder_path === oldPath
-        return false; // Don't copy any files for now until folder association is implemented
+      if (getFilesResponse.ok) {
+        const files = await getFilesResponse.json();
+        console.log('Files to copy:', files);
+
+        // Step 3: Copy all files to the new folder
+        if (files && files.length > 0) {
+          const copyPromises = files.map(async (file: any) => {
+            const copyResponse = await fetch('https://api.nymia.ai/v1/copyfile', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer WeInfl3nc3withAI'
+              },
+              body: JSON.stringify({
+                user: userData.id,
+                sourcefilename: `vault/${oldPath}/${file}`,
+                destinationfilename: `vault/${newPath}/${file}`
+              })
+            });
+
+            if (!copyResponse.ok) {
+              console.warn(`Failed to copy file ${file}`);
+              throw new Error(`Failed to copy file ${file}`);
+            }
+          });
+
+          await Promise.all(copyPromises);
+          console.log('All files copied successfully');
+        }
+      }
+
+      // Step 4: Get all subfolders from the old folder
+      const getFoldersResponse = await fetch('https://api.nymia.ai/v1/getfoldernames', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          user: userData.id,
+          folder: `vault/${oldPath}`
+        })
       });
 
-      // Copy each file to the new folder
-      if (filesInFolder.length > 0) {
-        const copyPromises = filesInFolder.map(async (item) => {
+      if (getFoldersResponse.ok) {
+        const folders = await getFoldersResponse.json();
+        console.log('Subfolders to copy:', folders);
+
+        // Step 5: Copy all subfolders recursively
+        if (folders && folders.length > 0) {
+          for (const folder of folders) {
+            const folderKey = folder.Key;
+            const re = new RegExp(`^.*?vault/${oldPath}/`);
+
+            // Then just do:
+            const relativePath = folderKey.replace(re, "").replace(/\/$/, "");
+
+            console.log("Folder Key:", folderKey);
+            console.log("Relative Path:", relativePath);
+
+            if (relativePath && relativePath !== folderKey) {
+              // Create the subfolder in the new location
+              const subfolderCreateResponse = await fetch('https://api.nymia.ai/v1/createfolder', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': 'Bearer WeInfl3nc3withAI'
+                },
+                body: JSON.stringify({
+                  user: userData.id,
+                  parentfolder: `vault/${newPath}/`,
+                  folder: relativePath
+                })
+              });
+
+              if (subfolderCreateResponse.ok) {
+                // Copy files from this subfolder
+                await copyFilesFromFolder(`${oldPath}/${relativePath}`, `${newPath}/${relativePath}`);
+              }
+            }
+          }
+        }
+      }
+
+      // Step 6: Delete the old folder
+      const deleteResponse = await fetch('https://api.nymia.ai/v1/deletefolder', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          user: userData.id,
+          folder: `vault/${oldPath}`
+        })
+      });
+
+      if (!deleteResponse.ok) {
+        console.warn('Failed to delete old folder, but rename operation completed');
+      }
+
+      // Step 7: Refresh folder structure
+      const refreshResponse = await fetch('https://api.nymia.ai/v1/getfoldernames', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          user: userData.id,
+          folder: "vault"
+        })
+      });
+
+      if (refreshResponse.ok) {
+        const data = await refreshResponse.json();
+        setFolders(data);
+
+        // Rebuild folder structure
+        const structure = buildFolderStructure(data);
+        setFolderStructure(structure);
+      }
+
+      // Step 8: Update current path if we're in the renamed folder
+      if (currentPath === oldPath) {
+        setCurrentPath(newPath);
+      } else if (currentPath.startsWith(oldPath + '/')) {
+        const newCurrentPath = currentPath.replace(oldPath, newPath);
+        setCurrentPath(newCurrentPath);
+      }
+
+      // Step 9: Exit edit mode
+      setEditingFolder(null);
+      setEditingFolderName('');
+
+      console.log('Folder rename completed successfully');
+      toast.success(`Folder renamed to "${newName}" successfully`);
+
+    } catch (error) {
+      console.error('Error renaming folder:', error);
+      toast.error('Failed to rename folder. Please try again.');
+      setEditingFolder(null);
+      setEditingFolderName('');
+    }
+  };
+
+  // Helper function to copy files from a specific folder
+  const copyFilesFromFolder = async (sourceFolder: string, destFolder: string): Promise<void> => {
+    try {
+      const getFilesResponse = await fetch('https://api.nymia.ai/v1/getfilenames', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          user: userData.id,
+          folder: `vault/${sourceFolder}`
+        })
+      });
+
+      if (!getFilesResponse.ok) {
+        console.warn(`Failed to get files from folder: ${sourceFolder}`);
+        return;
+      }
+
+      const filesData = await getFilesResponse.json();
+      // console.log(`Files in folder ${sourceFolder}:`, filesData);
+
+      if (filesData && filesData.length > 0) {
+        const copyPromises = filesData.map(async (file: any) => {
           const copyResponse = await fetch('https://api.nymia.ai/v1/copyfile', {
             method: 'POST',
             headers: {
@@ -643,71 +863,21 @@ export default function Vault() {
             },
             body: JSON.stringify({
               user: userData.id,
-              sourcefilename: `vault/${oldPath}/${item.id}.png`,
-              destinationfilename: `vault/${newPath}/${item.id}.png`
+              sourcefilename: `vault/${sourceFolder}/${file}`,
+              destinationfilename: `vault/${destFolder}/${file}`
             })
           });
 
           if (!copyResponse.ok) {
-            console.warn(`Failed to copy file ${item.id}`);
-            throw new Error(`Failed to copy file ${item.id}`);
+            console.warn(`Failed to copy file ${file} from ${sourceFolder} to ${destFolder}`);
+            throw new Error(`Failed to copy file ${file}`);
           }
         });
 
         await Promise.all(copyPromises);
       }
-
-      // Step 3: Delete the old folder
-      toast.info('Cleaning up...', {
-        description: 'Removing old folder'
-      });
-
-      const deleteResponse = await fetch('https://api.nymia.ai/v1/deletefile', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer WeInfl3nc3withAI'
-        },
-        body: JSON.stringify({
-          user: userData.id,
-          filename: `vault/${oldPath}`
-        })
-      });
-
-      if (!deleteResponse.ok) {
-        console.warn('Failed to delete old folder');
-        // Don't throw error here as the rename is mostly complete
-      }
-
-      // Update folder structure
-      setFolderStructure(prev => {
-        const updateFolder = (folders: FolderStructure[]): FolderStructure[] => {
-          return folders.map(folder => {
-            if (folder.path === oldPath) {
-              return { ...folder, name: newName, path: newPath };
-            }
-            if (folder.children.length > 0) {
-              return { ...folder, children: updateFolder(folder.children) };
-            }
-            return folder;
-          });
-        };
-        return updateFolder(prev);
-      });
-
-      // Update current path if we're renaming the current folder
-      if (currentPath === oldPath) {
-        setCurrentPath(newPath);
-      }
-
-      setEditingFolder(null);
-      setEditingFolderName('');
-      toast.success(`Folder renamed to "${newName}"`);
     } catch (error) {
-      console.error('Error renaming folder:', error);
-      toast.error('Failed to rename folder');
-      setEditingFolder(null);
-      setEditingFolderName('');
+      console.error(`Error copying files from ${sourceFolder}:`, error);
     }
   };
 
@@ -747,15 +917,141 @@ export default function Vault() {
     };
   }, []);
 
+  // Delete folder and all its contents recursively
+  const deleteFolderRecursively = async (folderPath: string): Promise<void> => {
+    try {
+      // Use the correct deletefolder API endpoint
+      const response = await fetch('https://api.nymia.ai/v1/deletefolder', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          user: userData.id,
+          folder: `vault/${folderPath}`
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete folder');
+      }
+
+      console.log(`Successfully deleted folder: ${folderPath}`);
+    } catch (error) {
+      console.error('Error deleting folder:', error);
+      throw error;
+    }
+  };
+
+  // Helper function to delete all files from a specific folder (keeping for reference but not used in new implementation)
+  const deleteFilesFromFolder = async (folderPath: string): Promise<void> => {
+    try {
+      const getFilesResponse = await fetch('https://api.nymia.ai/v1/getfilenames', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          user: userData.id,
+          folder: `vault/${folderPath}`
+        })
+      });
+
+      if (!getFilesResponse.ok) {
+        console.warn(`Failed to get files from folder: ${folderPath}`);
+        return;
+      }
+
+      const filesData = await getFilesResponse.json();
+      console.log(`Files in folder ${folderPath}:`, filesData);
+
+      if (filesData && filesData.length > 0) {
+        const deletePromises = filesData.map(async (file: any) => {
+          const deleteResponse = await fetch('https://api.nymia.ai/v1/deletefile', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer WeInfl3nc3withAI'
+            },
+            body: JSON.stringify({
+              user: userData.id,
+              filename: `vault/${folderPath}/${file}`
+            })
+          });
+
+          if (!deleteResponse.ok) {
+            console.warn(`Failed to delete file ${file} from ${folderPath}`);
+            throw new Error(`Failed to delete file ${file}`);
+          }
+        });
+
+        await Promise.all(deletePromises);
+      }
+    } catch (error) {
+      console.error(`Error deleting files from ${folderPath}:`, error);
+    }
+  };
+
+  // Handle folder deletion
+  const handleDeleteFolder = async (folderPath: string) => {
+    try {
+      toast.info('Deleting folder...', {
+        description: 'This may take a moment depending on the folder contents'
+      });
+
+      await deleteFolderRecursively(folderPath);
+
+      // Refresh folders from API to get updated structure
+      const response = await fetch('https://api.nymia.ai/v1/getfoldernames', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          user: userData.id,
+          folder: "vault"
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setFolders(data);
+
+        // Rebuild folder structure
+        const structure = buildFolderStructure(data);
+        setFolderStructure(structure);
+      }
+
+      // If we're currently in the deleted folder or one of its subfolders, navigate to parent
+      if (currentPath === folderPath || currentPath.startsWith(folderPath + '/')) {
+        const pathParts = folderPath.split('/');
+        pathParts.pop();
+        const parentPath = pathParts.join('/');
+        setCurrentPath(parentPath);
+        setCurrentFolderItems(getCurrentFolderItems());
+      }
+
+      setContextMenu(null);
+      toast.success(`Folder "${folderPath.split('/').pop()}" deleted successfully`);
+    } catch (error) {
+      console.error('Error deleting folder:', error);
+      toast.error('Failed to delete folder. Please try again.');
+      setContextMenu(null);
+    }
+  };
+
   if (loading || foldersLoading) {
-  return (
-    <div className="p-6 space-y-6 animate-fade-in">
-      <div className="flex flex-col md:flex-row items-center justify-between gap-5">
-        <div>
-          <h1 className="flex flex-col items-center md:items-start text-3xl font-bold tracking-tight bg-ai-gradient bg-clip-text text-transparent">
+    return (
+      <div className="p-6 space-y-6 animate-fade-in">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-5">
+          <div>
+            <h1 className="flex flex-col items-center md:items-start text-3xl font-bold tracking-tight bg-ai-gradient bg-clip-text text-transparent">
               File Manager of nymia
-          </h1>
-          <p className="text-muted-foreground">
+            </h1>
+            <p className="text-muted-foreground">
               Organize and manage your content with folders
             </p>
           </div>
@@ -838,7 +1134,7 @@ export default function Vault() {
                 {sortOrder === 'asc' ? <SortAsc className="w-3 h-3" /> : <SortDesc className="w-3 h-3" />}
                 {sortOrder === 'asc' ? 'Ascending' : 'Descending'}
               </Button>
-              
+
               {hasActiveFilters && (
                 <Button variant="outline" size="sm" onClick={clearFilters}>
                   Clear All
@@ -897,7 +1193,7 @@ export default function Vault() {
               </Button>
             </div>
           </div>
-          
+
           {/* Breadcrumb Navigation */}
           {currentPath && (
             <div className="flex items-center gap-1 text-sm text-muted-foreground mt-2">
@@ -926,27 +1222,17 @@ export default function Vault() {
           )}
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Current Path Display */}
-          {currentPath && (
-            <div className="bg-blue-50 dark:bg-blue-950/30 rounded-lg p-3 border border-blue-200 dark:border-blue-800">
-              <div className="flex items-center gap-2 text-sm">
-                <Folder className="w-4 h-4 text-blue-600" />
-                <span className="font-medium text-blue-800 dark:text-blue-200">Current Location:</span>
-                <span className="text-blue-600 dark:text-blue-300">{currentPath}</span>
-              </div>
-            </div>
-          )}
 
           {/* Folder Grid */}
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3">
             {/* Show folders for current path */}
             {(() => {
               const currentFolders = getCurrentPathFolders();
-              
-              console.log('Current folders to display:', currentFolders);
-              console.log('Current path:', currentPath);
-              console.log('Folder structure:', folderStructure);
-              
+
+              // console.log('Current folders to display:', currentFolders);
+              // console.log('Current path:', currentPath);
+              // console.log('Folder structure:', folderStructure);
+
               return currentFolders.map((folder) => (
                 <div
                   key={folder.path}
@@ -988,29 +1274,29 @@ export default function Vault() {
                 </div>
               ));
             })()}
-            
+
             {/* Fallback folders with renaming */}
             {(() => {
               const currentFolders = getCurrentPathFolders();
               if (currentFolders.length === 0 && folders.length > 0) {
-                console.log('No structured folders, showing raw folders as fallback');
+                // console.log('No structured folders, showing raw folders as fallback');
                 const rawFolders = getCurrentPathRawFolders();
-                
+
                 if (rawFolders.length === 0) {
                   return null; // Don't show anything if no valid folders
                 }
-                
+
                 return rawFolders.map((folder) => {
                   const folderPath = extractFolderName(folder.Key);
                   if (!folderPath || folderPath.trim() === '') {
                     return null; // Skip invalid folders
                   }
-                  
+
                   const folderName = folderPath.split('/').pop();
                   if (!folderName || folderName.trim() === '') {
                     return null; // Skip folders with empty names
                   }
-                  
+
                   return (
                     <div
                       key={folder.Key}
@@ -1064,7 +1350,7 @@ export default function Vault() {
               }
               return null;
             })()}
-            
+
             {/* Add New Folder Button */}
             <div
               className="group cursor-pointer"
@@ -1086,7 +1372,7 @@ export default function Vault() {
       {/* Results Summary */}
       <div className="flex justify-between items-center">
         <div className="flex items-center gap-4">
-        <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             Showing {filteredAndSortedItems.length} of {currentFolderItems.length} items
             {currentPath && ` in "${currentPath}"`}
           </p>
@@ -1107,8 +1393,8 @@ export default function Vault() {
       {filteredAndSortedItems.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
           {filteredAndSortedItems.map((item) => (
-            <Card 
-              key={item.id} 
+            <Card
+              key={item.id}
               className="group hover:shadow-xl transition-all duration-300 border-border/50 hover:border-yellow-500/30 bg-gradient-to-br from-yellow-50/20 to-orange-50/20 dark:from-yellow-950/5 dark:to-orange-950/5 backdrop-blur-sm"
             >
               <CardHeader className="pb-3">
@@ -1136,7 +1422,7 @@ export default function Vault() {
                     onClick={() => setSelectedImage(`https://images.nymia.ai/cdn-cgi/image/w=800/${userData.id}/output/${item.id}.png`)}
                   >
                     <ZoomIn className="w-6 h-6 text-white" />
-                    </div>
+                  </div>
                 </div>
                 <div className="space-y-3">
                   <div className="flex items-center gap-1 text-xs text-muted-foreground">
@@ -1152,23 +1438,23 @@ export default function Vault() {
                     >
                       <Download className="w-3 h-3 mr-1.5" />
                       <span className="hidden sm:inline">Download</span>
-                      </Button>
+                    </Button>
                     <Button
                       size="sm"
                       variant="outline"
                       className="h-8 w-8 p-0 hover:bg-green-50 hover:bg-green-700 hover:border-green-500 transition-colors"
                       onClick={() => handleShare(item.id)}
                     >
-                        <Share className="w-3 h-3" />
-                      </Button>
-                      <Button 
-                        size="sm" 
+                      <Share className="w-3 h-3" />
+                    </Button>
+                    <Button
+                      size="sm"
                       variant="outline"
                       className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-amber-500 hover:border-amber-300 transition-colors"
-                        onClick={() => handleRemoveFromVault(item.id)}
-                      >
-                        <Trash2 className="w-3 h-3" />
-                      </Button>
+                      onClick={() => handleRemoveFromVault(item.id)}
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </Button>
                   </div>
                 </div>
               </CardContent>
@@ -1189,10 +1475,10 @@ export default function Vault() {
             ) : (
               <>
                 <Star className="w-12 h-12 text-yellow-500/50" />
-          <h3 className="text-lg font-semibold mb-2">No items found</h3>
-          <p className="text-muted-foreground">
-            Try adjusting your search or filters to find what you're looking for.
-          </p>
+                <h3 className="text-lg font-semibold mb-2">No items found</h3>
+                <p className="text-muted-foreground">
+                  Try adjusting your search or filters to find what you're looking for.
+                </p>
               </>
             )}
           </div>
@@ -1316,7 +1602,7 @@ export default function Vault() {
               )}
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4">
             {/* Current Path Display */}
             {currentPath && (
@@ -1447,8 +1733,7 @@ export default function Vault() {
             className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 text-red-600 dark:text-red-400"
             onClick={() => {
               // Delete folder functionality would go here
-              toast.info('Delete folder functionality coming soon');
-              setContextMenu(null);
+              handleDeleteFolder(contextMenu.folderPath);
             }}
           >
             <Trash2 className="w-4 h-4" />

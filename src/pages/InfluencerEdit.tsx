@@ -263,6 +263,7 @@ export default function InfluencerEdit() {
 
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
+  const [generatedImageData, setGeneratedImageData] = useState<{ image_id: string; system_filename: string } | null>(null);
 
   const [humorOptions, setHumorOptions] = useState<Option[]>([]);
   const [goalsOptions, setGoalsOptions] = useState<Option[]>([]);
@@ -683,7 +684,7 @@ export default function InfluencerEdit() {
       // Poll for the generated images
       let attempts = 0;
       const maxAttempts = 30; // 30 seconds max
-
+      
       const pollForImages = async () => {
 
         console.log(taskId);
@@ -697,21 +698,29 @@ export default function InfluencerEdit() {
             body: JSON.stringify({ task_id: taskId })
           });
 
+          console.log(imagesResponse);
+
           if (!imagesResponse.ok) {
             throw new Error('Failed to fetch images');
           }
 
           const imagesData = await imagesResponse.json();
-
+          
           if (imagesData.success && imagesData.images && imagesData.images.length > 0) {
             // Check if any image is completed
             const completedImage = imagesData.images.find((img: any) => img.status === 'completed');
-
+            
             if (completedImage) {
               // Show the generated image
-              const imageUrl = `https://images.nymia.ai/cdn-cgi/image/w=400/${completedImage.file_path}`;
+              const imageUrl = `https://images.nymia.ai/cdn-cgi/image/w=800/${completedImage.file_path}`;
               setPreviewImage(imageUrl);
-
+              
+              // Store the generated image data for the "Use as profile picture" functionality
+              setGeneratedImageData({
+                image_id: completedImage.image_id,
+                system_filename: completedImage.system_filename
+              });
+              
               toast.success('Preview generated successfully!', {
                 description: 'Your influencer preview is ready to view'
               });
@@ -719,7 +728,7 @@ export default function InfluencerEdit() {
               return;
             }
           }
-
+          
           // If no completed images yet, continue polling
           attempts++;
           if (attempts < maxAttempts) {
@@ -744,6 +753,63 @@ export default function InfluencerEdit() {
       console.error('Preview error:', error);
       toast.error('Failed to generate preview');
       setIsPreviewLoading(false);
+    }
+  };
+
+  const handleUseAsProfilePicture = async () => {
+    if (!generatedImageData) {
+      toast.error('No generated image available');
+      return;
+    }
+
+    try {
+      // Copy the generated image to the profile picture location
+      const taskFilename = await fetch(`https://db.nymia.ai/rest/v1/generated_images?id=eq.${generatedImageData.image_id}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        }
+      });
+      const taskFilenameData = await taskFilename.json();
+      console.log(`output/${taskFilenameData[0].system_filename}`);
+      console.log(`models/${influencerData.id}/profilepic/profilepic${influencerData.image_num}.png`);
+      const copyResponse = await fetch('https://api.nymia.ai/v1/copyfile', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          user: userData.id,
+          sourcefilename: `output/${taskFilenameData[0].system_filename}`,
+          destinationfilename: `models/${influencerData.id}/profilepic/profilepic${influencerData.image_num}.png`
+        })
+      });
+
+      if (!copyResponse.ok) {
+        throw new Error('Failed to copy image to profile picture');
+      }
+
+      // Update the influencer data with the new profile picture URL
+      const newImageUrl = `https://images.nymia.ai/cdn-cgi/image/w=400/${userData.id}/models/${influencerData.id}/profilepic/profilepic${influencerData.image_num}.png`;
+      
+      setInfluencerData(prev => ({
+        ...prev,
+        image_url: newImageUrl,
+        image_num: prev.image_num + 1
+      }));
+
+      // Close the preview modal
+      setPreviewImage(null);
+      setGeneratedImageData(null);
+
+      toast.success('Profile picture updated successfully!', {
+        description: 'The generated image has been set as your influencer\'s profile picture'
+      });
+
+    } catch (error) {
+      console.error('Error setting profile picture:', error);
+      toast.error('Failed to set profile picture');
     }
   };
 
@@ -898,6 +964,24 @@ export default function InfluencerEdit() {
             alt="Preview"
             className="h-full object-contain"
           />
+          {/* Use as Profile Picture Button - only show for generated images */}
+          {generatedImageData && (
+            <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 z-10 animate-in slide-in-from-bottom-4 duration-500">
+              <div className="bg-black/30 backdrop-blur-md rounded-2xl p-3 border border-white/30 shadow-2xl">
+                <Button
+                  onClick={handleUseAsProfilePicture}
+                  className="bg-gradient-to-r from-emerald-600 via-blue-600 to-purple-600 hover:from-emerald-700 hover:via-blue-700 hover:to-purple-700 text-white font-semibold px-8 py-4 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 border border-white/20 hover:scale-105"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center">
+                      <Image className="w-4 h-4 text-white" />
+                    </div>
+                    <span className="text-base font-semibold">Use as Profile Picture</span>
+                  </div>
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       </DialogContentZoom>
     </DialogZoom>

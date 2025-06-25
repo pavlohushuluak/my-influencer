@@ -606,10 +606,17 @@ export default function InfluencerEdit() {
 
       // Create the JSON data structure
       const requestData = {
-        task: "generate_image",
+        task: "generate_preview",
         number_of_images: 1,
         quality: 'Quality',
         nsfw_strength: -1,
+        lora: "",
+        noAI: false,
+        prompt: "",
+        negative_prompt: "",
+        lora_strength: 0,
+        seed: -1,
+        guidance: 7,
         model: influencerData ? {
           id: influencerData.id,
           influencer_type: influencerData.influencer_type,
@@ -634,6 +641,14 @@ export default function InfluencerEdit() {
           name_last: influencerData.name_last,
           visual_only: influencerData.visual_only
         } : null,
+        scene: {
+          framing: "",
+          rotation: "",
+          lighting_preset: "",
+          scene_setting: "",
+          pose: "",
+          clothes: ""
+        }
       };
 
       const useridResponse = await fetch(`https://db.nymia.ai/rest/v1/user?uuid=eq.${userData.id}`, {

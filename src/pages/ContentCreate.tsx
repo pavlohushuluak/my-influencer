@@ -14,7 +14,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
-import { ArrowLeft, Wand2, Settings, Image as ImageIcon, Sparkles, Loader2, Play, Eye, Palette, Camera, Zap, Search, X, Filter, Plus, Check, RotateCcw } from 'lucide-react';
+import { Image, ArrowLeft, Wand2, Settings, Image as ImageIcon, Sparkles, Loader2, Play, Eye, Palette, Camera, Zap, Search, X, Filter, Plus, Check, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -537,7 +537,7 @@ export default function ContentCreate() {
 
     // Generate the model description automatically
     const parts = [];
-    
+
     if (influencer.name_first && influencer.name_last) {
       parts.push(`${influencer.name_first} ${influencer.name_last}`);
     }
@@ -666,11 +666,11 @@ export default function ContentCreate() {
       }
 
       const result = await response.json();
-      
+
       toast.success('Content generation started successfully');
-      
+
       setActiveTab('scene');
-      
+
     } catch (error) {
       console.error('Generation error:', error);
       toast.error('Failed to start content generation');
@@ -708,7 +708,7 @@ export default function ContentCreate() {
       onSelect(label);
       onClose();
     };
-  return (
+    return (
       <>
         <Dialog open={true} onOpenChange={onClose}>
           <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
@@ -812,8 +812,8 @@ export default function ContentCreate() {
               <Badge variant="secondary" className="w-fit bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300">
                 {TASK_OPTIONS.find(opt => opt.value === formData.task)?.label}
               </Badge>
-        </div>
-        
+            </div>
+
             <div className="flex flex-col space-y-2">
               <span className="text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wide">
                 Format
@@ -871,24 +871,24 @@ export default function ContentCreate() {
         </div>
 
         <div className="flex flex-col space-y-2">
-        <Button
-          onClick={handleGenerate}
-          disabled={!validateForm() || isGenerating}
-          className="bg-gradient-to-r from-purple-600 to-blue-600"
-          size="lg"
-        >
-          {isGenerating ? (
-            <>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Generating...
-            </>
-          ) : (
-            <>
-              <Wand2 className="w-4 h-4 mr-2" />
-              Generate Content
-            </>
-          )}
-        </Button>
+          <Button
+            onClick={handleGenerate}
+            disabled={!validateForm() || isGenerating}
+            className="bg-gradient-to-r from-purple-600 to-blue-600"
+            size="lg"
+          >
+            {isGenerating ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Generating...
+              </>
+            ) : (
+              <>
+                <Wand2 className="w-4 h-4 mr-2" />
+                Generate Content
+              </>
+            )}
+          </Button>
           <Button
             onClick={handleClear}
             variant="outline"
@@ -908,7 +908,7 @@ export default function ContentCreate() {
             <Badge variant="secondary" className="w-fit bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300">
               {TASK_OPTIONS.find(opt => opt.value === formData.task)?.label}
             </Badge>
-      </div>
+          </div>
 
           <div className="flex flex-col space-y-2">
             <span className="text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wide">
@@ -1225,8 +1225,8 @@ export default function ContentCreate() {
                                 <img
                                   src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${formatOptions.find(option => option.label === formData.format)?.image}`}
                                   className="absolute inset-0 w-full h-full object-cover rounded-md"
-                      />
-                    </div>
+                                />
+                              </div>
                               <p className="text-sm text-center font-medium mt-2">{formatOptions.find(option => option.label === formData.format)?.label}</p>
                             </CardContent>
                           </Card>
@@ -1236,8 +1236,8 @@ export default function ContentCreate() {
                               <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                                 <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
                                   Select format style
-                      </div>
-                    </div>
+                                </div>
+                              </div>
                             </CardContent>
                           </Card>
                         )}
@@ -1250,9 +1250,9 @@ export default function ContentCreate() {
                           title="Select Format Style"
                         />
                       )}
-                  </div>
+                    </div>
 
-                  <div className="space-y-2">
+                    <div className="space-y-2">
                       <Label>Makeup Style</Label>
                       <Select
                         value={modelDescription.makeup}
@@ -1325,7 +1325,7 @@ export default function ContentCreate() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {/* Text Input - First Option */}
-                    <div className="space-y-2">
+                  <div className="space-y-2">
                     <Label className="flex items-center gap-2">
                       <div className="p-1.5 bg-gradient-to-br from-green-500 to-emerald-600 rounded-md">
                         <Sparkles className="w-3.5 h-3.5 text-white" />
@@ -1360,7 +1360,7 @@ export default function ContentCreate() {
                     </div>
                     </div> */}
                     <div className="lg:hidden grid grid-cols-1 sm:grid-cols-3 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
+                      <div className="space-y-2">
                         <Label>Framing</Label>
                         <Select
                           value={sceneSpecs.framing}
@@ -1424,9 +1424,9 @@ export default function ContentCreate() {
                             title="Select Framing Style"
                           />
                         )}
-                    </div>
+                      </div>
 
-                    <div className="space-y-2">
+                      <div className="space-y-2">
                         <Label>Rotation</Label>
                         <Select
                           value={sceneSpecs.rotation}
@@ -1490,9 +1490,9 @@ export default function ContentCreate() {
                             title="Select Rotation Style"
                           />
                         )}
-                    </div>
+                      </div>
 
-                    <div className="space-y-2">
+                      <div className="space-y-2">
                         <Label>Lighting Preset</Label>
                         <Select
                           value={sceneSpecs.lighting_preset}
@@ -1556,9 +1556,9 @@ export default function ContentCreate() {
                             title="Select Lighting Style"
                           />
                         )}
-                    </div>
+                      </div>
 
-                    <div className="space-y-2">
+                      <div className="space-y-2">
                         <Label>Scene Setting</Label>
                         <Select
                           value={sceneSpecs.scene_setting}
@@ -1622,9 +1622,9 @@ export default function ContentCreate() {
                             title="Select Scene Setting"
                           />
                         )}
-                    </div>
+                      </div>
 
-                    <div className="space-y-2">
+                      <div className="space-y-2">
                         <Label>Pose</Label>
                         <Select
                           value={sceneSpecs.pose}
@@ -1688,9 +1688,9 @@ export default function ContentCreate() {
                             title="Select Pose Style"
                           />
                         )}
-                    </div>
+                      </div>
 
-                    <div className="space-y-2">
+                      <div className="space-y-2">
                         <Label>Outfits</Label>
                         <Select
                           value={sceneSpecs.clothes}
@@ -1730,7 +1730,7 @@ export default function ContentCreate() {
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                     </svg>
                                   </Button>
-                    </div>
+                                </div>
                                 <p className="text-sm text-center font-medium mt-2">{clothesOptions.find(option => option.label === sceneSpecs.clothes)?.label}</p>
                               </CardContent>
                             </Card>
@@ -1773,7 +1773,7 @@ export default function ContentCreate() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                    <div className="space-y-2">
+                  <div className="space-y-2">
                     <Label className="flex items-center gap-2">
                       <div className="p-1.5 bg-gradient-to-br from-red-500 to-rose-600 rounded-md">
                         <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1796,7 +1796,7 @@ export default function ContentCreate() {
                         </svg>
                       </div>
                     </div>
-                    </div>
+                  </div>
 
                   <div className="grid grid-cols-2 xl:grid-cols-3 gap-4">
                     <div className="space-y-6">
@@ -1915,7 +1915,7 @@ export default function ContentCreate() {
                         />
                       </div>
                     </div>
-                    </div>
+                  </div>
 
                   {/* Select Another Influencer Button */}
                   {modelData && (
@@ -1940,10 +1940,10 @@ export default function ContentCreate() {
                       </div>
 
                       {/* Search Section */}
-                    <div className="space-y-2">
+                      <div className="space-y-2">
                         <div className="relative">
                           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                      <Input
+                          <Input
                             type="text"
                             placeholder="Search influencers..."
                             value={searchTerm}
@@ -1960,7 +1960,7 @@ export default function ContentCreate() {
                               <X className="h-4 w-4" />
                             </Button>
                           )}
-                    </div>
+                        </div>
 
                         <Popover open={openFilter} onOpenChange={setOpenFilter}>
                           <PopoverTrigger asChild>
@@ -1991,7 +1991,7 @@ export default function ContentCreate() {
 
                       {/* Influencers List */}
                       <ScrollArea className="h-64">
-                    <div className="space-y-2">
+                        <div className="space-y-2">
                           {filteredInfluencers.map((influencer) => (
                             <Card key={influencer.id} className="group hover:shadow-lg transition-all duration-300 border-border/50 hover:border-ai-purple-500/20 cursor-pointer" onClick={() => handleUseInfluencer(influencer)}>
                               <CardContent className="p-3">
@@ -2001,8 +2001,8 @@ export default function ContentCreate() {
                                       src={influencer.image_url}
                                       alt={`${influencer.name_first} ${influencer.name_last}`}
                                       className="w-full h-full object-cover"
-                      />
-                    </div>
+                                    />
+                                  </div>
                                   <div className="flex-1 min-w-0">
                                     <h4 className="font-semibold text-sm group-hover:text-ai-purple-500 transition-colors truncate">
                                       {influencer.name_first} {influencer.name_last}
@@ -2013,7 +2013,7 @@ export default function ContentCreate() {
                                     <p className="text-xs text-muted-foreground truncate">
                                       {influencer.influencer_type}
                                     </p>
-                  </div>
+                                  </div>
                                 </div>
                               </CardContent>
                             </Card>
@@ -2036,17 +2036,17 @@ export default function ContentCreate() {
 
               {/* Select Influencer Button - shown when no influencer is selected */}
               {!modelData && (
-                  <Button
-                    variant="outline"
+                <Button
+                  variant="outline"
                   onClick={() => setShowInfluencerSelector(true)}
                   className="w-full gap-2"
-                  >
+                >
                   <Plus className="w-4 h-4" />
                   Select Influencer
-                  </Button>
+                </Button>
               )}
-                </CardContent>
-              </Card>
+            </CardContent>
+          </Card>
         </div>
       </div>
       {activeTab === 'scene' && (
@@ -2054,21 +2054,21 @@ export default function ContentCreate() {
           <CardContent className='pt-2'>
             {/* Scene Presets - 2x3 Grid */}
             <div className="hidden lg:grid grid-cols-3 xl:grid-cols-6 gap-4">
-                    <div className="space-y-2">
+              <div className="space-y-2">
                 <Label>Framing</Label>
-                      <Select
-                        value={sceneSpecs.framing}
-                        onValueChange={(value) => handleSceneSpecChange('framing', value)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select framing" />
-                        </SelectTrigger>
-                        <SelectContent>
+                <Select
+                  value={sceneSpecs.framing}
+                  onValueChange={(value) => handleSceneSpecChange('framing', value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select framing" />
+                  </SelectTrigger>
+                  <SelectContent>
                     {framingOptions.map((option) => (
                       <SelectItem key={option.label} value={option.label}>{option.label}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <div
                   onClick={() => setShowFramingSelector(true)}
                   className='flex items-center justify-center cursor-pointer w-full'
@@ -2118,23 +2118,23 @@ export default function ContentCreate() {
                     title="Select Framing Style"
                   />
                 )}
-                    </div>
+              </div>
 
-                    <div className="space-y-2">
-                      <Label>Rotation</Label>
-                      <Select
-                        value={sceneSpecs.rotation}
-                        onValueChange={(value) => handleSceneSpecChange('rotation', value)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select rotation" />
-                        </SelectTrigger>
-                        <SelectContent>
+              <div className="space-y-2">
+                <Label>Rotation</Label>
+                <Select
+                  value={sceneSpecs.rotation}
+                  onValueChange={(value) => handleSceneSpecChange('rotation', value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select rotation" />
+                  </SelectTrigger>
+                  <SelectContent>
                     {rotationOptions.map((option) => (
                       <SelectItem key={option.label} value={option.label}>{option.label}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <div
                   onClick={() => setShowRotationSelector(true)}
                   className='flex items-center justify-center cursor-pointer w-full'
@@ -2184,23 +2184,23 @@ export default function ContentCreate() {
                     title="Select Rotation Style"
                   />
                 )}
-                    </div>
+              </div>
 
-                    <div className="space-y-2">
+              <div className="space-y-2">
                 <Label>Lighting Preset</Label>
-                      <Select
+                <Select
                   value={sceneSpecs.lighting_preset}
                   onValueChange={(value) => handleSceneSpecChange('lighting_preset', value)}
-                      >
-                        <SelectTrigger>
+                >
+                  <SelectTrigger>
                     <SelectValue placeholder="Select lighting preset" />
-                        </SelectTrigger>
-                        <SelectContent>
+                  </SelectTrigger>
+                  <SelectContent>
                     {lightingOptions.map((option) => (
                       <SelectItem key={option.label} value={option.label}>{option.label}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <div
                   onClick={() => setShowLightingSelector(true)}
                   className='flex items-center justify-center cursor-pointer w-full'
@@ -2250,9 +2250,9 @@ export default function ContentCreate() {
                     title="Select Lighting Style"
                   />
                 )}
-                    </div>
+              </div>
 
-                    <div className="space-y-2">
+              <div className="space-y-2">
                 <Label>Scene Setting</Label>
                 <Select
                   value={sceneSpecs.scene_setting}
@@ -2292,7 +2292,7 @@ export default function ContentCreate() {
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                             </svg>
                           </Button>
-                    </div>
+                        </div>
                         <p className="text-sm text-center font-medium mt-2">{sceneSettingsOptions.find(option => option.label === sceneSpecs.scene_setting)?.label}</p>
                       </CardContent>
                     </Card>
@@ -2302,8 +2302,8 @@ export default function ContentCreate() {
                         <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                           <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
                             Select scene setting
-                  </div>
-                    </div>
+                          </div>
+                        </div>
                       </CardContent>
                     </Card>
                   )}
@@ -2316,7 +2316,7 @@ export default function ContentCreate() {
                     title="Select Scene Setting"
                   />
                 )}
-                  </div>
+              </div>
 
               <div className="space-y-2">
                 <Label>Pose</Label>
@@ -2345,7 +2345,7 @@ export default function ContentCreate() {
                             src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${poseOptions.find(option => option.label === sceneSpecs.pose)?.image}`}
                             className="absolute inset-0 w-full h-full object-cover rounded-md"
                           />
-                  <Button
+                          <Button
                             variant="destructive"
                             size="sm"
                             className="absolute bottom-2 right-2 w-8 h-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
@@ -2357,11 +2357,11 @@ export default function ContentCreate() {
                             <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                             </svg>
-                  </Button>
+                          </Button>
                         </div>
                         <p className="text-sm text-center font-medium mt-2">{poseOptions.find(option => option.label === sceneSpecs.pose)?.label}</p>
-                </CardContent>
-              </Card>
+                      </CardContent>
+                    </Card>
                   ) : (
                     <Card className="relative w-full border max-w-[200px]">
                       <CardContent className="p-4">
@@ -2382,7 +2382,7 @@ export default function ContentCreate() {
                     title="Select Pose Style"
                   />
                 )}
-                  </div>
+              </div>
 
               <div className="space-y-2">
                 <Label>Outfits</Label>
@@ -2411,7 +2411,7 @@ export default function ContentCreate() {
                             src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${clothesOptions.find(option => option.label === sceneSpecs.clothes)?.image}`}
                             className="absolute inset-0 w-full h-full object-cover rounded-md"
                           />
-                  <Button
+                          <Button
                             variant="destructive"
                             size="sm"
                             className="absolute bottom-2 right-2 w-8 h-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
@@ -2423,18 +2423,18 @@ export default function ContentCreate() {
                             <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                             </svg>
-                  </Button>
+                          </Button>
                         </div>
                         <p className="text-sm text-center font-medium mt-2">{clothesOptions.find(option => option.label === sceneSpecs.clothes)?.label}</p>
-                </CardContent>
-              </Card>
+                      </CardContent>
+                    </Card>
                   ) : (
                     <Card className="relative w-full border max-w-[200px]">
                       <CardContent className="p-4">
                         <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                           <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
                             Select outfits style
-        </div>
+                          </div>
                         </div>
                       </CardContent>
                     </Card>
@@ -2448,11 +2448,11 @@ export default function ContentCreate() {
                     title="Select Outfits Style"
                   />
                 )}
-                </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Influencer Selector Dialog */}
       {showInfluencerSelector && (
@@ -2484,9 +2484,9 @@ export default function ContentCreate() {
                         <X className="h-4 w-4" />
                       </Button>
                     )}
+                  </div>
                 </div>
-                </div>
-                
+
                 <Popover open={openFilter} onOpenChange={setOpenFilter}>
                   <PopoverTrigger asChild>
                     <Button variant="outline" className="gap-2">
@@ -2512,43 +2512,52 @@ export default function ContentCreate() {
                     </Command>
                   </PopoverContent>
                 </Popover>
-                </div>
-                
+              </div>
+
               {/* Influencers Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {filteredInfluencers.map((influencer) => (
                   <Card key={influencer.id} className="group hover:shadow-lg transition-all duration-300 border-border/50 hover:border-ai-purple-500/20">
-                    <CardContent className="p-6">
-                      <div className="space-y-4">
-                        <div className="w-full h-48 bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg overflow-hidden">
-                          <img
-                            src={influencer.image_url}
-                            alt={`${influencer.name_first} ${influencer.name_last}`}
-                            className="w-full h-full object-cover"
-                          />
-                </div>
-                
+                    <CardContent className="p-6 h-full">
+                      <div className="flex flex-col justify-between h-full space-y-4">
+                        <div className="w-full h-full bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg overflow-hidden">
+                          {
+                            influencer.image_url ? (
+                              <img
+                                src={influencer.image_url}
+                                alt={`${influencer.name_first} ${influencer.name_last}`}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="flex flex-col w-full h-full items-center justify-center max-h-48 min-h-40">
+                                <Image className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                                <h3 className="text-lg font-semibold mb-2">No image found</h3>
+                              </div>
+                            )
+                          }
+                        </div>
+
                         <div>
                           <div className="flex items-center justify-between mb-2">
                             <h3 className="font-semibold text-lg group-hover:text-ai-purple-500 transition-colors">
                               {influencer.name_first} {influencer.name_last}
                             </h3>
-                </div>
-                
+                          </div>
+
                           <div className="flex flex-col gap-1 mb-3">
                             <div className="flex text-sm text-muted-foreground flex-col">
                               <span className="font-medium mr-2">Age/Lifestyle:</span>
                               {influencer.age_lifestyle}
-                </div>
+                            </div>
                             <div className="flex items-center text-sm text-muted-foreground">
                               <span className="font-medium mr-2">Type:</span>
                               {influencer.influencer_type}
-              </div>
-                </div>
+                            </div>
+                          </div>
 
-              <Button
-                size="sm"
-                variant="outline"
+                          <Button
+                            size="sm"
+                            variant="outline"
                             onClick={() => {
                               handleUseInfluencer(influencer);
                               setShowInfluencerSelector(false);
@@ -2557,14 +2566,14 @@ export default function ContentCreate() {
                           >
                             <Plus className="w-4 h-4 mr-2" />
                             Use
-              </Button>
+                          </Button>
                         </div>
                       </div>
-            </CardContent>
-          </Card>
+                    </CardContent>
+                  </Card>
                 ))}
-        </div>
-      </div>
+              </div>
+            </div>
           </DialogContent>
         </Dialog>
       )}

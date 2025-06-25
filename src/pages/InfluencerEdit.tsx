@@ -262,6 +262,7 @@ export default function InfluencerEdit() {
   const [showWeaknessSelector, setShowWeaknessSelector] = useState(false);
 
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
 
   const [humorOptions, setHumorOptions] = useState<Option[]>([]);
   const [goalsOptions, setGoalsOptions] = useState<Option[]>([]);
@@ -589,6 +590,147 @@ export default function InfluencerEdit() {
       setIsUpdating(false);
     }
   }
+
+  const handlePreview = async () => {
+    if (!validateFields()) {
+      return;
+    }
+
+    setIsPreviewLoading(true);
+
+    try {
+      // Simulate preview generation
+      toast.info('Generating preview...', {
+        description: 'Creating a preview of your influencer with current settings'
+      });
+
+      // Create the JSON data structure
+      const requestData = {
+        task: "generate_image",
+        number_of_images: 1,
+        quality: 'Quality',
+        nsfw_strength: -1,
+        model: influencerData ? {
+          id: influencerData.id,
+          influencer_type: influencerData.influencer_type,
+          sex: influencerData.sex,
+          cultural_background: influencerData.cultural_background,
+          hair_length: influencerData.hair_length,
+          hair_color: influencerData.hair_color,
+          hair_style: influencerData.hair_style,
+          eye_color: influencerData.eye_color,
+          lip_style: influencerData.lip_style,
+          nose_style: influencerData.nose_style,
+          face_shape: influencerData.face_shape,
+          facial_features: influencerData.facial_features,
+          skin_tone: influencerData.skin_tone,
+          bust: influencerData.bust_size, // Default value since not in Influencer type
+          body_type: influencerData.body_type,
+          color_palette: influencerData.color_palette || [],
+          clothing_style_everyday: influencerData.clothing_style_everyday,
+          eyebrow_style: influencerData.eyebrow_style, // Default value since not in Influencer type
+          makeup_style: influencerData.makeup, // Use from modelDescription or default
+          name_first: influencerData.name_first,
+          name_last: influencerData.name_last,
+          visual_only: influencerData.visual_only
+        } : null,
+      };
+
+      const useridResponse = await fetch(`https://db.nymia.ai/rest/v1/user?uuid=eq.${userData.id}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        }
+      });
+
+      const useridData = await useridResponse.json();
+
+      console.log(useridData);
+
+      // Send the request to create task
+      const response = await fetch(`https://api.nymia.ai/v1/createtask?userid=${useridData[0].userid}&type=createimage`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify(requestData)
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log(result);
+      const taskId = result.id;
+
+      // Poll for the generated images
+      let attempts = 0;
+      const maxAttempts = 30; // 30 seconds max
+
+      const pollForImages = async () => {
+
+        console.log(taskId);
+        try {
+          const imagesResponse = await fetch('https://api.nymia.ai/v1/get-images-by-task', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer WeInfl3nc3withAI'
+            },
+            body: JSON.stringify({ task_id: taskId })
+          });
+
+          if (!imagesResponse.ok) {
+            throw new Error('Failed to fetch images');
+          }
+
+          const imagesData = await imagesResponse.json();
+
+          if (imagesData.success && imagesData.images && imagesData.images.length > 0) {
+            // Check if any image is completed
+            const completedImage = imagesData.images.find((img: any) => img.status === 'completed');
+
+            if (completedImage) {
+              // Show the generated image
+              const imageUrl = `https://images.nymia.ai/cdn-cgi/image/w=400/${completedImage.file_path}`;
+              setPreviewImage(imageUrl);
+
+              toast.success('Preview generated successfully!', {
+                description: 'Your influencer preview is ready to view'
+              });
+              setIsPreviewLoading(false);
+              return;
+            }
+          }
+
+          // If no completed images yet, continue polling
+          attempts++;
+          if (attempts < maxAttempts) {
+            setTimeout(pollForImages, 1000); // Poll every second
+          } else {
+            toast.error('Preview generation timeout', {
+              description: 'The preview is taking longer than expected. Please try again.'
+            });
+            setIsPreviewLoading(false);
+          }
+        } catch (error) {
+          console.error('Error polling for images:', error);
+          toast.error('Failed to fetch preview image');
+          setIsPreviewLoading(false);
+        }
+      };
+
+      // Start polling
+      pollForImages();
+
+    } catch (error) {
+      console.error('Preview error:', error);
+      toast.error('Failed to generate preview');
+      setIsPreviewLoading(false);
+    }
+  };
 
   const handleEditInfluencer = (id: string) => {
     const influencer = influencers.find(inf => inf.id === id);
@@ -1017,7 +1159,7 @@ export default function InfluencerEdit() {
             Customize your influencer's appearance and personality
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-2">
           <Button onClick={() => {
             setShowEditView(false);
             setActiveTab('basic');
@@ -1075,6 +1217,23 @@ export default function InfluencerEdit() {
                 )}
               </Button>
           }
+          <Button
+            onClick={handlePreview}
+            className="bg-gradient-to-r from-green-600 to-blue-600"
+            disabled={isOptionsLoading || isPreviewLoading}
+          >
+            {isPreviewLoading ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Generating...
+              </>
+            ) : (
+              <>
+                <Image className="w-4 h-4 mr-2" />
+                Preview Image
+              </>
+            )}
+          </Button>
         </div>
       </div>
 
@@ -1147,6 +1306,8 @@ export default function InfluencerEdit() {
                         <p className="text-sm text-red-500 mt-1">{validationErrors.influencer_type}</p>
                       )}
                     </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
                     <div className="space-y-2">
                       <Label>Profile Image</Label>
                       <div className="flex flex-col gap-2">

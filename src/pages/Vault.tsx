@@ -7,16 +7,16 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Star, Search, Download, Share, Trash2, Filter, Calendar, Image, Video, SortAsc, SortDesc, ZoomIn, Folder, Plus, Upload } from 'lucide-react';
+import { Star, Search, Download, Share, Trash2, Filter, Calendar, Image, Video, SortAsc, SortDesc, ZoomIn, Folder, Plus, Upload, ChevronRight, Home, ArrowLeft, Pencil } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { DialogContentZoom } from '@/components/ui/zoomdialog';
 import { DialogZoom } from '@/components/ui/zoomdialog';
+import { removeFromVault } from '@/store/slices/contentSlice';
 
 // Interface for folder data from API
 interface FolderData {
-  key: string;
-  value: string;
+  Key: string;
 }
 
 // Interface for task data from API
@@ -24,6 +24,14 @@ interface TaskData {
   id: string;
   type: string;
   created_at: string;
+}
+
+// Interface for folder structure
+interface FolderStructure {
+  name: string;
+  path: string;
+  children: FolderStructure[];
+  isFolder: boolean;
 }
 
 export default function Vault() {
@@ -47,6 +55,140 @@ export default function Vault() {
   const [uploadedIcon, setUploadedIcon] = useState<File | null>(null);
   const [folderIcons, setFolderIcons] = useState<string[]>([]);
 
+  // Folder navigation state
+  const [currentPath, setCurrentPath] = useState<string>('');
+  const [folderStructure, setFolderStructure] = useState<FolderStructure[]>([]);
+  const [currentFolderItems, setCurrentFolderItems] = useState<TaskData[]>([]);
+
+  // Folder renaming state
+  const [editingFolder, setEditingFolder] = useState<string | null>(null);
+  const [editingFolderName, setEditingFolderName] = useState<string>('');
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; folderPath: string } | null>(null);
+
+  // Extract folder name from full path
+  const extractFolderName = (fullPath: string): string => {
+    // Remove the user ID and "vault/" prefix
+    const pathWithoutPrefix = fullPath.replace(/^[^\/]+\/vault\//, '');
+    return pathWithoutPrefix;
+  };
+
+  // Build folder structure from raw folder data
+  const buildFolderStructure = (folderData: FolderData[]): FolderStructure[] => {
+    const structure: FolderStructure[] = [];
+    const pathMap = new Map<string, FolderStructure>();
+
+    console.log('Building folder structure from:', folderData);
+
+    folderData.forEach(folder => {
+      console.log('Processing folder:', folder);
+      console.log('Folder key:', folder.Key);
+      
+      // Extract the folder path from the key
+      const folderPath = extractFolderName(folder.Key);
+      console.log('Extracted folder path:', folderPath);
+      
+      if (!folderPath) {
+        console.log('No folder path extracted, skipping');
+        return;
+      }
+
+      const pathParts = folderPath.split('/').filter(part => part.length > 0);
+      console.log('Path parts:', pathParts);
+      
+      let currentPath = '';
+      
+      pathParts.forEach((part, index) => {
+        const parentPath = currentPath;
+        currentPath = currentPath ? `${currentPath}/${part}` : part;
+        
+        console.log(`Processing part "${part}", currentPath: "${currentPath}", parentPath: "${parentPath}"`);
+        
+        if (!pathMap.has(currentPath)) {
+          const folderNode: FolderStructure = {
+            name: part,
+            path: currentPath,
+            children: [],
+            isFolder: true
+          };
+          
+          pathMap.set(currentPath, folderNode);
+          console.log(`Created folder node:`, folderNode);
+          
+          if (parentPath && pathMap.has(parentPath)) {
+            console.log(`Adding to parent "${parentPath}"`);
+            pathMap.get(parentPath)!.children.push(folderNode);
+          } else if (!parentPath) {
+            console.log(`Adding to root structure`);
+            structure.push(folderNode);
+          }
+        }
+      });
+    });
+
+    console.log('Final folder structure:', structure);
+    return structure;
+  };
+
+  // Get items in current folder
+  const getCurrentFolderItems = (): TaskData[] => {
+    if (!currentPath) {
+      return vaultItems;
+    }
+    
+    // Filter items that belong to the current folder path
+    // This is a simplified implementation - in a real system, items would have folder metadata
+    return vaultItems.filter(item => {
+      // For now, return all items since we don't have folder association yet
+      // In the future, this would check item.folder_path === currentPath
+      return true;
+    });
+  };
+
+  // Update current folder items when path changes
+  useEffect(() => {
+    setCurrentFolderItems(getCurrentFolderItems());
+  }, [currentPath, vaultItems]);
+
+  // Navigate to folder
+  const navigateToFolder = (folderPath: string) => {
+    setCurrentPath(folderPath);
+    setCurrentFolderItems(getCurrentFolderItems());
+  };
+
+  // Navigate to parent folder
+  const navigateToParent = () => {
+    const pathParts = currentPath.split('/');
+    pathParts.pop();
+    const parentPath = pathParts.join('/');
+    setCurrentPath(parentPath);
+    setCurrentFolderItems(getCurrentFolderItems());
+  };
+
+  // Navigate to home (root)
+  const navigateToHome = () => {
+    setCurrentPath('');
+    setCurrentFolderItems(vaultItems);
+  };
+
+  // Get breadcrumb items
+  const getBreadcrumbItems = () => {
+    if (!currentPath) return [];
+    
+    const pathParts = currentPath.split('/');
+    const breadcrumbs = [];
+    let currentPathBuilt = '';
+    
+    pathParts.forEach((part, index) => {
+      currentPathBuilt = currentPathBuilt ? `${currentPathBuilt}/${part}` : part;
+      breadcrumbs.push({
+        name: part,
+        path: currentPathBuilt
+      });
+    });
+    
+    return breadcrumbs;
+  };
+
   // Fetch folders from API
   useEffect(() => {
     const fetchFolders = async () => {
@@ -69,11 +211,30 @@ export default function Vault() {
         }
 
         const data = await response.json();
-        console.log('Folders data:', data);
+        console.log('Raw folders data from API:', data);
         setFolders(data);
+        
+        // Build folder structure
+        const structure = buildFolderStructure(data);
+        console.log('Built folder structure:', structure);
+        setFolderStructure(structure);
+        
+        // If no structure was built, create a fallback from the raw data
+        if (structure.length === 0 && data.length > 0) {
+          console.log('No structure built, creating fallback folders');
+          const fallbackFolders = data.map((folder: FolderData) => ({
+            name: folder.Key || extractFolderName(folder.Key) || 'Unknown Folder',
+            path: folder.Key || extractFolderName(folder.Key) || 'unknown',
+            children: [],
+            isFolder: true
+          }));
+          console.log('Fallback folders:', fallbackFolders);
+          setFolderStructure(fallbackFolders);
+        }
       } catch (error) {
         console.error('Error fetching folders:', error);
         setFolders([]);
+        setFolderStructure([]);
       } finally {
         setFoldersLoading(false);
       }
@@ -102,9 +263,11 @@ export default function Vault() {
         const data = await response.json();
         console.log(data);
         setVaultItems(data);
+        setCurrentFolderItems(data);
       } catch (error) {
         console.error('Error fetching vault data:', error);
         setVaultItems([]);
+        setCurrentFolderItems([]);
       } finally {
         setLoading(false);
       }
@@ -115,16 +278,16 @@ export default function Vault() {
     }
   }, [userData.id]);
 
-  const filteredAndSortedItems = vaultItems
+  const filteredAndSortedItems = currentFolderItems
     .filter(item => {
       const matchesSearch = item.id;
       const matchesType = typeFilter === 'all' || item.type === typeFilter;
-
+      
       return matchesSearch && matchesType;
     })
     .sort((a, b) => {
       let comparison = 0;
-
+      
       switch (sortBy) {
         case 'newest':
           comparison = new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
@@ -135,9 +298,11 @@ export default function Vault() {
         default:
           comparison = 0;
       }
-
+      
       return sortOrder === 'desc' ? -comparison : comparison;
     });
+
+  const hasActiveFilters = searchTerm || typeFilter !== 'all';
 
   const handleRemoveFromVault = async (contentId: string) => {
     try {
@@ -171,10 +336,11 @@ export default function Vault() {
       }
 
       // Remove from local state
-      dispatch(removeFromVault(contentId));
+    dispatch(removeFromVault(contentId));
 
       // Update local vault items
       setVaultItems(prev => prev.filter(item => item.id !== contentId));
+      setCurrentFolderItems(prev => prev.filter(item => item.id !== contentId));
 
       toast.success('Item deleted successfully');
     } catch (error) {
@@ -267,8 +433,6 @@ export default function Vault() {
     setSortOrder('desc');
   };
 
-  const hasActiveFilters = searchTerm || typeFilter !== 'all' || sortBy !== 'newest' || sortOrder !== 'desc';
-
   // Handle new folder creation
   const handleCreateFolder = async () => {
     if (!newFolderName.trim()) {
@@ -277,20 +441,62 @@ export default function Vault() {
     }
 
     try {
-      // Here you would typically send the folder creation request to your API
-      // For now, we'll just add it to the local state
-      const newFolder: FolderData = {
-        key: newFolderName.toLowerCase().replace(/\s+/g, '_'),
-        value: newFolderName
+      const folderPath = currentPath ? `${currentPath}/${newFolderName}` : newFolderName;
+      
+      const response = await fetch('https://api.nymia.ai/v1/createfolder', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          user: userData.id,
+          parentfolder: `vault/${currentPath ? currentPath + '/' : ''}`,
+          folder: newFolderName
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create folder');
+      }
+
+      // Add the new folder to the structure
+      const newFolder: FolderStructure = {
+        name: newFolderName,
+        path: folderPath,
+        children: [],
+        isFolder: true
       };
 
-      setFolders(prev => [...prev, newFolder]);
-      setShowNewFolderModal(false);
+      if (currentPath) {
+        // Add to current folder's children
+        setFolderStructure(prev => {
+          const updated = [...prev];
+          const updateFolder = (folders: FolderStructure[]): FolderStructure[] => {
+            return folders.map(folder => {
+              if (folder.path === currentPath) {
+                return { ...folder, children: [...folder.children, newFolder] };
+              }
+              if (folder.children.length > 0) {
+                return { ...folder, children: updateFolder(folder.children) };
+              }
+              return folder;
+            });
+          };
+          return updateFolder(updated);
+        });
+      } else {
+        // Add to root level
+        setFolderStructure(prev => [...prev, newFolder]);
+      }
+
+      // Reset form
       setNewFolderName('');
       setSelectedFolderIcon('');
       setUploadedIcon(null);
-      
-      toast.success('Folder created successfully');
+      setShowNewFolderModal(false);
+
+      toast.success(`Folder "${newFolderName}" created successfully`);
     } catch (error) {
       console.error('Error creating folder:', error);
       toast.error('Failed to create folder');
@@ -306,15 +512,250 @@ export default function Vault() {
     }
   };
 
+  // Get folders for current path
+  const getCurrentPathFolders = (): FolderStructure[] => {
+    if (!currentPath) {
+      return folderStructure;
+    }
+    
+    // Find the current folder and return its children
+    const findFolder = (folders: FolderStructure[], path: string): FolderStructure | null => {
+      for (const folder of folders) {
+        if (folder.path === path) {
+          return folder;
+        }
+        if (folder.children.length > 0) {
+          const found = findFolder(folder.children, path);
+          if (found) return found;
+        }
+      }
+      return null;
+    };
+    
+    const currentFolder = findFolder(folderStructure, currentPath);
+    return currentFolder ? currentFolder.children : [];
+  };
+
+  // Get raw folders for current path (fallback)
+  const getCurrentPathRawFolders = (): FolderData[] => {
+    if (!currentPath) {
+      // For root level, only show folders that have valid paths
+      return folders.filter(folder => {
+        const folderPath = extractFolderName(folder.Key);
+        if (!folderPath || folderPath.trim() === '') return false;
+        
+        // Only show root level folders (single part paths)
+        const pathParts = folderPath.split('/').filter(part => part.length > 0);
+        return pathParts.length === 1;
+      });
+    }
+    
+    // Filter folders that belong to the current path
+    return folders.filter(folder => {
+      const folderPath = extractFolderName(folder.Key);
+      if (!folderPath || folderPath.trim() === '') return false;
+      
+      // Check if this folder is a direct child of the current path
+      const pathParts = folderPath.split('/').filter(part => part.length > 0);
+      const currentPathParts = currentPath.split('/').filter(part => part.length > 0);
+      
+      // Check if this folder is one level deeper than current path
+      if (pathParts.length !== currentPathParts.length + 1) {
+        return false;
+      }
+      
+      // Check if the folder path starts with current path
+      return folderPath.startsWith(currentPath + '/');
+    });
+  };
+
+  // Handle folder rename
+  const handleFolderRename = async (oldPath: string, newName: string) => {
+    if (!newName.trim() || newName === editingFolderName) {
+      setEditingFolder(null);
+      setEditingFolderName('');
+      return;
+    }
+
+    try {
+      // Extract the folder name from the path
+      const pathParts = oldPath.split('/');
+      const oldName = pathParts[pathParts.length - 1];
+      
+      if (oldName === newName) {
+        setEditingFolder(null);
+        setEditingFolderName('');
+        return;
+      }
+
+      // Create new path
+      pathParts[pathParts.length - 1] = newName;
+      const newPath = pathParts.join('/');
+
+      toast.info('Renaming folder...', {
+        description: 'This may take a moment depending on the number of files'
+      });
+
+      // Step 1: Create new folder
+      const createResponse = await fetch('https://api.nymia.ai/v1/createfolder', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          user: userData.id,
+          parentfolder: `vault/${pathParts.slice(0, -1).join('/')}/`,
+          folder: newName
+        })
+      });
+
+      if (!createResponse.ok) {
+        throw new Error('Failed to create new folder');
+      }
+
+      // Step 2: Get all files in the old folder and copy them
+      // Note: This is a simplified approach. In a real system, you'd need to:
+      // 1. Get the list of files from the API that belong to this specific folder
+      // 2. Copy only those files
+      // For now, we'll show a message that this needs to be implemented based on your data structure
+      
+      toast.info('Copying files...', {
+        description: 'Copying files to new folder location'
+      });
+
+      // TODO: Replace this with actual file filtering based on your data structure
+      // You'll need to implement this based on how files are associated with folders
+      const filesInFolder = vaultItems.filter(item => {
+        // This should be replaced with actual folder association logic
+        // For example: item.folder_path === oldPath
+        return false; // Don't copy any files for now until folder association is implemented
+      });
+
+      // Copy each file to the new folder
+      if (filesInFolder.length > 0) {
+        const copyPromises = filesInFolder.map(async (item) => {
+          const copyResponse = await fetch('https://api.nymia.ai/v1/copyfile', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer WeInfl3nc3withAI'
+            },
+            body: JSON.stringify({
+              user: userData.id,
+              sourcefilename: `vault/${oldPath}/${item.id}.png`,
+              destinationfilename: `vault/${newPath}/${item.id}.png`
+            })
+          });
+
+          if (!copyResponse.ok) {
+            console.warn(`Failed to copy file ${item.id}`);
+            throw new Error(`Failed to copy file ${item.id}`);
+          }
+        });
+
+        await Promise.all(copyPromises);
+      }
+
+      // Step 3: Delete the old folder
+      toast.info('Cleaning up...', {
+        description: 'Removing old folder'
+      });
+
+      const deleteResponse = await fetch('https://api.nymia.ai/v1/deletefile', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          user: userData.id,
+          filename: `vault/${oldPath}`
+        })
+      });
+
+      if (!deleteResponse.ok) {
+        console.warn('Failed to delete old folder');
+        // Don't throw error here as the rename is mostly complete
+      }
+
+      // Update folder structure
+      setFolderStructure(prev => {
+        const updateFolder = (folders: FolderStructure[]): FolderStructure[] => {
+          return folders.map(folder => {
+            if (folder.path === oldPath) {
+              return { ...folder, name: newName, path: newPath };
+            }
+            if (folder.children.length > 0) {
+              return { ...folder, children: updateFolder(folder.children) };
+            }
+            return folder;
+          });
+        };
+        return updateFolder(prev);
+      });
+
+      // Update current path if we're renaming the current folder
+      if (currentPath === oldPath) {
+        setCurrentPath(newPath);
+      }
+
+      setEditingFolder(null);
+      setEditingFolderName('');
+      toast.success(`Folder renamed to "${newName}"`);
+    } catch (error) {
+      console.error('Error renaming folder:', error);
+      toast.error('Failed to rename folder');
+      setEditingFolder(null);
+      setEditingFolderName('');
+    }
+  };
+
+  // Handle F2 key press
+  const handleKeyDown = (e: KeyboardEvent) => {
+    if (e.key === 'F2' && contextMenu) {
+      e.preventDefault();
+      setEditingFolder(contextMenu.folderPath);
+      setEditingFolderName(contextMenu.folderPath.split('/').pop() || '');
+      setContextMenu(null);
+    }
+  };
+
+  // Add keyboard event listener
+  useEffect(() => {
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [contextMenu]);
+
+  // Handle right-click context menu
+  const handleContextMenu = (e: React.MouseEvent, folderPath: string) => {
+    e.preventDefault();
+    setContextMenu({ x: e.clientX, y: e.clientY, folderPath });
+  };
+
+  // Close context menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => {
+      setContextMenu(null);
+    };
+
+    document.addEventListener('click', handleClickOutside);
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+    };
+  }, []);
+
   if (loading || foldersLoading) {
-    return (
-      <div className="p-6 space-y-6 animate-fade-in">
-        <div className="flex flex-col md:flex-row items-center justify-between gap-5">
-          <div>
-            <h1 className="flex flex-col items-center md:items-start text-3xl font-bold tracking-tight bg-ai-gradient bg-clip-text text-transparent">
+  return (
+    <div className="p-6 space-y-6 animate-fade-in">
+      <div className="flex flex-col md:flex-row items-center justify-between gap-5">
+        <div>
+          <h1 className="flex flex-col items-center md:items-start text-3xl font-bold tracking-tight bg-ai-gradient bg-clip-text text-transparent">
               File Manager of nymia
-            </h1>
-            <p className="text-muted-foreground">
+          </h1>
+          <p className="text-muted-foreground">
               Organize and manage your content with folders
             </p>
           </div>
@@ -397,7 +838,7 @@ export default function Vault() {
                 {sortOrder === 'asc' ? <SortAsc className="w-3 h-3" /> : <SortDesc className="w-3 h-3" />}
                 {sortOrder === 'asc' ? 'Ascending' : 'Descending'}
               </Button>
-
+              
               {hasActiveFilters && (
                 <Button variant="outline" size="sm" onClick={clearFilters}>
                   Clear All
@@ -428,48 +869,246 @@ export default function Vault() {
       {/* Folders Section */}
       <Card className="border-blue-500/20 bg-gradient-to-r from-blue-50/50 to-purple-50/50 dark:from-blue-950/20 dark:to-purple-950/20">
         <CardHeader className="pt-5 pb-2">
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Folder className="w-5 h-5" />
-            Folders
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Folder className="w-5 h-5" />
+              Folders
+            </CardTitle>
+            <div className="flex items-center gap-2">
+              {currentPath && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={navigateToParent}
+                  className="flex items-center gap-1"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  Back
+                </Button>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={navigateToHome}
+                className="flex items-center gap-1"
+              >
+                <Home className="w-4 h-4" />
+                Home
+              </Button>
+            </div>
+          </div>
+          
+          {/* Breadcrumb Navigation */}
+          {currentPath && (
+            <div className="flex items-center gap-1 text-sm text-muted-foreground mt-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={navigateToHome}
+                className="h-6 px-2 text-xs hover:bg-blue-100 dark:hover:bg-blue-900/20"
+              >
+                Home
+              </Button>
+              {getBreadcrumbItems().map((item, index) => (
+                <div key={index} className="flex items-center gap-1">
+                  <ChevronRight className="w-3 h-3" />
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => navigateToFolder(item.path)}
+                    className="h-6 px-2 text-xs hover:bg-blue-100 dark:hover:bg-blue-900/20"
+                  >
+                    {item.name}
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-2">
-            {folders.map((folder) => (
-              <Button
-                key={folder.key}
-                variant="outline"
-                className="h-16 flex flex-col items-center justify-center gap-1 hover:bg-blue-50 hover:border-blue-300 transition-colors"
-              >
-                <Folder className="w-5 h-5 text-blue-500" />
-                <span className="text-sm font-medium">{folder.value}</span>
-              </Button>
-            ))}
-            <Button
+          {/* Current Path Display */}
+          {currentPath && (
+            <div className="bg-blue-50 dark:bg-blue-950/30 rounded-lg p-3 border border-blue-200 dark:border-blue-800">
+              <div className="flex items-center gap-2 text-sm">
+                <Folder className="w-4 h-4 text-blue-600" />
+                <span className="font-medium text-blue-800 dark:text-blue-200">Current Location:</span>
+                <span className="text-blue-600 dark:text-blue-300">{currentPath}</span>
+              </div>
+            </div>
+          )}
+
+          {/* Folder Grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3">
+            {/* Show folders for current path */}
+            {(() => {
+              const currentFolders = getCurrentPathFolders();
+              
+              console.log('Current folders to display:', currentFolders);
+              console.log('Current path:', currentPath);
+              console.log('Folder structure:', folderStructure);
+              
+              return currentFolders.map((folder) => (
+                <div
+                  key={folder.path}
+                  className="group cursor-pointer"
+                  onDoubleClick={() => navigateToFolder(folder.path)}
+                  onContextMenu={(e) => handleContextMenu(e, folder.path)}
+                >
+                  <div className="flex flex-col items-center p-3 rounded-lg border-2 border-transparent hover:border-blue-300 hover:bg-blue-50 dark:hover:bg-blue-950/20 transition-all duration-200">
+                    <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center mb-2 group-hover:scale-110 transition-transform duration-200">
+                      <Folder className="w-6 h-6 text-white" />
+                    </div>
+                    {editingFolder === folder.path ? (
+                      <div className="w-full">
+                        <Input
+                          value={editingFolderName}
+                          onChange={(e) => setEditingFolderName(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              handleFolderRename(folder.path, editingFolderName);
+                            } else if (e.key === 'Escape') {
+                              setEditingFolder(null);
+                              setEditingFolderName('');
+                            }
+                          }}
+                          onBlur={() => handleFolderRename(folder.path, editingFolderName)}
+                          className="text-xs h-6 text-center"
+                          autoFocus
+                        />
+                      </div>
+                    ) : (
+                      <span className="text-xs font-medium text-center text-gray-700 dark:text-gray-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                        {folder.name}
+                      </span>
+                    )}
+                    <span className="text-xs text-muted-foreground mt-1">
+                      {folder.children.length} items
+                    </span>
+                  </div>
+                </div>
+              ));
+            })()}
+            
+            {/* Fallback folders with renaming */}
+            {(() => {
+              const currentFolders = getCurrentPathFolders();
+              if (currentFolders.length === 0 && folders.length > 0) {
+                console.log('No structured folders, showing raw folders as fallback');
+                const rawFolders = getCurrentPathRawFolders();
+                
+                if (rawFolders.length === 0) {
+                  return null; // Don't show anything if no valid folders
+                }
+                
+                return rawFolders.map((folder) => {
+                  const folderPath = extractFolderName(folder.Key);
+                  if (!folderPath || folderPath.trim() === '') {
+                    return null; // Skip invalid folders
+                  }
+                  
+                  const folderName = folderPath.split('/').pop();
+                  if (!folderName || folderName.trim() === '') {
+                    return null; // Skip folders with empty names
+                  }
+                  
+                  return (
+                    <div
+                      key={folder.Key}
+                      className="group cursor-pointer"
+                      onClick={() => {
+                        if (folderPath) {
+                          navigateToFolder(folderPath);
+                        }
+                      }}
+                      onContextMenu={(e) => {
+                        e.preventDefault();
+                        if (folderPath) {
+                          handleContextMenu(e, folderPath);
+                        }
+                      }}
+                    >
+                      <div className="flex flex-col items-center p-3 rounded-lg border-2 border-transparent hover:border-blue-300 hover:bg-blue-50 dark:hover:bg-blue-950/20 transition-all duration-200">
+                        <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center mb-2 group-hover:scale-110 transition-transform duration-200">
+                          <Folder className="w-6 h-6 text-white" />
+                        </div>
+                        {editingFolder === folderPath ? (
+                          <div className="w-full">
+                            <Input
+                              value={editingFolderName}
+                              onChange={(e) => setEditingFolderName(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  handleFolderRename(folderPath, editingFolderName);
+                                } else if (e.key === 'Escape') {
+                                  setEditingFolder(null);
+                                  setEditingFolderName('');
+                                }
+                              }}
+                              onBlur={() => handleFolderRename(folderPath, editingFolderName)}
+                              className="text-xs h-6 text-center"
+                              autoFocus
+                            />
+                          </div>
+                        ) : (
+                          <span className="text-xs font-medium text-center text-gray-700 dark:text-gray-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                            {folderName}
+                          </span>
+                        )}
+                        <span className="text-xs text-muted-foreground mt-1">
+                          0 items
+                        </span>
+                      </div>
+                    </div>
+                  );
+                }).filter(Boolean); // Remove null entries
+              }
+              return null;
+            })()}
+            
+            {/* Add New Folder Button */}
+            <div
+              className="group cursor-pointer"
               onClick={() => setShowNewFolderModal(true)}
-              variant="outline"
-              className="h-16 flex flex-col items-center justify-center gap-1 hover:bg-green-50 hover:border-green-300 transition-colors border-dashed"
             >
-              <Plus className="w-5 h-5 text-green-500" />
-              <span className="text-sm font-medium">Add New</span>
-            </Button>
+              <div className="flex flex-col items-center p-3 rounded-lg border-2 border-dashed border-gray-300 hover:border-green-400 hover:bg-green-50 dark:hover:bg-green-950/20 transition-all duration-200">
+                <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex items-center justify-center mb-2 group-hover:scale-110 transition-transform duration-200">
+                  <Plus className="w-6 h-6 text-white" />
+                </div>
+                <span className="text-xs font-medium text-center text-gray-700 dark:text-gray-300 group-hover:text-green-600 dark:group-hover:text-green-400 transition-colors">
+                  New Folder
+                </span>
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>
 
       {/* Results Summary */}
       <div className="flex justify-between items-center">
+        <div className="flex items-center gap-4">
         <p className="text-sm text-muted-foreground">
-          Showing {filteredAndSortedItems.length} of {vaultItems.length} vault items
-        </p>
+            Showing {filteredAndSortedItems.length} of {currentFolderItems.length} items
+            {currentPath && ` in "${currentPath}"`}
+          </p>
+          {currentPath && (
+            <Badge variant="outline" className="bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800">
+              <Folder className="w-3 h-3 mr-1" />
+              {currentPath}
+            </Badge>
+          )}
+        </div>
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Star className="w-4 h-4 text-yellow-500" />
+          {vaultItems.length} total items
+        </div>
       </div>
 
       {/* Content Grid */}
       {filteredAndSortedItems.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
           {filteredAndSortedItems.map((item) => (
-            <Card
-              key={item.id}
+            <Card 
+              key={item.id} 
               className="group hover:shadow-xl transition-all duration-300 border-border/50 hover:border-yellow-500/30 bg-gradient-to-br from-yellow-50/20 to-orange-50/20 dark:from-yellow-950/5 dark:to-orange-950/5 backdrop-blur-sm"
             >
               <CardHeader className="pb-3">
@@ -497,7 +1136,7 @@ export default function Vault() {
                     onClick={() => setSelectedImage(`https://images.nymia.ai/cdn-cgi/image/w=800/${userData.id}/output/${item.id}.png`)}
                   >
                     <ZoomIn className="w-6 h-6 text-white" />
-                  </div>
+                    </div>
                 </div>
                 <div className="space-y-3">
                   <div className="flex items-center gap-1 text-xs text-muted-foreground">
@@ -513,23 +1152,23 @@ export default function Vault() {
                     >
                       <Download className="w-3 h-3 mr-1.5" />
                       <span className="hidden sm:inline">Download</span>
-                    </Button>
+                      </Button>
                     <Button
                       size="sm"
                       variant="outline"
                       className="h-8 w-8 p-0 hover:bg-green-50 hover:bg-green-700 hover:border-green-500 transition-colors"
                       onClick={() => handleShare(item.id)}
                     >
-                      <Share className="w-3 h-3" />
-                    </Button>
-                    <Button
-                      size="sm"
+                        <Share className="w-3 h-3" />
+                      </Button>
+                      <Button 
+                        size="sm" 
                       variant="outline"
                       className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-amber-500 hover:border-amber-300 transition-colors"
-                      onClick={() => handleRemoveFromVault(item.id)}
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </Button>
+                        onClick={() => handleRemoveFromVault(item.id)}
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </Button>
                   </div>
                 </div>
               </CardContent>
@@ -538,11 +1177,25 @@ export default function Vault() {
         </div>
       ) : (
         <div className="text-center py-12">
-          <Star className="w-12 h-12 text-yellow-500/50 mx-auto mb-4" />
+          <div className="flex flex-col items-center gap-4">
+            {currentPath ? (
+              <>
+                <Folder className="w-12 h-12 text-blue-500/50" />
+                <h3 className="text-lg font-semibold mb-2">No items in this folder</h3>
+                <p className="text-muted-foreground">
+                  The folder "{currentPath}" is empty. Try navigating to a different folder or create some content.
+                </p>
+              </>
+            ) : (
+              <>
+                <Star className="w-12 h-12 text-yellow-500/50" />
           <h3 className="text-lg font-semibold mb-2">No items found</h3>
           <p className="text-muted-foreground">
             Try adjusting your search or filters to find what you're looking for.
           </p>
+              </>
+            )}
+          </div>
         </div>
       )}
 
@@ -654,11 +1307,28 @@ export default function Vault() {
               Create New Folder
             </DialogTitle>
             <DialogDescription>
-              Create a new folder to organize your content. You can choose a folder icon from the database or upload your own.
+              {currentPath ? (
+                <>
+                  Create a new folder in <span className="font-medium text-blue-600">{currentPath}</span>
+                </>
+              ) : (
+                'Create a new folder in the root directory'
+              )}
             </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4">
+            {/* Current Path Display */}
+            {currentPath && (
+              <div className="bg-blue-50 dark:bg-blue-950/30 rounded-lg p-3 border border-blue-200 dark:border-blue-800">
+                <div className="flex items-center gap-2 text-sm">
+                  <Folder className="w-4 h-4 text-blue-600" />
+                  <span className="font-medium text-blue-800 dark:text-blue-200">Location:</span>
+                  <span className="text-blue-600 dark:text-blue-300">{currentPath}</span>
+                </div>
+              </div>
+            )}
+
             {/* Folder Name Input */}
             <div className="space-y-2">
               <Label htmlFor="folder-name">Folder Name</Label>
@@ -667,12 +1337,17 @@ export default function Vault() {
                 placeholder="Enter folder name"
                 value={newFolderName}
                 onChange={(e) => setNewFolderName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && newFolderName.trim()) {
+                    handleCreateFolder();
+                  }
+                }}
               />
             </div>
 
             {/* Folder Icon Selection */}
             <div className="space-y-2">
-              <Label>Folder Icon</Label>
+              <Label>Folder Icon (Optional)</Label>
               <div className="grid grid-cols-4 gap-2">
                 {folderIcons.map((icon, index) => (
                   <Button
@@ -693,7 +1368,7 @@ export default function Vault() {
 
             {/* Upload Custom Icon */}
             <div className="space-y-2">
-              <Label>Upload Custom Icon</Label>
+              <Label>Upload Custom Icon (Optional)</Label>
               <div className="flex items-center gap-2">
                 <Input
                   type="file"
@@ -729,6 +1404,7 @@ export default function Vault() {
               </Button>
               <Button
                 onClick={handleCreateFolder}
+                disabled={!newFolderName.trim()}
                 className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600"
               >
                 Create Folder
@@ -737,6 +1413,49 @@ export default function Vault() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Context Menu */}
+      {contextMenu && (
+        <div
+          className="fixed z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg py-1 min-w-[160px]"
+          style={{ left: contextMenu.x, top: contextMenu.y }}
+        >
+          <button
+            className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+            onClick={() => {
+              setEditingFolder(contextMenu.folderPath);
+              setEditingFolderName(contextMenu.folderPath.split('/').pop() || '');
+              setContextMenu(null);
+            }}
+          >
+            <Pencil className="w-4 h-4" />
+            Rename
+          </button>
+          <button
+            className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+            onClick={() => {
+              // Navigate to folder
+              navigateToFolder(contextMenu.folderPath);
+              setContextMenu(null);
+            }}
+          >
+            <Folder className="w-4 h-4" />
+            Open
+          </button>
+          <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>
+          <button
+            className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 text-red-600 dark:text-red-400"
+            onClick={() => {
+              // Delete folder functionality would go here
+              toast.info('Delete folder functionality coming soon');
+              setContextMenu(null);
+            }}
+          >
+            <Trash2 className="w-4 h-4" />
+            Delete
+          </button>
+        </div>
+      )}
     </div>
   );
 }

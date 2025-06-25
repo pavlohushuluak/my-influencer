@@ -125,6 +125,39 @@ export function SignUpForm({ onToggleMode }: SignUpFormProps) {
           folder: "vault"
         })
       });
+      await fetch('https://api.nymia.ai/v1/createfolder', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          user: data.body.user.id,
+          folder: "vault/Inbox"
+        })
+      });
+      await fetch('https://api.nymia.ai/v1/createfolder', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          user: data.body.user.id,
+          folder: "vault/Trash"
+        })
+      });
+      await fetch('https://api.nymia.ai/v1/createfolder', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          user: data.body.user.id,
+          folder: "vault/Examples"
+        })
+      });
       // console.log('Registration response:', data);
 
       if (response.ok) {

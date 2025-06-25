@@ -1,18 +1,23 @@
 import { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '@/store/store';
-import { removeFromVault } from '@/store/slices/contentSlice';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { Star, Search, Download, Share, Trash2, Filter, Calendar, Image, Video, SortAsc, SortDesc, ZoomIn } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Star, Search, Download, Share, Trash2, Filter, Calendar, Image, Video, SortAsc, SortDesc, ZoomIn, Folder, Plus, Upload } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { DialogContentZoom } from '@/components/ui/zoomdialog';
 import { DialogZoom } from '@/components/ui/zoomdialog';
+
+// Interface for folder data from API
+interface FolderData {
+  key: string;
+  value: string;
+}
 
 // Interface for task data from API
 interface TaskData {
@@ -24,14 +29,60 @@ interface TaskData {
 export default function Vault() {
   const dispatch = useDispatch();
   const userData = useSelector((state: RootState) => state.user);
+  const [folders, setFolders] = useState<FolderData[]>([]);
   const [vaultItems, setVaultItems] = useState<TaskData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [foldersLoading, setFoldersLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
   const [sortBy, setSortBy] = useState('newest');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [shareModal, setShareModal] = useState<{ open: boolean; itemId: string | null }>({ open: false, itemId: null });
+  
+  // New folder modal state
+  const [showNewFolderModal, setShowNewFolderModal] = useState(false);
+  const [newFolderName, setNewFolderName] = useState('');
+  const [selectedFolderIcon, setSelectedFolderIcon] = useState('');
+  const [uploadedIcon, setUploadedIcon] = useState<File | null>(null);
+  const [folderIcons, setFolderIcons] = useState<string[]>([]);
+
+  // Fetch folders from API
+  useEffect(() => {
+    const fetchFolders = async () => {
+      try {
+        setFoldersLoading(true);
+        const response = await fetch('https://api.nymia.ai/v1/getfoldernames', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer WeInfl3nc3withAI'
+          },
+          body: JSON.stringify({
+            user: userData.id,
+            folder: "vault"
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch folders');
+        }
+
+        const data = await response.json();
+        console.log('Folders data:', data);
+        setFolders(data);
+      } catch (error) {
+        console.error('Error fetching folders:', error);
+        setFolders([]);
+      } finally {
+        setFoldersLoading(false);
+      }
+    };
+
+    if (userData.id) {
+      fetchFolders();
+    }
+  }, [userData.id]);
 
   // Fetch data from API
   useEffect(() => {
@@ -218,22 +269,59 @@ export default function Vault() {
 
   const hasActiveFilters = searchTerm || typeFilter !== 'all' || sortBy !== 'newest' || sortOrder !== 'desc';
 
-  if (loading) {
+  // Handle new folder creation
+  const handleCreateFolder = async () => {
+    if (!newFolderName.trim()) {
+      toast.error('Please enter a folder name');
+      return;
+    }
+
+    try {
+      // Here you would typically send the folder creation request to your API
+      // For now, we'll just add it to the local state
+      const newFolder: FolderData = {
+        key: newFolderName.toLowerCase().replace(/\s+/g, '_'),
+        value: newFolderName
+      };
+
+      setFolders(prev => [...prev, newFolder]);
+      setShowNewFolderModal(false);
+      setNewFolderName('');
+      setSelectedFolderIcon('');
+      setUploadedIcon(null);
+      
+      toast.success('Folder created successfully');
+    } catch (error) {
+      console.error('Error creating folder:', error);
+      toast.error('Failed to create folder');
+    }
+  };
+
+  // Handle file upload for folder icon
+  const handleIconUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setUploadedIcon(file);
+      setSelectedFolderIcon('');
+    }
+  };
+
+  if (loading || foldersLoading) {
     return (
       <div className="p-6 space-y-6 animate-fade-in">
         <div className="flex flex-col md:flex-row items-center justify-between gap-5">
           <div>
             <h1 className="flex flex-col items-center md:items-start text-3xl font-bold tracking-tight bg-ai-gradient bg-clip-text text-transparent">
-              Vault
+              File Manager of nymia
             </h1>
             <p className="text-muted-foreground">
-              Your premium collection of saved content that never expires
+              Organize and manage your content with folders
             </p>
           </div>
         </div>
         <div className="text-center py-12">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-500 mx-auto"></div>
-          <p className="text-muted-foreground mt-2">Loading vault items...</p>
+          <p className="text-muted-foreground mt-2">Loading file manager...</p>
         </div>
       </div>
     );
@@ -244,10 +332,10 @@ export default function Vault() {
       <div className="flex flex-col md:flex-row items-center justify-between gap-5">
         <div>
           <h1 className="flex flex-col items-center md:items-start text-3xl font-bold tracking-tight bg-ai-gradient bg-clip-text text-transparent">
-            Vault
+            File Manager of nymia
           </h1>
           <p className="text-muted-foreground">
-            Your premium collection of saved content that never expires
+            Organize and manage your content with folders
           </p>
         </div>
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -334,6 +422,38 @@ export default function Vault() {
               )}
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Folders Section */}
+      <Card className="border-blue-500/20 bg-gradient-to-r from-blue-50/50 to-purple-50/50 dark:from-blue-950/20 dark:to-purple-950/20">
+        <CardHeader className="pt-5 pb-2">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Folder className="w-5 h-5" />
+            Folders
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-2">
+            {folders.map((folder) => (
+              <Button
+                key={folder.key}
+                variant="outline"
+                className="h-16 flex flex-col items-center justify-center gap-1 hover:bg-blue-50 hover:border-blue-300 transition-colors"
+              >
+                <Folder className="w-5 h-5 text-blue-500" />
+                <span className="text-sm font-medium">{folder.value}</span>
+              </Button>
+            ))}
+            <Button
+              onClick={() => setShowNewFolderModal(true)}
+              variant="outline"
+              className="h-16 flex flex-col items-center justify-center gap-1 hover:bg-green-50 hover:border-green-300 transition-colors border-dashed"
+            >
+              <Plus className="w-5 h-5 text-green-500" />
+              <span className="text-sm font-medium">Add New</span>
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
@@ -521,6 +641,99 @@ export default function Vault() {
                 </div>
               </>
             )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* New Folder Modal */}
+      <Dialog open={showNewFolderModal} onOpenChange={setShowNewFolderModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Folder className="w-5 h-5 text-blue-500" />
+              Create New Folder
+            </DialogTitle>
+            <DialogDescription>
+              Create a new folder to organize your content. You can choose a folder icon from the database or upload your own.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            {/* Folder Name Input */}
+            <div className="space-y-2">
+              <Label htmlFor="folder-name">Folder Name</Label>
+              <Input
+                id="folder-name"
+                placeholder="Enter folder name"
+                value={newFolderName}
+                onChange={(e) => setNewFolderName(e.target.value)}
+              />
+            </div>
+
+            {/* Folder Icon Selection */}
+            <div className="space-y-2">
+              <Label>Folder Icon</Label>
+              <div className="grid grid-cols-4 gap-2">
+                {folderIcons.map((icon, index) => (
+                  <Button
+                    key={index}
+                    variant={selectedFolderIcon === icon ? "default" : "outline"}
+                    size="sm"
+                    className="h-12 w-12 p-0"
+                    onClick={() => {
+                      setSelectedFolderIcon(icon);
+                      setUploadedIcon(null);
+                    }}
+                  >
+                    <img src={icon} alt={`Icon ${index + 1}`} className="w-6 h-6" />
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            {/* Upload Custom Icon */}
+            <div className="space-y-2">
+              <Label>Upload Custom Icon</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleIconUpload}
+                  className="flex-1"
+                />
+                {uploadedIcon && (
+                  <div className="w-8 h-8 rounded border overflow-hidden">
+                    <img
+                      src={URL.createObjectURL(uploadedIcon)}
+                      alt="Uploaded icon"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-2 pt-4">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowNewFolderModal(false);
+                  setNewFolderName('');
+                  setSelectedFolderIcon('');
+                  setUploadedIcon(null);
+                }}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleCreateFolder}
+                className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600"
+              >
+                Create Folder
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

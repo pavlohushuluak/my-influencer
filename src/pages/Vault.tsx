@@ -132,13 +132,44 @@ export default function Vault() {
     ratingRange: { min: number; max: number };
     withNotes: boolean | null;
     withTags: boolean | null;
+    selectedTags: string[];
   }>({
     fileTypes: [],
     favorites: null,
     ratingRange: { min: 0, max: 5 },
     withNotes: null,
-    withTags: null
+    withTags: null,
+    selectedTags: []
   });
+
+  // Tag selection modal state
+  const [tagSelectionModal, setTagSelectionModal] = useState<{ open: boolean }>({ open: false });
+
+  // Add tag to filter when clicked on card
+  const addTagToFilter = (tag: string) => {
+    const trimmedTag = tag.trim();
+    if (trimmedTag && !selectedFilters.selectedTags.includes(trimmedTag)) {
+      setSelectedFilters(prev => ({
+        ...prev,
+        selectedTags: [...prev.selectedTags, trimmedTag]
+      }));
+    }
+  };
+
+  // Get all available tags from generated images
+  const getAllAvailableTags = (): string[] => {
+    const allTags = new Set<string>();
+    generatedImages.forEach(image => {
+      if (image.user_tags && image.user_tags.length > 0) {
+        image.user_tags.forEach(tag => {
+          if (tag.trim()) {
+            allTags.add(tag.trim());
+          }
+        });
+      }
+    });
+    return Array.from(allTags).sort();
+  };
 
   // Extract folder name from full path
   const extractFolderName = (fullPath: string): string => {
@@ -607,9 +638,8 @@ export default function Vault() {
         (selectedFilters.withNotes === false && !(image.user_notes && image.user_notes.trim() !== ''));
 
       // Tags filter
-      const tagsMatch = selectedFilters.withTags === null || 
-        (selectedFilters.withTags === true && !!(image.user_tags && image.user_tags.length > 0)) ||
-        (selectedFilters.withTags === false && !(image.user_tags && image.user_tags.length > 0));
+      const tagsMatch = selectedFilters.selectedTags.length === 0 || 
+        (image.user_tags && image.user_tags.some(tag => selectedFilters.selectedTags.includes(tag.trim())));
 
       return searchMatch && fileTypeMatch && favoriteMatch && ratingMatch && notesMatch && tagsMatch;
     })
@@ -644,7 +674,7 @@ export default function Vault() {
     selectedFilters.ratingRange.min > 0 || 
     selectedFilters.ratingRange.max < 5 || 
     selectedFilters.withNotes !== null || 
-    selectedFilters.withTags !== null;
+    selectedFilters.selectedTags.length > 0;
 
   // Helper function to get descriptive filter names
   const getFilterDisplayName = (filter: string): string => {
@@ -678,7 +708,8 @@ export default function Vault() {
       favorites: null,
       ratingRange: { min: 0, max: 5 },
       withNotes: null,
-      withTags: null
+      withTags: null,
+      selectedTags: []
     });
     setSortBy('newest');
     setSortOrder('desc');
@@ -1650,17 +1681,12 @@ export default function Vault() {
                   With Notes
                 </Button>
                 <Button
-                  variant={selectedFilters.withTags === true ? "default" : "outline"}
+                  variant={selectedFilters.selectedTags.length > 0 ? "default" : "outline"}
                   size="sm"
                   className="h-8 text-xs"
-                  onClick={() => {
-                    setSelectedFilters(prev => ({
-                      ...prev,
-                      withTags: prev.withTags === true ? null : true
-                    }));
-                  }}
+                  onClick={() => setTagSelectionModal({ open: true })}
                 >
-                  With Tags
+                  Tags {selectedFilters.selectedTags.length > 0 && `(${selectedFilters.selectedTags.length})`}
                 </Button>
               </div>
             </div>
@@ -1734,10 +1760,29 @@ export default function Vault() {
                   With Notes
                 </Badge>
               )}
-              {selectedFilters.withTags === true && (
-                <Badge variant="secondary" className="text-xs">
-                  With Tags
-                </Badge>
+              {selectedFilters.selectedTags.length > 0 && (
+                <>
+                  {selectedFilters.selectedTags.map((tag, index) => (
+                    <Badge 
+                      key={index} 
+                      variant="secondary" 
+                      className="text-xs flex items-center gap-1"
+                    >
+                      Tag: {tag}
+                      <button
+                        className="ml-1 hover:text-red-500 transition-colors"
+                        onClick={() => {
+                          setSelectedFilters(prev => ({
+                            ...prev,
+                            selectedTags: prev.selectedTags.filter((_, i) => i !== index)
+                          }));
+                        }}
+                      >
+                        ×
+                      </button>
+                    </Badge>
+                  ))}
+                </>
               )}
             </div>
           )}
@@ -2162,7 +2207,15 @@ export default function Vault() {
                   {image.user_tags && image.user_tags.length > 0 && (
                     <div className="mb-3 flex flex-wrap gap-1">
                       {image.user_tags.map((tag, index) => (
-                        <Badge key={index} variant="secondary" className="text-xs flex items-center gap-1">
+                        <Badge 
+                          key={index} 
+                          variant="secondary" 
+                          className="text-xs flex items-center gap-1 cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/20 transition-colors"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            addTagToFilter(tag);
+                          }}
+                        >
                           {tag.trim()}
                           <button
                             className="ml-1 hover:text-red-500 transition-colors"
@@ -2851,6 +2904,104 @@ export default function Vault() {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Tag Selection Modal */}
+      <Dialog open={tagSelectionModal.open} onOpenChange={(open) => setTagSelectionModal({ open })}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Badge className="w-5 h-5" />
+              Select Tags to Filter
+            </DialogTitle>
+            <DialogDescription>
+              Choose tags to filter your images. Images must have at least one of the selected tags to be shown.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            {/* Currently Selected Tags */}
+            {selectedFilters.selectedTags.length > 0 && (
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Currently Selected:</Label>
+                <div className="flex flex-wrap gap-2">
+                  {selectedFilters.selectedTags.map((tag, index) => (
+                    <Badge 
+                      key={index} 
+                      variant="default" 
+                      className="text-xs flex items-center gap-1"
+                    >
+                      {tag}
+                      <button
+                        className="ml-1 hover:text-red-300 transition-colors"
+                        onClick={() => {
+                          setSelectedFilters(prev => ({
+                            ...prev,
+                            selectedTags: prev.selectedTags.filter((_, i) => i !== index)
+                          }));
+                        }}
+                      >
+                        ×
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Available Tags */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Available Tags:</Label>
+              <div className="flex flex-wrap gap-2 max-h-60 overflow-y-auto">
+                {getAllAvailableTags().map((tag) => (
+                  <Badge 
+                    key={tag} 
+                    variant={selectedFilters.selectedTags.includes(tag) ? "default" : "outline"}
+                    className="text-xs cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/20 transition-colors"
+                    onClick={() => {
+                      if (selectedFilters.selectedTags.includes(tag)) {
+                        setSelectedFilters(prev => ({
+                          ...prev,
+                          selectedTags: prev.selectedTags.filter(t => t !== tag)
+                        }));
+                      } else {
+                        setSelectedFilters(prev => ({
+                          ...prev,
+                          selectedTags: [...prev.selectedTags, tag]
+                        }));
+                      }
+                    }}
+                  >
+                    {tag}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-2 pt-4 border-t">
+              <Button
+                variant="outline"
+                onClick={() => setTagSelectionModal({ open: false })}
+                className="flex-1"
+              >
+                Close
+              </Button>
+              <Button
+                onClick={() => {
+                  setSelectedFilters(prev => ({
+                    ...prev,
+                    selectedTags: []
+                  }));
+                }}
+                variant="outline"
+                className="text-red-600 hover:text-red-700"
+              >
+                Clear All Tags
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

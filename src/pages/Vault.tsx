@@ -43,7 +43,7 @@ interface GeneratedImageData {
   system_filename: string;
   user_filename: string | null;
   user_notes: string | null;
-  user_tags: string | null;
+  user_tags: string[] | null;
   file_path: string;
   file_size_bytes: number;
   image_format: string;
@@ -88,7 +88,6 @@ export default function Vault() {
   const [loading, setLoading] = useState(true);
   const [foldersLoading, setFoldersLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [typeFilter, setTypeFilter] = useState('all');
   const [sortBy, setSortBy] = useState('newest');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -119,6 +118,27 @@ export default function Vault() {
 
   // Detailed image modal state
   const [detailedImageModal, setDetailedImageModal] = useState<{ open: boolean; image: GeneratedImageData | null }>({ open: false, image: null });
+
+  // Editing state for user notes and tags
+  const [editingNotes, setEditingNotes] = useState<string | null>(null);
+  const [editingTags, setEditingTags] = useState<string | null>(null);
+  const [notesInput, setNotesInput] = useState<string>('');
+  const [tagsInput, setTagsInput] = useState<string>('');
+
+  // Multi-select filter state
+  const [selectedFilters, setSelectedFilters] = useState<{
+    fileTypes: string[];
+    favorites: boolean | null;
+    ratingRange: { min: number; max: number };
+    withNotes: boolean | null;
+    withTags: boolean | null;
+  }>({
+    fileTypes: [],
+    favorites: null,
+    ratingRange: { min: 0, max: 5 },
+    withNotes: null,
+    withTags: null
+  });
 
   // Extract folder name from full path
   const extractFolderName = (fullPath: string): string => {
@@ -406,10 +426,139 @@ export default function Vault() {
     }
   }, [currentPath, userData.id]);
 
+  // Update favorite status
+  const updateFavorite = async (systemFilename: string, favorite: boolean) => {
+    try {
+      const response = await fetch(`https://db.nymia.ai/rest/v1/generated_images?system_filename=eq.${systemFilename}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          favorite: favorite
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update favorite status');
+      }
+
+      // Update local state
+      setGeneratedImages(prev => prev.map(img => 
+        img.system_filename === systemFilename 
+          ? { ...img, favorite: favorite }
+          : img
+      ));
+
+      toast.success(favorite ? 'Added to favorites' : 'Removed from favorites');
+    } catch (error) {
+      console.error('Error updating favorite status:', error);
+      toast.error('Failed to update favorite status');
+    }
+  };
+
+  // Update rating
+  const updateRating = async (systemFilename: string, rating: number) => {
+    try {
+      const response = await fetch(`https://db.nymia.ai/rest/v1/generated_images?system_filename=eq.${systemFilename}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          rating: rating
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update rating');
+      }
+
+      // Update local state
+      setGeneratedImages(prev => prev.map(img => 
+        img.system_filename === systemFilename 
+          ? { ...img, rating: rating }
+          : img
+      ));
+
+      toast.success(`Rating updated to ${rating} stars`);
+    } catch (error) {
+      console.error('Error updating rating:', error);
+      toast.error('Failed to update rating');
+    }
+  };
+
+  // Update user notes
+  const updateUserNotes = async (systemFilename: string, userNotes: string) => {
+    try {
+      const response = await fetch(`https://db.nymia.ai/rest/v1/generated_images?system_filename=eq.${systemFilename}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          user_notes: userNotes
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update user notes');
+      }
+
+      // Update local state
+      setGeneratedImages(prev => prev.map(img => 
+        img.system_filename === systemFilename 
+          ? { ...img, user_notes: userNotes }
+          : img
+      ));
+
+      toast.success('Notes updated successfully');
+    } catch (error) {
+      console.error('Error updating user notes:', error);
+      toast.error('Failed to update notes');
+    }
+  };
+
+  // Update user tags
+  const updateUserTags = async (systemFilename: string, userTags: string[]) => {
+    try {
+      const response = await fetch(`https://db.nymia.ai/rest/v1/generated_images?system_filename=eq.${systemFilename}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          user_tags: userTags
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update user tags');
+      }
+
+      // Update local state
+      setGeneratedImages(prev => prev.map(img => 
+        img.system_filename === systemFilename 
+          ? { ...img, user_tags: userTags }
+          : img
+      ));
+
+      toast.success('Tags updated successfully');
+    } catch (error) {
+      console.error('Error updating user tags:', error);
+      toast.error('Failed to update tags');
+    }
+  };
+
   const filteredAndSortedItems = currentFolderItems
     .filter(item => {
       const matchesSearch = item.id;
-      const matchesType = typeFilter === 'all' || item.type === typeFilter;
+      const matchesType = selectedFilters.fileTypes.length === 0 || 
+        selectedFilters.fileTypes.includes(item.type);
       
       return matchesSearch && matchesType;
     })
@@ -430,7 +579,110 @@ export default function Vault() {
       return sortOrder === 'desc' ? -comparison : comparison;
     });
 
-  const hasActiveFilters = searchTerm || typeFilter !== 'all';
+  // Filter and sort generated images for home route
+  const filteredAndSortedGeneratedImages = generatedImages
+    .filter(image => {
+      // Search filter - search across multiple fields
+      const searchMatch = !searchTerm || 
+        (image.user_filename && image.user_filename.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (image.system_filename && image.system_filename.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (image.user_notes && image.user_notes.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (image.user_tags && image.user_tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase())));
+
+      // File type filter - multi-select
+      const fileTypeMatch = selectedFilters.fileTypes.length === 0 || 
+        selectedFilters.fileTypes.includes(image.file_type);
+
+      // Favorite filter
+      const favoriteMatch = selectedFilters.favorites === null || 
+        image.favorite === selectedFilters.favorites;
+
+      // Rating range filter
+      const ratingMatch = image.rating >= selectedFilters.ratingRange.min && 
+        image.rating <= selectedFilters.ratingRange.max;
+
+      // Notes filter
+      const notesMatch = selectedFilters.withNotes === null || 
+        (selectedFilters.withNotes === true && !!(image.user_notes && image.user_notes.trim() !== '')) ||
+        (selectedFilters.withNotes === false && !(image.user_notes && image.user_notes.trim() !== ''));
+
+      // Tags filter
+      const tagsMatch = selectedFilters.withTags === null || 
+        (selectedFilters.withTags === true && !!(image.user_tags && image.user_tags.length > 0)) ||
+        (selectedFilters.withTags === false && !(image.user_tags && image.user_tags.length > 0));
+
+      return searchMatch && fileTypeMatch && favoriteMatch && ratingMatch && notesMatch && tagsMatch;
+    })
+    .sort((a, b) => {
+      let comparison = 0;
+      
+      switch (sortBy) {
+        case 'newest':
+          comparison = new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+          break;
+        case 'oldest':
+          comparison = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+          break;
+        case 'rating':
+          comparison = b.rating - a.rating;
+          break;
+        case 'filename':
+          const aName = (a.user_filename || a.system_filename || '').toLowerCase();
+          const bName = (b.user_filename || b.system_filename || '').toLowerCase();
+          comparison = aName.localeCompare(bName);
+          break;
+        default:
+          comparison = 0;
+      }
+      
+      return sortOrder === 'desc' ? -comparison : comparison;
+    });
+
+  const hasActiveFilters = searchTerm || 
+    selectedFilters.fileTypes.length > 0 || 
+    selectedFilters.favorites !== null || 
+    selectedFilters.ratingRange.min > 0 || 
+    selectedFilters.ratingRange.max < 5 || 
+    selectedFilters.withNotes !== null || 
+    selectedFilters.withTags !== null;
+
+  // Helper function to get descriptive filter names
+  const getFilterDisplayName = (filter: string): string => {
+    switch (filter) {
+      case 'pic': return 'Images Only';
+      case 'video': return 'Videos Only';
+      case 'favorite': return 'Favorites Only';
+      case 'rated': return 'Rated Only';
+      case 'with_notes': return 'With Notes';
+      case 'with_tags': return 'With Tags';
+      case 'image': return 'Images Only';
+      default: return filter;
+    }
+  };
+
+  // Helper function to get sort display name
+  const getSortDisplayName = (sort: string): string => {
+    switch (sort) {
+      case 'newest': return 'Newest First';
+      case 'oldest': return 'Oldest First';
+      case 'rating': return 'By Rating';
+      case 'filename': return 'By Filename';
+      default: return sort;
+    }
+  };
+
+  const clearFilters = () => {
+    setSearchTerm('');
+    setSelectedFilters({
+      fileTypes: [],
+      favorites: null,
+      ratingRange: { min: 0, max: 5 },
+      withNotes: null,
+      withTags: null
+    });
+    setSortBy('newest');
+    setSortOrder('desc');
+  };
 
   const handleRemoveFromVault = async (contentId: string) => {
     try {
@@ -552,13 +804,6 @@ export default function Vault() {
     }
 
     window.open(shareUrl, '_blank', 'width=600,height=400');
-  };
-
-  const clearFilters = () => {
-    setSearchTerm('');
-    setTypeFilter('all');
-    setSortBy('newest');
-    setSortOrder('desc');
   };
 
   // Handle new folder creation
@@ -1311,24 +1556,133 @@ export default function Vault() {
 
           {/* Filter Controls */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <Select value={typeFilter} onValueChange={setTypeFilter}>
-              <SelectTrigger>
-                <SelectValue placeholder="All Types" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Types</SelectItem>
-                <SelectItem value="image">Images Only</SelectItem>
-                <SelectItem value="video">Videos Only</SelectItem>
-              </SelectContent>
-            </Select>
+            {/* File Type Multi-Select */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">File Types</Label>
+              <div className="flex flex-wrap gap-2">
+                {['pic', 'video'].map((type) => (
+                  <Button
+                    key={type}
+                    variant={selectedFilters.fileTypes.includes(type) ? "default" : "outline"}
+                    size="sm"
+                    className="h-8 text-xs"
+                    onClick={() => {
+                      setSelectedFilters(prev => ({
+                        ...prev,
+                        fileTypes: prev.fileTypes.includes(type)
+                          ? prev.fileTypes.filter(t => t !== type)
+                          : [...prev.fileTypes, type]
+                      }));
+                    }}
+                  >
+                    {type === 'pic' ? 'Images' : 'Videos'}
+                  </Button>
+                ))}
+              </div>
+            </div>
 
+            {/* Rating Range Filter */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Rating Range</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  type="number"
+                  min="0"
+                  max="5"
+                  value={selectedFilters.ratingRange.min}
+                  onChange={(e) => {
+                    const value = parseInt(e.target.value) || 0;
+                    setSelectedFilters(prev => ({
+                      ...prev,
+                      ratingRange: { ...prev.ratingRange, min: Math.min(value, prev.ratingRange.max) }
+                    }));
+                  }}
+                  className="w-16 h-8 text-xs"
+                  placeholder="Min"
+                />
+                <span className="text-xs text-muted-foreground">to</span>
+                <Input
+                  type="number"
+                  min="0"
+                  max="5"
+                  value={selectedFilters.ratingRange.max}
+                  onChange={(e) => {
+                    const value = parseInt(e.target.value) || 5;
+                    setSelectedFilters(prev => ({
+                      ...prev,
+                      ratingRange: { ...prev.ratingRange, max: Math.max(value, prev.ratingRange.min) }
+                    }));
+                  }}
+                  className="w-16 h-8 text-xs"
+                  placeholder="Max"
+                />
+              </div>
+            </div>
+
+            {/* Other Filters */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Other Filters</Label>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant={selectedFilters.favorites === true ? "default" : "outline"}
+                  size="sm"
+                  className="h-8 text-xs"
+                  onClick={() => {
+                    setSelectedFilters(prev => ({
+                      ...prev,
+                      favorites: prev.favorites === true ? null : true
+                    }));
+                  }}
+                >
+                  Favorites
+                </Button>
+                <Button
+                  variant={selectedFilters.withNotes === true ? "default" : "outline"}
+                  size="sm"
+                  className="h-8 text-xs"
+                  onClick={() => {
+                    setSelectedFilters(prev => ({
+                      ...prev,
+                      withNotes: prev.withNotes === true ? null : true
+                    }));
+                  }}
+                >
+                  With Notes
+                </Button>
+                <Button
+                  variant={selectedFilters.withTags === true ? "default" : "outline"}
+                  size="sm"
+                  className="h-8 text-xs"
+                  onClick={() => {
+                    setSelectedFilters(prev => ({
+                      ...prev,
+                      withTags: prev.withTags === true ? null : true
+                    }));
+                  }}
+                >
+                  With Tags
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {/* Sort Controls */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <Select value={sortBy} onValueChange={setSortBy}>
               <SelectTrigger>
                 <SelectValue placeholder="Sort by" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="newest">Date Added</SelectItem>
-                <SelectItem value="title">Title</SelectItem>
+                <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground">Date</div>
+                <SelectItem value="newest">Newest First</SelectItem>
+                <SelectItem value="oldest">Oldest First</SelectItem>
+                {currentPath === '' && (
+                  <>
+                    <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground">Other</div>
+                    <SelectItem value="rating">By Rating</SelectItem>
+                    <SelectItem value="filename">By Filename</SelectItem>
+                  </>
+                )}
               </SelectContent>
             </Select>
 
@@ -1356,14 +1710,34 @@ export default function Vault() {
             <div className="flex flex-wrap gap-2">
               <span className="text-sm text-muted-foreground">Active filters:</span>
               {searchTerm && (
-                <span className="text-sm text-muted-foreground">
+                <Badge variant="secondary" className="text-xs">
                   Search: "{searchTerm}"
-                </span>
+                </Badge>
               )}
-              {typeFilter !== 'all' && (
-                <span className="text-sm text-muted-foreground">
-                  Type: {typeFilter}
-                </span>
+              {selectedFilters.fileTypes.length > 0 && (
+                <Badge variant="secondary" className="text-xs">
+                  Types: {selectedFilters.fileTypes.map(type => type === 'pic' ? 'Images' : 'Videos').join(', ')}
+                </Badge>
+              )}
+              {selectedFilters.favorites === true && (
+                <Badge variant="secondary" className="text-xs">
+                  Favorites Only
+                </Badge>
+              )}
+              {(selectedFilters.ratingRange.min > 0 || selectedFilters.ratingRange.max < 5) && (
+                <Badge variant="secondary" className="text-xs">
+                  Rating: {selectedFilters.ratingRange.min}-{selectedFilters.ratingRange.max} stars
+                </Badge>
+              )}
+              {selectedFilters.withNotes === true && (
+                <Badge variant="secondary" className="text-xs">
+                  With Notes
+                </Badge>
+              )}
+              {selectedFilters.withTags === true && (
+                <Badge variant="secondary" className="text-xs">
+                  With Tags
+                </Badge>
               )}
             </div>
           )}
@@ -1612,7 +1986,7 @@ export default function Vault() {
         <div className="flex items-center gap-4">
           <p className="text-sm text-muted-foreground">
             {currentPath === '' ? (
-              `Showing ${generatedImages.length} of ${files.length} files`
+              `Showing ${filteredAndSortedGeneratedImages.length} of ${generatedImages.length} files`
             ) : (
               `Showing ${filteredAndSortedItems.length} of ${currentFolderItems.length} items in "${currentPath}"`
             )}
@@ -1640,23 +2014,12 @@ export default function Vault() {
           </div>
         ) : generatedImages.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-            {generatedImages.map((image) => (
+            {filteredAndSortedGeneratedImages.map((image) => (
               <Card 
                 key={image.id} 
                 className="group hover:shadow-xl transition-all duration-300 border-border/50 hover:border-yellow-500/30 bg-gradient-to-br from-yellow-50/20 to-orange-50/20 dark:from-yellow-950/5 dark:to-orange-950/5 backdrop-blur-sm"
               >
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Image className="w-4 h-4 text-blue-500" />
-                    </div>
-                    {image.favorite && <Star className="w-4 h-4 text-yellow-500 fill-current" />}
-                  </div>
-                  <CardTitle className="text-lg font-semibold text-gray-800 dark:text-gray-200">
-                    {image.user_filename || image.system_filename}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="p-4">
                   <div className="relative w-full group mb-4" style={{ paddingBottom: '100%' }}>
                     <img
                       src={`https://images.nymia.ai/cdn-cgi/image/w=400/${userData.id}/output/${image.system_filename}`}
@@ -1664,44 +2027,264 @@ export default function Vault() {
                       className="absolute inset-0 w-full h-full object-cover rounded-md shadow-sm cursor-pointer"
                       onClick={() => setDetailedImageModal({ open: true, image })}
                     />
+                    
+                    {/* File Type Icon */}
+                    <div className="absolute top-2 left-2 bg-black/50 rounded-full w-8 h-8 flex items-center justify-center">
+                      {image.file_type === 'video' ? (
+                        <Video className="w-4 h-4 text-white" />
+                      ) : (
+                        <Image className="w-4 h-4 text-white" />
+                      )}
+                    </div>
+
+                    {/* Favorite Heart */}
+                    <div className="absolute top-2 right-2">
+                      {image.favorite ? (
+                        <div 
+                          className="bg-red-500 rounded-full w-8 h-8 flex items-center justify-center cursor-pointer hover:bg-red-600 transition-colors"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            updateFavorite(image.system_filename, false);
+                          }}
+                        >
+                          <svg className="w-4 h-4 text-white fill-current" viewBox="0 0 24 24">
+                            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                          </svg>
+                        </div>
+                      ) : (
+                        <div 
+                          className="bg-black/50 rounded-full w-8 h-8 flex items-center justify-center cursor-pointer hover:bg-black/70 transition-colors"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            updateFavorite(image.system_filename, true);
+                          }}
+                        >
+                          <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                          </svg>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Rating Stars */}
+                    <div className="absolute bottom-2 left-2 flex gap-1">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <svg
+                          key={star}
+                          className={`w-4 h-4 cursor-pointer hover:scale-110 transition-transform ${
+                            star <= image.rating ? 'text-yellow-400 fill-current' : 'text-gray-300'
+                          }`}
+                          viewBox="0 0 24 24"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            updateRating(image.system_filename, star);
+                          }}
+                        >
+                          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                        </svg>
+                      ))}
+                    </div>
                   </div>
-                  <div className="space-y-3">
+
+                  {/* User Notes */}
+                  {editingNotes === image.system_filename ? (
+                    <div className="mb-3 space-y-2">
+                      <Input
+                        value={notesInput}
+                        onChange={(e) => setNotesInput(e.target.value)}
+                        placeholder="Add notes..."
+                        className="text-sm"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            updateUserNotes(image.system_filename, notesInput);
+                            setEditingNotes(null);
+                            setNotesInput('');
+                          } else if (e.key === 'Escape') {
+                            setEditingNotes(null);
+                            setNotesInput('');
+                          }
+                        }}
+                        autoFocus
+                      />
+                      <div className="flex gap-1">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-6 text-xs"
+                          onClick={() => {
+                            updateUserNotes(image.system_filename, notesInput);
+                            setEditingNotes(null);
+                            setNotesInput('');
+                          }}
+                        >
+                          Save
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-6 text-xs"
+                          onClick={() => {
+                            setEditingNotes(null);
+                            setNotesInput('');
+                          }}
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="mb-3">
+                      {image.user_notes ? (
+                        <p 
+                          className="text-sm text-gray-700 dark:text-gray-300 line-clamp-2 cursor-pointer hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
+                          onClick={() => {
+                            setEditingNotes(image.system_filename);
+                            setNotesInput(image.user_notes || '');
+                          }}
+                        >
+                          {image.user_notes}
+                        </p>
+                      ) : (
+                        <div 
+                          className="text-sm text-gray-500 dark:text-gray-400 cursor-pointer hover:text-gray-700 dark:hover:text-gray-300"
+                          onClick={() => {
+                            setEditingNotes(image.system_filename);
+                            setNotesInput('');
+                          }}
+                        >
+                          Add notes
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* User Tags */}
+                  {image.user_tags && image.user_tags.length > 0 && (
+                    <div className="mb-3 flex flex-wrap gap-1">
+                      {image.user_tags.map((tag, index) => (
+                        <Badge key={index} variant="secondary" className="text-xs flex items-center gap-1">
+                          {tag.trim()}
+                          <button
+                            className="ml-1 hover:text-red-500 transition-colors"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const updatedTags = image.user_tags?.filter((_, i) => i !== index) || [];
+                              updateUserTags(image.system_filename, updatedTags);
+                            }}
+                          >
+                            ×
+                          </button>
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Editable User Tags */}
+                  <div className="mb-3">
+                    {editingTags === image.system_filename ? (
+                      <div className="space-y-2">
+                        <Input
+                          value={tagsInput}
+                          onChange={(e) => setTagsInput(e.target.value)}
+                          placeholder="Add tags (comma separated)..."
+                          className="text-sm"
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              const newTags = tagsInput.trim() ? tagsInput.split(',').map(tag => tag.trim()).filter(tag => tag) : [];
+                              const existingTags = image.user_tags || [];
+                              const combinedTags = [...existingTags, ...newTags];
+                              const uniqueTags = [...new Set(combinedTags)]; // Remove duplicates
+                              updateUserTags(image.system_filename, uniqueTags);
+                              setEditingTags(null);
+                              setTagsInput('');
+                            } else if (e.key === 'Escape') {
+                              setEditingTags(null);
+                              setTagsInput('');
+                            }
+                          }}
+                          autoFocus
+                        />
+                        <div className="flex gap-1">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-6 text-xs"
+                            onClick={() => {
+                              const newTags = tagsInput.trim() ? tagsInput.split(',').map(tag => tag.trim()).filter(tag => tag) : [];
+                              const existingTags = image.user_tags || [];
+                              const combinedTags = [...existingTags, ...newTags];
+                              const uniqueTags = [...new Set(combinedTags)]; // Remove duplicates
+                              updateUserTags(image.system_filename, uniqueTags);
+                              setEditingTags(null);
+                              setTagsInput('');
+                            }}
+                          >
+                            Add
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-6 text-xs"
+                            onClick={() => {
+                              setEditingTags(null);
+                              setTagsInput('');
+                            }}
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div 
+                        className="text-sm text-gray-500 dark:text-gray-400 cursor-pointer hover:text-gray-700 dark:hover:text-gray-300"
+                        onClick={() => {
+                          setEditingTags(image.system_filename);
+                          setTagsInput('');
+                        }}
+                      >
+                        Add tags
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Filename and Date */}
+                  <div className="space-y-2">
+                    <h3 className="font-medium text-sm text-gray-800 dark:text-gray-200 truncate">
+                      {image.user_filename || image.system_filename}
+                    </h3>
                     <div className="flex items-center gap-1 text-xs text-muted-foreground">
                       <Calendar className="w-3 h-3" />
-                      Created {new Date(image.created_at).toLocaleDateString()}
+                      {new Date(image.created_at).toLocaleDateString()}
                     </div>
-                    <div className="text-xs text-muted-foreground">
-                      <div>Model: {image.model_version}</div>
-                      <div>Seed: {image.seed}</div>
-                      <div>Steps: {image.steps}</div>
-                    </div>
-                    <div className="flex gap-1.5">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="flex-1 h-8 text-xs font-medium hover:bg-purple-700 hover:border-purple-500 transition-colors"
-                        onClick={() => handleDownload(image.system_filename.replace('.png', ''))}
-                      >
-                        <Download className="w-3 h-3 mr-1.5" />
-                        <span className="hidden sm:inline">Download</span>
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-8 w-8 p-0 hover:bg-green-50 hover:bg-green-700 hover:border-green-500 transition-colors"
-                        onClick={() => handleShare(image.system_filename.replace('.png', ''))}
-                      >
-                        <Share className="w-3 h-3" />
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-amber-500 hover:border-amber-300 transition-colors"
-                        onClick={() => handleRemoveFromVault(image.system_filename.replace('.png', ''))}
-                      >
-                        <Trash2 className="w-3 h-3" />
-                      </Button>
-                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex gap-1.5 mt-3">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="flex-1 h-8 text-xs font-medium hover:bg-purple-700 hover:border-purple-500 transition-colors"
+                      onClick={() => handleDownload(image.system_filename.replace('.png', ''))}
+                    >
+                      <Download className="w-3 h-3 mr-1.5" />
+                      <span className="hidden sm:inline">Download</span>
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-8 w-8 p-0 hover:bg-green-50 hover:bg-green-700 hover:border-green-500 transition-colors"
+                      onClick={() => handleShare(image.system_filename.replace('.png', ''))}
+                    >
+                      <Share className="w-3 h-3" />
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-amber-500 hover:border-amber-300 transition-colors"
+                      onClick={() => handleRemoveFromVault(image.system_filename.replace('.png', ''))}
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
@@ -1735,7 +2318,7 @@ export default function Vault() {
                       ) : (
                         <Image className="w-4 h-4 text-blue-500" />
                       )}
-                    </div>
+                  </div>
                     <Star className="w-4 h-4 text-yellow-500 fill-current" />
                   </div>
                   <CardTitle className="text-lg font-semibold text-gray-800 dark:text-gray-200">{item.id}</CardTitle>
@@ -1755,8 +2338,8 @@ export default function Vault() {
                       </div>
                   </div>
                   <div className="space-y-3">
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <Calendar className="w-3 h-3" />
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <Calendar className="w-3 h-3" />
                       Added {new Date(item.created_at).toLocaleDateString()}
                     </div>
                     <div className="flex gap-1.5">
@@ -1785,14 +2368,14 @@ export default function Vault() {
                         >
                           <Trash2 className="w-3 h-3" />
                         </Button>
-                    </div>
                   </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-12">
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : (
+        <div className="text-center py-12">
             <div className="flex flex-col items-center gap-4">
               {currentPath ? (
                 <>
@@ -1805,13 +2388,13 @@ export default function Vault() {
               ) : (
                 <>
                   <Star className="w-12 h-12 text-yellow-500/50" />
-              <h3 className="text-lg font-semibold mb-2">No items found</h3>
-              <p className="text-muted-foreground">
-                Try adjusting your search or filters to find what you're looking for.
-              </p>
+          <h3 className="text-lg font-semibold mb-2">No items found</h3>
+          <p className="text-muted-foreground">
+            Try adjusting your search or filters to find what you're looking for.
+          </p>
                 </>
               )}
-            </div>
+        </div>
           </div>
         )
       )}
@@ -2207,7 +2790,7 @@ export default function Vault() {
                 </Card>
 
                 {/* Generation Details */}
-                <Card>
+                <Card className="md:col-span-2">
                   <CardHeader>
                     <CardTitle className="text-lg">Generation Details</CardTitle>
                   </CardHeader>
@@ -2236,43 +2819,6 @@ export default function Vault() {
                       <span className="font-medium">Retry Count:</span>
                       <span className="text-muted-foreground">{detailedImageModal.image.retry_count}</span>
                     </div>
-                  </CardContent>
-                </Card>
-
-                {/* File Information */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">File Information</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="flex justify-between">
-                      <span className="font-medium">Created:</span>
-                      <span className="text-muted-foreground">{new Date(detailedImageModal.image.created_at).toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="font-medium">Updated:</span>
-                      <span className="text-muted-foreground">{new Date(detailedImageModal.image.updated_at).toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="font-medium">File Path:</span>
-                      <span className="text-muted-foreground text-xs">{detailedImageModal.image.file_path}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="font-medium">Prompt File:</span>
-                      <span className="text-muted-foreground text-xs">{detailedImageModal.image.prompt_file_used}</span>
-                    </div>
-                    {detailedImageModal.image.user_notes && (
-                      <div className="flex justify-between">
-                        <span className="font-medium">Notes:</span>
-                        <span className="text-muted-foreground">{detailedImageModal.image.user_notes}</span>
-                      </div>
-                    )}
-                    {detailedImageModal.image.user_tags && (
-                      <div className="flex justify-between">
-                        <span className="font-medium">Tags:</span>
-                        <span className="text-muted-foreground">{detailedImageModal.image.user_tags}</span>
-                      </div>
-                    )}
                   </CardContent>
                 </Card>
               </div>

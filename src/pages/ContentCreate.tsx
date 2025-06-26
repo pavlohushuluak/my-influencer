@@ -630,7 +630,8 @@ export default function ContentCreate() {
           makeup_style: data[0].makeup, // Use from modelDescription or default
           name_first: data[0].name_first,
           name_last: data[0].name_last,
-          visual_only: data[0].visual_only
+          visual_only: data[0].visual_only,
+          age_lifestyle: data[0].age_lifestyle
         } : null,
         scene: {
           framing: sceneSpecs.framing,

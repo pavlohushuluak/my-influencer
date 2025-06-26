@@ -640,7 +640,8 @@ export default function InfluencerEdit() {
           makeup_style: influencerData.makeup, // Use from modelDescription or default
           name_first: influencerData.name_first,
           name_last: influencerData.name_last,
-          visual_only: influencerData.visual_only
+          visual_only: influencerData.visual_only,
+          age_lifestyle: influencerData.age_lifestyle
         } : null,
         scene: {
           framing: "",

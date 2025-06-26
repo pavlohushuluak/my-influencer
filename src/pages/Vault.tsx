@@ -64,6 +64,7 @@ export default function Vault() {
   const [editingFolder, setEditingFolder] = useState<string | null>(null);
   const [editingFolderName, setEditingFolderName] = useState<string>('');
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; folderPath: string } | null>(null);
+  const [renamingFolder, setRenamingFolder] = useState<string | null>(null);
 
   // Extract folder name from full path
   const extractFolderName = (fullPath: string): string => {
@@ -640,14 +641,37 @@ export default function Vault() {
   // Handle folder rename
   const handleFolderRename = async (oldPath: string, newName: string) => {
     try {
-      console.log('Renaming folder:', oldPath, 'to:', newName);
+      // Get the old folder name from the path
+      const oldFolderName = oldPath.split('/').pop() || '';
+      
+      // Check if the new name is the same as the old name
+      if (oldFolderName === newName) {
+        console.log('Folder name unchanged, cancelling rename operation');
+        setEditingFolder(null);
+        setEditingFolderName('');
+        return;
+      }
 
+      // Show warning toast before starting the operation
+      toast.warning('Folder rename in progress...', {
+        description: 'This operation may take some time depending on the folder contents. Please wait.',
+        duration: 3000
+      });
+
+      // Set loading state
+      setRenamingFolder(oldPath);
+      toast.info('Renaming folder...', {
+        description: 'This may take a moment depending on the folder contents'
+      });
+
+      console.log('Renaming folder:', oldPath, 'to:', newName);
+      
       // Get the parent path and construct the new path
       const pathParts = oldPath.split('/');
-      const oldFolderName = pathParts.pop() || '';
+      const oldFolderNameFromPath = pathParts.pop() || '';
       const parentPath = pathParts.join('/');
       const newPath = parentPath ? `${parentPath}/${newName}` : newName;
-
+      
       console.log('Parent path:', parentPath);
       console.log('New path:', newPath);
 
@@ -769,54 +793,54 @@ export default function Vault() {
                 // Copy files from this subfolder
                 await copyFilesFromFolder(`${oldPath}/${relativePath}`, `${newPath}/${relativePath}`);
               }
-            }
 
-            const getFilesResponse = await fetch('https://api.nymia.ai/v1/getfilenames', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': 'Bearer WeInfl3nc3withAI'
-              },
-              body: JSON.stringify({
-                user: userData.id,
-                folder: `vault/${oldPath}/${relativePath}`
-              })
-            });
+              const getFilesResponse = await fetch('https://api.nymia.ai/v1/getfilenames', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': 'Bearer WeInfl3nc3withAI'
+                },
+                body: JSON.stringify({
+                  user: userData.id,
+                  folder: `vault/${oldPath}/${relativePath}`
+                })
+              });
 
-            if (getFilesResponse.ok) {
-              const files = await getFilesResponse.json();
-              console.log('Files to copy:', files);
+              if (getFilesResponse.ok) {
+                const files = await getFilesResponse.json();
+                console.log('Files to copy:', files);
 
-              // Step 3: Copy all files to the new folder
-              if (files && files.length > 0 && files[0].Key) {
-                const copyPromises = files.map(async (file: any) => {
-                  console.log("File:", file);
-                  const fileKey = file.Key;
-                  const re = new RegExp(`^.*?vault/${oldPath}/${relativePath}/`);
-                  const fileName = fileKey.replace(re, "");
-                  console.log("File Name:", fileName);
+                // Step 3: Copy all files to the new folder
+                if (files && files.length > 0 && files[0].Key) {
+                  const copyPromises = files.map(async (file: any) => {
+                    console.log("File:", file);
+                    const fileKey = file.Key;
+                    const re = new RegExp(`^.*?vault/${oldPath}/${relativePath}/`);
+                    const fileName = fileKey.replace(re, "");
+                    console.log("File Name:", fileName);
 
-                  const copyResponse = await fetch('https://api.nymia.ai/v1/copyfile', {
-                    method: 'POST',
-                    headers: {
-                      'Content-Type': 'application/json',
-                      'Authorization': 'Bearer WeInfl3nc3withAI'
-                    },
-                    body: JSON.stringify({
-                      user: userData.id,
-                      sourcefilename: `vault/${oldPath}/${relativePath}/${fileName}`,
-                      destinationfilename: `vault/${newPath}/${relativePath}/${fileName}`
-                    })
+                    const copyResponse = await fetch('https://api.nymia.ai/v1/copyfile', {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer WeInfl3nc3withAI'
+                      },
+                      body: JSON.stringify({
+                        user: userData.id,
+                        sourcefilename: `vault/${oldPath}/${relativePath}/${fileName}`,
+                        destinationfilename: `vault/${newPath}/${relativePath}/${fileName}`
+                      })
+                    });
+
+                    if (!copyResponse.ok) {
+                      console.warn(`Failed to copy file ${file}`);
+                      throw new Error(`Failed to copy file ${file}`);
+                    }
                   });
 
-                  if (!copyResponse.ok) {
-                    console.warn(`Failed to copy file ${file}`);
-                    throw new Error(`Failed to copy file ${file}`);
-                  }
-                });
-
-                await Promise.all(copyPromises);
-                console.log('All files copied successfully');
+                  await Promise.all(copyPromises);
+                  console.log('All files copied successfully');
+                }
               }
             }
           }
@@ -856,7 +880,7 @@ export default function Vault() {
       if (refreshResponse.ok) {
         const data = await refreshResponse.json();
         setFolders(data);
-
+        
         // Rebuild folder structure
         const structure = buildFolderStructure(data);
         setFolderStructure(structure);
@@ -870,18 +894,20 @@ export default function Vault() {
         setCurrentPath(newCurrentPath);
       }
 
-      // Step 9: Exit edit mode
+      // Step 9: Exit edit mode and clear loading state
       setEditingFolder(null);
       setEditingFolderName('');
+      setRenamingFolder(null);
 
       console.log('Folder rename completed successfully');
       toast.success(`Folder renamed to "${newName}" successfully`);
-
+      
     } catch (error) {
       console.error('Error renaming folder:', error);
       toast.error('Failed to rename folder. Please try again.');
       setEditingFolder(null);
       setEditingFolderName('');
+      setRenamingFolder(null);
     }
   };
 
@@ -1291,15 +1317,25 @@ export default function Vault() {
               return currentFolders.map((folder) => (
                 <div
                   key={folder.path}
-                  className="group cursor-pointer"
-                  onDoubleClick={() => navigateToFolder(folder.path)}
-                  onContextMenu={(e) => handleContextMenu(e, folder.path)}
+                  className={`group ${renamingFolder === folder.path ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}
+                  onDoubleClick={() => renamingFolder !== folder.path && navigateToFolder(folder.path)}
+                  onContextMenu={(e) => renamingFolder !== folder.path && handleContextMenu(e, folder.path)}
                 >
-                  <div className="flex flex-col items-center p-3 rounded-lg border-2 border-transparent hover:border-blue-300 hover:bg-blue-50 dark:hover:bg-blue-950/20 transition-all duration-200">
-                    <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center mb-2 group-hover:scale-110 transition-transform duration-200">
-                      <Folder className="w-6 h-6 text-white" />
+                  <div className={`flex flex-col items-center p-3 rounded-lg border-2 border-transparent transition-all duration-200 ${
+                    renamingFolder === folder.path 
+                      ? 'border-yellow-300 bg-yellow-50 dark:bg-yellow-950/20' 
+                      : 'hover:border-blue-300 hover:bg-blue-50 dark:hover:bg-blue-950/20'
+                  }`}>
+                    <div className={`w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center mb-2 transition-transform duration-200 ${
+                      renamingFolder === folder.path ? 'animate-pulse' : 'group-hover:scale-110'
+                    }`}>
+                      {renamingFolder === folder.path ? (
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
+                      ) : (
+                        <Folder className="w-6 h-6 text-white" />
+                      )}
                     </div>
-                    {editingFolder === folder.path ? (
+                    {editingFolder === folder.path && renamingFolder !== folder.path ? (
                       <div className="w-full">
                         <Input
                           value={editingFolderName}
@@ -1318,8 +1354,13 @@ export default function Vault() {
                         />
                       </div>
                     ) : (
-                      <span className="text-xs font-medium text-center text-gray-700 dark:text-gray-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                      <span className={`text-xs font-medium text-center transition-colors ${
+                        renamingFolder === folder.path 
+                          ? 'text-yellow-700 dark:text-yellow-300' 
+                          : 'text-gray-700 dark:text-gray-300 group-hover:text-blue-600 dark:group-hover:text-blue-400'
+                      }`}>
                         {folder.name}
+                        {renamingFolder === folder.path && ' (Renaming...)'}
                       </span>
                     )}
                     <span className="text-xs text-muted-foreground mt-1">
@@ -1355,24 +1396,34 @@ export default function Vault() {
                   return (
                     <div
                       key={folder.Key}
-                      className="group cursor-pointer"
+                      className={`group ${renamingFolder === folderPath ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}
                       onClick={() => {
-                        if (folderPath) {
+                        if (folderPath && renamingFolder !== folderPath) {
                           navigateToFolder(folderPath);
                         }
                       }}
                       onContextMenu={(e) => {
                         e.preventDefault();
-                        if (folderPath) {
+                        if (folderPath && renamingFolder !== folderPath) {
                           handleContextMenu(e, folderPath);
                         }
                       }}
                     >
-                      <div className="flex flex-col items-center p-3 rounded-lg border-2 border-transparent hover:border-blue-300 hover:bg-blue-50 dark:hover:bg-blue-950/20 transition-all duration-200">
-                        <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center mb-2 group-hover:scale-110 transition-transform duration-200">
-                          <Folder className="w-6 h-6 text-white" />
+                      <div className={`flex flex-col items-center p-3 rounded-lg border-2 border-transparent transition-all duration-200 ${
+                        renamingFolder === folderPath 
+                          ? 'border-yellow-300 bg-yellow-50 dark:bg-yellow-950/20' 
+                          : 'hover:border-blue-300 hover:bg-blue-50 dark:hover:bg-blue-950/20'
+                      }`}>
+                        <div className={`w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center mb-2 transition-transform duration-200 ${
+                          renamingFolder === folderPath ? 'animate-pulse' : 'group-hover:scale-110'
+                        }`}>
+                          {renamingFolder === folderPath ? (
+                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
+                          ) : (
+                            <Folder className="w-6 h-6 text-white" />
+                          )}
                         </div>
-                        {editingFolder === folderPath ? (
+                        {editingFolder === folderPath && renamingFolder !== folderPath ? (
                           <div className="w-full">
                             <Input
                               value={editingFolderName}
@@ -1391,8 +1442,13 @@ export default function Vault() {
                             />
                           </div>
                         ) : (
-                          <span className="text-xs font-medium text-center text-gray-700 dark:text-gray-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                          <span className={`text-xs font-medium text-center transition-colors ${
+                            renamingFolder === folderPath 
+                              ? 'text-yellow-700 dark:text-yellow-300' 
+                              : 'text-gray-700 dark:text-gray-300 group-hover:text-blue-600 dark:group-hover:text-blue-400'
+                          }`}>
                             {folderName}
+                            {renamingFolder === folderPath && ' (Renaming...)'}
                           </span>
                         )}
                         <span className="text-xs text-muted-foreground mt-1">

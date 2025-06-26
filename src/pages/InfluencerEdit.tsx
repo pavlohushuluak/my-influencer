@@ -684,7 +684,7 @@ export default function InfluencerEdit() {
       // Poll for the generated images
       let attempts = 0;
       const maxAttempts = 30; // 30 seconds max
-      
+
       const pollForImages = async () => {
 
         console.log(taskId);
@@ -705,22 +705,22 @@ export default function InfluencerEdit() {
           }
 
           const imagesData = await imagesResponse.json();
-          
+
           if (imagesData.success && imagesData.images && imagesData.images.length > 0) {
             // Check if any image is completed
             const completedImage = imagesData.images.find((img: any) => img.status === 'completed');
-            
+
             if (completedImage) {
               // Show the generated image
               const imageUrl = `https://images.nymia.ai/cdn-cgi/image/w=800/${completedImage.file_path}`;
               setPreviewImage(imageUrl);
-              
+
               // Store the generated image data for the "Use as profile picture" functionality
               setGeneratedImageData({
                 image_id: completedImage.image_id,
                 system_filename: completedImage.system_filename
               });
-              
+
               toast.success('Preview generated successfully!', {
                 description: 'Your influencer preview is ready to view'
               });
@@ -728,7 +728,7 @@ export default function InfluencerEdit() {
               return;
             }
           }
-          
+
           // If no completed images yet, continue polling
           attempts++;
           if (attempts < maxAttempts) {
@@ -792,7 +792,7 @@ export default function InfluencerEdit() {
 
       // Update the influencer data with the new profile picture URL
       const newImageUrl = `https://images.nymia.ai/cdn-cgi/image/w=400/${userData.id}/models/${influencerData.id}/profilepic/profilepic${influencerData.image_num}.png`;
-      
+
       setInfluencerData(prev => ({
         ...prev,
         image_url: newImageUrl,
@@ -1191,11 +1191,11 @@ export default function InfluencerEdit() {
                   <div className="w-full h-full bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg overflow-hidden">
                     {
                       influencer.image_url ? (
-                    <img
-                      src={influencer.image_url}
-                      alt={`${influencer.name_first} ${influencer.name_last}`}
-                      className="w-full h-full object-cover"
-                    />
+                        <img
+                          src={influencer.image_url}
+                          alt={`${influencer.name_first} ${influencer.name_last}`}
+                          className="w-full h-full object-cover"
+                        />
                       ) : (
                         <div className="flex flex-col w-full h-full items-center justify-center max-h-48 min-h-40">
                           <Image className="w-12 h-12 text-gray-400 mx-auto mb-4" />

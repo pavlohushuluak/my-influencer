@@ -691,6 +691,12 @@ export default function Vault() {
         // Step 3: Copy all files to the new folder
         if (files && files.length > 0) {
           const copyPromises = files.map(async (file: any) => {
+            console.log("File:", file);
+            const fileKey = file.Key;
+            const re = new RegExp(`^.*?vault/${oldPath}/`);
+            const fileName = fileKey.replace(re, "");
+            console.log("File Name:", fileName);
+
             const copyResponse = await fetch('https://api.nymia.ai/v1/copyfile', {
               method: 'POST',
               headers: {
@@ -699,8 +705,8 @@ export default function Vault() {
               },
               body: JSON.stringify({
                 user: userData.id,
-                sourcefilename: `vault/${oldPath}/${file}`,
-                destinationfilename: `vault/${newPath}/${file}`
+                sourcefilename: `vault/${oldPath}/${fileName}`,
+                destinationfilename: `vault/${newPath}/${fileName}`
               })
             });
 
@@ -762,6 +768,55 @@ export default function Vault() {
               if (subfolderCreateResponse.ok) {
                 // Copy files from this subfolder
                 await copyFilesFromFolder(`${oldPath}/${relativePath}`, `${newPath}/${relativePath}`);
+              }
+            }
+
+            const getFilesResponse = await fetch('https://api.nymia.ai/v1/getfilenames', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer WeInfl3nc3withAI'
+              },
+              body: JSON.stringify({
+                user: userData.id,
+                folder: `vault/${oldPath}/${relativePath}`
+              })
+            });
+
+            if (getFilesResponse.ok) {
+              const files = await getFilesResponse.json();
+              console.log('Files to copy:', files);
+
+              // Step 3: Copy all files to the new folder
+              if (files && files.length > 0 && files[0].Key) {
+                const copyPromises = files.map(async (file: any) => {
+                  console.log("File:", file);
+                  const fileKey = file.Key;
+                  const re = new RegExp(`^.*?vault/${oldPath}/${relativePath}/`);
+                  const fileName = fileKey.replace(re, "");
+                  console.log("File Name:", fileName);
+
+                  const copyResponse = await fetch('https://api.nymia.ai/v1/copyfile', {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'Authorization': 'Bearer WeInfl3nc3withAI'
+                    },
+                    body: JSON.stringify({
+                      user: userData.id,
+                      sourcefilename: `vault/${oldPath}/${relativePath}/${fileName}`,
+                      destinationfilename: `vault/${newPath}/${relativePath}/${fileName}`
+                    })
+                  });
+
+                  if (!copyResponse.ok) {
+                    console.warn(`Failed to copy file ${file}`);
+                    throw new Error(`Failed to copy file ${file}`);
+                  }
+                });
+
+                await Promise.all(copyPromises);
+                console.log('All files copied successfully');
               }
             }
           }

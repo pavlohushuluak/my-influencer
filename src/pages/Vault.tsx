@@ -26,6 +26,52 @@ interface TaskData {
   created_at: string;
 }
 
+// Interface for file data from getfilenames API
+interface FileData {
+  Key: string;
+  Size: string;
+  LastModified: string;
+  ETag: string;
+  StorageClass: string;
+}
+
+// Interface for generated image data from database
+interface GeneratedImageData {
+  id: string;
+  task_id: string;
+  image_sequence_number: number;
+  system_filename: string;
+  user_filename: string | null;
+  user_notes: string | null;
+  user_tags: string | null;
+  file_path: string;
+  file_size_bytes: number;
+  image_format: string;
+  seed: number;
+  guidance: number;
+  steps: number;
+  nsfw_strength: number;
+  lora_strength: number;
+  model_version: string;
+  t5xxl_prompt: string;
+  clip_l_prompt: string;
+  negative_prompt: string;
+  generation_status: string;
+  generation_started_at: string;
+  generation_completed_at: string;
+  generation_time_seconds: number;
+  error_message: string;
+  retry_count: number;
+  created_at: string;
+  updated_at: string;
+  actual_seed_used: number;
+  prompt_file_used: string;
+  quality_setting: string;
+  rating: number;
+  favorite: boolean;
+  file_type: string;
+}
+
 // Interface for folder structure
 interface FolderStructure {
   name: string;
@@ -65,6 +111,14 @@ export default function Vault() {
   const [editingFolderName, setEditingFolderName] = useState<string>('');
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; folderPath: string } | null>(null);
   const [renamingFolder, setRenamingFolder] = useState<string | null>(null);
+
+  // File management state for home route
+  const [files, setFiles] = useState<FileData[]>([]);
+  const [generatedImages, setGeneratedImages] = useState<GeneratedImageData[]>([]);
+  const [filesLoading, setFilesLoading] = useState(false);
+
+  // Detailed image modal state
+  const [detailedImageModal, setDetailedImageModal] = useState<{ open: boolean; image: GeneratedImageData | null }>({ open: false, image: null });
 
   // Extract folder name from full path
   const extractFolderName = (fullPath: string): string => {
@@ -279,16 +333,89 @@ export default function Vault() {
     }
   }, [userData.id]);
 
+  // Fetch files from home route
+  const fetchHomeFiles = async () => {
+    if (!userData.id || currentPath !== '') return; // Only fetch when on home route
+
+    try {
+      setFilesLoading(true);
+      
+      // Step 1: Get files from getfilenames API
+      const filesResponse = await fetch('https://api.nymia.ai/v1/getfilenames', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          user: userData.id,
+          folder: "output"
+        })
+      });
+
+      if (!filesResponse.ok) {
+        throw new Error('Failed to fetch files');
+      }
+
+      const filesData: FileData[] = await filesResponse.json();
+      console.log('Files from API:', filesData);
+      setFiles(filesData);
+
+      // Step 2: Get detailed information for each file from database
+      const detailedImages: GeneratedImageData[] = [];
+      
+      for (const file of filesData) {
+        // Extract filename from the Key (remove path and get just the filename)
+        const filename = file.Key.split('/').pop();
+        if (!filename) continue;
+
+        try {
+          const detailResponse = await fetch(`https://db.nymia.ai/rest/v1/generated_images?system_filename=eq.${filename}`, {
+            headers: {
+              'Authorization': 'Bearer WeInfl3nc3withAI'
+            }
+          });
+
+          if (detailResponse.ok) {
+            const imageDetails: GeneratedImageData[] = await detailResponse.json();
+            if (imageDetails.length > 0) {
+              detailedImages.push(imageDetails[0]);
+            }
+          }
+        } catch (error) {
+          console.warn(`Failed to fetch details for ${filename}:`, error);
+        }
+      }
+
+      console.log('Detailed images:', detailedImages);
+      setGeneratedImages(detailedImages);
+      
+    } catch (error) {
+      console.error('Error fetching home files:', error);
+      setFiles([]);
+      setGeneratedImages([]);
+    } finally {
+      setFilesLoading(false);
+    }
+  };
+
+  // Fetch home files when on home route
+  useEffect(() => {
+    if (currentPath === '') {
+      fetchHomeFiles();
+    }
+  }, [currentPath, userData.id]);
+
   const filteredAndSortedItems = currentFolderItems
     .filter(item => {
       const matchesSearch = item.id;
       const matchesType = typeFilter === 'all' || item.type === typeFilter;
-
+      
       return matchesSearch && matchesType;
     })
     .sort((a, b) => {
       let comparison = 0;
-
+      
       switch (sortBy) {
         case 'newest':
           comparison = new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
@@ -299,7 +426,7 @@ export default function Vault() {
         default:
           comparison = 0;
       }
-
+      
       return sortOrder === 'desc' ? -comparison : comparison;
     });
 
@@ -337,7 +464,7 @@ export default function Vault() {
       }
 
       // Remove from local state
-      dispatch(removeFromVault(contentId));
+    dispatch(removeFromVault(contentId));
 
       // Update local vault items
       setVaultItems(prev => prev.filter(item => item.id !== contentId));
@@ -1125,14 +1252,14 @@ export default function Vault() {
   };
 
   if (loading || foldersLoading) {
-    return (
-      <div className="p-6 space-y-6 animate-fade-in">
-        <div className="flex flex-col md:flex-row items-center justify-between gap-5">
-          <div>
-            <h1 className="flex flex-col items-center md:items-start text-3xl font-bold tracking-tight bg-ai-gradient bg-clip-text text-transparent">
+  return (
+    <div className="p-6 space-y-6 animate-fade-in">
+      <div className="flex flex-col md:flex-row items-center justify-between gap-5">
+        <div>
+          <h1 className="flex flex-col items-center md:items-start text-3xl font-bold tracking-tight bg-ai-gradient bg-clip-text text-transparent">
               File Manager of nymia
-            </h1>
-            <p className="text-muted-foreground">
+          </h1>
+          <p className="text-muted-foreground">
               Organize and manage your content with folders
             </p>
           </div>
@@ -1215,7 +1342,7 @@ export default function Vault() {
                 {sortOrder === 'asc' ? <SortAsc className="w-3 h-3" /> : <SortDesc className="w-3 h-3" />}
                 {sortOrder === 'asc' ? 'Ascending' : 'Descending'}
               </Button>
-
+              
               {hasActiveFilters && (
                 <Button variant="outline" size="sm" onClick={clearFilters}>
                   Clear All
@@ -1484,8 +1611,11 @@ export default function Vault() {
       <div className="flex justify-between items-center">
         <div className="flex items-center gap-4">
           <p className="text-sm text-muted-foreground">
-            Showing {filteredAndSortedItems.length} of {currentFolderItems.length} items
-            {currentPath && ` in "${currentPath}"`}
+            {currentPath === '' ? (
+              `Showing ${generatedImages.length} of ${files.length} files`
+            ) : (
+              `Showing ${filteredAndSortedItems.length} of ${currentFolderItems.length} items in "${currentPath}"`
+            )}
           </p>
           {currentPath && (
             <Badge variant="outline" className="bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800">
@@ -1496,104 +1626,194 @@ export default function Vault() {
         </div>
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Star className="w-4 h-4 text-yellow-500" />
-          {vaultItems.length} total items
+          {currentPath === '' ? `${files.length} total files` : `${vaultItems.length} total items`}
         </div>
       </div>
 
       {/* Content Grid */}
-      {filteredAndSortedItems.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-          {filteredAndSortedItems.map((item) => (
-            <Card
-              key={item.id}
-              className="group hover:shadow-xl transition-all duration-300 border-border/50 hover:border-yellow-500/30 bg-gradient-to-br from-yellow-50/20 to-orange-50/20 dark:from-yellow-950/5 dark:to-orange-950/5 backdrop-blur-sm"
-            >
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    {item.type === 'video' ? (
-                      <Video className="w-4 h-4 text-purple-500" />
-                    ) : (
-                      <Image className="w-4 h-4 text-blue-500" />
-                    )}
-                  </div>
-                  <Star className="w-4 h-4 text-yellow-500 fill-current" />
-                </div>
-                <CardTitle className="text-lg font-semibold text-gray-800 dark:text-gray-200">{item.id}</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="relative w-full group mb-4" style={{ paddingBottom: '100%' }}>
-                  <img
-                    src={`https://images.nymia.ai/cdn-cgi/image/w=400/${userData.id}/output/${item.id}.png`}
-                    alt={item.id}
-                    className="absolute inset-0 w-full h-full object-cover rounded-md shadow-sm"
-                  />
-                  <div
-                    className="absolute right-2 top-2 bg-black/50 rounded-full w-10 h-10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
-                    onClick={() => setSelectedImage(`https://images.nymia.ai/cdn-cgi/image/w=800/${userData.id}/output/${item.id}.png`)}
-                  >
-                    <ZoomIn className="w-6 h-6 text-white" />
-                  </div>
-                </div>
-                <div className="space-y-3">
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <Calendar className="w-3 h-3" />
-                    Added {new Date(item.created_at).toLocaleDateString()}
-                  </div>
-                  <div className="flex gap-1.5">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="flex-1 h-8 text-xs font-medium hover:bg-purple-700 hover:border-purple-500 transition-colors"
-                      onClick={() => handleDownload(item.id)}
-                    >
-                      <Download className="w-3 h-3 mr-1.5" />
-                      <span className="hidden sm:inline">Download</span>
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-8 w-8 p-0 hover:bg-green-50 hover:bg-green-700 hover:border-green-500 transition-colors"
-                      onClick={() => handleShare(item.id)}
-                    >
-                      <Share className="w-3 h-3" />
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-amber-500 hover:border-amber-300 transition-colors"
-                      onClick={() => handleRemoveFromVault(item.id)}
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      ) : (
-        <div className="text-center py-12">
-          <div className="flex flex-col items-center gap-4">
-            {currentPath ? (
-              <>
-                <Folder className="w-12 h-12 text-blue-500/50" />
-                <h3 className="text-lg font-semibold mb-2">No items in this folder</h3>
-                <p className="text-muted-foreground">
-                  The folder "{currentPath}" is empty. Try navigating to a different folder or create some content.
-                </p>
-              </>
-            ) : (
-              <>
-                <Star className="w-12 h-12 text-yellow-500/50" />
-                <h3 className="text-lg font-semibold mb-2">No items found</h3>
-                <p className="text-muted-foreground">
-                  Try adjusting your search or filters to find what you're looking for.
-                </p>
-              </>
-            )}
+      {currentPath === '' ? (
+        // Show generated images on home route
+        filesLoading ? (
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-500 mx-auto"></div>
+            <p className="text-muted-foreground mt-2">Loading files...</p>
           </div>
-        </div>
+        ) : generatedImages.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+            {generatedImages.map((image) => (
+              <Card 
+                key={image.id} 
+                className="group hover:shadow-xl transition-all duration-300 border-border/50 hover:border-yellow-500/30 bg-gradient-to-br from-yellow-50/20 to-orange-50/20 dark:from-yellow-950/5 dark:to-orange-950/5 backdrop-blur-sm"
+              >
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Image className="w-4 h-4 text-blue-500" />
+                    </div>
+                    {image.favorite && <Star className="w-4 h-4 text-yellow-500 fill-current" />}
+                  </div>
+                  <CardTitle className="text-lg font-semibold text-gray-800 dark:text-gray-200">
+                    {image.user_filename || image.system_filename}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="relative w-full group mb-4" style={{ paddingBottom: '100%' }}>
+                    <img
+                      src={`https://images.nymia.ai/cdn-cgi/image/w=400/${userData.id}/output/${image.system_filename}`}
+                      alt={image.user_filename || image.system_filename}
+                      className="absolute inset-0 w-full h-full object-cover rounded-md shadow-sm cursor-pointer"
+                      onClick={() => setDetailedImageModal({ open: true, image })}
+                    />
+                  </div>
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <Calendar className="w-3 h-3" />
+                      Created {new Date(image.created_at).toLocaleDateString()}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      <div>Model: {image.model_version}</div>
+                      <div>Seed: {image.seed}</div>
+                      <div>Steps: {image.steps}</div>
+                    </div>
+                    <div className="flex gap-1.5">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="flex-1 h-8 text-xs font-medium hover:bg-purple-700 hover:border-purple-500 transition-colors"
+                        onClick={() => handleDownload(image.system_filename.replace('.png', ''))}
+                      >
+                        <Download className="w-3 h-3 mr-1.5" />
+                        <span className="hidden sm:inline">Download</span>
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-8 w-8 p-0 hover:bg-green-50 hover:bg-green-700 hover:border-green-500 transition-colors"
+                        onClick={() => handleShare(image.system_filename.replace('.png', ''))}
+                      >
+                        <Share className="w-3 h-3" />
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-amber-500 hover:border-amber-300 transition-colors"
+                        onClick={() => handleRemoveFromVault(image.system_filename.replace('.png', ''))}
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-12">
+            <div className="flex flex-col items-center gap-4">
+              <Image className="w-12 h-12 text-blue-500/50" />
+              <h3 className="text-lg font-semibold mb-2">No files found</h3>
+              <p className="text-muted-foreground">
+                No generated images found in your output folder.
+              </p>
+            </div>
+          </div>
+        )
+      ) : (
+        // Show vault items when in folders
+        filteredAndSortedItems.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+            {filteredAndSortedItems.map((item) => (
+              <Card 
+                key={item.id} 
+                className="group hover:shadow-xl transition-all duration-300 border-border/50 hover:border-yellow-500/30 bg-gradient-to-br from-yellow-50/20 to-orange-950/5 backdrop-blur-sm"
+              >
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      {item.type === 'video' ? (
+                        <Video className="w-4 h-4 text-purple-500" />
+                      ) : (
+                        <Image className="w-4 h-4 text-blue-500" />
+                      )}
+                    </div>
+                    <Star className="w-4 h-4 text-yellow-500 fill-current" />
+                  </div>
+                  <CardTitle className="text-lg font-semibold text-gray-800 dark:text-gray-200">{item.id}</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="relative w-full group mb-4" style={{ paddingBottom: '100%' }}>
+                    <img
+                      src={`https://images.nymia.ai/cdn-cgi/image/w=400/${userData.id}/output/${item.id}.png`}
+                      alt={item.id}
+                      className="absolute inset-0 w-full h-full object-cover rounded-md shadow-sm"
+                    />
+                    <div
+                      className="absolute right-2 top-2 bg-black/50 rounded-full w-10 h-10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
+                      onClick={() => setSelectedImage(`https://images.nymia.ai/cdn-cgi/image/w=800/${userData.id}/output/${item.id}.png`)}
+                    >
+                      <ZoomIn className="w-6 h-6 text-white" />
+                      </div>
+                  </div>
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <Calendar className="w-3 h-3" />
+                      Added {new Date(item.created_at).toLocaleDateString()}
+                    </div>
+                    <div className="flex gap-1.5">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="flex-1 h-8 text-xs font-medium hover:bg-purple-700 hover:border-purple-500 transition-colors"
+                        onClick={() => handleDownload(item.id)}
+                      >
+                        <Download className="w-3 h-3 mr-1.5" />
+                        <span className="hidden sm:inline">Download</span>
+                        </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-8 w-8 p-0 hover:bg-green-50 hover:bg-green-700 hover:border-green-500 transition-colors"
+                        onClick={() => handleShare(item.id)}
+                      >
+                          <Share className="w-3 h-3" />
+                        </Button>
+                        <Button 
+                          size="sm" 
+                        variant="outline"
+                        className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-amber-500 hover:border-amber-300 transition-colors"
+                          onClick={() => handleRemoveFromVault(item.id)}
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-12">
+            <div className="flex flex-col items-center gap-4">
+              {currentPath ? (
+                <>
+                  <Folder className="w-12 h-12 text-blue-500/50" />
+                  <h3 className="text-lg font-semibold mb-2">No items in this folder</h3>
+                  <p className="text-muted-foreground">
+                    The folder "{currentPath}" is empty. Try navigating to a different folder or create some content.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <Star className="w-12 h-12 text-yellow-500/50" />
+              <h3 className="text-lg font-semibold mb-2">No items found</h3>
+              <p className="text-muted-foreground">
+                Try adjusting your search or filters to find what you're looking for.
+              </p>
+                </>
+              )}
+            </div>
+          </div>
+        )
       )}
 
       {/* Image Zoom Modal */}
@@ -1852,6 +2072,241 @@ export default function Vault() {
           </button>
         </div>
       )}
+
+      {/* Detailed Image Modal */}
+      <Dialog open={detailedImageModal.open} onOpenChange={(open) => setDetailedImageModal({ open, image: null })}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          {detailedImageModal.image && (
+            <div className="space-y-6">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <Image className="w-5 h-5 text-blue-500" />
+                  {detailedImageModal.image.user_filename || detailedImageModal.image.system_filename}
+                </DialogTitle>
+                <DialogDescription>
+                  Detailed information about this generated image
+                </DialogDescription>
+              </DialogHeader>
+
+              {/* Large Image */}
+              <div className="flex justify-center">
+                <img
+                  src={`https://images.nymia.ai/cdn-cgi/image/w=800/${userData.id}/output/${detailedImageModal.image.system_filename}`}
+                  alt={detailedImageModal.image.user_filename || detailedImageModal.image.system_filename}
+                  className="max-w-full max-h-[60vh] object-contain rounded-lg shadow-lg"
+                />
+              </div>
+
+              {/* Image Details Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Basic Information */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Basic Information</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="flex justify-between">
+                      <span className="font-medium">Filename:</span>
+                      <span className="text-muted-foreground">{detailedImageModal.image.system_filename}</span>
+                    </div>
+                    {detailedImageModal.image.user_filename && (
+                      <div className="flex justify-between">
+                        <span className="font-medium">Custom Name:</span>
+                        <span className="text-muted-foreground">{detailedImageModal.image.user_filename}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between">
+                      <span className="font-medium">File Type:</span>
+                      <span className="text-muted-foreground">{detailedImageModal.image.file_type}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-medium">Format:</span>
+                      <span className="text-muted-foreground">{detailedImageModal.image.image_format}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-medium">File Size:</span>
+                      <span className="text-muted-foreground">{(detailedImageModal.image.file_size_bytes / 1024 / 1024).toFixed(2)} MB</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-medium">Status:</span>
+                      <Badge variant={detailedImageModal.image.generation_status === 'completed' ? 'default' : 'secondary'}>
+                        {detailedImageModal.image.generation_status}
+                      </Badge>
+                    </div>
+                    {detailedImageModal.image.favorite && (
+                      <div className="flex justify-between">
+                        <span className="font-medium">Favorite:</span>
+                        <Star className="w-4 h-4 text-yellow-500 fill-current" />
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Generation Settings */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Generation Settings</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="flex justify-between">
+                      <span className="font-medium">Model:</span>
+                      <span className="text-muted-foreground">{detailedImageModal.image.model_version}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-medium">Seed:</span>
+                      <span className="text-muted-foreground">{detailedImageModal.image.seed}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-medium">Steps:</span>
+                      <span className="text-muted-foreground">{detailedImageModal.image.steps}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-medium">Guidance:</span>
+                      <span className="text-muted-foreground">{detailedImageModal.image.guidance}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-medium">NSFW Strength:</span>
+                      <span className="text-muted-foreground">{detailedImageModal.image.nsfw_strength}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-medium">LoRA Strength:</span>
+                      <span className="text-muted-foreground">{detailedImageModal.image.lora_strength}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-medium">Quality Setting:</span>
+                      <span className="text-muted-foreground">{detailedImageModal.image.quality_setting}</span>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Prompts */}
+                <Card className="md:col-span-2">
+                  <CardHeader>
+                    <CardTitle className="text-lg">Prompts</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div>
+                      <Label className="text-sm font-medium">T5XXL Prompt:</Label>
+                      <div className="mt-1 p-3 bg-muted rounded-md text-sm">
+                        {detailedImageModal.image.t5xxl_prompt}
+                      </div>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium">CLIP Prompt:</Label>
+                      <div className="mt-1 p-3 bg-muted rounded-md text-sm">
+                        {detailedImageModal.image.clip_l_prompt}
+                      </div>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium">Negative Prompt:</Label>
+                      <div className="mt-1 p-3 bg-muted rounded-md text-sm">
+                        {detailedImageModal.image.negative_prompt}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Generation Details */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Generation Details</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="flex justify-between">
+                      <span className="font-medium">Task ID:</span>
+                      <span className="text-muted-foreground">{detailedImageModal.image.task_id}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-medium">Image Sequence:</span>
+                      <span className="text-muted-foreground">{detailedImageModal.image.image_sequence_number}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-medium">Generation Time:</span>
+                      <span className="text-muted-foreground">{detailedImageModal.image.generation_time_seconds}s</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-medium">Started At:</span>
+                      <span className="text-muted-foreground">{new Date(detailedImageModal.image.generation_started_at).toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-medium">Completed At:</span>
+                      <span className="text-muted-foreground">{new Date(detailedImageModal.image.generation_completed_at).toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-medium">Retry Count:</span>
+                      <span className="text-muted-foreground">{detailedImageModal.image.retry_count}</span>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* File Information */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">File Information</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="flex justify-between">
+                      <span className="font-medium">Created:</span>
+                      <span className="text-muted-foreground">{new Date(detailedImageModal.image.created_at).toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-medium">Updated:</span>
+                      <span className="text-muted-foreground">{new Date(detailedImageModal.image.updated_at).toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-medium">File Path:</span>
+                      <span className="text-muted-foreground text-xs">{detailedImageModal.image.file_path}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-medium">Prompt File:</span>
+                      <span className="text-muted-foreground text-xs">{detailedImageModal.image.prompt_file_used}</span>
+                    </div>
+                    {detailedImageModal.image.user_notes && (
+                      <div className="flex justify-between">
+                        <span className="font-medium">Notes:</span>
+                        <span className="text-muted-foreground">{detailedImageModal.image.user_notes}</span>
+                      </div>
+                    )}
+                    {detailedImageModal.image.user_tags && (
+                      <div className="flex justify-between">
+                        <span className="font-medium">Tags:</span>
+                        <span className="text-muted-foreground">{detailedImageModal.image.user_tags}</span>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-3 pt-4 border-t">
+                <Button
+                  onClick={() => handleDownload(detailedImageModal.image.system_filename.replace('.png', ''))}
+                  className="flex-1"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Download
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => handleShare(detailedImageModal.image.system_filename.replace('.png', ''))}
+                  className="flex-1"
+                >
+                  <Share className="w-4 h-4 mr-2" />
+                  Share
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => handleRemoveFromVault(detailedImageModal.image.system_filename.replace('.png', ''))}
+                  className="text-red-600 hover:text-red-700"
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

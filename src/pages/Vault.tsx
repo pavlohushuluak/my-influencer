@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Star, Search, Download, Share, Trash2, Filter, Calendar, Image, Video, SortAsc, SortDesc, ZoomIn, Folder, Plus, Upload, ChevronRight, Home, ArrowLeft, Pencil } from 'lucide-react';
+import { Star, Search, Download, Share, Trash2, Filter, Calendar, Image, Video, SortAsc, SortDesc, ZoomIn, Folder, Plus, Upload, ChevronRight, Home, ArrowLeft, Pencil, Menu, X } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { DialogContentZoom } from '@/components/ui/zoomdialog';
@@ -149,6 +149,9 @@ export default function Vault() {
   const [copyState, setCopyState] = useState<number>(0); // 0 = none, 1 = copy, 2 = cut
   const [copiedPath, setCopiedPath] = useState<string>('');
   const [isPasting, setIsPasting] = useState<boolean>(false);
+
+  // Filter menu state
+  const [filterMenuOpen, setFilterMenuOpen] = useState<boolean>(false);
 
   // Load copy state from localStorage on component mount
   useEffect(() => {
@@ -1398,6 +1401,12 @@ export default function Vault() {
       setEditingFolderName(contextMenu.folderPath.split('/').pop() || '');
       setContextMenu(null);
     }
+    
+    // Close filter menu with Escape key
+    if (e.key === 'Escape' && filterMenuOpen) {
+      e.preventDefault();
+      setFilterMenuOpen(false);
+    }
   };
 
   // Add keyboard event listener
@@ -1406,7 +1415,7 @@ export default function Vault() {
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [contextMenu]);
+  }, [contextMenu, filterMenuOpen]);
 
   // Handle right-click context menu
   const handleContextMenu = (e: React.MouseEvent, folderPath: string) => {
@@ -1854,8 +1863,8 @@ export default function Vault() {
   }
 
   return (
-    <div className="p-6 space-y-6 animate-fade-in">
-      <div className="flex flex-col md:flex-row items-center justify-between gap-5">
+    <div className="p-6 animate-fade-in">
+      <div className="flex flex-col md:flex-row items-center justify-between gap-5 mb-6">
         <div>
           <h1 className="flex flex-col items-center md:items-start text-3xl font-bold tracking-tight bg-ai-gradient bg-clip-text text-transparent">
             File Manager of nymia
@@ -1871,231 +1880,303 @@ export default function Vault() {
       </div>
 
       {/* Professional Search and Filter Bar */}
-      <Card className="border-yellow-500/20 bg-gradient-to-r from-yellow-50/50 to-orange-50/50 dark:from-yellow-950/20 dark:to-orange-950/20">
-        <CardHeader className="pt-5 pb-2">
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Filter className="w-5 h-5" />
-            Search & Filter
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2 pb-4">
-          {/* Search Bar */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-            <Input
-              placeholder="Search vault by title..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 bg-background/50"
-            />
-          </div>
+      <div className="flex items-center justify-between gap-4 mb-6">
+        {/* Search Bar */}
+        <div className="relative flex-1 max-w-md">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+          <Input
+            placeholder="Search vault by title..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10 bg-background/50"
+          />
+        </div>
 
-          {/* Filter Controls */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            {/* File Type Multi-Select */}
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">File Types</Label>
-              <div className="flex flex-wrap gap-2">
-                {['pic', 'video'].map((type) => (
+        {/* Filter Menu Button */}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setFilterMenuOpen(true)}
+          className="flex items-center gap-2 bg-gradient-to-r from-yellow-50/50 to-orange-50/50 dark:from-yellow-950/20 dark:to-orange-950/20 border-yellow-500/20"
+        >
+          <Filter className="w-4 h-4" />
+          <span className="hidden sm:inline">Filters</span>
+          {hasActiveFilters && (
+            <Badge variant="secondary" className="ml-1 h-5 w-5 p-0 text-xs flex items-center justify-center">
+              {selectedFilters.fileTypes.length + 
+               (selectedFilters.favorites !== null ? 1 : 0) + 
+               (selectedFilters.withNotes !== null ? 1 : 0) + 
+               selectedFilters.selectedTags.length +
+               (selectedFilters.ratingRange.min > 0 || selectedFilters.ratingRange.max < 5 ? 1 : 0)}
+            </Badge>
+          )}
+        </Button>
+      </div>
+
+      {/* Filter Menu Slide-out Panel */}
+      <div className={`fixed top-0 inset-0 z-50 transition-opacity duration-300 ${filterMenuOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+        {/* Backdrop */}
+        <div 
+          className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+          onClick={() => setFilterMenuOpen(false)}
+        />
+        
+        {/* Slide-out Panel */}
+        <div className={`absolute right-0 top-0 h-full w-full max-w-md bg-background border-l shadow-2xl transform transition-transform duration-300 ${filterMenuOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+          <div className="flex flex-col h-full">
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 border-b">
+              <div className="flex items-center gap-2">
+                <Filter className="w-5 h-5 text-blue-500" />
+                <h2 className="text-lg font-semibold">Search & Filter</h2>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setFilterMenuOpen(false)}
+                className="h-8 w-8 p-0"
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+
+            {/* Filter Content */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-6">
+              {/* Search Bar */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Search</Label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                  <Input
+                    placeholder="Search vault by title..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+              </div>
+
+              {/* File Type Multi-Select */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">File Types</Label>
+                <div className="flex flex-wrap gap-2">
+                  {['pic', 'video'].map((type) => (
+                    <Button
+                      key={type}
+                      variant={selectedFilters.fileTypes.includes(type) ? "default" : "outline"}
+                      size="sm"
+                      className="h-8 text-xs"
+                      onClick={() => {
+                        setSelectedFilters(prev => ({
+                          ...prev,
+                          fileTypes: prev.fileTypes.includes(type)
+                            ? prev.fileTypes.filter(t => t !== type)
+                            : [...prev.fileTypes, type]
+                        }));
+                      }}
+                    >
+                      {type === 'pic' ? 'Images' : 'Videos'}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Rating Range Filter */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Rating Range</Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="number"
+                    min="0"
+                    max="5"
+                    value={selectedFilters.ratingRange.min}
+                    onChange={(e) => {
+                      const value = parseInt(e.target.value) || 0;
+                      setSelectedFilters(prev => ({
+                        ...prev,
+                        ratingRange: { ...prev.ratingRange, min: Math.min(value, prev.ratingRange.max) }
+                      }));
+                    }}
+                    className="w-16 h-8 text-xs"
+                    placeholder="Min"
+                  />
+                  <span className="text-xs text-muted-foreground">to</span>
+                  <Input
+                    type="number"
+                    min="0"
+                    max="5"
+                    value={selectedFilters.ratingRange.max}
+                    onChange={(e) => {
+                      const value = parseInt(e.target.value) || 5;
+                      setSelectedFilters(prev => ({
+                        ...prev,
+                        ratingRange: { ...prev.ratingRange, max: Math.max(value, prev.ratingRange.min) }
+                      }));
+                    }}
+                    className="w-16 h-8 text-xs"
+                    placeholder="Max"
+                  />
+                </div>
+              </div>
+
+              {/* Other Filters */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Other Filters</Label>
+                <div className="flex flex-wrap gap-2">
                   <Button
-                    key={type}
-                    variant={selectedFilters.fileTypes.includes(type) ? "default" : "outline"}
+                    variant={selectedFilters.favorites === true ? "default" : "outline"}
                     size="sm"
                     className="h-8 text-xs"
                     onClick={() => {
                       setSelectedFilters(prev => ({
                         ...prev,
-                        fileTypes: prev.fileTypes.includes(type)
-                          ? prev.fileTypes.filter(t => t !== type)
-                          : [...prev.fileTypes, type]
+                        favorites: prev.favorites === true ? null : true
                       }));
                     }}
                   >
-                    {type === 'pic' ? 'Images' : 'Videos'}
+                    Favorites
                   </Button>
-                ))}
+                  <Button
+                    variant={selectedFilters.withNotes === true ? "default" : "outline"}
+                    size="sm"
+                    className="h-8 text-xs"
+                    onClick={() => {
+                      setSelectedFilters(prev => ({
+                        ...prev,
+                        withNotes: prev.withNotes === true ? null : true
+                      }));
+                    }}
+                  >
+                    With Notes
+                  </Button>
+                  <Button
+                    variant={selectedFilters.selectedTags.length > 0 ? "default" : "outline"}
+                    size="sm"
+                    className="h-8 text-xs"
+                    onClick={() => setTagSelectionModal({ open: true })}
+                  >
+                    Tags {selectedFilters.selectedTags.length > 0 && `(${selectedFilters.selectedTags.length})`}
+                  </Button>
+                </div>
               </div>
-            </div>
 
-            {/* Rating Range Filter */}
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">Rating Range</Label>
-              <div className="flex items-center gap-2">
-                <Input
-                  type="number"
-                  min="0"
-                  max="5"
-                  value={selectedFilters.ratingRange.min}
-                  onChange={(e) => {
-                    const value = parseInt(e.target.value) || 0;
-                    setSelectedFilters(prev => ({
-                      ...prev,
-                      ratingRange: { ...prev.ratingRange, min: Math.min(value, prev.ratingRange.max) }
-                    }));
-                  }}
-                  className="w-16 h-8 text-xs"
-                  placeholder="Min"
-                />
-                <span className="text-xs text-muted-foreground">to</span>
-                <Input
-                  type="number"
-                  min="0"
-                  max="5"
-                  value={selectedFilters.ratingRange.max}
-                  onChange={(e) => {
-                    const value = parseInt(e.target.value) || 5;
-                    setSelectedFilters(prev => ({
-                      ...prev,
-                      ratingRange: { ...prev.ratingRange, max: Math.max(value, prev.ratingRange.min) }
-                    }));
-                  }}
-                  className="w-16 h-8 text-xs"
-                  placeholder="Max"
-                />
+              {/* Sort Controls */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Sort By</Label>
+                <Select value={sortBy} onValueChange={setSortBy}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sort by" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground">Date</div>
+                    <SelectItem value="newest">Newest First</SelectItem>
+                    <SelectItem value="oldest">Oldest First</SelectItem>
+                    {currentPath === '' && (
+                      <>
+                        <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground">Other</div>
+                        <SelectItem value="rating">By Rating</SelectItem>
+                        <SelectItem value="filename">By Filename</SelectItem>
+                      </>
+                    )}
+                  </SelectContent>
+                </Select>
+
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                    className="flex items-center gap-1"
+                  >
+                    {sortOrder === 'asc' ? <SortAsc className="w-3 h-3" /> : <SortDesc className="w-3 h-3" />}
+                    {sortOrder === 'asc' ? 'Ascending' : 'Descending'}
+                  </Button>
+                </div>
               </div>
-            </div>
 
-            {/* Other Filters */}
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">Other Filters</Label>
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  variant={selectedFilters.favorites === true ? "default" : "outline"}
-                  size="sm"
-                  className="h-8 text-xs"
-                  onClick={() => {
-                    setSelectedFilters(prev => ({
-                      ...prev,
-                      favorites: prev.favorites === true ? null : true
-                    }));
-                  }}
-                >
-                  Favorites
-                </Button>
-                <Button
-                  variant={selectedFilters.withNotes === true ? "default" : "outline"}
-                  size="sm"
-                  className="h-8 text-xs"
-                  onClick={() => {
-                    setSelectedFilters(prev => ({
-                      ...prev,
-                      withNotes: prev.withNotes === true ? null : true
-                    }));
-                  }}
-                >
-                  With Notes
-                </Button>
-                <Button
-                  variant={selectedFilters.selectedTags.length > 0 ? "default" : "outline"}
-                  size="sm"
-                  className="h-8 text-xs"
-                  onClick={() => setTagSelectionModal({ open: true })}
-                >
-                  Tags {selectedFilters.selectedTags.length > 0 && `(${selectedFilters.selectedTags.length})`}
-                </Button>
-              </div>
-            </div>
-          </div>
-
-          {/* Sort Controls */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <Select value={sortBy} onValueChange={setSortBy}>
-              <SelectTrigger>
-                <SelectValue placeholder="Sort by" />
-              </SelectTrigger>
-              <SelectContent>
-                <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground">Date</div>
-                <SelectItem value="newest">Newest First</SelectItem>
-                <SelectItem value="oldest">Oldest First</SelectItem>
-                {currentPath === '' && (
-                  <>
-                    <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground">Other</div>
-                    <SelectItem value="rating">By Rating</SelectItem>
-                    <SelectItem value="filename">By Filename</SelectItem>
-                  </>
-                )}
-              </SelectContent>
-            </Select>
-
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-                className="flex items-center gap-1"
-              >
-                {sortOrder === 'asc' ? <SortAsc className="w-3 h-3" /> : <SortDesc className="w-3 h-3" />}
-                {sortOrder === 'asc' ? 'Ascending' : 'Descending'}
-              </Button>
-
+              {/* Active Filters Display */}
               {hasActiveFilters && (
-                <Button variant="outline" size="sm" onClick={clearFilters}>
-                  Clear All
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Active Filters:</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {searchTerm && (
+                      <Badge variant="secondary" className="text-xs">
+                        Search: "{searchTerm}"
+                      </Badge>
+                    )}
+                    {selectedFilters.fileTypes.length > 0 && (
+                      <Badge variant="secondary" className="text-xs">
+                        Types: {selectedFilters.fileTypes.map(type => type === 'pic' ? 'Images' : 'Videos').join(', ')}
+                      </Badge>
+                    )}
+                    {selectedFilters.favorites === true && (
+                      <Badge variant="secondary" className="text-xs">
+                        Favorites Only
+                      </Badge>
+                    )}
+                    {(selectedFilters.ratingRange.min > 0 || selectedFilters.ratingRange.max < 5) && (
+                      <Badge variant="secondary" className="text-xs">
+                        Rating: {selectedFilters.ratingRange.min}-{selectedFilters.ratingRange.max} stars
+                      </Badge>
+                    )}
+                    {selectedFilters.withNotes === true && (
+                      <Badge variant="secondary" className="text-xs">
+                        With Notes
+                      </Badge>
+                    )}
+                    {selectedFilters.selectedTags.length > 0 && (
+                      <>
+                        {selectedFilters.selectedTags.map((tag, index) => (
+                          <Badge
+                            key={index}
+                            variant="secondary"
+                            className="text-xs flex items-center gap-1"
+                          >
+                            Tag: {tag}
+                            <button
+                              className="ml-1 hover:text-red-500 transition-colors"
+                              onClick={() => {
+                                setSelectedFilters(prev => ({
+                                  ...prev,
+                                  selectedTags: prev.selectedTags.filter((_, i) => i !== index)
+                                }));
+                              }}
+                            >
+                              ×
+                            </button>
+                          </Badge>
+                        ))}
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-4 border-t space-y-2">
+              {hasActiveFilters && (
+                <Button 
+                  variant="outline" 
+                  onClick={clearFilters}
+                  className="w-full"
+                >
+                  Clear All Filters
                 </Button>
               )}
+              <Button 
+                onClick={() => setFilterMenuOpen(false)}
+                className="w-full"
+              >
+                Apply Filters
+              </Button>
             </div>
           </div>
-
-          {/* Active Filters Display */}
-          {hasActiveFilters && (
-            <div className="flex flex-wrap gap-2">
-              <span className="text-sm text-muted-foreground">Active filters:</span>
-              {searchTerm && (
-                <Badge variant="secondary" className="text-xs">
-                  Search: "{searchTerm}"
-                </Badge>
-              )}
-              {selectedFilters.fileTypes.length > 0 && (
-                <Badge variant="secondary" className="text-xs">
-                  Types: {selectedFilters.fileTypes.map(type => type === 'pic' ? 'Images' : 'Videos').join(', ')}
-                </Badge>
-              )}
-              {selectedFilters.favorites === true && (
-                <Badge variant="secondary" className="text-xs">
-                  Favorites Only
-                </Badge>
-              )}
-              {(selectedFilters.ratingRange.min > 0 || selectedFilters.ratingRange.max < 5) && (
-                <Badge variant="secondary" className="text-xs">
-                  Rating: {selectedFilters.ratingRange.min}-{selectedFilters.ratingRange.max} stars
-                </Badge>
-              )}
-              {selectedFilters.withNotes === true && (
-                <Badge variant="secondary" className="text-xs">
-                  With Notes
-                </Badge>
-              )}
-              {selectedFilters.selectedTags.length > 0 && (
-                <>
-                  {selectedFilters.selectedTags.map((tag, index) => (
-                    <Badge
-                      key={index}
-                      variant="secondary"
-                      className="text-xs flex items-center gap-1"
-                    >
-                      Tag: {tag}
-                      <button
-                        className="ml-1 hover:text-red-500 transition-colors"
-                        onClick={() => {
-                          setSelectedFilters(prev => ({
-                            ...prev,
-                            selectedTags: prev.selectedTags.filter((_, i) => i !== index)
-                          }));
-                        }}
-                      >
-                        ×
-                      </button>
-                    </Badge>
-                  ))}
-                </>
-              )}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Folders Section */}
-      <Card className="border-blue-500/20 bg-gradient-to-r from-blue-50/50 to-purple-50/50 dark:from-blue-950/20 dark:to-purple-950/20">
+      <Card className="border-blue-500/20 bg-gradient-to-r from-blue-50/50 to-purple-50/50 dark:from-blue-950/20 dark:to-purple-950/20 mb-6">
         <CardHeader className="pt-5 pb-2">
           {/* Breadcrumb Navigation */}
           <div className="mb-4">
@@ -2347,7 +2428,7 @@ export default function Vault() {
       </Card>
 
       {/* Results Summary */}
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between items-center mb-6">
         <div className="flex items-center gap-4">
           <p className="text-sm text-muted-foreground">
             {currentPath === '' ? (

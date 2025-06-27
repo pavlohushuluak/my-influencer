@@ -148,6 +148,7 @@ export default function Vault() {
   // Copy/Cut state
   const [copyState, setCopyState] = useState<number>(0); // 0 = none, 1 = copy, 2 = cut
   const [copiedPath, setCopiedPath] = useState<string>('');
+  const [isPasting, setIsPasting] = useState<boolean>(false);
 
   // Load copy state from localStorage on component mount
   useEffect(() => {
@@ -1122,6 +1123,7 @@ export default function Vault() {
       console.log('New folder created successfully');
 
       // Step 2: Get all files and subfolders from the old folder
+      console.log(`vault/${oldPath}`);
       const getFilesResponse = await fetch('https://api.nymia.ai/v1/getfilenames', {
         method: 'POST',
         headers: {
@@ -1139,7 +1141,7 @@ export default function Vault() {
         console.log('Files to copy:', files);
 
         // Step 3: Copy all files to the new folder
-        if (files && files.length > 0) {
+        if (files && files.length > 0 && files[0].Key) {
           const copyPromises = files.map(async (file: any) => {
             console.log("File:", file);
             const fileKey = file.Key;
@@ -1189,7 +1191,7 @@ export default function Vault() {
         console.log('Subfolders to copy:', folders);
 
         // Step 5: Copy all subfolders recursively
-        if (folders && folders.length > 0) {
+        if (folders && folders.length > 0 && folders[0].Key) {
           for (const folder of folders) {
             const folderKey = folder.Key;
             const re = new RegExp(`^.*?vault/${oldPath}/`);
@@ -1578,9 +1580,15 @@ export default function Vault() {
       return;
     }
 
+    setIsPasting(true);
+
     try {
-      toast.info('Pasting folder...', {
-        description: 'This may take a moment depending on the folder contents'
+      const sourceFolderName = copiedPath.split('/').pop() || '';
+      const operationType = copyState === 1 ? 'copying' : 'moving';
+
+      toast.info(`${operationType.charAt(0).toUpperCase() + operationType.slice(1)} folder...`, {
+        description: `Processing "${sourceFolderName}" - this may take a moment depending on the folder contents`,
+        duration: 5000
       });
 
       console.log('currentPath', currentPath);
@@ -1588,9 +1596,6 @@ export default function Vault() {
       console.log('copiedPath.split(/).pop()', copiedPath.split('/').pop() || '');
 
       const newFolderName = copiedPath.split('/').pop() || '';
-      // Clear copy state
-      setCopyState(0);
-      setCopiedPath('');
 
       const createResponse = await fetch('https://api.nymia.ai/v1/createfolder', {
         method: 'POST',
@@ -1630,7 +1635,7 @@ export default function Vault() {
         console.log('Files to copy:', files);
 
         // Step 3: Copy all files to the new folder
-        if (files && files.length > 0) {
+        if (files && files.length > 0 && files[0].Key) {
           const copyPromises = files.map(async (file: any) => {
             console.log("File:", file);
             const fileKey = file.Key;
@@ -1679,7 +1684,7 @@ export default function Vault() {
         console.log('Subfolders to copy:', folders);
 
         // Step 5: Copy all subfolders recursively
-        if (folders && folders.length > 0) {
+        if (folders && folders.length > 0 && folders[0].Key) {
           for (const folder of folders) {
             const folderKey = folder.Key;
             const re = new RegExp(`^.*?vault/${copiedPath}/`);
@@ -1763,7 +1768,7 @@ export default function Vault() {
         }
       }
 
-      if(copyState === 2) {
+      if (copyState === 2) {
         const deleteResponse = await fetch('https://api.nymia.ai/v1/deletefolder', {
           method: 'POST',
           headers: {
@@ -1803,9 +1808,27 @@ export default function Vault() {
         setFolderStructure(structure);
       }
 
+      // Clear copy state
+      setCopyState(0);
+      setCopiedPath('');
+
+      // Show success message
+      const operation = copyState === 1 ? 'copied' : 'moved';
+      const destination = currentPath ? `to "${currentPath}"` : 'to root';
+
+      toast.success(`Folder "${sourceFolderName}" ${operation} successfully!`, {
+        description: `The folder has been ${operation} ${destination} with all its contents.`,
+        duration: 4000
+      });
+
     } catch (error) {
       console.error('Error pasting folder:', error);
-      toast.error('Failed to paste folder. Please try again.');
+      toast.error('Failed to paste folder. Please try again.', {
+        description: 'An error occurred during the paste operation. Please check your connection and try again.',
+        duration: 5000
+      });
+    } finally {
+      setIsPasting(false);
     }
   };
 
@@ -2074,73 +2097,82 @@ export default function Vault() {
       {/* Folders Section */}
       <Card className="border-blue-500/20 bg-gradient-to-r from-blue-50/50 to-purple-50/50 dark:from-blue-950/20 dark:to-purple-950/20">
         <CardHeader className="pt-5 pb-2">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Folder className="w-5 h-5" />
-              Folders
-            </CardTitle>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handlePaste}
-                disabled={copyState === 0 || currentPath === ''}
-                className="flex items-center gap-1"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                Paste
-              </Button>
-              {currentPath && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={navigateToParent}
-                  className="flex items-center gap-1"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                  Back
-                </Button>
-              )}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={navigateToHome}
-                className="flex items-center gap-1"
-              >
-                <Home className="w-4 h-4" />
-                Home
-              </Button>
-            </div>
-          </div>
-
           {/* Breadcrumb Navigation */}
-          {currentPath && (
-            <div className="flex items-center gap-1 text-sm text-muted-foreground mt-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={navigateToHome}
-                className="h-6 px-2 text-xs hover:bg-blue-100 dark:hover:bg-blue-900/20"
-              >
-                Home
-              </Button>
+          <div className="mb-4">
+            <div className="flex items-center gap-2 text-sm">
+              <div className="flex items-center gap-1.5 px-3 py-2 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30 rounded-lg border border-blue-200/50 dark:border-blue-800/50">
+                <Home className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={navigateToHome}
+                  className="h-6 px-2 text-xs font-medium text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/20 hover:text-blue-800 dark:hover:text-blue-200 transition-colors"
+                >
+                  Home
+                </Button>
+              </div>
               {getBreadcrumbItems().map((item, index) => (
-                <div key={index} className="flex items-center gap-1">
-                  <ChevronRight className="w-3 h-3" />
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => navigateToFolder(item.path)}
-                    className="h-6 px-2 text-xs hover:bg-blue-100 dark:hover:bg-blue-900/20"
-                  >
-                    {item.name}
-                  </Button>
+                <div key={index} className="flex items-center gap-1.5">
+                  <ChevronRight className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+                  <div className="flex items-center gap-1.5 px-3 py-2 bg-gradient-to-r from-gray-50 to-slate-50 dark:from-gray-900/30 dark:to-slate-900/30 rounded-lg border border-gray-200/50 dark:border-gray-700/50">
+                    <Folder className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => navigateToFolder(item.path)}
+                      className={`h-6 px-2 text-xs font-medium transition-colors ${index === getBreadcrumbItems().length - 1
+                        ? 'text-gray-900 dark:text-gray-100 bg-gray-100 dark:bg-gray-800'
+                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100'
+                        }`}
+                    >
+                      {item.name}
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>
-          )}
+          </div>
+
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={navigateToParent}
+                className="flex items-center gap-1"
+                disabled={currentPath === ''}
+              >
+                <ArrowLeft className="w-4 h-4" />
+                Back
+              </Button>
+            </CardTitle>
+            <div className="flex items-center gap-2">
+              <Button
+                variant={copyState > 0 ? "default" : "outline"}
+                size="sm"
+                onClick={handlePaste}
+                disabled={copyState === 0 || currentPath === '' || isPasting}
+                className={`flex items-center gap-1.5 transition-all duration-200 ${copyState > 0
+                  ? 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-md'
+                  : 'text-muted-foreground'
+                  }`}
+              >
+                {isPasting ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    {copyState === 1 ? 'Paste Copy' : copyState === 2 ? 'Paste Move' : 'Paste'}
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
 
@@ -2162,8 +2194,8 @@ export default function Vault() {
                   onContextMenu={(e) => renamingFolder !== folder.path && handleContextMenu(e, folder.path)}
                 >
                   <div className={`flex flex-col items-center p-3 rounded-lg border-2 border-transparent transition-all duration-200 ${renamingFolder === folder.path
-                      ? 'border-yellow-300 bg-yellow-50 dark:bg-yellow-950/20'
-                      : 'hover:border-blue-300 hover:bg-blue-50 dark:hover:bg-blue-950/20'
+                    ? 'border-yellow-300 bg-yellow-50 dark:bg-yellow-950/20'
+                    : 'hover:border-blue-300 hover:bg-blue-50 dark:hover:bg-blue-950/20'
                     }`}>
                     <div className={`w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center mb-2 transition-transform duration-200 ${renamingFolder === folder.path ? 'animate-pulse' : 'group-hover:scale-110'
                       }`}>
@@ -2193,8 +2225,8 @@ export default function Vault() {
                       </div>
                     ) : (
                       <span className={`text-xs font-medium text-center transition-colors ${renamingFolder === folder.path
-                          ? 'text-yellow-700 dark:text-yellow-300'
-                          : 'text-gray-700 dark:text-gray-300 group-hover:text-blue-600 dark:group-hover:text-blue-400'
+                        ? 'text-yellow-700 dark:text-yellow-300'
+                        : 'text-gray-700 dark:text-gray-300 group-hover:text-blue-600 dark:group-hover:text-blue-400'
                         }`}>
                         {folder.name}
                         {renamingFolder === folder.path && ' (Renaming...)'}
@@ -2247,8 +2279,8 @@ export default function Vault() {
                       }}
                     >
                       <div className={`flex flex-col items-center p-3 rounded-lg border-2 border-transparent transition-all duration-200 ${renamingFolder === folderPath
-                          ? 'border-yellow-300 bg-yellow-50 dark:bg-yellow-950/20'
-                          : 'hover:border-blue-300 hover:bg-blue-50 dark:hover:bg-blue-950/20'
+                        ? 'border-yellow-300 bg-yellow-50 dark:bg-yellow-950/20'
+                        : 'hover:border-blue-300 hover:bg-blue-50 dark:hover:bg-blue-950/20'
                         }`}>
                         <div className={`w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center mb-2 transition-transform duration-200 ${renamingFolder === folderPath ? 'animate-pulse' : 'group-hover:scale-110'
                           }`}>
@@ -2278,8 +2310,8 @@ export default function Vault() {
                           </div>
                         ) : (
                           <span className={`text-xs font-medium text-center transition-colors ${renamingFolder === folderPath
-                              ? 'text-yellow-700 dark:text-yellow-300'
-                              : 'text-gray-700 dark:text-gray-300 group-hover:text-blue-600 dark:group-hover:text-blue-400'
+                            ? 'text-yellow-700 dark:text-yellow-300'
+                            : 'text-gray-700 dark:text-gray-300 group-hover:text-blue-600 dark:group-hover:text-blue-400'
                             }`}>
                             {folderName}
                             {renamingFolder === folderPath && ' (Renaming...)'}
@@ -2963,17 +2995,6 @@ export default function Vault() {
           <button
             className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
             onClick={() => {
-              setEditingFolder(contextMenu.folderPath);
-              setEditingFolderName(contextMenu.folderPath.split('/').pop() || '');
-              setContextMenu(null);
-            }}
-          >
-            <Pencil className="w-4 h-4" />
-            Rename
-          </button>
-          <button
-            className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
-            onClick={() => {
               // Navigate to folder
               navigateToFolder(contextMenu.folderPath);
               setContextMenu(null);
@@ -2981,6 +3002,17 @@ export default function Vault() {
           >
             <Folder className="w-4 h-4" />
             Open
+          </button>
+          <button
+            className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+            onClick={() => {
+              setEditingFolder(contextMenu.folderPath);
+              setEditingFolderName(contextMenu.folderPath.split('/').pop() || '');
+              setContextMenu(null);
+            }}
+          >
+            <Pencil className="w-4 h-4" />
+            Rename
           </button>
           <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>
           <button

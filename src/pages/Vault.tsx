@@ -1921,11 +1921,16 @@ export default function Vault() {
           onClick={() => setFilterMenuOpen(false)}
         />
         
-        {/* Slide-out Panel */}
-        <div className={`absolute right-0 top-0 h-full w-full max-w-md bg-background border-l shadow-2xl transform transition-transform duration-300 ${filterMenuOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+        {/* Mobile Bottom Sheet / Desktop Side Panel */}
+        <div className={`absolute bg-background border shadow-2xl transform transition-transform duration-300 ${
+          filterMenuOpen ? 'translate-y-0 sm:translate-x-0' : 'translate-y-full sm:translate-y-0 sm:translate-x-full'
+        } ${
+          // Mobile: bottom sheet, Desktop: side panel
+          'bottom-0 left-0 right-0 h-[85vh] sm:h-full sm:right-0 sm:left-auto sm:w-full sm:max-w-md sm:border-l'
+        }`}>
           <div className="flex flex-col h-full">
             {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b">
+            <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-blue-50/50 to-purple-50/50 dark:from-blue-950/20 dark:to-purple-950/20">
               <div className="flex items-center gap-2">
                 <Filter className="w-5 h-5 text-blue-500" />
                 <h2 className="text-lg font-semibold">Search & Filter</h2>
@@ -1934,14 +1939,19 @@ export default function Vault() {
                 variant="ghost"
                 size="sm"
                 onClick={() => setFilterMenuOpen(false)}
-                className="h-8 w-8 p-0"
+                className="h-8 w-8 p-0 hover:bg-gray-100 dark:hover:bg-gray-800"
               >
                 <X className="w-4 h-4" />
               </Button>
             </div>
 
+            {/* Mobile Drag Handle */}
+            <div className="sm:hidden flex justify-center py-2 border-b bg-gray-50 dark:bg-gray-900">
+              <div className="w-12 h-1 bg-gray-300 dark:bg-gray-600 rounded-full"></div>
+            </div>
+
             {/* Filter Content */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-6">
+            <div className="flex-1 overflow-y-auto p-4 space-y-6 md:overflow-y-hidden">
               {/* Search Bar */}
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Search</Label>
@@ -2154,7 +2164,7 @@ export default function Vault() {
             </div>
 
             {/* Footer */}
-            <div className="p-4 border-t space-y-2">
+            <div className="p-4 border-t bg-gradient-to-r from-gray-50/50 to-slate-50/50 dark:from-gray-950/20 dark:to-slate-950/20 space-y-2">
               {hasActiveFilters && (
                 <Button 
                   variant="outline" 
@@ -2166,7 +2176,7 @@ export default function Vault() {
               )}
               <Button 
                 onClick={() => setFilterMenuOpen(false)}
-                className="w-full"
+                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
               >
                 Apply Filters
               </Button>

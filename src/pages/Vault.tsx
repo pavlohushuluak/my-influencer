@@ -145,6 +145,29 @@ export default function Vault() {
   // Tag selection modal state
   const [tagSelectionModal, setTagSelectionModal] = useState<{ open: boolean }>({ open: false });
 
+  // Copy/Cut state
+  const [copyState, setCopyState] = useState<number>(0); // 0 = none, 1 = copy, 2 = cut
+  const [copiedPath, setCopiedPath] = useState<string>('');
+
+  // Load copy state from localStorage on component mount
+  useEffect(() => {
+    const savedCopyState = localStorage.getItem('copystate');
+    const savedCopiedPath = localStorage.getItem('copiedPath');
+
+    if (savedCopyState) {
+      setCopyState(parseInt(savedCopyState));
+    }
+    if (savedCopiedPath) {
+      setCopiedPath(savedCopiedPath);
+    }
+  }, []);
+
+  // Save copy state to localStorage when it changes
+  useEffect(() => {
+    localStorage.setItem('copystate', copyState.toString());
+    localStorage.setItem('copiedPath', copiedPath);
+  }, [copyState, copiedPath]);
+
   // Add tag to filter when clicked on card
   const addTagToFilter = (tag: string) => {
     const trimmedTag = tag.trim();
@@ -390,7 +413,7 @@ export default function Vault() {
 
     try {
       setFilesLoading(true);
-      
+
       // Step 1: Get files from getfilenames API
       const filesResponse = await fetch('https://api.nymia.ai/v1/getfilenames', {
         method: 'POST',
@@ -414,7 +437,7 @@ export default function Vault() {
 
       // Step 2: Get detailed information for each file from database
       const detailedImages: GeneratedImageData[] = [];
-      
+
       for (const file of filesData) {
         // Extract filename from the Key (remove path and get just the filename)
         const filename = file.Key.split('/').pop();
@@ -440,7 +463,7 @@ export default function Vault() {
 
       console.log('Detailed images:', detailedImages);
       setGeneratedImages(detailedImages);
-      
+
     } catch (error) {
       console.error('Error fetching home files:', error);
       setFiles([]);
@@ -476,8 +499,8 @@ export default function Vault() {
       }
 
       // Update local state
-      setGeneratedImages(prev => prev.map(img => 
-        img.system_filename === systemFilename 
+      setGeneratedImages(prev => prev.map(img =>
+        img.system_filename === systemFilename
           ? { ...img, favorite: favorite }
           : img
       ));
@@ -508,8 +531,8 @@ export default function Vault() {
       }
 
       // Update local state
-      setGeneratedImages(prev => prev.map(img => 
-        img.system_filename === systemFilename 
+      setGeneratedImages(prev => prev.map(img =>
+        img.system_filename === systemFilename
           ? { ...img, rating: rating }
           : img
       ));
@@ -540,8 +563,8 @@ export default function Vault() {
       }
 
       // Update local state
-      setGeneratedImages(prev => prev.map(img => 
-        img.system_filename === systemFilename 
+      setGeneratedImages(prev => prev.map(img =>
+        img.system_filename === systemFilename
           ? { ...img, user_notes: userNotes }
           : img
       ));
@@ -572,8 +595,8 @@ export default function Vault() {
       }
 
       // Update local state
-      setGeneratedImages(prev => prev.map(img => 
-        img.system_filename === systemFilename 
+      setGeneratedImages(prev => prev.map(img =>
+        img.system_filename === systemFilename
           ? { ...img, user_tags: userTags }
           : img
       ));
@@ -588,14 +611,14 @@ export default function Vault() {
   const filteredAndSortedItems = currentFolderItems
     .filter(item => {
       const matchesSearch = item.id;
-      const matchesType = selectedFilters.fileTypes.length === 0 || 
+      const matchesType = selectedFilters.fileTypes.length === 0 ||
         selectedFilters.fileTypes.includes(item.type);
-      
+
       return matchesSearch && matchesType;
     })
     .sort((a, b) => {
       let comparison = 0;
-      
+
       switch (sortBy) {
         case 'newest':
           comparison = new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
@@ -606,7 +629,7 @@ export default function Vault() {
         default:
           comparison = 0;
       }
-      
+
       return sortOrder === 'desc' ? -comparison : comparison;
     });
 
@@ -614,38 +637,38 @@ export default function Vault() {
   const filteredAndSortedGeneratedImages = generatedImages
     .filter(image => {
       // Search filter - search across multiple fields
-      const searchMatch = !searchTerm || 
+      const searchMatch = !searchTerm ||
         (image.user_filename && image.user_filename.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (image.system_filename && image.system_filename.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (image.user_notes && image.user_notes.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (image.user_tags && image.user_tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase())));
 
       // File type filter - multi-select
-      const fileTypeMatch = selectedFilters.fileTypes.length === 0 || 
+      const fileTypeMatch = selectedFilters.fileTypes.length === 0 ||
         selectedFilters.fileTypes.includes(image.file_type);
 
       // Favorite filter
-      const favoriteMatch = selectedFilters.favorites === null || 
+      const favoriteMatch = selectedFilters.favorites === null ||
         image.favorite === selectedFilters.favorites;
 
       // Rating range filter
-      const ratingMatch = image.rating >= selectedFilters.ratingRange.min && 
+      const ratingMatch = image.rating >= selectedFilters.ratingRange.min &&
         image.rating <= selectedFilters.ratingRange.max;
 
       // Notes filter
-      const notesMatch = selectedFilters.withNotes === null || 
+      const notesMatch = selectedFilters.withNotes === null ||
         (selectedFilters.withNotes === true && !!(image.user_notes && image.user_notes.trim() !== '')) ||
         (selectedFilters.withNotes === false && !(image.user_notes && image.user_notes.trim() !== ''));
 
       // Tags filter
-      const tagsMatch = selectedFilters.selectedTags.length === 0 || 
+      const tagsMatch = selectedFilters.selectedTags.length === 0 ||
         (image.user_tags && image.user_tags.some(tag => selectedFilters.selectedTags.includes(tag.trim())));
 
       return searchMatch && fileTypeMatch && favoriteMatch && ratingMatch && notesMatch && tagsMatch;
     })
     .sort((a, b) => {
       let comparison = 0;
-      
+
       switch (sortBy) {
         case 'newest':
           comparison = new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
@@ -664,16 +687,16 @@ export default function Vault() {
         default:
           comparison = 0;
       }
-      
+
       return sortOrder === 'desc' ? -comparison : comparison;
     });
 
-  const hasActiveFilters = searchTerm || 
-    selectedFilters.fileTypes.length > 0 || 
-    selectedFilters.favorites !== null || 
-    selectedFilters.ratingRange.min > 0 || 
-    selectedFilters.ratingRange.max < 5 || 
-    selectedFilters.withNotes !== null || 
+  const hasActiveFilters = searchTerm ||
+    selectedFilters.fileTypes.length > 0 ||
+    selectedFilters.favorites !== null ||
+    selectedFilters.ratingRange.min > 0 ||
+    selectedFilters.ratingRange.max < 5 ||
+    selectedFilters.withNotes !== null ||
     selectedFilters.selectedTags.length > 0;
 
   // Helper function to get descriptive filter names
@@ -747,7 +770,7 @@ export default function Vault() {
       }
 
       // Remove from local state
-    dispatch(removeFromVault(contentId));
+      dispatch(removeFromVault(contentId));
 
       // Update local vault items
       setVaultItems(prev => prev.filter(item => item.id !== contentId));
@@ -1046,7 +1069,7 @@ export default function Vault() {
     try {
       // Get the old folder name from the path
       const oldFolderName = oldPath.split('/').pop() || '';
-      
+
       // Check if the new name is the same as the old name
       if (oldFolderName === newName) {
         console.log('Folder name unchanged, cancelling rename operation');
@@ -1068,13 +1091,13 @@ export default function Vault() {
       });
 
       console.log('Renaming folder:', oldPath, 'to:', newName);
-      
+
       // Get the parent path and construct the new path
       const pathParts = oldPath.split('/');
       const oldFolderNameFromPath = pathParts.pop() || '';
       const parentPath = pathParts.join('/');
       const newPath = parentPath ? `${parentPath}/${newName}` : newName;
-      
+
       console.log('Parent path:', parentPath);
       console.log('New path:', newPath);
 
@@ -1283,7 +1306,7 @@ export default function Vault() {
       if (refreshResponse.ok) {
         const data = await refreshResponse.json();
         setFolders(data);
-        
+
         // Rebuild folder structure
         const structure = buildFolderStructure(data);
         setFolderStructure(structure);
@@ -1304,7 +1327,7 @@ export default function Vault() {
 
       console.log('Folder rename completed successfully');
       toast.success(`Folder renamed to "${newName}" successfully`);
-      
+
     } catch (error) {
       console.error('Error renaming folder:', error);
       toast.error('Failed to rename folder. Please try again.');
@@ -1527,15 +1550,274 @@ export default function Vault() {
     }
   };
 
+  // Handle copy operation
+  const handleCopy = (folderPath: string) => {
+    setCopyState(1);
+    setCopiedPath(folderPath);
+    setContextMenu(null);
+    toast.success(`Folder "${folderPath.split('/').pop()}" copied to clipboard`);
+  };
+
+  // Handle cut operation
+  const handleCut = (folderPath: string) => {
+    setCopyState(2);
+    setCopiedPath(folderPath);
+    setContextMenu(null);
+    toast.success(`Folder "${folderPath.split('/').pop()}" cut to clipboard`);
+  };
+
+  // Handle paste operation
+  const handlePaste = async () => {
+    if (copyState === 0 || !copiedPath) {
+      toast.error('No folder to paste');
+      return;
+    }
+
+    if (currentPath === copiedPath || copiedPath.includes(currentPath) || copiedPath.includes(currentPath + '/') || copiedPath.includes(currentPath + '/vault') || currentPath === 'vault') {
+      toast.error('Cannot paste into the same folder or a subfolder of the same folder');
+      return;
+    }
+
+    try {
+      toast.info('Pasting folder...', {
+        description: 'This may take a moment depending on the folder contents'
+      });
+
+      console.log('currentPath', currentPath);
+      console.log('copiedPath', copiedPath);
+      console.log('copiedPath.split(/).pop()', copiedPath.split('/').pop() || '');
+
+      const newFolderName = copiedPath.split('/').pop() || '';
+      // Clear copy state
+      setCopyState(0);
+      setCopiedPath('');
+
+      const createResponse = await fetch('https://api.nymia.ai/v1/createfolder', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          user: userData.id,
+          parentfolder: `vault/${currentPath ? currentPath + '/' : ''}`,
+          folder: newFolderName
+        })
+      });
+
+      console.log('createResponse', createResponse);
+
+      if (!createResponse.ok) {
+        throw new Error('Failed to create new folder');
+      }
+
+      console.log('New folder created successfully');
+
+      const getFilesResponse = await fetch('https://api.nymia.ai/v1/getfilenames', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          user: userData.id,
+          folder: `vault/${copiedPath}`
+        })
+      });
+
+      if (getFilesResponse.ok) {
+        const files = await getFilesResponse.json();
+        console.log('Files to copy:', files);
+
+        // Step 3: Copy all files to the new folder
+        if (files && files.length > 0) {
+          const copyPromises = files.map(async (file: any) => {
+            console.log("File:", file);
+            const fileKey = file.Key;
+            const re = new RegExp(`^.*?vault/${copiedPath}/`);
+            const fileName = fileKey.replace(re, "");
+            console.log("File Name:", fileName);
+
+            const copyResponse = await fetch('https://api.nymia.ai/v1/copyfile', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer WeInfl3nc3withAI'
+              },
+              body: JSON.stringify({
+                user: userData.id,
+                sourcefilename: `vault/${copiedPath}/${fileName}`,
+                destinationfilename: `vault/${currentPath}/${newFolderName}/${fileName}`
+              })
+            });
+
+            if (!copyResponse.ok) {
+              console.warn(`Failed to copy file ${file}`);
+              throw new Error(`Failed to copy file ${file}`);
+            }
+          });
+
+          await Promise.all(copyPromises);
+          console.log('All files copied successfully');
+        }
+      }
+
+      const getFoldersResponse = await fetch('https://api.nymia.ai/v1/getfoldernames', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          user: userData.id,
+          folder: `vault/${copiedPath}`
+        })
+      });
+
+      if (getFoldersResponse.ok) {
+        const folders = await getFoldersResponse.json();
+        console.log('Subfolders to copy:', folders);
+
+        // Step 5: Copy all subfolders recursively
+        if (folders && folders.length > 0) {
+          for (const folder of folders) {
+            const folderKey = folder.Key;
+            const re = new RegExp(`^.*?vault/${copiedPath}/`);
+
+            // Then just do:
+            const relativePath = folderKey.replace(re, "").replace(/\/$/, "");
+
+            console.log("Folder Key:", folderKey);
+            console.log("Relative Path:", relativePath);
+
+            if (relativePath && relativePath !== folderKey) {
+              // Create the subfolder in the new location
+              const subfolderCreateResponse = await fetch('https://api.nymia.ai/v1/createfolder', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': 'Bearer WeInfl3nc3withAI'
+                },
+                body: JSON.stringify({
+                  user: userData.id,
+                  parentfolder: `vault/${currentPath}/${newFolderName}/`,
+                  folder: relativePath
+                })
+              });
+
+              if (subfolderCreateResponse.ok) {
+                // Copy files from this subfolder
+                await copyFilesFromFolder(`${copiedPath}/${relativePath}`, `${currentPath}/${newFolderName}/${relativePath}`);
+              }
+
+              const getFilesResponse = await fetch('https://api.nymia.ai/v1/getfilenames', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': 'Bearer WeInfl3nc3withAI'
+                },
+                body: JSON.stringify({
+                  user: userData.id,
+                  folder: `vault/${copiedPath}/${relativePath}`
+                })
+              });
+
+              if (getFilesResponse.ok) {
+                const files = await getFilesResponse.json();
+                console.log('Files to copy:', files);
+
+                // Step 3: Copy all files to the new folder
+                if (files && files.length > 0 && files[0].Key) {
+                  const copyPromises = files.map(async (file: any) => {
+                    console.log("File:", file);
+                    const fileKey = file.Key;
+                    const re = new RegExp(`^.*?vault/${copiedPath}/${relativePath}/`);
+                    const fileName = fileKey.replace(re, "");
+                    console.log("File Name:", fileName);
+
+                    const copyResponse = await fetch('https://api.nymia.ai/v1/copyfile', {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer WeInfl3nc3withAI'
+                      },
+                      body: JSON.stringify({
+                        user: userData.id,
+                        sourcefilename: `vault/${copiedPath}/${relativePath}/${fileName}`,
+                        destinationfilename: `vault/${currentPath}/${newFolderName}/${relativePath}/${fileName}`
+                      })
+                    });
+
+                    if (!copyResponse.ok) {
+                      console.warn(`Failed to copy file ${file}`);
+                      throw new Error(`Failed to copy file ${file}`);
+                    }
+                  });
+
+                  await Promise.all(copyPromises);
+                  console.log('All files copied successfully');
+                }
+              }
+            }
+          }
+        }
+      }
+
+      if(copyState === 2) {
+        const deleteResponse = await fetch('https://api.nymia.ai/v1/deletefolder', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer WeInfl3nc3withAI'
+          },
+          body: JSON.stringify({
+            user: userData.id,
+            folder: `vault/${copiedPath}`
+          })
+        });
+
+        if (!deleteResponse.ok) {
+          throw new Error('Failed to delete folder');
+        }
+
+        console.log(`Successfully deleted folder: ${copiedPath}`);
+      }
+
+      // Refresh folder structure
+      const response = await fetch('https://api.nymia.ai/v1/getfoldernames', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          user: userData.id,
+          folder: "vault"
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setFolders(data);
+        const structure = buildFolderStructure(data);
+        setFolderStructure(structure);
+      }
+
+    } catch (error) {
+      console.error('Error pasting folder:', error);
+      toast.error('Failed to paste folder. Please try again.');
+    }
+  };
+
   if (loading || foldersLoading) {
-  return (
-    <div className="p-6 space-y-6 animate-fade-in">
-      <div className="flex flex-col md:flex-row items-center justify-between gap-5">
-        <div>
-          <h1 className="flex flex-col items-center md:items-start text-3xl font-bold tracking-tight bg-ai-gradient bg-clip-text text-transparent">
+    return (
+      <div className="p-6 space-y-6 animate-fade-in">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-5">
+          <div>
+            <h1 className="flex flex-col items-center md:items-start text-3xl font-bold tracking-tight bg-ai-gradient bg-clip-text text-transparent">
               File Manager of nymia
-          </h1>
-          <p className="text-muted-foreground">
+            </h1>
+            <p className="text-muted-foreground">
               Organize and manage your content with folders
             </p>
           </div>
@@ -1722,7 +2004,7 @@ export default function Vault() {
                 {sortOrder === 'asc' ? <SortAsc className="w-3 h-3" /> : <SortDesc className="w-3 h-3" />}
                 {sortOrder === 'asc' ? 'Ascending' : 'Descending'}
               </Button>
-              
+
               {hasActiveFilters && (
                 <Button variant="outline" size="sm" onClick={clearFilters}>
                   Clear All
@@ -1763,9 +2045,9 @@ export default function Vault() {
               {selectedFilters.selectedTags.length > 0 && (
                 <>
                   {selectedFilters.selectedTags.map((tag, index) => (
-                    <Badge 
-                      key={index} 
-                      variant="secondary" 
+                    <Badge
+                      key={index}
+                      variant="secondary"
                       className="text-xs flex items-center gap-1"
                     >
                       Tag: {tag}
@@ -1798,6 +2080,18 @@ export default function Vault() {
               Folders
             </CardTitle>
             <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handlePaste}
+                disabled={copyState === 0 || currentPath === ''}
+                className="flex items-center gap-1"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Paste
+              </Button>
               {currentPath && (
                 <Button
                   variant="outline"
@@ -1867,14 +2161,12 @@ export default function Vault() {
                   onDoubleClick={() => renamingFolder !== folder.path && navigateToFolder(folder.path)}
                   onContextMenu={(e) => renamingFolder !== folder.path && handleContextMenu(e, folder.path)}
                 >
-                  <div className={`flex flex-col items-center p-3 rounded-lg border-2 border-transparent transition-all duration-200 ${
-                    renamingFolder === folder.path 
-                      ? 'border-yellow-300 bg-yellow-50 dark:bg-yellow-950/20' 
+                  <div className={`flex flex-col items-center p-3 rounded-lg border-2 border-transparent transition-all duration-200 ${renamingFolder === folder.path
+                      ? 'border-yellow-300 bg-yellow-50 dark:bg-yellow-950/20'
                       : 'hover:border-blue-300 hover:bg-blue-50 dark:hover:bg-blue-950/20'
-                  }`}>
-                    <div className={`w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center mb-2 transition-transform duration-200 ${
-                      renamingFolder === folder.path ? 'animate-pulse' : 'group-hover:scale-110'
                     }`}>
+                    <div className={`w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center mb-2 transition-transform duration-200 ${renamingFolder === folder.path ? 'animate-pulse' : 'group-hover:scale-110'
+                      }`}>
                       {renamingFolder === folder.path ? (
                         <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
                       ) : (
@@ -1900,11 +2192,10 @@ export default function Vault() {
                         />
                       </div>
                     ) : (
-                      <span className={`text-xs font-medium text-center transition-colors ${
-                        renamingFolder === folder.path 
-                          ? 'text-yellow-700 dark:text-yellow-300' 
+                      <span className={`text-xs font-medium text-center transition-colors ${renamingFolder === folder.path
+                          ? 'text-yellow-700 dark:text-yellow-300'
                           : 'text-gray-700 dark:text-gray-300 group-hover:text-blue-600 dark:group-hover:text-blue-400'
-                      }`}>
+                        }`}>
                         {folder.name}
                         {renamingFolder === folder.path && ' (Renaming...)'}
                       </span>
@@ -1955,14 +2246,12 @@ export default function Vault() {
                         }
                       }}
                     >
-                      <div className={`flex flex-col items-center p-3 rounded-lg border-2 border-transparent transition-all duration-200 ${
-                        renamingFolder === folderPath 
-                          ? 'border-yellow-300 bg-yellow-50 dark:bg-yellow-950/20' 
+                      <div className={`flex flex-col items-center p-3 rounded-lg border-2 border-transparent transition-all duration-200 ${renamingFolder === folderPath
+                          ? 'border-yellow-300 bg-yellow-50 dark:bg-yellow-950/20'
                           : 'hover:border-blue-300 hover:bg-blue-50 dark:hover:bg-blue-950/20'
-                      }`}>
-                        <div className={`w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center mb-2 transition-transform duration-200 ${
-                          renamingFolder === folderPath ? 'animate-pulse' : 'group-hover:scale-110'
                         }`}>
+                        <div className={`w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center mb-2 transition-transform duration-200 ${renamingFolder === folderPath ? 'animate-pulse' : 'group-hover:scale-110'
+                          }`}>
                           {renamingFolder === folderPath ? (
                             <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
                           ) : (
@@ -1988,11 +2277,10 @@ export default function Vault() {
                             />
                           </div>
                         ) : (
-                          <span className={`text-xs font-medium text-center transition-colors ${
-                            renamingFolder === folderPath 
-                              ? 'text-yellow-700 dark:text-yellow-300' 
+                          <span className={`text-xs font-medium text-center transition-colors ${renamingFolder === folderPath
+                              ? 'text-yellow-700 dark:text-yellow-300'
                               : 'text-gray-700 dark:text-gray-300 group-hover:text-blue-600 dark:group-hover:text-blue-400'
-                          }`}>
+                            }`}>
                             {folderName}
                             {renamingFolder === folderPath && ' (Renaming...)'}
                           </span>
@@ -2060,8 +2348,8 @@ export default function Vault() {
         ) : generatedImages.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
             {filteredAndSortedGeneratedImages.map((image) => (
-              <Card 
-                key={image.id} 
+              <Card
+                key={image.id}
                 className="group hover:shadow-xl transition-all duration-300 border-border/50 hover:border-yellow-500/30 bg-gradient-to-br from-yellow-50/20 to-orange-50/20 dark:from-yellow-950/5 dark:to-orange-950/5 backdrop-blur-sm"
               >
                 <CardContent className="p-4">
@@ -2072,7 +2360,7 @@ export default function Vault() {
                       className="absolute inset-0 w-full h-full object-cover rounded-md shadow-sm cursor-pointer"
                       onClick={() => setDetailedImageModal({ open: true, image })}
                     />
-                    
+
                     {/* File Type Icon */}
                     <div className="absolute top-2 left-2 bg-black/50 rounded-full w-8 h-8 flex items-center justify-center">
                       {image.file_type === 'video' ? (
@@ -2085,7 +2373,7 @@ export default function Vault() {
                     {/* Favorite Heart */}
                     <div className="absolute top-2 right-2">
                       {image.favorite ? (
-                        <div 
+                        <div
                           className="bg-red-500 rounded-full w-8 h-8 flex items-center justify-center cursor-pointer hover:bg-red-600 transition-colors"
                           onClick={(e) => {
                             e.stopPropagation();
@@ -2093,11 +2381,11 @@ export default function Vault() {
                           }}
                         >
                           <svg className="w-4 h-4 text-white fill-current" viewBox="0 0 24 24">
-                            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
                           </svg>
                         </div>
                       ) : (
-                        <div 
+                        <div
                           className="bg-black/50 rounded-full w-8 h-8 flex items-center justify-center cursor-pointer hover:bg-black/70 transition-colors"
                           onClick={(e) => {
                             e.stopPropagation();
@@ -2105,7 +2393,7 @@ export default function Vault() {
                           }}
                         >
                           <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
                           </svg>
                         </div>
                       )}
@@ -2116,16 +2404,15 @@ export default function Vault() {
                       {[1, 2, 3, 4, 5].map((star) => (
                         <svg
                           key={star}
-                          className={`w-4 h-4 cursor-pointer hover:scale-110 transition-transform ${
-                            star <= image.rating ? 'text-yellow-400 fill-current' : 'text-gray-300'
-                          }`}
+                          className={`w-4 h-4 cursor-pointer hover:scale-110 transition-transform ${star <= image.rating ? 'text-yellow-400 fill-current' : 'text-gray-300'
+                            }`}
                           viewBox="0 0 24 24"
                           onClick={(e) => {
                             e.stopPropagation();
                             updateRating(image.system_filename, star);
                           }}
                         >
-                          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
                         </svg>
                       ))}
                     </div>
@@ -2180,7 +2467,7 @@ export default function Vault() {
                   ) : (
                     <div className="mb-3">
                       {image.user_notes ? (
-                        <p 
+                        <p
                           className="text-sm text-gray-700 dark:text-gray-300 line-clamp-2 cursor-pointer hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
                           onClick={() => {
                             setEditingNotes(image.system_filename);
@@ -2190,7 +2477,7 @@ export default function Vault() {
                           {image.user_notes}
                         </p>
                       ) : (
-                        <div 
+                        <div
                           className="text-sm text-gray-500 dark:text-gray-400 cursor-pointer hover:text-gray-700 dark:hover:text-gray-300"
                           onClick={() => {
                             setEditingNotes(image.system_filename);
@@ -2207,9 +2494,9 @@ export default function Vault() {
                   {image.user_tags && image.user_tags.length > 0 && (
                     <div className="mb-3 flex flex-wrap gap-1">
                       {image.user_tags.map((tag, index) => (
-                        <Badge 
-                          key={index} 
-                          variant="secondary" 
+                        <Badge
+                          key={index}
+                          variant="secondary"
                           className="text-xs flex items-center gap-1 cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/20 transition-colors"
                           onClick={(e) => {
                             e.stopPropagation();
@@ -2288,7 +2575,7 @@ export default function Vault() {
                         </div>
                       </div>
                     ) : (
-                      <div 
+                      <div
                         className="text-sm text-gray-500 dark:text-gray-400 cursor-pointer hover:text-gray-700 dark:hover:text-gray-300"
                         onClick={() => {
                           setEditingTags(image.system_filename);
@@ -2330,8 +2617,8 @@ export default function Vault() {
                     >
                       <Share className="w-3 h-3" />
                     </Button>
-                    <Button 
-                      size="sm" 
+                    <Button
+                      size="sm"
                       variant="outline"
                       className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-amber-500 hover:border-amber-300 transition-colors"
                       onClick={() => handleRemoveFromVault(image.system_filename.replace('.png', ''))}
@@ -2359,8 +2646,8 @@ export default function Vault() {
         filteredAndSortedItems.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
             {filteredAndSortedItems.map((item) => (
-              <Card 
-                key={item.id} 
+              <Card
+                key={item.id}
                 className="group hover:shadow-xl transition-all duration-300 border-border/50 hover:border-yellow-500/30 bg-gradient-to-br from-yellow-50/20 to-orange-950/5 backdrop-blur-sm"
               >
                 <CardHeader className="pb-3">
@@ -2371,7 +2658,7 @@ export default function Vault() {
                       ) : (
                         <Image className="w-4 h-4 text-blue-500" />
                       )}
-                  </div>
+                    </div>
                     <Star className="w-4 h-4 text-yellow-500 fill-current" />
                   </div>
                   <CardTitle className="text-lg font-semibold text-gray-800 dark:text-gray-200">{item.id}</CardTitle>
@@ -2388,11 +2675,11 @@ export default function Vault() {
                       onClick={() => setSelectedImage(`https://images.nymia.ai/cdn-cgi/image/w=800/${userData.id}/output/${item.id}.png`)}
                     >
                       <ZoomIn className="w-6 h-6 text-white" />
-                      </div>
+                    </div>
                   </div>
                   <div className="space-y-3">
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <Calendar className="w-3 h-3" />
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <Calendar className="w-3 h-3" />
                       Added {new Date(item.created_at).toLocaleDateString()}
                     </div>
                     <div className="flex gap-1.5">
@@ -2404,31 +2691,31 @@ export default function Vault() {
                       >
                         <Download className="w-3 h-3 mr-1.5" />
                         <span className="hidden sm:inline">Download</span>
-                        </Button>
+                      </Button>
                       <Button
                         size="sm"
                         variant="outline"
                         className="h-8 w-8 p-0 hover:bg-green-50 hover:bg-green-700 hover:border-green-500 transition-colors"
                         onClick={() => handleShare(item.id)}
                       >
-                          <Share className="w-3 h-3" />
-                        </Button>
-                        <Button 
-                          size="sm" 
+                        <Share className="w-3 h-3" />
+                      </Button>
+                      <Button
+                        size="sm"
                         variant="outline"
                         className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-amber-500 hover:border-amber-300 transition-colors"
-                          onClick={() => handleRemoveFromVault(item.id)}
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </Button>
+                        onClick={() => handleRemoveFromVault(item.id)}
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      ) : (
-        <div className="text-center py-12">
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-12">
             <div className="flex flex-col items-center gap-4">
               {currentPath ? (
                 <>
@@ -2441,13 +2728,13 @@ export default function Vault() {
               ) : (
                 <>
                   <Star className="w-12 h-12 text-yellow-500/50" />
-          <h3 className="text-lg font-semibold mb-2">No items found</h3>
-          <p className="text-muted-foreground">
-            Try adjusting your search or filters to find what you're looking for.
-          </p>
+                  <h3 className="text-lg font-semibold mb-2">No items found</h3>
+                  <p className="text-muted-foreground">
+                    Try adjusting your search or filters to find what you're looking for.
+                  </p>
                 </>
               )}
-        </div>
+            </div>
           </div>
         )
       )}
@@ -2697,6 +2984,25 @@ export default function Vault() {
           </button>
           <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>
           <button
+            className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+            onClick={() => handleCopy(contextMenu.folderPath)}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
+            Copy
+          </button>
+          <button
+            className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+            onClick={() => handleCut(contextMenu.folderPath)}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+            Cut
+          </button>
+          <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>
+          <button
             className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 text-red-600 dark:text-red-400"
             onClick={() => {
               // Delete folder functionality would go here
@@ -2927,9 +3233,9 @@ export default function Vault() {
                 <Label className="text-sm font-medium">Currently Selected:</Label>
                 <div className="flex flex-wrap gap-2">
                   {selectedFilters.selectedTags.map((tag, index) => (
-                    <Badge 
-                      key={index} 
-                      variant="default" 
+                    <Badge
+                      key={index}
+                      variant="default"
                       className="text-xs flex items-center gap-1"
                     >
                       {tag}
@@ -2955,8 +3261,8 @@ export default function Vault() {
               <Label className="text-sm font-medium">Available Tags:</Label>
               <div className="flex flex-wrap gap-2 max-h-60 overflow-y-auto">
                 {getAllAvailableTags().map((tag) => (
-                  <Badge 
-                    key={tag} 
+                  <Badge
+                    key={tag}
                     variant={selectedFilters.selectedTags.includes(tag) ? "default" : "outline"}
                     className="text-xs cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/20 transition-colors"
                     onClick={() => {

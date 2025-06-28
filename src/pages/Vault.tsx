@@ -2479,11 +2479,17 @@ export default function Vault() {
                   {/* Top Row: File Type, Ratings, Favorite */}
                   <div className="flex items-center justify-between mb-3">
                     {/* File Type Icon */}
-                    <div className="bg-black/50 rounded-full w-8 h-8 flex items-center justify-center">
+                    <div className="bg-gradient-to-br from-blue-500 to-purple-600 rounded-full w-8 h-8 flex items-center justify-center shadow-md">
                       {image.file_type === 'video' ? (
-                        <Video className="w-4 h-4 text-white" />
+                        <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M8 5v14l11-7z"/>
+                          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15V7l8 5-8 5z" opacity="0.3"/>
+                        </svg>
                       ) : (
-                        <Image className="w-4 h-4 text-white" />
+                        <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/>
+                          <circle cx="8.5" cy="8.5" r="1.5" opacity="0.8"/>
+                        </svg>
                       )}
                     </div>
 
@@ -3144,131 +3150,176 @@ export default function Vault() {
 
       {/* Detailed Image Modal */}
       <Dialog open={detailedImageModal.open} onOpenChange={(open) => setDetailedImageModal({ open, image: null })}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-6xl max-h-[95vh] overflow-y-auto bg-gradient-to-br from-gray-50/50 to-slate-50/50 dark:from-gray-950/50 dark:to-slate-950/50 backdrop-blur-sm border-0 shadow-2xl">
           {detailedImageModal.image && (
-            <div className="space-y-6">
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
-                  <Image className="w-5 h-5 text-blue-500" />
-                  {detailedImageModal.image.user_filename || detailedImageModal.image.system_filename}
-                </DialogTitle>
-                <DialogDescription>
-                  Detailed information about this generated image
+            <div className="space-y-8">
+              {/* Enhanced Header */}
+              <DialogHeader className="text-center pb-6 border-b border-gray-200/50 dark:border-gray-700/50">
+                <div className="flex items-center justify-center gap-3 mb-2">
+                  <div className="bg-gradient-to-br from-blue-500 to-purple-600 rounded-full w-10 h-10 flex items-center justify-center shadow-lg">
+                    {detailedImageModal.image.file_type === 'video' ? (
+                      <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M8 5v14l11-7z"/>
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15V7l8 5-8 5z" opacity="0.3"/>
+                      </svg>
+                    ) : (
+                      <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/>
+                        <circle cx="8.5" cy="8.5" r="1.5" opacity="0.8"/>
+                      </svg>
+                    )}
+                  </div>
+                  <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                    {detailedImageModal.image.user_filename || detailedImageModal.image.system_filename}
+                  </DialogTitle>
+                </div>
+                <DialogDescription className="text-base text-gray-600 dark:text-gray-400">
+                  Comprehensive details and metadata for this generated {detailedImageModal.image.file_type}
                 </DialogDescription>
               </DialogHeader>
 
-              {/* Large Image */}
+              {/* Enhanced Image Display */}
               <div className="flex justify-center">
-                <img
-                  src={`https://images.nymia.ai/cdn-cgi/image/w=800/${userData.id}/output/${detailedImageModal.image.system_filename}`}
-                  alt={detailedImageModal.image.user_filename || detailedImageModal.image.system_filename}
-                  className="max-w-full max-h-[60vh] object-contain rounded-lg shadow-lg"
-                />
+                <div className="relative group">
+                  <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-purple-600/20 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-500"></div>
+                  <img
+                    src={`https://images.nymia.ai/cdn-cgi/image/w=800/${userData.id}/output/${detailedImageModal.image.system_filename}`}
+                    alt={detailedImageModal.image.user_filename || detailedImageModal.image.system_filename}
+                    className="relative max-w-full max-h-[65vh] object-contain rounded-2xl shadow-2xl border border-gray-200/50 dark:border-gray-700/50 group-hover:scale-[1.02] transition-transform duration-300"
+                  />
+                  {/* Image Overlay Info */}
+                  <div className="absolute bottom-4 left-4 right-4 bg-black/60 backdrop-blur-sm rounded-lg p-3 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    <div className="flex items-center justify-between text-sm">
+                      <span>{(detailedImageModal.image.file_size_bytes / 1024 / 1024).toFixed(2)} MB</span>
+                      <span>{detailedImageModal.image.image_format.toUpperCase()}</span>
+                      <span>{detailedImageModal.image.file_type}</span>
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              {/* Image Details Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Enhanced Image Details Grid */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* Basic Information */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">Basic Information</CardTitle>
+                <Card className="bg-gradient-to-br from-blue-50/50 to-indigo-50/50 dark:from-blue-950/20 dark:to-indigo-950/20 border-blue-200/50 dark:border-blue-800/50 shadow-lg">
+                  <CardHeader className="bg-gradient-to-r from-blue-500/10 to-indigo-500/10 rounded-t-lg border-b border-blue-200/50 dark:border-blue-800/50">
+                    <CardTitle className="text-lg flex items-center gap-2 text-blue-700 dark:text-blue-300">
+                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                      </svg>
+                      Basic Information
+                    </CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="flex justify-between">
-                      <span className="font-medium">Filename:</span>
-                      <span className="text-muted-foreground">{detailedImageModal.image.system_filename}</span>
+                  <CardContent className="space-y-4 pt-6">
+                    <div className="flex justify-between items-center p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
+                      <span className="font-semibold text-gray-700 dark:text-gray-300">Filename:</span>
+                      <span className="text-gray-600 dark:text-gray-400 font-mono text-sm">{detailedImageModal.image.system_filename}</span>
                     </div>
                     {detailedImageModal.image.user_filename && (
-                      <div className="flex justify-between">
-                        <span className="font-medium">Custom Name:</span>
-                        <span className="text-muted-foreground">{detailedImageModal.image.user_filename}</span>
+                      <div className="flex justify-between items-center p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
+                        <span className="font-semibold text-gray-700 dark:text-gray-300">Custom Name:</span>
+                        <span className="text-gray-600 dark:text-gray-400">{detailedImageModal.image.user_filename}</span>
                       </div>
                     )}
-                    <div className="flex justify-between">
-                      <span className="font-medium">File Type:</span>
-                      <span className="text-muted-foreground">{detailedImageModal.image.file_type}</span>
+                    <div className="flex justify-between items-center p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
+                      <span className="font-semibold text-gray-700 dark:text-gray-300">File Type:</span>
+                      <Badge variant="outline" className="bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300">
+                        {detailedImageModal.image.file_type}
+                      </Badge>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="font-medium">Format:</span>
-                      <span className="text-muted-foreground">{detailedImageModal.image.image_format}</span>
+                    <div className="flex justify-between items-center p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
+                      <span className="font-semibold text-gray-700 dark:text-gray-300">Format:</span>
+                      <span className="text-gray-600 dark:text-gray-400 font-mono">{detailedImageModal.image.image_format}</span>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="font-medium">File Size:</span>
-                      <span className="text-muted-foreground">{(detailedImageModal.image.file_size_bytes / 1024 / 1024).toFixed(2)} MB</span>
+                    <div className="flex justify-between items-center p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
+                      <span className="font-semibold text-gray-700 dark:text-gray-300">File Size:</span>
+                      <span className="text-gray-600 dark:text-gray-400 font-mono">{(detailedImageModal.image.file_size_bytes / 1024 / 1024).toFixed(2)} MB</span>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="font-medium">Status:</span>
-                      <Badge variant={detailedImageModal.image.generation_status === 'completed' ? 'default' : 'secondary'}>
+                    <div className="flex justify-between items-center p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
+                      <span className="font-semibold text-gray-700 dark:text-gray-300">Status:</span>
+                      <Badge variant={detailedImageModal.image.generation_status === 'completed' ? 'default' : 'secondary'} className="bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-300">
                         {detailedImageModal.image.generation_status}
                       </Badge>
                     </div>
                     {detailedImageModal.image.favorite && (
-                      <div className="flex justify-between">
-                        <span className="font-medium">Favorite:</span>
-                        <Star className="w-4 h-4 text-yellow-500 fill-current" />
+                      <div className="flex justify-between items-center p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
+                        <span className="font-semibold text-gray-700 dark:text-gray-300">Favorite:</span>
+                        <Star className="w-5 h-5 text-yellow-500 fill-current" />
                       </div>
                     )}
                   </CardContent>
                 </Card>
 
                 {/* Generation Settings */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">Generation Settings</CardTitle>
+                <Card className="bg-gradient-to-br from-purple-50/50 to-pink-50/50 dark:from-purple-950/20 dark:to-pink-950/20 border-purple-200/50 dark:border-purple-800/50 shadow-lg">
+                  <CardHeader className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 rounded-t-lg border-b border-purple-200/50 dark:border-purple-800/50">
+                    <CardTitle className="text-lg flex items-center gap-2 text-purple-700 dark:text-purple-300">
+                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/>
+                      </svg>
+                      Generation Settings
+                    </CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="flex justify-between">
-                      <span className="font-medium">Model:</span>
-                      <span className="text-muted-foreground">{detailedImageModal.image.model_version}</span>
+                  <CardContent className="space-y-4 pt-6">
+                    <div className="flex justify-between items-center p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
+                      <span className="font-semibold text-gray-700 dark:text-gray-300">Model:</span>
+                      <span className="text-gray-600 dark:text-gray-400 font-mono text-sm">{detailedImageModal.image.model_version}</span>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="font-medium">Seed:</span>
-                      <span className="text-muted-foreground">{detailedImageModal.image.seed}</span>
+                    <div className="flex justify-between items-center p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
+                      <span className="font-semibold text-gray-700 dark:text-gray-300">Seed:</span>
+                      <span className="text-gray-600 dark:text-gray-400 font-mono">{detailedImageModal.image.seed}</span>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="font-medium">Steps:</span>
-                      <span className="text-muted-foreground">{detailedImageModal.image.steps}</span>
+                    <div className="flex justify-between items-center p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
+                      <span className="font-semibold text-gray-700 dark:text-gray-300">Steps:</span>
+                      <span className="text-gray-600 dark:text-gray-400 font-mono">{detailedImageModal.image.steps}</span>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="font-medium">Guidance:</span>
-                      <span className="text-muted-foreground">{detailedImageModal.image.guidance}</span>
+                    <div className="flex justify-between items-center p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
+                      <span className="font-semibold text-gray-700 dark:text-gray-300">Guidance:</span>
+                      <span className="text-gray-600 dark:text-gray-400 font-mono">{detailedImageModal.image.guidance}</span>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="font-medium">NSFW Strength:</span>
-                      <span className="text-muted-foreground">{detailedImageModal.image.nsfw_strength}</span>
+                    <div className="flex justify-between items-center p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
+                      <span className="font-semibold text-gray-700 dark:text-gray-300">NSFW Strength:</span>
+                      <span className="text-gray-600 dark:text-gray-400 font-mono">{detailedImageModal.image.nsfw_strength}</span>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="font-medium">LoRA Strength:</span>
-                      <span className="text-muted-foreground">{detailedImageModal.image.lora_strength}</span>
+                    <div className="flex justify-between items-center p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
+                      <span className="font-semibold text-gray-700 dark:text-gray-300">LoRA Strength:</span>
+                      <span className="text-gray-600 dark:text-gray-400 font-mono">{detailedImageModal.image.lora_strength}</span>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="font-medium">Quality Setting:</span>
-                      <span className="text-muted-foreground">{detailedImageModal.image.quality_setting}</span>
+                    <div className="flex justify-between items-center p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
+                      <span className="font-semibold text-gray-700 dark:text-gray-300">Quality Setting:</span>
+                      <Badge variant="outline" className="bg-purple-100 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300">
+                        {detailedImageModal.image.quality_setting}
+                      </Badge>
                     </div>
                   </CardContent>
                 </Card>
 
                 {/* Prompts */}
-                <Card className="md:col-span-2">
-                  <CardHeader>
-                    <CardTitle className="text-lg">Prompts</CardTitle>
+                <Card className="lg:col-span-2 bg-gradient-to-br from-green-50/50 to-emerald-50/50 dark:from-green-950/20 dark:to-emerald-950/20 border-green-200/50 dark:border-green-800/50 shadow-lg">
+                  <CardHeader className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 rounded-t-lg border-b border-green-200/50 dark:border-green-800/50">
+                    <CardTitle className="text-lg flex items-center gap-2 text-green-700 dark:text-green-300">
+                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
+                      </svg>
+                      Prompts & Instructions
+                    </CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-4">
+                  <CardContent className="space-y-6 pt-6">
                     <div>
-                      <Label className="text-sm font-medium">T5XXL Prompt:</Label>
-                      <div className="mt-1 p-3 bg-muted rounded-md text-sm">
+                      <Label className="text-sm font-semibold text-green-700 dark:text-green-300 mb-2 block">T5XXL Prompt:</Label>
+                      <div className="p-4 bg-white/70 dark:bg-gray-800/70 rounded-lg border border-green-200/50 dark:border-green-800/50 text-sm leading-relaxed">
                         {detailedImageModal.image.t5xxl_prompt}
                       </div>
                     </div>
                     <div>
-                      <Label className="text-sm font-medium">CLIP Prompt:</Label>
-                      <div className="mt-1 p-3 bg-muted rounded-md text-sm">
+                      <Label className="text-sm font-semibold text-green-700 dark:text-green-300 mb-2 block">CLIP Prompt:</Label>
+                      <div className="p-4 bg-white/70 dark:bg-gray-800/70 rounded-lg border border-green-200/50 dark:border-green-800/50 text-sm leading-relaxed">
                         {detailedImageModal.image.clip_l_prompt}
                       </div>
                     </div>
                     <div>
-                      <Label className="text-sm font-medium">Negative Prompt:</Label>
-                      <div className="mt-1 p-3 bg-muted rounded-md text-sm">
+                      <Label className="text-sm font-semibold text-green-700 dark:text-green-300 mb-2 block">Negative Prompt:</Label>
+                      <div className="p-4 bg-white/70 dark:bg-gray-800/70 rounded-lg border border-green-200/50 dark:border-green-800/50 text-sm leading-relaxed">
                         {detailedImageModal.image.negative_prompt}
                       </div>
                     </div>
@@ -3276,44 +3327,53 @@ export default function Vault() {
                 </Card>
 
                 {/* Generation Details */}
-                <Card className="md:col-span-2">
-                  <CardHeader>
-                    <CardTitle className="text-lg">Generation Details</CardTitle>
+                <Card className="lg:col-span-2 bg-gradient-to-br from-orange-50/50 to-red-50/50 dark:from-orange-950/20 dark:to-red-950/20 border-orange-200/50 dark:border-orange-800/50 shadow-lg">
+                  <CardHeader className="bg-gradient-to-r from-orange-500/10 to-red-500/10 rounded-t-lg border-b border-orange-200/50 dark:border-orange-800/50">
+                    <CardTitle className="text-lg flex items-center gap-2 text-orange-700 dark:text-orange-300">
+                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M16.2,16.2L11,13V7H12.5V12.2L17,14.9L16.2,16.2Z"/>
+                      </svg>
+                      Generation Details
+                    </CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="flex justify-between">
-                      <span className="font-medium">Task ID:</span>
-                      <span className="text-muted-foreground">{detailedImageModal.image.task_id}</span>
+                  <CardContent className="space-y-4 pt-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="flex justify-between items-center p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
+                        <span className="font-semibold text-gray-700 dark:text-gray-300">Task ID:</span>
+                        <span className="text-gray-600 dark:text-gray-400 font-mono text-sm">{detailedImageModal.image.task_id}</span>
+                      </div>
+                      <div className="flex justify-between items-center p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
+                        <span className="font-semibold text-gray-700 dark:text-gray-300">Image Sequence:</span>
+                        <span className="text-gray-600 dark:text-gray-400 font-mono">{detailedImageModal.image.image_sequence_number}</span>
+                      </div>
+                      <div className="flex justify-between items-center p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
+                        <span className="font-semibold text-gray-700 dark:text-gray-300">Generation Time:</span>
+                        <span className="text-gray-600 dark:text-gray-400 font-mono">{detailedImageModal.image.generation_time_seconds}s</span>
+                      </div>
+                      <div className="flex justify-between items-center p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
+                        <span className="font-semibold text-gray-700 dark:text-gray-300">Retry Count:</span>
+                        <span className="text-gray-600 dark:text-gray-400 font-mono">{detailedImageModal.image.retry_count}</span>
+                      </div>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="font-medium">Image Sequence:</span>
-                      <span className="text-muted-foreground">{detailedImageModal.image.image_sequence_number}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="font-medium">Generation Time:</span>
-                      <span className="text-muted-foreground">{detailedImageModal.image.generation_time_seconds}s</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="font-medium">Started At:</span>
-                      <span className="text-muted-foreground">{new Date(detailedImageModal.image.generation_started_at).toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="font-medium">Completed At:</span>
-                      <span className="text-muted-foreground">{new Date(detailedImageModal.image.generation_completed_at).toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="font-medium">Retry Count:</span>
-                      <span className="text-muted-foreground">{detailedImageModal.image.retry_count}</span>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
+                        <span className="font-semibold text-gray-700 dark:text-gray-300 block mb-1">Started At:</span>
+                        <span className="text-gray-600 dark:text-gray-400 text-sm">{new Date(detailedImageModal.image.generation_started_at).toLocaleString()}</span>
+                      </div>
+                      <div className="p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
+                        <span className="font-semibold text-gray-700 dark:text-gray-300 block mb-1">Completed At:</span>
+                        <span className="text-gray-600 dark:text-gray-400 text-sm">{new Date(detailedImageModal.image.generation_completed_at).toLocaleString()}</span>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
               </div>
 
-              {/* Action Buttons */}
-              <div className="flex gap-3 pt-4 border-t">
+              {/* Enhanced Action Buttons */}
+              <div className="flex gap-4 pt-6 border-t border-gray-200/50 dark:border-gray-700/50">
                 <Button
                   onClick={() => handleDownload(detailedImageModal.image.system_filename.replace('.png', ''))}
-                  className="flex-1"
+                  className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
                 >
                   <Download className="w-4 h-4 mr-2" />
                   Download
@@ -3321,7 +3381,7 @@ export default function Vault() {
                 <Button
                   variant="outline"
                   onClick={() => handleShare(detailedImageModal.image.system_filename.replace('.png', ''))}
-                  className="flex-1"
+                  className="flex-1 border-green-500 text-green-600 hover:bg-green-50 dark:hover:bg-green-950/20 hover:border-green-600 transition-all duration-300"
                 >
                   <Share className="w-4 h-4 mr-2" />
                   Share
@@ -3329,7 +3389,7 @@ export default function Vault() {
                 <Button
                   variant="outline"
                   onClick={() => handleRemoveFromVault(detailedImageModal.image.system_filename.replace('.png', ''))}
-                  className="text-red-600 hover:text-red-700"
+                  className="border-red-500 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 hover:border-red-600 transition-all duration-300"
                 >
                   <Trash2 className="w-4 h-4 mr-2" />
                   Delete

@@ -150,6 +150,17 @@ export default function Vault() {
   const [copiedPath, setCopiedPath] = useState<string>('');
   const [isPasting, setIsPasting] = useState<boolean>(false);
 
+  // File copy/cut state
+  const [fileCopyState, setFileCopyState] = useState<number>(0); // 0 = none, 1 = copy, 2 = cut
+  const [copiedFile, setCopiedFile] = useState<GeneratedImageData | null>(null);
+  const [isPastingFile, setIsPastingFile] = useState<boolean>(false);
+
+  // File context menu state
+  const [fileContextMenu, setFileContextMenu] = useState<{ x: number; y: number; image: GeneratedImageData } | null>(null);
+  const [editingFile, setEditingFile] = useState<string | null>(null);
+  const [editingFileName, setEditingFileName] = useState<string>('');
+  const [renamingFile, setRenamingFile] = useState<string | null>(null);
+
   // Filter menu state
   const [filterMenuOpen, setFilterMenuOpen] = useState<boolean>(false);
 
@@ -622,7 +633,7 @@ export default function Vault() {
     })
     .sort((a, b) => {
       let comparison = 0;
-      
+
       switch (sortBy) {
         case 'newest':
           comparison = new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
@@ -691,7 +702,7 @@ export default function Vault() {
         default:
           comparison = 0;
       }
-      
+
       return sortOrder === 'desc' ? -comparison : comparison;
     });
 
@@ -1401,7 +1412,7 @@ export default function Vault() {
       setEditingFolderName(contextMenu.folderPath.split('/').pop() || '');
       setContextMenu(null);
     }
-    
+
     // Close filter menu with Escape key
     if (e.key === 'Escape' && filterMenuOpen) {
       e.preventDefault();
@@ -1841,15 +1852,156 @@ export default function Vault() {
     }
   };
 
+  // File copy/cut/paste handlers
+  const handleFileCopy = (image: GeneratedImageData) => {
+    setFileCopyState(1);
+    setCopiedFile(image);
+    setFileContextMenu(null);
+    toast.success(`File "${image.user_filename || image.system_filename}" copied to clipboard`);
+  };
+
+  const handleFileCut = (image: GeneratedImageData) => {
+    setFileCopyState(2);
+    setCopiedFile(image);
+    setFileContextMenu(null);
+    toast.success(`File "${image.user_filename || image.system_filename}" cut to clipboard`);
+  };
+
+  const handleFilePaste = async () => {
+    if (fileCopyState === 0 || !copiedFile) {
+      toast.error('No file to paste');
+      return;
+    }
+
+    setIsPastingFile(true);
+
+    try {
+      const operationType = fileCopyState === 1 ? 'copying' : 'moving';
+      const fileName = copiedFile.user_filename || copiedFile.system_filename;
+
+      toast.info(`${operationType.charAt(0).toUpperCase() + operationType.slice(1)} file...`, {
+        description: `Processing "${fileName}" - this may take a moment`,
+        duration: 3000
+      });
+
+      // TODO: Implement actual file copy/move API call
+      // For now, just show a placeholder
+      console.log(`${operationType} file:`, copiedFile.system_filename, 'to folder:', currentPath);
+
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      if (fileCopyState === 2) {
+        // Remove from current location if it's a cut operation
+        setGeneratedImages(prev => prev.filter(img => img.system_filename !== copiedFile.system_filename));
+      }
+
+      // Clear copy state
+      setFileCopyState(0);
+      setCopiedFile(null);
+
+      toast.success(`File "${fileName}" ${operationType === 'copying' ? 'copied' : 'moved'} successfully!`);
+
+    } catch (error) {
+      console.error('Error pasting file:', error);
+      toast.error('Failed to paste file. Please try again.');
+    } finally {
+      setIsPastingFile(false);
+    }
+  };
+
+  // File rename handler
+  const handleFileRename = async (oldFilename: string, newName: string) => {
+    try {
+      setRenamingFile(oldFilename);
+      toast.info('Renaming file...', {
+        description: 'This may take a moment'
+      });
+
+      // TODO: Implement actual file rename API call
+      // For now, just show a placeholder
+      console.log('Renaming file:', oldFilename, 'to:', newName);
+
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Update local state
+      setGeneratedImages(prev => prev.map(img =>
+        img.system_filename === oldFilename
+          ? { ...img, user_filename: newName }
+          : img
+      ));
+
+      setEditingFile(null);
+      setEditingFileName('');
+      setRenamingFile(null);
+
+      toast.success(`File renamed to "${newName}" successfully`);
+
+    } catch (error) {
+      console.error('Error renaming file:', error);
+      toast.error('Failed to rename file. Please try again.');
+      setEditingFile(null);
+      setEditingFileName('');
+      setRenamingFile(null);
+    }
+  };
+
+  // File delete handler
+  const handleFileDelete = async (image: GeneratedImageData) => {
+    try {
+      toast.info('Deleting file...', {
+        description: 'This may take a moment'
+      });
+
+      // TODO: Implement actual file delete API call
+      // For now, just show a placeholder
+      console.log('Deleting file:', image.system_filename);
+
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Remove from local state
+      setGeneratedImages(prev => prev.filter(img => img.system_filename !== image.system_filename));
+
+      setFileContextMenu(null);
+      toast.success(`File "${image.user_filename || image.system_filename}" deleted successfully`);
+
+    } catch (error) {
+      console.error('Error deleting file:', error);
+      toast.error('Failed to delete file. Please try again.');
+      setFileContextMenu(null);
+    }
+  };
+
+  // File context menu handler
+  const handleFileContextMenu = (e: React.MouseEvent, image: GeneratedImageData) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setFileContextMenu({ x: e.clientX, y: e.clientY, image });
+  };
+
+  // Close file context menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => {
+      setFileContextMenu(null);
+    };
+
+    document.addEventListener('click', handleClickOutside);
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+    };
+  }, []);
+
   if (loading || foldersLoading) {
-  return (
-    <div className="p-6 space-y-6 animate-fade-in">
-      <div className="flex flex-col md:flex-row items-center justify-between gap-5">
-        <div>
-          <h1 className="flex flex-col items-center md:items-start text-3xl font-bold tracking-tight bg-ai-gradient bg-clip-text text-transparent">
+    return (
+      <div className="p-6 space-y-6 animate-fade-in">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-5">
+          <div>
+            <h1 className="flex flex-col items-center md:items-start text-3xl font-bold tracking-tight bg-ai-gradient bg-clip-text text-transparent">
               File Manager of nymia
-          </h1>
-          <p className="text-muted-foreground">
+            </h1>
+            <p className="text-muted-foreground">
               Organize and manage your content with folders
             </p>
           </div>
@@ -1881,16 +2033,16 @@ export default function Vault() {
 
       {/* Professional Search and Filter Bar */}
       <div className="flex items-center justify-between gap-4 mb-6">
-          {/* Search Bar */}
+        {/* Search Bar */}
         <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-            <Input
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+          <Input
             placeholder="Search vault by title..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 bg-background/50"
-            />
-          </div>
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10 bg-background/50"
+          />
+        </div>
 
         {/* Filter Menu Button */}
         <Button
@@ -1903,11 +2055,11 @@ export default function Vault() {
           <span className="hidden sm:inline">Filters</span>
           {hasActiveFilters && (
             <Badge variant="secondary" className="ml-1 h-5 w-5 p-0 text-xs flex items-center justify-center">
-              {selectedFilters.fileTypes.length + 
-               (selectedFilters.favorites !== null ? 1 : 0) + 
-               (selectedFilters.withNotes !== null ? 1 : 0) + 
-               selectedFilters.selectedTags.length +
-               (selectedFilters.ratingRange.min > 0 || selectedFilters.ratingRange.max < 5 ? 1 : 0)}
+              {selectedFilters.fileTypes.length +
+                (selectedFilters.favorites !== null ? 1 : 0) +
+                (selectedFilters.withNotes !== null ? 1 : 0) +
+                selectedFilters.selectedTags.length +
+                (selectedFilters.ratingRange.min > 0 || selectedFilters.ratingRange.max < 5 ? 1 : 0)}
             </Badge>
           )}
         </Button>
@@ -1916,18 +2068,17 @@ export default function Vault() {
       {/* Filter Menu Slide-out Panel */}
       <div className={`fixed top-0 inset-0 z-50 transition-opacity duration-300 ${filterMenuOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
         {/* Backdrop */}
-        <div 
+        <div
           className="absolute inset-0 bg-black/50 backdrop-blur-sm"
           onClick={() => setFilterMenuOpen(false)}
         />
-        
+
         {/* Mobile Bottom Sheet / Desktop Side Panel */}
-        <div className={`absolute bg-background border shadow-2xl transform transition-transform duration-300 ${
-          filterMenuOpen ? 'translate-y-0 sm:translate-x-0' : 'translate-y-full sm:translate-y-0 sm:translate-x-full'
-        } ${
+        <div className={`absolute bg-background border shadow-2xl transform transition-transform duration-300 ${filterMenuOpen ? 'translate-y-0 sm:translate-x-0' : 'translate-y-full sm:translate-y-0 sm:translate-x-full'
+          } ${
           // Mobile: bottom sheet, Desktop: side panel
           'bottom-0 left-0 right-0 h-[85vh] sm:h-full sm:right-0 sm:left-auto sm:w-full sm:max-w-md sm:border-l'
-        }`}>
+          }`}>
           <div className="flex flex-col h-full">
             {/* Header */}
             <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-blue-50/50 to-purple-50/50 dark:from-blue-950/20 dark:to-purple-950/20">
@@ -2073,11 +2224,11 @@ export default function Vault() {
               {/* Sort Controls */}
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Sort By</Label>
-            <Select value={sortBy} onValueChange={setSortBy}>
-              <SelectTrigger>
-                <SelectValue placeholder="Sort by" />
-              </SelectTrigger>
-              <SelectContent>
+                <Select value={sortBy} onValueChange={setSortBy}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sort by" />
+                  </SelectTrigger>
+                  <SelectContent>
                     <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground">Date</div>
                     <SelectItem value="newest">Newest First</SelectItem>
                     <SelectItem value="oldest">Oldest First</SelectItem>
@@ -2088,42 +2239,42 @@ export default function Vault() {
                         <SelectItem value="filename">By Filename</SelectItem>
                       </>
                     )}
-              </SelectContent>
-            </Select>
+                  </SelectContent>
+                </Select>
 
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-                className="flex items-center gap-1"
-              >
-                {sortOrder === 'asc' ? <SortAsc className="w-3 h-3" /> : <SortDesc className="w-3 h-3" />}
-                {sortOrder === 'asc' ? 'Ascending' : 'Descending'}
-              </Button>
-            </div>
-          </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                    className="flex items-center gap-1"
+                  >
+                    {sortOrder === 'asc' ? <SortAsc className="w-3 h-3" /> : <SortDesc className="w-3 h-3" />}
+                    {sortOrder === 'asc' ? 'Ascending' : 'Descending'}
+                  </Button>
+                </div>
+              </div>
 
-          {/* Active Filters Display */}
-          {hasActiveFilters && (
+              {/* Active Filters Display */}
+              {hasActiveFilters && (
                 <div className="space-y-2">
                   <Label className="text-sm font-medium">Active Filters:</Label>
-            <div className="flex flex-wrap gap-2">
-              {searchTerm && (
-                <Badge variant="secondary" className="text-xs">
-                  Search: "{searchTerm}"
-                </Badge>
-              )}
+                  <div className="flex flex-wrap gap-2">
+                    {searchTerm && (
+                      <Badge variant="secondary" className="text-xs">
+                        Search: "{searchTerm}"
+                      </Badge>
+                    )}
                     {selectedFilters.fileTypes.length > 0 && (
-                <Badge variant="secondary" className="text-xs">
+                      <Badge variant="secondary" className="text-xs">
                         Types: {selectedFilters.fileTypes.map(type => type === 'pic' ? 'Images' : 'Videos').join(', ')}
-                </Badge>
-              )}
+                      </Badge>
+                    )}
                     {selectedFilters.favorites === true && (
-                <Badge variant="secondary" className="text-xs">
+                      <Badge variant="secondary" className="text-xs">
                         Favorites Only
-                </Badge>
-              )}
+                      </Badge>
+                    )}
                     {(selectedFilters.ratingRange.min > 0 || selectedFilters.ratingRange.max < 5) && (
                       <Badge variant="secondary" className="text-xs">
                         Rating: {selectedFilters.ratingRange.min}-{selectedFilters.ratingRange.max} stars
@@ -2159,22 +2310,22 @@ export default function Vault() {
                       </>
                     )}
                   </div>
-            </div>
-          )}
+                </div>
+              )}
             </div>
 
             {/* Footer */}
             <div className="p-4 border-t bg-gradient-to-r from-gray-50/50 to-slate-50/50 dark:from-gray-950/20 dark:to-slate-950/20 space-y-2">
               {hasActiveFilters && (
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   onClick={clearFilters}
                   className="w-full"
                 >
                   Clear All Filters
                 </Button>
               )}
-              <Button 
+              <Button
                 onClick={() => setFilterMenuOpen(false)}
                 className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
               >
@@ -2259,6 +2410,32 @@ export default function Vault() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
                     {copyState === 1 ? 'Paste Copy' : copyState === 2 ? 'Paste Move' : 'Paste'}
+                  </>
+                )}
+              </Button>
+
+              {/* File Paste Button */}
+              <Button
+                variant={fileCopyState > 0 ? "default" : "outline"}
+                size="sm"
+                onClick={handleFilePaste}
+                disabled={fileCopyState === 0 || isPastingFile}
+                className={`flex items-center gap-1.5 transition-all duration-200 ${fileCopyState > 0
+                  ? 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-md'
+                  : 'text-muted-foreground'
+                  }`}
+              >
+                {isPastingFile ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+                    </svg>
+                    {fileCopyState === 1 ? 'Paste File Copy' : fileCopyState === 2 ? 'Paste File Move' : 'Paste File'}
                   </>
                 )}
               </Button>
@@ -2440,7 +2617,7 @@ export default function Vault() {
       {/* Results Summary */}
       <div className="flex justify-between items-center mb-6">
         <div className="flex items-center gap-4">
-        <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             {currentPath === '' ? (
               `Showing ${filteredAndSortedGeneratedImages.length} of ${generatedImages.length} files`
             ) : (
@@ -2471,25 +2648,34 @@ export default function Vault() {
         ) : generatedImages.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
             {filteredAndSortedGeneratedImages.map((image) => (
-            <Card 
+              <Card
                 key={image.id}
-                className="group hover:shadow-xl transition-all duration-300 border-border/50 hover:border-yellow-500/30 bg-gradient-to-br from-yellow-50/20 to-orange-50/20 dark:from-yellow-950/5 dark:to-orange-950/5 backdrop-blur-sm"
+                className={`group hover:shadow-xl transition-all duration-300 border-border/50 hover:border-yellow-500/30 bg-gradient-to-br from-yellow-50/20 to-orange-50/20 dark:from-yellow-950/5 dark:to-orange-950/5 backdrop-blur-sm ${renamingFile === image.system_filename ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'
+                  }`}
+                onContextMenu={(e) => renamingFile !== image.system_filename && handleFileContextMenu(e, image)}
               >
                 <CardContent className="p-4">
                   {/* Top Row: File Type, Ratings, Favorite */}
                   <div className="flex items-center justify-between mb-3">
                     {/* File Type Icon */}
-                    <div className="bg-gradient-to-br from-blue-500 to-purple-600 rounded-full w-8 h-8 flex items-center justify-center shadow-md">
-                      {image.file_type === 'video' ? (
-                        <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="currentColor">
-                          <path d="M8 5v14l11-7z"/>
-                          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15V7l8 5-8 5z" opacity="0.3"/>
-                        </svg>
+                    <div className={`bg-gradient-to-br from-blue-500 to-purple-600 rounded-full w-8 h-8 flex items-center justify-center shadow-md ${renamingFile === image.system_filename ? 'animate-pulse' : ''
+                      }`}>
+                      {renamingFile === image.system_filename ? (
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
                       ) : (
-                        <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="currentColor">
-                          <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/>
-                          <circle cx="8.5" cy="8.5" r="1.5" opacity="0.8"/>
-                        </svg>
+                        <>
+                          {image.file_type === 'video' ? (
+                            <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="currentColor">
+                              <path d="M8 5v14l11-7z" />
+                              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15V7l8 5-8 5z" opacity="0.3" />
+                            </svg>
+                          ) : (
+                            <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="currentColor">
+                              <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z" />
+                              <circle cx="8.5" cy="8.5" r="1.5" opacity="0.8" />
+                            </svg>
+                          )}
+                        </>
                       )}
                     </div>
 
@@ -2549,6 +2735,13 @@ export default function Vault() {
                       className="absolute inset-0 w-full h-full object-cover rounded-md shadow-sm cursor-pointer"
                       onClick={() => setDetailedImageModal({ open: true, image })}
                     />
+
+                    {/* Copy/Cut Indicator */}
+                    {copiedFile && copiedFile.system_filename === image.system_filename && (
+                      <div className="absolute top-2 left-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white px-2 py-1 rounded-full text-xs font-medium shadow-lg">
+                        {fileCopyState === 1 ? 'Copied' : 'Cut'}
+                      </div>
+                    )}
                   </div>
 
                   {/* User Notes */}
@@ -2618,8 +2811,8 @@ export default function Vault() {
                           }}
                         >
                           Add notes
-                    </div>
-                  )}
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -2693,7 +2886,7 @@ export default function Vault() {
                             }}
                           >
                             Add
-                      </Button>
+                          </Button>
                           <Button
                             size="sm"
                             variant="outline"
@@ -2722,9 +2915,33 @@ export default function Vault() {
 
                   {/* Filename and Date */}
                   <div className="space-y-2">
-                    <h3 className="font-medium text-sm text-gray-800 dark:text-gray-200 truncate">
-                      {image.user_filename || image.system_filename}
-                    </h3>
+                    {editingFile === image.system_filename && renamingFile !== image.system_filename ? (
+                      <div className="w-full">
+                        <Input
+                          value={editingFileName}
+                          onChange={(e) => setEditingFileName(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              handleFileRename(image.system_filename, editingFileName);
+                            } else if (e.key === 'Escape') {
+                              setEditingFile(null);
+                              setEditingFileName('');
+                            }
+                          }}
+                          onBlur={() => handleFileRename(image.system_filename, editingFileName)}
+                          className="text-sm h-8 text-center"
+                          autoFocus
+                        />
+                      </div>
+                    ) : (
+                      <h3 className={`font-medium text-sm text-gray-800 dark:text-gray-200 truncate transition-colors ${renamingFile === image.system_filename
+                          ? 'text-yellow-700 dark:text-yellow-300'
+                          : 'group-hover:text-blue-600 dark:group-hover:text-blue-400'
+                        }`}>
+                        {image.user_filename || image.system_filename}
+                        {renamingFile === image.system_filename && ' (Renaming...)'}
+                      </h3>
+                    )}
                     <div className="flex items-center gap-1 text-xs text-muted-foreground">
                       <Calendar className="w-3 h-3" />
                       {new Date(image.created_at).toLocaleDateString()}
@@ -2748,21 +2965,21 @@ export default function Vault() {
                       className="h-8 w-8 p-0 hover:bg-green-50 hover:bg-green-700 hover:border-green-500 transition-colors"
                       onClick={() => handleShare(image.system_filename.replace('.png', ''))}
                     >
-                        <Share className="w-3 h-3" />
-                      </Button>
-                      <Button 
-                        size="sm" 
+                      <Share className="w-3 h-3" />
+                    </Button>
+                    <Button
+                      size="sm"
                       variant="outline"
                       className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-amber-500 hover:border-amber-300 transition-colors"
                       onClick={() => handleRemoveFromVault(image.system_filename.replace('.png', ''))}
-                      >
-                        <Trash2 className="w-3 h-3" />
-                      </Button>
-                    </div>
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             ))}
-                  </div>
+          </div>
         ) : (
           <div className="text-center py-12">
             <div className="flex flex-col items-center gap-4">
@@ -2771,7 +2988,7 @@ export default function Vault() {
               <p className="text-muted-foreground">
                 No generated images found in your output folder.
               </p>
-                </div>
+            </div>
           </div>
         )
       ) : (
@@ -2791,7 +3008,7 @@ export default function Vault() {
                       ) : (
                         <Image className="w-4 h-4 text-blue-500" />
                       )}
-                  </div>
+                    </div>
                     <Star className="w-4 h-4 text-yellow-500 fill-current" />
                   </div>
                   <CardTitle className="text-lg font-semibold text-gray-800 dark:text-gray-200">{item.id}</CardTitle>
@@ -2811,8 +3028,8 @@ export default function Vault() {
                     </div>
                   </div>
                   <div className="space-y-3">
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <Calendar className="w-3 h-3" />
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <Calendar className="w-3 h-3" />
                       Added {new Date(item.created_at).toLocaleDateString()}
                     </div>
                     <div className="flex gap-1.5">
@@ -2841,14 +3058,14 @@ export default function Vault() {
                       >
                         <Trash2 className="w-3 h-3" />
                       </Button>
+                    </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      ) : (
-        <div className="text-center py-12">
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-12">
             <div className="flex flex-col items-center gap-4">
               {currentPath ? (
                 <>
@@ -2861,13 +3078,13 @@ export default function Vault() {
               ) : (
                 <>
                   <Star className="w-12 h-12 text-yellow-500/50" />
-          <h3 className="text-lg font-semibold mb-2">No items found</h3>
-          <p className="text-muted-foreground">
-            Try adjusting your search or filters to find what you're looking for.
-          </p>
+                  <h3 className="text-lg font-semibold mb-2">No items found</h3>
+                  <p className="text-muted-foreground">
+                    Try adjusting your search or filters to find what you're looking for.
+                  </p>
                 </>
               )}
-        </div>
+            </div>
           </div>
         )
       )}
@@ -3159,13 +3376,13 @@ export default function Vault() {
                   <div className="bg-gradient-to-br from-blue-500 to-purple-600 rounded-full w-10 h-10 flex items-center justify-center shadow-lg">
                     {detailedImageModal.image.file_type === 'video' ? (
                       <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M8 5v14l11-7z"/>
-                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15V7l8 5-8 5z" opacity="0.3"/>
+                        <path d="M8 5v14l11-7z" />
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15V7l8 5-8 5z" opacity="0.3" />
                       </svg>
                     ) : (
                       <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/>
-                        <circle cx="8.5" cy="8.5" r="1.5" opacity="0.8"/>
+                        <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z" />
+                        <circle cx="8.5" cy="8.5" r="1.5" opacity="0.8" />
                       </svg>
                     )}
                   </div>
@@ -3205,7 +3422,7 @@ export default function Vault() {
                   <CardHeader className="bg-gradient-to-r from-blue-500/10 to-indigo-500/10 rounded-t-lg border-b border-blue-200/50 dark:border-blue-800/50">
                     <CardTitle className="text-lg flex items-center gap-2 text-blue-700 dark:text-blue-300">
                       <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
                       </svg>
                       Basic Information
                     </CardTitle>
@@ -3255,7 +3472,7 @@ export default function Vault() {
                   <CardHeader className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 rounded-t-lg border-b border-purple-200/50 dark:border-purple-800/50">
                     <CardTitle className="text-lg flex items-center gap-2 text-purple-700 dark:text-purple-300">
                       <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/>
+                        <path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z" />
                       </svg>
                       Generation Settings
                     </CardTitle>
@@ -3299,7 +3516,7 @@ export default function Vault() {
                   <CardHeader className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 rounded-t-lg border-b border-green-200/50 dark:border-green-800/50">
                     <CardTitle className="text-lg flex items-center gap-2 text-green-700 dark:text-green-300">
                       <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
+                        <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
                       </svg>
                       Prompts & Instructions
                     </CardTitle>
@@ -3331,7 +3548,7 @@ export default function Vault() {
                   <CardHeader className="bg-gradient-to-r from-orange-500/10 to-red-500/10 rounded-t-lg border-b border-orange-200/50 dark:border-orange-800/50">
                     <CardTitle className="text-lg flex items-center gap-2 text-orange-700 dark:text-orange-300">
                       <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M16.2,16.2L11,13V7H12.5V12.2L17,14.9L16.2,16.2Z"/>
+                        <path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M16.2,16.2L11,13V7H12.5V12.2L17,14.9L16.2,16.2Z" />
                       </svg>
                       Generation Details
                     </CardTitle>
@@ -3497,6 +3714,81 @@ export default function Vault() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* File Context Menu */}
+      {fileContextMenu && (
+        <div
+          className="fixed z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg py-1 min-w-[160px]"
+          style={{ left: fileContextMenu.x, top: fileContextMenu.y }}
+        >
+          <button
+            className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+            onClick={() => {
+              setDetailedImageModal({ open: true, image: fileContextMenu.image });
+              setFileContextMenu(null);
+            }}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            </svg>
+            View Details
+          </button>
+          <button
+            className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+            onClick={() => {
+              setEditingFile(fileContextMenu.image.system_filename);
+              setEditingFileName(fileContextMenu.image.user_filename || fileContextMenu.image.system_filename);
+              setFileContextMenu(null);
+            }}
+          >
+            <Pencil className="w-4 h-4" />
+            Rename
+          </button>
+          <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>
+          <button
+            className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+            onClick={() => handleFileCopy(fileContextMenu.image)}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
+            Copy
+          </button>
+          <button
+            className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+            onClick={() => handleFileCut(fileContextMenu.image)}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+            Cut
+          </button>
+          <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>
+          <button
+            className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+            onClick={() => handleDownload(fileContextMenu.image.system_filename.replace('.png', ''))}
+          >
+            <Download className="w-4 h-4" />
+            Download
+          </button>
+          <button
+            className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+            onClick={() => handleShare(fileContextMenu.image.system_filename.replace('.png', ''))}
+          >
+            <Share className="w-4 h-4" />
+            Share
+          </button>
+          <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>
+          <button
+            className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 text-red-600 dark:text-red-400"
+            onClick={() => handleFileDelete(fileContextMenu.image)}
+          >
+            <Trash2 className="w-4 h-4" />
+            Delete
+          </button>
+        </div>
+      )}
     </div>
   );
 }

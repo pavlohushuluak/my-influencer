@@ -85,7 +85,6 @@ export default function Vault() {
   const userData = useSelector((state: RootState) => state.user);
   const [folders, setFolders] = useState<FolderData[]>([]);
   const [vaultItems, setVaultItems] = useState<TaskData[]>([]);
-  const [loading, setLoading] = useState(true);
   const [foldersLoading, setFoldersLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('newest');
@@ -386,39 +385,6 @@ export default function Vault() {
 
     if (userData.id) {
       fetchFolders();
-    }
-  }, [userData.id]);
-
-  // Fetch data from API
-  useEffect(() => {
-    const fetchVaultData = async () => {
-      try {
-        setLoading(true);
-        const response = await fetch(`https://db.nymia.ai/rest/v1/tasks?uuid=eq.${userData.id}`, {
-          headers: {
-            'Authorization': 'Bearer WeInfl3nc3withAI'
-          }
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to fetch vault data');
-        }
-
-        const data = await response.json();
-        // console.log(data);
-        setVaultItems(data);
-        setCurrentFolderItems(data);
-      } catch (error) {
-        console.error('Error fetching vault data:', error);
-        setVaultItems([]);
-        setCurrentFolderItems([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (userData.id) {
-      fetchVaultData();
     }
   }, [userData.id]);
 
@@ -756,7 +722,7 @@ export default function Vault() {
   const handleRemoveFromVault = async (contentId: string) => {
     try {
       // Delete from database
-      const dbResponse = await fetch(`https://db.nymia.ai/rest/v1/tasks?uuid=eq.${userData.id}&id=eq.${contentId}`, {
+      const dbResponse = await fetch(`https://db.nymia.ai/rest/v1/generated_images?system_filename=eq.${contentId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': 'Bearer WeInfl3nc3withAI'
@@ -776,7 +742,7 @@ export default function Vault() {
         },
         body: JSON.stringify({
           user: userData.id,
-          filename: `output/${contentId}.png`
+          filename: `output/${contentId}`
         })
       });
 
@@ -784,12 +750,7 @@ export default function Vault() {
         throw new Error('Failed to delete file');
       }
 
-      // Remove from local state
-      dispatch(removeFromVault(contentId));
-
-      // Update local vault items
-      setVaultItems(prev => prev.filter(item => item.id !== contentId));
-      setCurrentFolderItems(prev => prev.filter(item => item.id !== contentId));
+      setGeneratedImages(prev => prev.filter(item => item.system_filename !== contentId));
 
       toast.success('Item deleted successfully');
     } catch (error) {
@@ -808,7 +769,7 @@ export default function Vault() {
         },
         body: JSON.stringify({
           user: userData.id,
-          filename: `output/${itemId}.png`
+          filename: `output/${itemId}`
         })
       });
 
@@ -822,7 +783,7 @@ export default function Vault() {
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `${itemId}.png`;
+      link.download = `${itemId}`;
 
       // Trigger download
       document.body.appendChild(link);
@@ -850,7 +811,7 @@ export default function Vault() {
   };
 
   const shareToSocialMedia = (platform: string, itemId: string) => {
-    const imageUrl = `https://images.nymia.ai/cdn-cgi/image/w=800/${userData.id}/output/${itemId}.png`;
+    const imageUrl = `https://images.nymia.ai/cdn-cgi/image/w=800/${userData.id}/output/${itemId}`;
     const shareText = `Check out this amazing content!`;
 
     let shareUrl = '';
@@ -1912,30 +1873,37 @@ export default function Vault() {
 
   // File rename handler
   const handleFileRename = async (oldFilename: string, newName: string, oldPath: string) => {
+
     if (oldPath === "") oldPath = "output";
+
+    // Preserve the original file extension
+    const fileExtension = oldFilename.split('.').pop();
+    const finalNewName = newName + '.' + fileExtension;
+
     try {
       setRenamingFile(oldFilename);
       toast.info('Renaming file...', {
         description: 'This may take a moment'
       });
 
-      // TODO: Implement actual file rename API call
-      // For now, just show a placeholder
-      console.log('Renaming file:', oldFilename, 'to:', newName);
-
-      // Simulate API call
-      await fetch(`https://db.nymia.ai/rest/v1/generated_images?system_filename=eq.${oldFilename}`, {
+      // Update database with new filename
+      const dbResponse = await fetch(`https://db.nymia.ai/rest/v1/generated_images?system_filename=eq.${oldFilename}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer WeInfl3nc3withAI'
         },
         body: JSON.stringify({
-          system_filename: newName
+          system_filename: finalNewName
         })
       });
 
-      await fetch('https://api.nymia.ai/v1/copyfile', {
+      if (!dbResponse.ok) {
+        throw new Error('Failed to update database');
+      }
+
+      // Copy file with new name
+      const copyResponse = await fetch('https://api.nymia.ai/v1/copyfile', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1944,11 +1912,16 @@ export default function Vault() {
         body: JSON.stringify({
           user: userData.id,
           sourcefilename: `${oldPath}/${oldFilename}`,
-          destinationfilename: `${oldPath}/${newName}`
+          destinationfilename: `${oldPath}/${finalNewName}`
         })
       });
 
-      await fetch('https://api.nymia.ai/v1/deletefile', {
+      if (!copyResponse.ok) {
+        throw new Error('Failed to copy file');
+      }
+
+      // Delete old file
+      const deleteResponse = await fetch('https://api.nymia.ai/v1/deletefile', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1960,10 +1933,14 @@ export default function Vault() {
         })
       });
 
+      if (!deleteResponse.ok) {
+        throw new Error('Failed to delete old file');
+      }
+
       // Update local state
       setGeneratedImages(prev => prev.map(img =>
         img.system_filename === oldFilename
-          ? { ...img, user_filename: newName }
+          ? { ...img, system_filename: finalNewName }
           : img
       ));
 
@@ -1971,7 +1948,7 @@ export default function Vault() {
       setEditingFileName('');
       setRenamingFile(null);
 
-      toast.success(`File renamed to "${newName}" successfully`);
+      toast.success(`File renamed to "${finalNewName}" successfully`);
 
     } catch (error) {
       console.error('Error renaming file:', error);
@@ -2028,7 +2005,7 @@ export default function Vault() {
     };
   }, []);
 
-  if (loading || foldersLoading) {
+  if (foldersLoading) {
     return (
       <div className="p-6 space-y-6 animate-fade-in">
         <div className="flex flex-col md:flex-row items-center justify-between gap-5">
@@ -2952,21 +2929,29 @@ export default function Vault() {
                   <div className="space-y-2">
                     {editingFile === image.system_filename && renamingFile !== image.system_filename ? (
                       <div className="w-full">
-                        <Input
-                          value={editingFileName}
-                          onChange={(e) => setEditingFileName(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              handleFileRename(image.system_filename, editingFileName, currentPath);
-                            } else if (e.key === 'Escape') {
-                              setEditingFile(null);
-                              setEditingFileName('');
-                            }
-                          }}
-                          onBlur={() => handleFileRename(image.system_filename, editingFileName, currentPath)}
-                          className="text-sm h-8 text-center"
-                          autoFocus
-                        />
+                        <div className="relative">
+                          <Input
+                            value={editingFileName}
+                            onChange={(e) => setEditingFileName(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                handleFileRename(image.system_filename, editingFileName, currentPath);
+                              } else if (e.key === 'Escape') {
+                                setEditingFile(null);
+                                setEditingFileName('');
+                              }
+                            }}
+                            onBlur={() => handleFileRename(image.system_filename, editingFileName, currentPath)}
+                            className="text-sm h-8 text-center pr-12"
+                            autoFocus
+                          />
+                          <div className="absolute right-2 top-1/2 transform -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">
+                            .{image.system_filename.split('.').pop()}
+                          </div>
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-1 text-center">
+                          Extension will be preserved
+                        </div>
                       </div>
                     ) : (
                       <h3 className={`font-medium text-sm text-gray-800 dark:text-gray-200 truncate transition-colors ${renamingFile === image.system_filename
@@ -2989,7 +2974,7 @@ export default function Vault() {
                       size="sm"
                       variant="outline"
                       className="flex-1 h-8 text-xs font-medium hover:bg-purple-700 hover:border-purple-500 transition-colors"
-                      onClick={() => handleDownload(image.system_filename.replace('.png', ''))}
+                      onClick={() => handleDownload(image.system_filename)}
                     >
                       <Download className="w-3 h-3 mr-1.5" />
                       <span className="hidden sm:inline">Download</span>
@@ -2998,7 +2983,7 @@ export default function Vault() {
                       size="sm"
                       variant="outline"
                       className="h-8 w-8 p-0 hover:bg-green-50 hover:bg-green-700 hover:border-green-500 transition-colors"
-                      onClick={() => handleShare(image.system_filename.replace('.png', ''))}
+                      onClick={() => handleShare(image.system_filename)}
                     >
                       <Share className="w-3 h-3" />
                     </Button>
@@ -3006,7 +2991,7 @@ export default function Vault() {
                       size="sm"
                       variant="outline"
                       className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-amber-500 hover:border-amber-300 transition-colors"
-                      onClick={() => handleRemoveFromVault(image.system_filename.replace('.png', ''))}
+                      onClick={() => handleRemoveFromVault(image.system_filename)}
                     >
                       <Trash2 className="w-3 h-3" />
                     </Button>
@@ -3051,13 +3036,13 @@ export default function Vault() {
                 <CardContent className="space-y-4">
                   <div className="relative w-full group mb-4" style={{ paddingBottom: '100%' }}>
                     <img
-                      src={`https://images.nymia.ai/cdn-cgi/image/w=400/${userData.id}/output/${item.id}.png`}
+                      src={`https://images.nymia.ai/cdn-cgi/image/w=400/${userData.id}/output/${item.id}`}
                       alt={item.id}
                       className="absolute inset-0 w-full h-full object-cover rounded-md shadow-sm"
                     />
                     <div
                       className="absolute right-2 top-2 bg-black/50 rounded-full w-10 h-10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
-                      onClick={() => setSelectedImage(`https://images.nymia.ai/cdn-cgi/image/w=800/${userData.id}/output/${item.id}.png`)}
+                      onClick={() => setSelectedImage(`https://images.nymia.ai/cdn-cgi/image/w=800/${userData.id}/output/${item.id}`)}
                     >
                       <ZoomIn className="w-6 h-6 text-white" />
                     </div>
@@ -3153,14 +3138,14 @@ export default function Vault() {
                   <Label className="text-sm font-medium">Direct Link</Label>
                   <div className="flex gap-2">
                     <Input
-                      value={`https://images.nymia.ai/cdn-cgi/image/w=800/${userData.id}/output/${shareModal.itemId}.png`}
+                      value={`https://images.nymia.ai/cdn-cgi/image/w=800/${userData.id}/output/${shareModal.itemId}`}
                       readOnly
                       className="text-xs"
                     />
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => copyToClipboard(`https://images.nymia.ai/cdn-cgi/image/w=800/${userData.id}/output/${shareModal.itemId}.png`)}
+                      onClick={() => copyToClipboard(`https://images.nymia.ai/cdn-cgi/image/w=800/${userData.id}/output/${shareModal.itemId}`)}
                     >
                       Copy
                     </Button>
@@ -3624,7 +3609,7 @@ export default function Vault() {
               {/* Enhanced Action Buttons */}
               <div className="flex gap-4 pt-6 border-t border-gray-200/50 dark:border-gray-700/50">
                 <Button
-                  onClick={() => handleDownload(detailedImageModal.image.system_filename.replace('.png', ''))}
+                  onClick={() => handleDownload(detailedImageModal.image.system_filename)}
                   className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
                 >
                   <Download className="w-4 h-4 mr-2" />
@@ -3632,7 +3617,7 @@ export default function Vault() {
                 </Button>
                 <Button
                   variant="outline"
-                  onClick={() => handleShare(detailedImageModal.image.system_filename.replace('.png', ''))}
+                  onClick={() => handleShare(detailedImageModal.image.system_filename)}
                   className="flex-1 border-green-500 text-green-600 hover:bg-green-50 dark:hover:bg-green-950/20 hover:border-green-600 transition-all duration-300"
                 >
                   <Share className="w-4 h-4 mr-2" />
@@ -3640,7 +3625,7 @@ export default function Vault() {
                 </Button>
                 <Button
                   variant="outline"
-                  onClick={() => handleRemoveFromVault(detailedImageModal.image.system_filename.replace('.png', ''))}
+                  onClick={() => handleRemoveFromVault(detailedImageModal.image.system_filename)}
                   className="border-red-500 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 hover:border-red-600 transition-all duration-300"
                 >
                   <Trash2 className="w-4 h-4 mr-2" />
@@ -3773,7 +3758,9 @@ export default function Vault() {
             className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
             onClick={() => {
               setEditingFile(fileContextMenu.image.system_filename);
-              setEditingFileName(fileContextMenu.image.user_filename || fileContextMenu.image.system_filename);
+              // Set filename without extension for editing
+              const filenameWithoutExtension = fileContextMenu.image.system_filename.split('.').slice(0, -1).join('.');
+              setEditingFileName(filenameWithoutExtension);
               setFileContextMenu(null);
             }}
           >
@@ -3802,14 +3789,14 @@ export default function Vault() {
           <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>
           <button
             className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
-            onClick={() => handleDownload(fileContextMenu.image.system_filename.replace('.png', ''))}
+            onClick={() => handleDownload(fileContextMenu.image.system_filename)}
           >
             <Download className="w-4 h-4" />
             Download
           </button>
           <button
             className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
-            onClick={() => handleShare(fileContextMenu.image.system_filename.replace('.png', ''))}
+            onClick={() => handleShare(fileContextMenu.image.system_filename)}
           >
             <Share className="w-4 h-4" />
             Share

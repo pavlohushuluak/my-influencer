@@ -622,7 +622,7 @@ export default function Vault() {
     })
     .sort((a, b) => {
       let comparison = 0;
-
+      
       switch (sortBy) {
         case 'newest':
           comparison = new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
@@ -691,7 +691,7 @@ export default function Vault() {
         default:
           comparison = 0;
       }
-
+      
       return sortOrder === 'desc' ? -comparison : comparison;
     });
 
@@ -1842,14 +1842,14 @@ export default function Vault() {
   };
 
   if (loading || foldersLoading) {
-    return (
-      <div className="p-6 space-y-6 animate-fade-in">
-        <div className="flex flex-col md:flex-row items-center justify-between gap-5">
-          <div>
-            <h1 className="flex flex-col items-center md:items-start text-3xl font-bold tracking-tight bg-ai-gradient bg-clip-text text-transparent">
+  return (
+    <div className="p-6 space-y-6 animate-fade-in">
+      <div className="flex flex-col md:flex-row items-center justify-between gap-5">
+        <div>
+          <h1 className="flex flex-col items-center md:items-start text-3xl font-bold tracking-tight bg-ai-gradient bg-clip-text text-transparent">
               File Manager of nymia
-            </h1>
-            <p className="text-muted-foreground">
+          </h1>
+          <p className="text-muted-foreground">
               Organize and manage your content with folders
             </p>
           </div>
@@ -1881,16 +1881,16 @@ export default function Vault() {
 
       {/* Professional Search and Filter Bar */}
       <div className="flex items-center justify-between gap-4 mb-6">
-        {/* Search Bar */}
+          {/* Search Bar */}
         <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-          <Input
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+            <Input
             placeholder="Search vault by title..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 bg-background/50"
-          />
-        </div>
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 bg-background/50"
+            />
+          </div>
 
         {/* Filter Menu Button */}
         <Button
@@ -2073,11 +2073,11 @@ export default function Vault() {
               {/* Sort Controls */}
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Sort By</Label>
-                <Select value={sortBy} onValueChange={setSortBy}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sort by" />
-                  </SelectTrigger>
-                  <SelectContent>
+            <Select value={sortBy} onValueChange={setSortBy}>
+              <SelectTrigger>
+                <SelectValue placeholder="Sort by" />
+              </SelectTrigger>
+              <SelectContent>
                     <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground">Date</div>
                     <SelectItem value="newest">Newest First</SelectItem>
                     <SelectItem value="oldest">Oldest First</SelectItem>
@@ -2088,42 +2088,42 @@ export default function Vault() {
                         <SelectItem value="filename">By Filename</SelectItem>
                       </>
                     )}
-                  </SelectContent>
-                </Select>
+              </SelectContent>
+            </Select>
 
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-                    className="flex items-center gap-1"
-                  >
-                    {sortOrder === 'asc' ? <SortAsc className="w-3 h-3" /> : <SortDesc className="w-3 h-3" />}
-                    {sortOrder === 'asc' ? 'Ascending' : 'Descending'}
-                  </Button>
-                </div>
-              </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                className="flex items-center gap-1"
+              >
+                {sortOrder === 'asc' ? <SortAsc className="w-3 h-3" /> : <SortDesc className="w-3 h-3" />}
+                {sortOrder === 'asc' ? 'Ascending' : 'Descending'}
+              </Button>
+            </div>
+          </div>
 
-              {/* Active Filters Display */}
-              {hasActiveFilters && (
+          {/* Active Filters Display */}
+          {hasActiveFilters && (
                 <div className="space-y-2">
                   <Label className="text-sm font-medium">Active Filters:</Label>
-                  <div className="flex flex-wrap gap-2">
-                    {searchTerm && (
-                      <Badge variant="secondary" className="text-xs">
-                        Search: "{searchTerm}"
-                      </Badge>
-                    )}
+            <div className="flex flex-wrap gap-2">
+              {searchTerm && (
+                <Badge variant="secondary" className="text-xs">
+                  Search: "{searchTerm}"
+                </Badge>
+              )}
                     {selectedFilters.fileTypes.length > 0 && (
-                      <Badge variant="secondary" className="text-xs">
+                <Badge variant="secondary" className="text-xs">
                         Types: {selectedFilters.fileTypes.map(type => type === 'pic' ? 'Images' : 'Videos').join(', ')}
-                      </Badge>
-                    )}
+                </Badge>
+              )}
                     {selectedFilters.favorites === true && (
-                      <Badge variant="secondary" className="text-xs">
+                <Badge variant="secondary" className="text-xs">
                         Favorites Only
-                      </Badge>
-                    )}
+                </Badge>
+              )}
                     {(selectedFilters.ratingRange.min > 0 || selectedFilters.ratingRange.max < 5) && (
                       <Badge variant="secondary" className="text-xs">
                         Rating: {selectedFilters.ratingRange.min}-{selectedFilters.ratingRange.max} stars
@@ -2159,8 +2159,8 @@ export default function Vault() {
                       </>
                     )}
                   </div>
-                </div>
-              )}
+            </div>
+          )}
             </div>
 
             {/* Footer */}
@@ -2440,7 +2440,7 @@ export default function Vault() {
       {/* Results Summary */}
       <div className="flex justify-between items-center mb-6">
         <div className="flex items-center gap-4">
-          <p className="text-sm text-muted-foreground">
+        <p className="text-sm text-muted-foreground">
             {currentPath === '' ? (
               `Showing ${filteredAndSortedGeneratedImages.length} of ${generatedImages.length} files`
             ) : (
@@ -2471,21 +2471,15 @@ export default function Vault() {
         ) : generatedImages.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
             {filteredAndSortedGeneratedImages.map((image) => (
-              <Card
+            <Card 
                 key={image.id}
                 className="group hover:shadow-xl transition-all duration-300 border-border/50 hover:border-yellow-500/30 bg-gradient-to-br from-yellow-50/20 to-orange-50/20 dark:from-yellow-950/5 dark:to-orange-950/5 backdrop-blur-sm"
               >
                 <CardContent className="p-4">
-                  <div className="relative w-full group mb-4" style={{ paddingBottom: '100%' }}>
-                    <img
-                      src={`https://images.nymia.ai/cdn-cgi/image/w=400/${userData.id}/output/${image.system_filename}`}
-                      alt={image.user_filename || image.system_filename}
-                      className="absolute inset-0 w-full h-full object-cover rounded-md shadow-sm cursor-pointer"
-                      onClick={() => setDetailedImageModal({ open: true, image })}
-                    />
-
+                  {/* Top Row: File Type, Ratings, Favorite */}
+                  <div className="flex items-center justify-between mb-3">
                     {/* File Type Icon */}
-                    <div className="absolute top-2 left-2 bg-black/50 rounded-full w-8 h-8 flex items-center justify-center">
+                    <div className="bg-black/50 rounded-full w-8 h-8 flex items-center justify-center">
                       {image.file_type === 'video' ? (
                         <Video className="w-4 h-4 text-white" />
                       ) : (
@@ -2493,8 +2487,26 @@ export default function Vault() {
                       )}
                     </div>
 
+                    {/* Rating Stars */}
+                    <div className="flex gap-1">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <svg
+                          key={star}
+                          className={`w-4 h-4 cursor-pointer hover:scale-110 transition-transform ${star <= image.rating ? 'text-yellow-400 fill-current' : 'text-gray-300'
+                            }`}
+                          viewBox="0 0 24 24"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            updateRating(image.system_filename, star);
+                          }}
+                        >
+                          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                        </svg>
+                      ))}
+                    </div>
+
                     {/* Favorite Heart */}
-                    <div className="absolute top-2 right-2">
+                    <div>
                       {image.favorite ? (
                         <div
                           className="bg-red-500 rounded-full w-8 h-8 flex items-center justify-center cursor-pointer hover:bg-red-600 transition-colors"
@@ -2521,24 +2533,16 @@ export default function Vault() {
                         </div>
                       )}
                     </div>
+                  </div>
 
-                    {/* Rating Stars */}
-                    <div className="absolute bottom-2 left-2 flex gap-1">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <svg
-                          key={star}
-                          className={`w-4 h-4 cursor-pointer hover:scale-110 transition-transform ${star <= image.rating ? 'text-yellow-400 fill-current' : 'text-gray-300'
-                            }`}
-                          viewBox="0 0 24 24"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            updateRating(image.system_filename, star);
-                          }}
-                        >
-                          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                        </svg>
-                      ))}
-                    </div>
+                  {/* Image */}
+                  <div className="relative w-full group mb-4" style={{ paddingBottom: '100%' }}>
+                    <img
+                      src={`https://images.nymia.ai/cdn-cgi/image/w=400/${userData.id}/output/${image.system_filename}`}
+                      alt={image.user_filename || image.system_filename}
+                      className="absolute inset-0 w-full h-full object-cover rounded-md shadow-sm cursor-pointer"
+                      onClick={() => setDetailedImageModal({ open: true, image })}
+                    />
                   </div>
 
                   {/* User Notes */}
@@ -2608,8 +2612,8 @@ export default function Vault() {
                           }}
                         >
                           Add notes
-                        </div>
-                      )}
+                    </div>
+                  )}
                     </div>
                   )}
 
@@ -2683,7 +2687,7 @@ export default function Vault() {
                             }}
                           >
                             Add
-                          </Button>
+                      </Button>
                           <Button
                             size="sm"
                             variant="outline"
@@ -2738,21 +2742,21 @@ export default function Vault() {
                       className="h-8 w-8 p-0 hover:bg-green-50 hover:bg-green-700 hover:border-green-500 transition-colors"
                       onClick={() => handleShare(image.system_filename.replace('.png', ''))}
                     >
-                      <Share className="w-3 h-3" />
-                    </Button>
-                    <Button
-                      size="sm"
+                        <Share className="w-3 h-3" />
+                      </Button>
+                      <Button 
+                        size="sm" 
                       variant="outline"
                       className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-amber-500 hover:border-amber-300 transition-colors"
                       onClick={() => handleRemoveFromVault(image.system_filename.replace('.png', ''))}
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </Button>
-                  </div>
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </Button>
+                    </div>
                 </CardContent>
               </Card>
             ))}
-          </div>
+                  </div>
         ) : (
           <div className="text-center py-12">
             <div className="flex flex-col items-center gap-4">
@@ -2761,7 +2765,7 @@ export default function Vault() {
               <p className="text-muted-foreground">
                 No generated images found in your output folder.
               </p>
-            </div>
+                </div>
           </div>
         )
       ) : (
@@ -2781,7 +2785,7 @@ export default function Vault() {
                       ) : (
                         <Image className="w-4 h-4 text-blue-500" />
                       )}
-                    </div>
+                  </div>
                     <Star className="w-4 h-4 text-yellow-500 fill-current" />
                   </div>
                   <CardTitle className="text-lg font-semibold text-gray-800 dark:text-gray-200">{item.id}</CardTitle>
@@ -2801,8 +2805,8 @@ export default function Vault() {
                     </div>
                   </div>
                   <div className="space-y-3">
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <Calendar className="w-3 h-3" />
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <Calendar className="w-3 h-3" />
                       Added {new Date(item.created_at).toLocaleDateString()}
                     </div>
                     <div className="flex gap-1.5">
@@ -2831,14 +2835,14 @@ export default function Vault() {
                       >
                         <Trash2 className="w-3 h-3" />
                       </Button>
-                    </div>
                   </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-12">
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : (
+        <div className="text-center py-12">
             <div className="flex flex-col items-center gap-4">
               {currentPath ? (
                 <>
@@ -2851,13 +2855,13 @@ export default function Vault() {
               ) : (
                 <>
                   <Star className="w-12 h-12 text-yellow-500/50" />
-                  <h3 className="text-lg font-semibold mb-2">No items found</h3>
-                  <p className="text-muted-foreground">
-                    Try adjusting your search or filters to find what you're looking for.
-                  </p>
+          <h3 className="text-lg font-semibold mb-2">No items found</h3>
+          <p className="text-muted-foreground">
+            Try adjusting your search or filters to find what you're looking for.
+          </p>
                 </>
               )}
-            </div>
+        </div>
           </div>
         )
       )}

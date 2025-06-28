@@ -1911,7 +1911,8 @@ export default function Vault() {
   };
 
   // File rename handler
-  const handleFileRename = async (oldFilename: string, newName: string) => {
+  const handleFileRename = async (oldFilename: string, newName: string, oldPath: string) => {
+    if (oldPath === "") oldPath = "output";
     try {
       setRenamingFile(oldFilename);
       toast.info('Renaming file...', {
@@ -1923,7 +1924,41 @@ export default function Vault() {
       console.log('Renaming file:', oldFilename, 'to:', newName);
 
       // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await fetch(`https://db.nymia.ai/rest/v1/generated_images?system_filename=eq.${oldFilename}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          system_filename: newName
+        })
+      });
+
+      await fetch('https://api.nymia.ai/v1/copyfile', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          user: userData.id,
+          sourcefilename: `${oldPath}/${oldFilename}`,
+          destinationfilename: `${oldPath}/${newName}`
+        })
+      });
+
+      await fetch('https://api.nymia.ai/v1/deletefile', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          user: userData.id,
+          filename: `${oldPath}/${oldFilename}`
+        })
+      });
 
       // Update local state
       setGeneratedImages(prev => prev.map(img =>
@@ -2922,13 +2957,13 @@ export default function Vault() {
                           onChange={(e) => setEditingFileName(e.target.value)}
                           onKeyDown={(e) => {
                             if (e.key === 'Enter') {
-                              handleFileRename(image.system_filename, editingFileName);
+                              handleFileRename(image.system_filename, editingFileName, currentPath);
                             } else if (e.key === 'Escape') {
                               setEditingFile(null);
                               setEditingFileName('');
                             }
                           }}
-                          onBlur={() => handleFileRename(image.system_filename, editingFileName)}
+                          onBlur={() => handleFileRename(image.system_filename, editingFileName, currentPath)}
                           className="text-sm h-8 text-center"
                           autoFocus
                         />

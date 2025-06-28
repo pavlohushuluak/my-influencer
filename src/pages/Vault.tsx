@@ -19,13 +19,6 @@ interface FolderData {
   Key: string;
 }
 
-// Interface for task data from API
-interface TaskData {
-  id: string;
-  type: string;
-  created_at: string;
-}
-
 // Interface for file data from getfilenames API
 interface FileData {
   Key: string;
@@ -81,10 +74,8 @@ interface FolderStructure {
 }
 
 export default function Vault() {
-  const dispatch = useDispatch();
   const userData = useSelector((state: RootState) => state.user);
   const [folders, setFolders] = useState<FolderData[]>([]);
-  const [vaultItems, setVaultItems] = useState<TaskData[]>([]);
   const [foldersLoading, setFoldersLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('newest');
@@ -102,7 +93,6 @@ export default function Vault() {
   // Folder navigation state
   const [currentPath, setCurrentPath] = useState<string>('');
   const [folderStructure, setFolderStructure] = useState<FolderStructure[]>([]);
-  const [currentFolderItems, setCurrentFolderItems] = useState<TaskData[]>([]);
 
   // Folder renaming state
   const [editingFolder, setEditingFolder] = useState<string | null>(null);
@@ -272,30 +262,9 @@ export default function Vault() {
     return structure;
   };
 
-  // Get items in current folder
-  const getCurrentFolderItems = (): TaskData[] => {
-    if (!currentPath) {
-      return vaultItems;
-    }
-
-    // Filter items that belong to the current folder path
-    // This is a simplified implementation - in a real system, items would have folder metadata
-    return vaultItems.filter(item => {
-      // For now, return all items since we don't have folder association yet
-      // In the future, this would check item.folder_path === currentPath
-      return true;
-    });
-  };
-
-  // Update current folder items when path changes
-  useEffect(() => {
-    setCurrentFolderItems(getCurrentFolderItems());
-  }, [currentPath, vaultItems]);
-
   // Navigate to folder
   const navigateToFolder = (folderPath: string) => {
     setCurrentPath(folderPath);
-    setCurrentFolderItems(getCurrentFolderItems());
   };
 
   // Navigate to parent folder
@@ -304,13 +273,11 @@ export default function Vault() {
     pathParts.pop();
     const parentPath = pathParts.join('/');
     setCurrentPath(parentPath);
-    setCurrentFolderItems(getCurrentFolderItems());
   };
 
   // Navigate to home (root)
   const navigateToHome = () => {
     setCurrentPath('');
-    setCurrentFolderItems(vaultItems);
   };
 
   // Get breadcrumb items
@@ -390,7 +357,9 @@ export default function Vault() {
 
   // Fetch files from home route
   const fetchHomeFiles = async () => {
-    if (!userData.id || currentPath !== '') return; // Only fetch when on home route
+    if (!userData.id) return; // Only fetch when on home route
+
+    const folder = currentPath === '' ? 'output' : `vault/${currentPath}`;
 
     try {
       setFilesLoading(true);
@@ -404,7 +373,7 @@ export default function Vault() {
         },
         body: JSON.stringify({
           user: userData.id,
-          folder: "output"
+          folder: folder
         })
       });
 
@@ -421,11 +390,14 @@ export default function Vault() {
 
       for (const file of filesData) {
         // Extract filename from the Key (remove path and get just the filename)
+        if(file.Key === undefined) continue;
         const filename = file.Key.split('/').pop();
+        console.log('Filename:', filename);
+        console.log('Current path:', currentPath);
         if (!filename) continue;
 
         try {
-          const detailResponse = await fetch(`https://db.nymia.ai/rest/v1/generated_images?system_filename=eq.${filename}`, {
+          const detailResponse = await fetch(`https://db.nymia.ai/rest/v1/generated_images?system_filename=eq.${filename}&user_filename=eq.${currentPath}`, {
             headers: {
               'Authorization': 'Bearer WeInfl3nc3withAI'
             }
@@ -456,9 +428,7 @@ export default function Vault() {
 
   // Fetch home files when on home route
   useEffect(() => {
-    if (currentPath === '') {
-      fetchHomeFiles();
-    }
+    fetchHomeFiles();
   }, [currentPath, userData.id]);
 
   // Update favorite status
@@ -589,31 +559,6 @@ export default function Vault() {
     }
   };
 
-  const filteredAndSortedItems = currentFolderItems
-    .filter(item => {
-      const matchesSearch = item.id;
-      const matchesType = selectedFilters.fileTypes.length === 0 ||
-        selectedFilters.fileTypes.includes(item.type);
-
-      return matchesSearch && matchesType;
-    })
-    .sort((a, b) => {
-      let comparison = 0;
-
-      switch (sortBy) {
-        case 'newest':
-          comparison = new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-          break;
-        case 'oldest':
-          comparison = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
-          break;
-        default:
-          comparison = 0;
-      }
-
-      return sortOrder === 'desc' ? -comparison : comparison;
-    });
-
   // Filter and sort generated images for home route
   const filteredAndSortedGeneratedImages = generatedImages
     .filter(image => {
@@ -679,31 +624,6 @@ export default function Vault() {
     selectedFilters.ratingRange.max < 5 ||
     selectedFilters.withNotes !== null ||
     selectedFilters.selectedTags.length > 0;
-
-  // Helper function to get descriptive filter names
-  const getFilterDisplayName = (filter: string): string => {
-    switch (filter) {
-      case 'pic': return 'Images Only';
-      case 'video': return 'Videos Only';
-      case 'favorite': return 'Favorites Only';
-      case 'rated': return 'Rated Only';
-      case 'with_notes': return 'With Notes';
-      case 'with_tags': return 'With Tags';
-      case 'image': return 'Images Only';
-      default: return filter;
-    }
-  };
-
-  // Helper function to get sort display name
-  const getSortDisplayName = (sort: string): string => {
-    switch (sort) {
-      case 'newest': return 'Newest First';
-      case 'oldest': return 'Oldest First';
-      case 'rating': return 'By Rating';
-      case 'filename': return 'By Filename';
-      default: return sort;
-    }
-  };
 
   const clearFilters = () => {
     setSearchTerm('');
@@ -1434,56 +1354,6 @@ export default function Vault() {
     }
   };
 
-  // Helper function to delete all files from a specific folder (keeping for reference but not used in new implementation)
-  const deleteFilesFromFolder = async (folderPath: string): Promise<void> => {
-    try {
-      const getFilesResponse = await fetch('https://api.nymia.ai/v1/getfilenames', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer WeInfl3nc3withAI'
-        },
-        body: JSON.stringify({
-          user: userData.id,
-          folder: `vault/${folderPath}`
-        })
-      });
-
-      if (!getFilesResponse.ok) {
-        console.warn(`Failed to get files from folder: ${folderPath}`);
-        return;
-      }
-
-      const filesData = await getFilesResponse.json();
-      console.log(`Files in folder ${folderPath}:`, filesData);
-
-      if (filesData && filesData.length > 0) {
-        const deletePromises = filesData.map(async (file: any) => {
-          const deleteResponse = await fetch('https://api.nymia.ai/v1/deletefile', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': 'Bearer WeInfl3nc3withAI'
-            },
-            body: JSON.stringify({
-              user: userData.id,
-              filename: `vault/${folderPath}/${file}`
-            })
-          });
-
-          if (!deleteResponse.ok) {
-            console.warn(`Failed to delete file ${file} from ${folderPath}`);
-            throw new Error(`Failed to delete file ${file}`);
-          }
-        });
-
-        await Promise.all(deletePromises);
-      }
-    } catch (error) {
-      console.error(`Error deleting files from ${folderPath}:`, error);
-    }
-  };
-
   // Handle folder deletion
   const handleDeleteFolder = async (folderPath: string) => {
     try {
@@ -1521,7 +1391,6 @@ export default function Vault() {
         pathParts.pop();
         const parentPath = pathParts.join('/');
         setCurrentPath(parentPath);
-        setCurrentFolderItems(getCurrentFolderItems());
       }
 
       setContextMenu(null);
@@ -2036,10 +1905,6 @@ export default function Vault() {
           <p className="text-muted-foreground">
             Organize and manage your content with folders
           </p>
-        </div>
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Star className="w-4 h-4 text-yellow-500" />
-          {vaultItems.length} items saved
         </div>
       </div>
 
@@ -2631,9 +2496,9 @@ export default function Vault() {
         <div className="flex items-center gap-4">
           <p className="text-sm text-muted-foreground">
             {currentPath === '' ? (
-              `Showing ${filteredAndSortedGeneratedImages.length} of ${generatedImages.length} files`
+              `Showing ${filteredAndSortedGeneratedImages.length} of ${generatedImages.length} items`
             ) : (
-              `Showing ${filteredAndSortedItems.length} of ${currentFolderItems.length} items in "${currentPath}"`
+              `Showing ${filteredAndSortedGeneratedImages.length} of ${generatedImages.length} items in "${currentPath}"`
             )}
           </p>
           {currentPath && (
@@ -2645,12 +2510,12 @@ export default function Vault() {
         </div>
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Star className="w-4 h-4 text-yellow-500" />
-          {currentPath === '' ? `${files.length} total files` : `${vaultItems.length} total items`}
+          {currentPath === '' ? `${generatedImages.length} total items` : `${generatedImages.length} total items`}
         </div>
       </div>
 
       {/* Content Grid */}
-      {currentPath === '' ? (
+      {
         // Show generated images on home route
         filesLoading ? (
           <div className="text-center py-12">
@@ -2955,8 +2820,8 @@ export default function Vault() {
                       </div>
                     ) : (
                       <h3 className={`font-medium text-sm text-gray-800 dark:text-gray-200 truncate transition-colors ${renamingFile === image.system_filename
-                          ? 'text-yellow-700 dark:text-yellow-300'
-                          : 'group-hover:text-blue-600 dark:group-hover:text-blue-400'
+                        ? 'text-yellow-700 dark:text-yellow-300'
+                        : 'group-hover:text-blue-600 dark:group-hover:text-blue-400'
                         }`}>
                         {image.user_filename || image.system_filename}
                         {renamingFile === image.system_filename && ' (Renaming...)'}
@@ -3011,103 +2876,7 @@ export default function Vault() {
             </div>
           </div>
         )
-      ) : (
-        // Show vault items when in folders
-        filteredAndSortedItems.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-            {filteredAndSortedItems.map((item) => (
-              <Card
-                key={item.id}
-                className="group hover:shadow-xl transition-all duration-300 border-border/50 hover:border-yellow-500/30 bg-gradient-to-br from-yellow-50/20 to-orange-950/5 backdrop-blur-sm"
-              >
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      {item.type === 'video' ? (
-                        <Video className="w-4 h-4 text-purple-500" />
-                      ) : (
-                        <Image className="w-4 h-4 text-blue-500" />
-                      )}
-                    </div>
-                    <Star className="w-4 h-4 text-yellow-500 fill-current" />
-                  </div>
-                  <CardTitle className="text-lg font-semibold text-gray-800 dark:text-gray-200">{item.id}</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="relative w-full group mb-4" style={{ paddingBottom: '100%' }}>
-                    <img
-                      src={`https://images.nymia.ai/cdn-cgi/image/w=400/${userData.id}/output/${item.id}`}
-                      alt={item.id}
-                      className="absolute inset-0 w-full h-full object-cover rounded-md shadow-sm"
-                    />
-                    <div
-                      className="absolute right-2 top-2 bg-black/50 rounded-full w-10 h-10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
-                      onClick={() => setSelectedImage(`https://images.nymia.ai/cdn-cgi/image/w=800/${userData.id}/output/${item.id}`)}
-                    >
-                      <ZoomIn className="w-6 h-6 text-white" />
-                    </div>
-                  </div>
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <Calendar className="w-3 h-3" />
-                      Added {new Date(item.created_at).toLocaleDateString()}
-                    </div>
-                    <div className="flex gap-1.5">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="flex-1 h-8 text-xs font-medium hover:bg-purple-700 hover:border-purple-500 transition-colors"
-                        onClick={() => handleDownload(item.id)}
-                      >
-                        <Download className="w-3 h-3 mr-1.5" />
-                        <span className="hidden sm:inline">Download</span>
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-8 w-8 p-0 hover:bg-green-50 hover:bg-green-700 hover:border-green-500 transition-colors"
-                        onClick={() => handleShare(item.id)}
-                      >
-                        <Share className="w-3 h-3" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-amber-500 hover:border-amber-300 transition-colors"
-                        onClick={() => handleRemoveFromVault(item.id)}
-                      >
-                        <Trash2 className="w-3 h-3" />
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-12">
-            <div className="flex flex-col items-center gap-4">
-              {currentPath ? (
-                <>
-                  <Folder className="w-12 h-12 text-blue-500/50" />
-                  <h3 className="text-lg font-semibold mb-2">No items in this folder</h3>
-                  <p className="text-muted-foreground">
-                    The folder "{currentPath}" is empty. Try navigating to a different folder or create some content.
-                  </p>
-                </>
-              ) : (
-                <>
-                  <Star className="w-12 h-12 text-yellow-500/50" />
-                  <h3 className="text-lg font-semibold mb-2">No items found</h3>
-                  <p className="text-muted-foreground">
-                    Try adjusting your search or filters to find what you're looking for.
-                  </p>
-                </>
-              )}
-            </div>
-          </div>
-        )
-      )}
+      }
 
       {/* Image Zoom Modal */}
       <DialogZoom open={!!selectedImage} onOpenChange={() => setSelectedImage(null)}>

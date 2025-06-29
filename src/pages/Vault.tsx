@@ -182,6 +182,9 @@ export default function Vault() {
   const [dragOverFolder, setDragOverFolder] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
 
+  // Drag and drop state for upload card
+  const [dragOverUpload, setDragOverUpload] = useState<boolean>(false);
+
   // Load copy state from localStorage on component mount
   useEffect(() => {
     const savedCopyState = localStorage.getItem('copystate');
@@ -3108,15 +3111,72 @@ export default function Vault() {
             {
               currentPath !== '' && (
                 <Card
-                  className="group hover:shadow-xl transition-all duration-300 border-border/50 hover:border-purple-500/30 backdrop-blur-sm bg-gradient-to-br from-purple-50/20 to-pink-50/20 dark:from-purple-950/5 dark:to-pink-950/5 cursor-pointer"
+                  className={`group hover:shadow-xl transition-all duration-300 border-border/50 hover:border-purple-500/30 backdrop-blur-sm bg-gradient-to-br from-purple-50/20 to-pink-50/20 dark:from-purple-950/5 dark:to-pink-950/5 cursor-pointer ${
+                    dragOverUpload ? 'ring-4 ring-purple-500 ring-opacity-70 bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/40 dark:to-pink-900/40 scale-105 shadow-lg' : ''
+                  }`}
                   onClick={() => setUploadModelModal({ open: true })}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'copy';
+                    setDragOverUpload(true);
+                  }}
+                  onDragLeave={() => setDragOverUpload(false)}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setDragOverUpload(false);
+                    const files = Array.from(e.dataTransfer.files);
+                    if (files.length > 0) {
+                      const file = files[0];
+                      setUploadedFile(file);
+                      
+                      // Auto-set filename and format
+                      const fileName = file.name;
+                      const fileExtension = fileName.split('.').pop()?.toLowerCase() || '';
+                      const isVideo = file.type.startsWith('video/');
+                      
+                      setUploadModelData(prev => ({
+                        ...prev,
+                        system_filename: fileName,
+                        image_format: fileExtension,
+                        file_type: isVideo ? 'video' : 'pic'
+                      }));
+                      
+                      setUploadModelModal({ open: true });
+                    }
+                  }}
                 >
                   <CardContent className="p-4 flex flex-col items-center justify-center h-full">
                     <div className="bg-gradient-to-br from-purple-500 to-pink-600 rounded-full w-16 h-16 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-200">
                       <Upload className="w-8 h-8 text-white" />
                     </div>
                     <span className="text-lg font-semibold text-purple-700 dark:text-purple-300 mb-2">Upload Model</span>
-                    <span className="text-xs text-gray-500 dark:text-gray-400 text-center">Add a new model to this folder</span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400 text-center mb-4">Add a new model to this folder</span>
+                    
+                    {/* Image Preview Window */}
+                    <div className={`w-full h-32 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center mb-4 transition-all duration-200 ${
+                      dragOverUpload 
+                        ? 'border-purple-400 dark:border-purple-500 bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30 scale-105' 
+                        : 'group-hover:border-purple-400 dark:group-hover:border-purple-500'
+                    }`}>
+                      <div className="text-center">
+                        <Upload className={`w-6 h-6 mx-auto mb-2 transition-colors ${
+                          dragOverUpload 
+                            ? 'text-purple-500 dark:text-purple-400' 
+                            : 'text-gray-400 dark:text-gray-500'
+                        }`} />
+                        <p className={`text-xs transition-colors ${
+                          dragOverUpload 
+                            ? 'text-purple-600 dark:text-purple-400' 
+                            : 'text-gray-500 dark:text-gray-400'
+                        }`}>
+                          {dragOverUpload ? 'Drop file here!' : 'Drop file here or click to upload'}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="text-xs text-gray-500 dark:text-gray-400 text-center">
+                      Drag & drop files here or click to browse
+                    </div>
                   </CardContent>
                 </Card>
               )
@@ -4242,7 +4302,32 @@ export default function Vault() {
             {/* File Upload Section */}
             <div className="space-y-4">
               <Label className="text-sm font-medium">File Upload</Label>
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-purple-400 transition-colors">
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-purple-400 transition-colors"
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  e.dataTransfer.dropEffect = 'copy';
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  const files = Array.from(e.dataTransfer.files);
+                  if (files.length > 0) {
+                    const file = files[0];
+                    setUploadedFile(file);
+                    
+                    // Auto-set filename and format
+                    const fileName = file.name;
+                    const fileExtension = fileName.split('.').pop()?.toLowerCase() || '';
+                    const isVideo = file.type.startsWith('video/');
+                    
+                    setUploadModelData(prev => ({
+                      ...prev,
+                      system_filename: fileName,
+                      image_format: fileExtension,
+                      file_type: isVideo ? 'video' : 'pic'
+                    }));
+                  }
+                }}
+              >
                 {uploadedFile ? (
                   <div className="space-y-4">
                     <div className="relative w-32 h-32 mx-auto">

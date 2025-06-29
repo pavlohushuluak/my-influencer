@@ -1687,14 +1687,14 @@ export default function Vault() {
     setFileCopyState(1);
     setCopiedFile(image);
     setFileContextMenu(null);
-    toast.success(`File "${image.user_filename || image.system_filename}" copied to clipboard`);
+    toast.success(`File "${image.system_filename}" copied to clipboard`);
   };
 
   const handleFileCut = (image: GeneratedImageData) => {
     setFileCopyState(2);
     setCopiedFile(image);
     setFileContextMenu(null);
-    toast.success(`File "${image.user_filename || image.system_filename}" cut to clipboard`);
+    toast.success(`File "${image.system_filename}" cut to clipboard`);
   };
 
   const handleFilePaste = async () => {
@@ -1707,7 +1707,41 @@ export default function Vault() {
 
     try {
       const operationType = fileCopyState === 1 ? 'copying' : 'moving';
-      const fileName = copiedFile.user_filename || copiedFile.system_filename;
+      const fileName = copiedFile.system_filename;
+      const route = copiedFile.user_filename === "" ? "output" : "vault/" + copiedFile.user_filename;
+      const newRoute = 'vault/' + currentPath;
+
+      console.log("Copied File:", `${route}/${fileName}`);
+      console.log("New Route:", `${newRoute}/${fileName}`);
+
+      await fetch('https://api.nymia.ai/v1/copyfile', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          user: userData.id,
+          sourcefilename: `${route}/${fileName}`,
+          destinationfilename: `${newRoute}/${fileName}`
+        })
+      });
+
+      const postFile = {
+        ...copiedFile,
+        user_filename: `${currentPath}`
+      };
+
+      delete postFile.id;
+
+      await fetch(`https://db.nymia.ai/rest/v1/generated_images`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify(postFile)
+      });
 
       toast.info(`${operationType.charAt(0).toUpperCase() + operationType.slice(1)} file...`, {
         description: `Processing "${fileName}" - this may take a moment`,
@@ -1719,16 +1753,34 @@ export default function Vault() {
       console.log(`${operationType} file:`, copiedFile.system_filename, 'to folder:', currentPath);
 
       // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
       if (fileCopyState === 2) {
         // Remove from current location if it's a cut operation
-        setGeneratedImages(prev => prev.filter(img => img.system_filename !== copiedFile.system_filename));
+        await fetch(`https://api.nymia.ai/v1/deletefile`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer WeInfl3nc3withAI'
+          },
+          body: JSON.stringify({
+            user: userData.id,
+            filename: `${route}/${fileName}`
+          })
+        });
+
+        await fetch(`https://db.nymia.ai/rest/v1/generated_images?id=eq.${copiedFile.id}`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer WeInfl3nc3withAI'
+          }
+        });
       }
 
       // Clear copy state
       setFileCopyState(0);
       setCopiedFile(null);
+
+      setGeneratedImages(prev => [...prev, { ...copiedFile, user_filename: `${currentPath}` }]);
 
       toast.success(`File "${fileName}" ${operationType === 'copying' ? 'copied' : 'moved'} successfully!`);
 
@@ -1846,7 +1898,7 @@ export default function Vault() {
       setGeneratedImages(prev => prev.filter(img => img.system_filename !== image.system_filename));
 
       setFileContextMenu(null);
-      toast.success(`File "${image.user_filename || image.system_filename}" deleted successfully`);
+      toast.success(`File "${image.system_filename}" deleted successfully`);
 
     } catch (error) {
       console.error('Error deleting file:', error);
@@ -2608,7 +2660,7 @@ export default function Vault() {
                   <div className="relative w-full group mb-4" style={{ paddingBottom: '100%' }}>
                     <img
                       src={`https://images.nymia.ai/cdn-cgi/image/w=400/${userData.id}/output/${image.system_filename}`}
-                      alt={image.user_filename || image.system_filename}
+                      alt={image.system_filename}
                       className="absolute inset-0 w-full h-full object-cover rounded-md shadow-sm cursor-pointer"
                       onClick={() => setDetailedImageModal({ open: true, image })}
                     />
@@ -2823,7 +2875,7 @@ export default function Vault() {
                         ? 'text-yellow-700 dark:text-yellow-300'
                         : 'group-hover:text-blue-600 dark:group-hover:text-blue-400'
                         }`}>
-                        {image.user_filename || image.system_filename}
+                        {image.system_filename}
                         {renamingFile === image.system_filename && ' (Renaming...)'}
                       </h3>
                     )}

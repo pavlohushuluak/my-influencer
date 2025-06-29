@@ -134,6 +134,31 @@ export default function Vault() {
   // Tag selection modal state
   const [tagSelectionModal, setTagSelectionModal] = useState<{ open: boolean }>({ open: false });
 
+  // Upload model modal state
+  const [uploadModelModal, setUploadModelModal] = useState<{ open: boolean }>({ open: false });
+  const [uploadModelData, setUploadModelData] = useState({
+    system_filename: '',
+    user_filename: '',
+    user_notes: '',
+    user_tags: [] as string[],
+    file_type: 'pic',
+    image_format: 'png',
+    model_version: '',
+    t5xxl_prompt: '',
+    clip_l_prompt: '',
+    negative_prompt: '',
+    seed: 42,
+    guidance: 7.5,
+    steps: 20,
+    nsfw_strength: 0,
+    lora_strength: 0,
+    quality_setting: 'standard',
+    rating: 0,
+    favorite: false
+  });
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+
   // Copy/Cut state
   const [copyState, setCopyState] = useState<number>(0); // 0 = none, 1 = copy, 2 = cut
   const [copiedPath, setCopiedPath] = useState<string>('');
@@ -2113,6 +2138,135 @@ export default function Vault() {
     }
   };
 
+  // Handle upload model
+  const handleUploadModel = async () => {
+    if (!uploadedFile) {
+      toast.error('Please select a file to upload');
+      return;
+    }
+
+    if (!uploadModelData.system_filename.trim()) {
+      toast.error('Please enter a filename');
+      return;
+    }
+
+    setIsUploading(true);
+
+    try {
+      // Check if file already exists
+      const fileExists = await checkFileExistsInFolder(uploadModelData.system_filename, currentPath);
+      if (fileExists) {
+        toast.error('A file with this name already exists in this folder');
+        setIsUploading(false);
+        return;
+      }
+
+      // Create form data for file upload
+      const formData = new FormData();
+      formData.append('file', uploadedFile);
+      formData.append('user', userData.id);
+      formData.append('filename', `${currentPath === '' ? 'output' : 'vault/' + currentPath}/${uploadModelData.system_filename}`);
+
+      // Upload file
+      const uploadResponse = await fetch('https://api.nymia.ai/v1/uploadfile', {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: formData
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error('Failed to upload file');
+      }
+
+      // Create database entry
+      const now = new Date().toISOString();
+      const newImageData = {
+        task_id: `upload_${Date.now()}`,
+        image_sequence_number: 1,
+        system_filename: uploadModelData.system_filename,
+        user_filename: currentPath,
+        user_notes: uploadModelData.user_notes,
+        user_tags: uploadModelData.user_tags,
+        file_path: `${currentPath === '' ? 'output' : 'vault/' + currentPath}/${uploadModelData.system_filename}`,
+        file_size_bytes: uploadedFile.size,
+        image_format: uploadModelData.image_format,
+        seed: uploadModelData.seed,
+        guidance: uploadModelData.guidance,
+        steps: uploadModelData.steps,
+        nsfw_strength: uploadModelData.nsfw_strength,
+        lora_strength: uploadModelData.lora_strength,
+        model_version: uploadModelData.model_version,
+        t5xxl_prompt: uploadModelData.t5xxl_prompt,
+        clip_l_prompt: uploadModelData.clip_l_prompt,
+        negative_prompt: uploadModelData.negative_prompt,
+        generation_status: 'completed',
+        generation_started_at: now,
+        generation_completed_at: now,
+        generation_time_seconds: 0,
+        error_message: '',
+        retry_count: 0,
+        created_at: now,
+        updated_at: now,
+        actual_seed_used: uploadModelData.seed,
+        prompt_file_used: '',
+        quality_setting: uploadModelData.quality_setting,
+        rating: uploadModelData.rating,
+        favorite: uploadModelData.favorite,
+        file_type: uploadModelData.file_type
+      };
+
+      const dbResponse = await fetch('https://db.nymia.ai/rest/v1/generated_images', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify(newImageData)
+      });
+
+      if (!dbResponse.ok) {
+        throw new Error('Failed to create database entry');
+      }
+
+      // Refresh the files list
+      await fetchHomeFiles();
+
+      // Reset form and close modal
+      setUploadModelData({
+        system_filename: '',
+        user_filename: '',
+        user_notes: '',
+        user_tags: [],
+        file_type: 'pic',
+        image_format: 'png',
+        model_version: '',
+        t5xxl_prompt: '',
+        clip_l_prompt: '',
+        negative_prompt: '',
+        seed: 42,
+        guidance: 7.5,
+        steps: 20,
+        nsfw_strength: 0,
+        lora_strength: 0,
+        quality_setting: 'standard',
+        rating: 0,
+        favorite: false
+      });
+      setUploadedFile(null);
+      setUploadModelModal({ open: false });
+
+      toast.success('Model uploaded successfully!');
+
+    } catch (error) {
+      console.error('Error uploading model:', error);
+      toast.error('Failed to upload model. Please try again.');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   if (foldersLoading) {
     return (
       <div className="p-6 space-y-6 animate-fade-in">
@@ -2761,12 +2915,33 @@ export default function Vault() {
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-500 mx-auto"></div>
             <p className="text-muted-foreground mt-2">Loading files...</p>
           </div>
-        ) : generatedImages.length > 0 ? (
+        ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+            {/* Upload Model Card */}
+            {
+              currentPath !== '' && (
+                <Card
+                  className="group hover:shadow-xl transition-all duration-300 border-border/50 hover:border-purple-500/30 backdrop-blur-sm bg-gradient-to-br from-purple-50/20 to-pink-50/20 dark:from-purple-950/5 dark:to-pink-950/5 cursor-pointer"
+                  onClick={() => setUploadModelModal({ open: true })}
+                >
+                  <CardContent className="p-4 flex flex-col items-center justify-center h-full">
+                    <div className="bg-gradient-to-br from-purple-500 to-pink-600 rounded-full w-16 h-16 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-200">
+                      <Upload className="w-8 h-8 text-white" />
+                    </div>
+                    <span className="text-lg font-semibold text-purple-700 dark:text-purple-300 mb-2">Upload Model</span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400 text-center">Add a new model to this folder</span>
+                  </CardContent>
+                </Card>
+              )
+            }
+            {/* Render image cards */}
             {filteredAndSortedGeneratedImages.map((image) => (
               <Card
                 key={image.id}
-                className={`group hover:shadow-xl transition-all duration-300 border-border/50 hover:border-yellow-500/30 bg-gradient-to-br from-yellow-50/20 to-orange-50/20 dark:from-yellow-950/5 dark:to-orange-950/5 backdrop-blur-sm ${renamingFile === image.system_filename ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'
+                className={`group hover:shadow-xl transition-all duration-300 border-border/50 hover:border-yellow-500/30 backdrop-blur-sm ${image.task_id?.startsWith('upload_')
+                  ? 'bg-gradient-to-br from-purple-50/20 to-pink-50/20 dark:from-purple-950/5 dark:to-pink-950/5 hover:border-purple-500/30'
+                  : 'bg-gradient-to-br from-yellow-50/20 to-orange-50/20 dark:from-yellow-950/5 dark:to-orange-950/5'
+                  } ${renamingFile === image.system_filename ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'
                   }`}
                 onContextMenu={(e) => renamingFile !== image.system_filename && handleFileContextMenu(e, image)}
               >
@@ -2774,13 +2949,18 @@ export default function Vault() {
                   {/* Top Row: File Type, Ratings, Favorite */}
                   <div className="flex items-center justify-between mb-3">
                     {/* File Type Icon */}
-                    <div className={`bg-gradient-to-br from-blue-500 to-purple-600 rounded-full w-8 h-8 flex items-center justify-center shadow-md ${renamingFile === image.system_filename ? 'animate-pulse' : ''
+                    <div className={`rounded-full w-8 h-8 flex items-center justify-center shadow-md ${image.task_id?.startsWith('upload_')
+                      ? 'bg-gradient-to-br from-purple-500 to-pink-600'
+                      : 'bg-gradient-to-br from-blue-500 to-purple-600'
+                      } ${renamingFile === image.system_filename ? 'animate-pulse' : ''
                       }`}>
                       {renamingFile === image.system_filename ? (
                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
                       ) : (
                         <>
-                          {image.file_type === 'video' ? (
+                          {image.task_id?.startsWith('upload_') ? (
+                            <Upload className="w-4 h-4 text-white" />
+                          ) : image.file_type === 'video' ? (
                             <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="currentColor">
                               <path d="M8 5v14l11-7z" />
                               <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15V7l8 5-8 5z" opacity="0.3" />
@@ -2794,6 +2974,13 @@ export default function Vault() {
                         </>
                       )}
                     </div>
+
+                    {/* Upload Indicator */}
+                    {image.task_id?.startsWith('upload_') && (
+                      <div className="absolute top-2 right-2 bg-gradient-to-r from-purple-500 to-pink-600 text-white px-2 py-1 rounded-full text-xs font-medium shadow-lg">
+                        Uploaded
+                      </div>
+                    )}
 
                     {/* Rating Stars */}
                     <div className="flex gap-1">
@@ -2850,6 +3037,21 @@ export default function Vault() {
                       alt={image.system_filename}
                       className="absolute inset-0 w-full h-full object-cover rounded-md shadow-sm cursor-pointer"
                       onClick={() => setDetailedImageModal({ open: true, image })}
+                      onError={(e) => {
+                        // Fallback for uploaded files that might not be accessible via CDN
+                        const target = e.target as HTMLImageElement;
+                        target.style.display = 'none';
+                        const fallback = document.createElement('div');
+                        fallback.className = 'absolute inset-0 w-full h-full bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/20 dark:to-pink-900/20 rounded-md flex items-center justify-center';
+                        fallback.innerHTML = `
+                          <div class="text-center">
+                            <Upload class="w-8 h-8 text-purple-500 mx-auto mb-2" />
+                            <p class="text-xs text-purple-600 dark:text-purple-400">Uploaded File</p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">${image.system_filename}</p>
+                          </div>
+                        `;
+                        target.parentNode?.appendChild(fallback);
+                      }}
                     />
 
                     {/* Copy/Cut Indicator */}
@@ -3103,16 +3305,6 @@ export default function Vault() {
                 </CardContent>
               </Card>
             ))}
-          </div>
-        ) : (
-          <div className="text-center py-12">
-            <div className="flex flex-col items-center gap-4">
-              <Image className="w-12 h-12 text-blue-500/50" />
-              <h3 className="text-lg font-semibold mb-2">No files found</h3>
-              <p className="text-muted-foreground">
-                No generated images found in your output folder.
-              </p>
-            </div>
           </div>
         )
       }
@@ -3819,6 +4011,441 @@ export default function Vault() {
           </button>
         </div>
       )}
+
+      {/* Upload Model Modal */}
+      <Dialog open={uploadModelModal.open} onOpenChange={(open) => setUploadModelModal({ open })}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Upload className="w-5 h-5 text-purple-500" />
+              Upload New Model
+            </DialogTitle>
+            <DialogDescription>
+              Upload a new model file and provide metadata for the generated image data.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-6">
+            {/* File Upload Section */}
+            <div className="space-y-4">
+              <Label className="text-sm font-medium">File Upload</Label>
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-purple-400 transition-colors">
+                <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                <p className="text-sm text-gray-600 mb-2">
+                  {uploadedFile ? uploadedFile.name : 'Click to select a file or drag and drop'}
+                </p>
+                <Input
+                  type="file"
+                  accept="image/*,video/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      setUploadedFile(file);
+                      // Auto-set filename and format
+                      const fileName = file.name;
+                      const fileExtension = fileName.split('.').pop()?.toLowerCase();
+                      setUploadModelData(prev => ({
+                        ...prev,
+                        system_filename: fileName,
+                        image_format: fileExtension || 'png',
+                        file_type: file.type.startsWith('video/') ? 'video' : 'pic'
+                      }));
+                    }
+                  }}
+                  className="hidden"
+                  id="file-upload"
+                />
+                <Button
+                  variant="outline"
+                  onClick={() => document.getElementById('file-upload')?.click()}
+                  className="mt-2"
+                >
+                  Select File
+                </Button>
+              </div>
+            </div>
+
+            {/* Basic Information */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="filename">Filename</Label>
+                <Input
+                  id="filename"
+                  value={uploadModelData.system_filename}
+                  onChange={(e) => setUploadModelData(prev => ({ ...prev, system_filename: e.target.value }))}
+                  placeholder="Enter filename"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="file-type">File Type</Label>
+                <Select value={uploadModelData.file_type} onValueChange={(value) => setUploadModelData(prev => ({ ...prev, file_type: value }))}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pic">Image</SelectItem>
+                    <SelectItem value="video">Video</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="format">Format</Label>
+                <Select value={uploadModelData.image_format} onValueChange={(value) => setUploadModelData(prev => ({ ...prev, image_format: value }))}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="png">PNG</SelectItem>
+                    <SelectItem value="jpg">JPG</SelectItem>
+                    <SelectItem value="jpeg">JPEG</SelectItem>
+                    <SelectItem value="webp">WebP</SelectItem>
+                    <SelectItem value="mp4">MP4</SelectItem>
+                    <SelectItem value="mov">MOV</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="model-version">Model Version</Label>
+                <Input
+                  id="model-version"
+                  value={uploadModelData.model_version}
+                  onChange={(e) => setUploadModelData(prev => ({ ...prev, model_version: e.target.value }))}
+                  placeholder="e.g., Stable Diffusion 2.1"
+                />
+              </div>
+            </div>
+
+            {/* Prompts Section */}
+            <div className="space-y-4">
+              <Label className="text-sm font-medium">Prompts</Label>
+              <div className="space-y-3">
+                <div className="space-y-2">
+                  <Label htmlFor="t5xxl-prompt">T5XXL Prompt</Label>
+                  <Input
+                    id="t5xxl-prompt"
+                    value={uploadModelData.t5xxl_prompt}
+                    onChange={(e) => setUploadModelData(prev => ({ ...prev, t5xxl_prompt: e.target.value }))}
+                    placeholder="Enter T5XXL prompt"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="clip-prompt">CLIP Prompt</Label>
+                  <Input
+                    id="clip-prompt"
+                    value={uploadModelData.clip_l_prompt}
+                    onChange={(e) => setUploadModelData(prev => ({ ...prev, clip_l_prompt: e.target.value }))}
+                    placeholder="Enter CLIP prompt"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="negative-prompt">Negative Prompt</Label>
+                  <Input
+                    id="negative-prompt"
+                    value={uploadModelData.negative_prompt}
+                    onChange={(e) => setUploadModelData(prev => ({ ...prev, negative_prompt: e.target.value }))}
+                    placeholder="Enter negative prompt"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Generation Settings */}
+            <div className="space-y-4">
+              <Label className="text-sm font-medium">Generation Settings</Label>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="seed">Seed</Label>
+                  <Input
+                    id="seed"
+                    type="number"
+                    value={uploadModelData.seed}
+                    onChange={(e) => setUploadModelData(prev => ({ ...prev, seed: parseInt(e.target.value) || 0 }))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="guidance">Guidance</Label>
+                  <Input
+                    id="guidance"
+                    type="number"
+                    step="0.1"
+                    value={uploadModelData.guidance}
+                    onChange={(e) => setUploadModelData(prev => ({ ...prev, guidance: parseFloat(e.target.value) || 0 }))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="steps">Steps</Label>
+                  <Input
+                    id="steps"
+                    type="number"
+                    value={uploadModelData.steps}
+                    onChange={(e) => setUploadModelData(prev => ({ ...prev, steps: parseInt(e.target.value) || 0 }))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="quality">Quality Setting</Label>
+                  <Select value={uploadModelData.quality_setting} onValueChange={(value) => setUploadModelData(prev => ({ ...prev, quality_setting: value }))}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="standard">Standard</SelectItem>
+                      <SelectItem value="high">High</SelectItem>
+                      <SelectItem value="ultra">Ultra</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+
+            {/* Additional Settings */}
+            <div className="space-y-4">
+              <Label className="text-sm font-medium">Additional Settings</Label>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="nsfw-strength">NSFW Strength</Label>
+                  <Input
+                    id="nsfw-strength"
+                    type="number"
+                    step="0.1"
+                    value={uploadModelData.nsfw_strength}
+                    onChange={(e) => setUploadModelData(prev => ({ ...prev, nsfw_strength: parseFloat(e.target.value) || 0 }))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="lora-strength">LoRA Strength</Label>
+                  <Input
+                    id="lora-strength"
+                    type="number"
+                    step="0.1"
+                    value={uploadModelData.lora_strength}
+                    onChange={(e) => setUploadModelData(prev => ({ ...prev, lora_strength: parseFloat(e.target.value) || 0 }))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="rating">Rating</Label>
+                  <Input
+                    id="rating"
+                    type="number"
+                    min="0"
+                    max="5"
+                    value={uploadModelData.rating}
+                    onChange={(e) => setUploadModelData(prev => ({ ...prev, rating: parseInt(e.target.value) || 0 }))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={uploadModelData.favorite}
+                      onChange={(e) => setUploadModelData(prev => ({ ...prev, favorite: e.target.checked }))}
+                      className="rounded"
+                    />
+                    Favorite
+                  </Label>
+                </div>
+              </div>
+            </div>
+
+            {/* User Notes and Tags */}
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="user-notes">User Notes</Label>
+                <Input
+                  id="user-notes"
+                  value={uploadModelData.user_notes}
+                  onChange={(e) => setUploadModelData(prev => ({ ...prev, user_notes: e.target.value }))}
+                  placeholder="Add notes about this model"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="user-tags">Tags (comma separated)</Label>
+                <Input
+                  id="user-tags"
+                  value={uploadModelData.user_tags.join(', ')}
+                  onChange={(e) => {
+                    const tags = e.target.value.split(',').map(tag => tag.trim()).filter(tag => tag);
+                    setUploadModelData(prev => ({ ...prev, user_tags: tags }));
+                  }}
+                  placeholder="Enter tags separated by commas"
+                />
+              </div>
+            </div>
+
+            {/* Live Preview Section */}
+            <div className="space-y-4">
+              <Label className="text-sm font-medium">Live Preview</Label>
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 bg-gray-50 dark:bg-gray-900">
+                <div className="flex justify-center">
+                  <div className="w-64">
+                    <Card className="group hover:shadow-xl transition-all duration-300 border-border/50 hover:border-purple-500/30 backdrop-blur-sm bg-gradient-to-br from-purple-50/20 to-pink-50/20 dark:from-purple-950/5 dark:to-pink-950/5">
+                      <CardContent className="p-4">
+                        {/* Top Row: File Type, Ratings, Favorite */}
+                        <div className="flex items-center justify-between mb-3">
+                          {/* File Type Icon */}
+                          <div className="bg-gradient-to-br from-purple-500 to-pink-600 rounded-full w-8 h-8 flex items-center justify-center shadow-md">
+                            <Upload className="w-4 h-4 text-white" />
+                          </div>
+
+                          {/* Upload Indicator */}
+                          <div className="absolute top-2 right-2 bg-gradient-to-r from-purple-500 to-pink-600 text-white px-2 py-1 rounded-full text-xs font-medium shadow-lg">
+                            Uploaded
+                          </div>
+
+                          {/* Rating Stars */}
+                          <div className="flex gap-1">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <svg
+                                key={star}
+                                className={`w-4 h-4 ${star <= uploadModelData.rating ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
+                                viewBox="0 0 24 24"
+                              >
+                                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                              </svg>
+                            ))}
+                          </div>
+
+                          {/* Favorite Heart */}
+                          <div>
+                            {uploadModelData.favorite ? (
+                              <div className="bg-red-500 rounded-full w-8 h-8 flex items-center justify-center">
+                                <svg className="w-4 h-4 text-white fill-current" viewBox="0 0 24 24">
+                                  <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                                </svg>
+                              </div>
+                            ) : (
+                              <div className="bg-black/50 rounded-full w-8 h-8 flex items-center justify-center">
+                                <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                  <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                                </svg>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Image Preview */}
+                        <div className="relative w-full group mb-4" style={{ paddingBottom: '100%' }}>
+                          {uploadedFile ? (
+                            <img
+                              src={URL.createObjectURL(uploadedFile)}
+                              alt={uploadModelData.system_filename}
+                              className="absolute inset-0 w-full h-full object-cover rounded-md shadow-sm"
+                            />
+                          ) : (
+                            <div className="absolute inset-0 w-full h-full bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/20 dark:to-pink-900/20 rounded-md flex items-center justify-center">
+                              <div className="text-center">
+                                <Upload className="w-8 h-8 text-purple-500 mx-auto mb-2" />
+                                <p className="text-xs text-purple-600 dark:text-purple-400">Upload Preview</p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400">Select a file to preview</p>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* User Notes */}
+                        <div className="mb-3">
+                          {uploadModelData.user_notes ? (
+                            <p className="text-sm text-gray-700 dark:text-gray-300 line-clamp-2">
+                              {uploadModelData.user_notes}
+                            </p>
+                          ) : (
+                            <div className="text-sm text-gray-500 dark:text-gray-400">
+                              Add notes
+                            </div>
+                          )}
+                        </div>
+
+                        {/* User Tags */}
+                        {uploadModelData.user_tags.length > 0 && (
+                          <div className="mb-3 flex flex-wrap gap-1">
+                            {uploadModelData.user_tags.map((tag, index) => (
+                              <Badge
+                                key={index}
+                                variant="secondary"
+                                className="text-xs"
+                              >
+                                {tag.trim()}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Filename and Date */}
+                        <div className="space-y-2">
+                          <h3 className="font-medium text-sm text-gray-800 dark:text-gray-200 truncate">
+                            {uploadModelData.system_filename || 'filename.ext'}
+                          </h3>
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <Calendar className="w-3 h-3" />
+                            {new Date().toLocaleDateString()}
+                          </div>
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="flex gap-1.5 mt-3">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="flex-1 h-8 text-xs font-medium"
+                            disabled
+                          >
+                            <Download className="w-3 h-3 mr-1.5" />
+                            Download
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-8 w-8 p-0"
+                            disabled
+                          >
+                            <Share className="w-3 h-3" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-8 w-8 p-0 text-red-600"
+                            disabled
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </div>
+                <p className="text-xs text-center text-gray-500 dark:text-gray-400 mt-2">
+                  This is how your uploaded model will appear in the vault
+                </p>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-2 pt-4 border-t">
+              <Button
+                variant="outline"
+                onClick={() => setUploadModelModal({ open: false })}
+                className="flex-1"
+                disabled={isUploading}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleUploadModel}
+                disabled={!uploadedFile || !uploadModelData.system_filename.trim() || isUploading}
+                className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+              >
+                {isUploading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Uploading...
+                  </>
+                ) : (
+                  'Upload Model'
+                )}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

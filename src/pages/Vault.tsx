@@ -2864,7 +2864,7 @@ export default function Vault() {
                 variant={fileCopyState > 0 ? "default" : "outline"}
                 size="sm"
                 onClick={handleFilePaste}
-                disabled={fileCopyState === 0 || isPastingFile}
+                disabled={fileCopyState === 0 || isPastingFile || currentPath === ''}
                 className={`flex items-center gap-1.5 transition-all duration-200 ${fileCopyState > 0
                   ? 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-md'
                   : 'text-muted-foreground'
@@ -3228,9 +3228,24 @@ export default function Vault() {
                             ? 'opacity-30 scale-98' 
                             : 'hover:scale-105'
                       }`}
-                      onClick={() => setDetailedImageModal({ open: true, image })}
+                      onClick={(e) => {
+                        // Only open modal if not dragging
+                        if (!isDragging) {
+                          setDetailedImageModal({ open: true, image });
+                        }
+                      }}
+                      onMouseDown={(e) => {
+                        // Prevent default to allow drag to work properly
+                        if (renamingFile !== image.system_filename) {
+                          e.preventDefault();
+                        }
+                      }}
                       draggable={renamingFile !== image.system_filename}
-                      onDragStart={(e) => renamingFile !== image.system_filename && handleDragStart(e, image)}
+                      onDragStart={(e) => {
+                        if (renamingFile !== image.system_filename) {
+                          handleDragStart(e, image);
+                        }
+                      }}
                       onDragEnd={handleDragEnd}
                       onError={(e) => {
                         // Fallback for uploaded files that might not be accessible via CDN

@@ -2280,6 +2280,12 @@ export default function Vault() {
     setIsDragging(true);
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', image.system_filename);
+    
+    // Show toast when drag starts
+    toast.info('Drag started', {
+      description: `Moving "${image.system_filename}" - drop on a folder to move it`,
+      duration: 3000
+    });
   };
 
   const handleDragEnd = () => {
@@ -2310,16 +2316,34 @@ export default function Vault() {
       return;
     }
 
+    // Show moving process toast
+    const movingToast = toast.loading('Moving file...', {
+      description: `Moving "${draggedImage.system_filename}" to ${targetFolderPath || 'root'}`,
+      duration: Infinity
+    });
+
     try {
       // Check if file already exists in target folder
       const fileExists = await checkFileExistsInFolder(draggedImage.system_filename, targetFolderPath);
       if (fileExists) {
+        toast.dismiss(movingToast);
         toast.error('A file with this name already exists in the target folder');
         setDragOverFolder(null);
         return;
       }
 
+      // Update toast to show progress
+      toast.loading('Checking file existence...', {
+        id: movingToast,
+        description: `Verifying "${draggedImage.system_filename}" can be moved`
+      });
+
       // Update the file's user_filename in the database
+      toast.loading('Updating database...', {
+        id: movingToast,
+        description: `Updating file location in database`
+      });
+
       const response = await fetch(`https://db.nymia.ai/rest/v1/generated_images?id=eq.${draggedImage.id}`, {
         method: 'PATCH',
         headers: {
@@ -2332,9 +2356,19 @@ export default function Vault() {
         })
       });
 
+      if (!response.ok) {
+        throw new Error('Failed to update database');
+      }
+
       const path = draggedImage.user_filename === '' ? 'output' : `vault/${draggedImage.user_filename}`;
+      
       // Copy the file to the target folder
-      await fetch('https://api.nymia.ai/v1/copyfile', {
+      toast.loading('Copying file...', {
+        id: movingToast,
+        description: `Copying "${draggedImage.system_filename}" to new location`
+      });
+
+      const copyResponse = await fetch('https://api.nymia.ai/v1/copyfile', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -2347,8 +2381,17 @@ export default function Vault() {
         })
       });
 
+      if (!copyResponse.ok) {
+        throw new Error('Failed to copy file');
+      }
+
       // Delete the file from the source folder
-      await fetch('https://api.nymia.ai/v1/deletefile', {
+      toast.loading('Cleaning up...', {
+        id: movingToast,
+        description: `Removing file from original location`
+      });
+
+      const deleteResponse = await fetch('https://api.nymia.ai/v1/deletefile', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -2358,22 +2401,34 @@ export default function Vault() {
           user: userData.id,
           filename: `${path}/${draggedImage.system_filename}`
         })
-      })
+      });
 
-
-
-      if (!response.ok) {
-        throw new Error('Failed to move file');
+      if (!deleteResponse.ok) {
+        throw new Error('Failed to delete original file');
       }
 
-      toast.success(`File moved to ${targetFolderPath || 'root'}`);
-      
       // Refresh the files list
+      toast.loading('Refreshing view...', {
+        id: movingToast,
+        description: `Updating file list`
+      });
+
       await fetchHomeFiles();
+
+      // Show success message
+      toast.success(`File moved successfully!`, {
+        id: movingToast,
+        description: `"${draggedImage.system_filename}" has been moved to ${targetFolderPath || 'root'}`,
+        duration: 4000
+      });
 
     } catch (error) {
       console.error('Error moving file:', error);
-      toast.error('Failed to move file. Please try again.');
+      toast.error('Failed to move file', {
+        id: movingToast,
+        description: 'An error occurred during the move operation. Please try again.',
+        duration: 5000
+      });
     } finally {
       setDragOverFolder(null);
     }
@@ -2725,7 +2780,7 @@ export default function Vault() {
           <div className="flex items-center gap-2 mb-6">
             <div
               className={`flex items-center gap-2 p-2 rounded-lg transition-all duration-200 ${
-                dragOverFolder === '' ? 'ring-2 ring-blue-500 ring-opacity-50 bg-blue-100 dark:bg-blue-900/20' : 'hover:bg-gray-100 dark:hover:bg-gray-800'
+                dragOverFolder === '' ? 'ring-2 ring-blue-500 ring-opacity-50 bg-blue-100 dark:bg-blue-900/20 scale-105 shadow-lg' : 'hover:bg-gray-100 dark:hover:bg-gray-800'
               }`}
               onDragOver={(e) => handleDragOver(e, '')}
               onDragLeave={handleDragLeave}
@@ -2746,7 +2801,7 @@ export default function Vault() {
                 <ChevronRight className="w-4 h-4 text-muted-foreground" />
                 <div
                   className={`flex items-center gap-2 p-2 rounded-lg transition-all duration-200 ${
-                    dragOverFolder === item.path ? 'ring-2 ring-blue-500 ring-opacity-50 bg-blue-100 dark:bg-blue-900/20' : 'hover:bg-gray-100 dark:hover:bg-gray-800'
+                    dragOverFolder === item.path ? 'ring-2 ring-blue-500 ring-opacity-50 bg-blue-100 dark:bg-blue-900/20 scale-105 shadow-lg' : 'hover:bg-gray-100 dark:hover:bg-gray-800'
                   }`}
                   onDragOver={(e) => handleDragOver(e, item.path)}
                   onDragLeave={handleDragLeave}
@@ -2929,7 +2984,7 @@ export default function Vault() {
                     <div
                       key={folder.Key}
                       className={`group ${renamingFolder === folderPath ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'} ${
-                        dragOverFolder === folderPath ? 'ring-2 ring-blue-500 ring-opacity-50 bg-blue-100 dark:bg-blue-900/20' : ''
+                        dragOverFolder === folderPath ? 'ring-4 ring-blue-500 ring-opacity-70 bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/40 dark:to-purple-900/40 scale-105 shadow-lg' : ''
                       }`}
                       onClick={() => {
                         if (folderPath && renamingFolder !== folderPath) {
@@ -2946,9 +3001,11 @@ export default function Vault() {
                       onDragLeave={handleDragLeave}
                       onDrop={(e) => folderPath && renamingFolder !== folderPath && handleDrop(e, folderPath)}
                     >
-                      <div className={`flex flex-col items-center p-3 rounded-lg border-2 border-transparent transition-all duration-200 ${renamingFolder === folderPath
+                      <div className={`flex flex-col items-center p-3 rounded-lg border-2 border-transparent transition-all duration-300 ${renamingFolder === folderPath
                         ? 'border-yellow-300 bg-yellow-50 dark:bg-yellow-950/20'
-                        : 'hover:border-blue-300 hover:bg-blue-50 dark:hover:bg-blue-950/20'
+                        : dragOverFolder === folderPath
+                          ? 'border-blue-400 bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30 shadow-xl'
+                          : 'hover:border-blue-300 hover:bg-blue-50 dark:hover:bg-blue-950/20'
                         }`}>
                         <div className={`w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center mb-2 transition-transform duration-200 ${renamingFolder === folderPath ? 'animate-pulse' : 'group-hover:scale-110'
                           }`}>
@@ -3164,9 +3221,17 @@ export default function Vault() {
                     <img
                       src={`https://images.nymia.ai/cdn-cgi/image/w=400/${userData.id}/${image.user_filename === "" ? "output" : "vault/" + image.user_filename}/${image.system_filename}`}
                       alt={image.system_filename}
-                      className="absolute inset-0 w-full h-full object-cover rounded-md shadow-sm cursor-pointer"
+                      className={`absolute inset-0 w-full h-full object-cover rounded-md shadow-sm cursor-pointer transition-all duration-200 ${
+                        isDragging && draggedImage?.id === image.id 
+                          ? 'opacity-50 scale-95 ring-2 ring-blue-500 ring-opacity-50' 
+                          : isDragging 
+                            ? 'opacity-30 scale-98' 
+                            : 'hover:scale-105'
+                      }`}
                       onClick={() => setDetailedImageModal({ open: true, image })}
-                      draggable={false}
+                      draggable={renamingFile !== image.system_filename}
+                      onDragStart={(e) => renamingFile !== image.system_filename && handleDragStart(e, image)}
+                      onDragEnd={handleDragEnd}
                       onError={(e) => {
                         // Fallback for uploaded files that might not be accessible via CDN
                         const target = e.target as HTMLImageElement;
@@ -3183,6 +3248,17 @@ export default function Vault() {
                         target.parentNode?.appendChild(fallback);
                       }}
                     />
+
+                    {/* Drag Indicator */}
+                    {isDragging && draggedImage?.id === image.id && (
+                      <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-purple-600/20 rounded-md flex items-center justify-center">
+                        <div className="bg-white/90 dark:bg-gray-800/90 rounded-full p-2 shadow-lg">
+                          <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+                          </svg>
+                        </div>
+                      </div>
+                    )}
 
                     {/* Copy/Cut Indicator */}
                     {copiedFile && copiedFile.system_filename === image.system_filename && (

@@ -7,12 +7,11 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Star, Search, Download, Share, Trash2, Filter, Calendar, Image, Video, SortAsc, SortDesc, ZoomIn, Folder, Plus, Upload, ChevronRight, Home, ArrowLeft, Pencil, Menu, X } from 'lucide-react';
+import { Star, Search, Download, Share, Trash2, Filter, Calendar, Image, Video, SortAsc, SortDesc, ZoomIn, Folder, Plus, Upload, ChevronRight, Home, ArrowLeft, Pencil, Menu, X, File } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { DialogContentZoom } from '@/components/ui/zoomdialog';
 import { DialogZoom } from '@/components/ui/zoomdialog';
-import { removeFromVault } from '@/store/slices/contentSlice';
 
 // Interface for folder data from API
 interface FolderData {
@@ -2332,6 +2331,36 @@ export default function Vault() {
           file_path: `vault/${targetFolderPath}/${draggedImage.system_filename}`
         })
       });
+
+      const path = draggedImage.user_filename === '' ? 'output' : `vault/${draggedImage.user_filename}`;
+      // Copy the file to the target folder
+      await fetch('https://api.nymia.ai/v1/copyfile', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          user: userData.id,
+          sourcefilename: `${path}/${draggedImage.system_filename}`,
+          destinationfilename: `vault/${targetFolderPath}/${draggedImage.system_filename}`,
+        })
+      });
+
+      // Delete the file from the source folder
+      await fetch('https://api.nymia.ai/v1/deletefile', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          user: userData.id,
+          filename: `${path}/${draggedImage.system_filename}`
+        })
+      })
+
+
 
       if (!response.ok) {
         throw new Error('Failed to move file');

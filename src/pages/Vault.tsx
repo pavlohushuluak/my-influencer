@@ -81,7 +81,7 @@ export default function Vault() {
   const [sortBy, setSortBy] = useState('newest');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const [shareModal, setShareModal] = useState<{ open: boolean; itemId: string | null }>({ open: false, itemId: null });
+  const [shareModal, setShareModal] = useState<{ open: boolean; itemId: string | null; itemPath: string | null }>({ open: false, itemId: null, itemPath: null });
 
   // New folder modal state
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
@@ -653,6 +653,8 @@ export default function Vault() {
         throw new Error('Failed to delete from database');
       }
 
+      const path = currentPath === "" ? "output" : "vault/" + currentPath;
+
       // Delete file from API
       const fileResponse = await fetch('https://api.nymia.ai/v1/deletefile', {
         method: 'POST',
@@ -662,7 +664,7 @@ export default function Vault() {
         },
         body: JSON.stringify({
           user: userData.id,
-          filename: `output/${contentId}`
+          filename: `${path}/${contentId}`
         })
       });
 
@@ -681,6 +683,7 @@ export default function Vault() {
 
   const handleDownload = async (itemId: string) => {
     try {
+      const path = currentPath === "" ? "output" : "vault/" + currentPath;
       const response = await fetch('https://api.nymia.ai/v1/downloadfile', {
         method: 'POST',
         headers: {
@@ -689,7 +692,7 @@ export default function Vault() {
         },
         body: JSON.stringify({
           user: userData.id,
-          filename: `output/${itemId}`
+          filename: `${path}/${itemId}`
         })
       });
 
@@ -718,7 +721,8 @@ export default function Vault() {
   };
 
   const handleShare = (itemId: string) => {
-    setShareModal({ open: true, itemId });
+    const path = currentPath === "" ? "output" : "vault/" + currentPath;
+    setShareModal({ open: true, itemId, itemPath: path});
   };
 
   const copyToClipboard = async (text: string) => {
@@ -731,7 +735,7 @@ export default function Vault() {
   };
 
   const shareToSocialMedia = (platform: string, itemId: string) => {
-    const imageUrl = `https://images.nymia.ai/cdn-cgi/image/w=800/${userData.id}/output/${itemId}`;
+    const imageUrl = `https://images.nymia.ai/cdn-cgi/image/w=800/${userData.id}/${shareModal.itemPath}/${itemId}`;
     const shareText = `Check out this amazing content!`;
 
     let shareUrl = '';
@@ -1506,6 +1510,35 @@ export default function Vault() {
               })
             });
 
+            const postFile = await fetch(`https://db.nymia.ai/rest/v1/generated_images?system_filename=eq.${fileName}&user_filename=eq.${copiedPath}`, {
+              method: 'GET',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer WeInfl3nc3withAI'
+              }
+            });
+
+            const postFileJson = await postFile.json();
+            const postFileData = postFileJson[0];
+
+            delete postFileData.id;
+
+            console.log("Post File Data:", postFileData);
+            console.log("Post File Data:", postFileData.user_filename);
+            console.log("Current Path:", `${currentPath}/${newFolderName}`);
+
+            await fetch(`https://db.nymia.ai/rest/v1/generated_images`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer WeInfl3nc3withAI'
+              },
+              body: JSON.stringify({
+                ...postFileData,
+                user_filename: `${currentPath}/${newFolderName}`
+              })
+            });
+
             if (!copyResponse.ok) {
               console.warn(`Failed to copy file ${file}`);
               throw new Error(`Failed to copy file ${file}`);
@@ -1602,6 +1635,36 @@ export default function Vault() {
                         destinationfilename: `vault/${currentPath}/${newFolderName}/${relativePath}/${fileName}`
                       })
                     });
+
+                    const postFile = await fetch(`https://db.nymia.ai/rest/v1/generated_images?system_filename=eq.${fileName}&user_filename=eq.${copiedPath}/${relativePath}`, {
+                      method: 'GET',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer WeInfl3nc3withAI'
+                      }
+                    });
+        
+                    const postFileJson = await postFile.json();
+                    const postFileData = postFileJson[0];
+        
+                    delete postFileData.id;
+        
+                    console.log("Post File Data:", postFileData);
+                    console.log("Post File Data:", postFileData.user_filename);
+                    console.log("Current Path:", `${currentPath}/${newFolderName}/${relativePath}`);
+        
+                    await fetch(`https://db.nymia.ai/rest/v1/generated_images`, {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer WeInfl3nc3withAI'
+                      },
+                      body: JSON.stringify({
+                        ...postFileData,
+                        user_filename: `${currentPath}/${newFolderName}/${relativePath}`
+                      })
+                    });
+        
 
                     if (!copyResponse.ok) {
                       console.warn(`Failed to copy file ${file}`);
@@ -1795,11 +1858,16 @@ export default function Vault() {
   // File rename handler
   const handleFileRename = async (oldFilename: string, newName: string, oldPath: string) => {
 
-    if (oldPath === "") oldPath = "output";
+    const comparePath = oldPath;
+    oldPath = oldPath === "" ? "output" : "vault/" + oldPath;
 
     // Preserve the original file extension
     const fileExtension = oldFilename.split('.').pop();
     const finalNewName = newName + '.' + fileExtension;
+
+    console.log("Compare Path:", comparePath);
+    console.log("Old Filename:", oldFilename);
+    console.log("Final New Name:", finalNewName);
 
     try {
       setRenamingFile(oldFilename);
@@ -1808,7 +1876,7 @@ export default function Vault() {
       });
 
       // Update database with new filename
-      const dbResponse = await fetch(`https://db.nymia.ai/rest/v1/generated_images?system_filename=eq.${oldFilename}`, {
+      const dbResponse = await fetch(`https://db.nymia.ai/rest/v1/generated_images?system_filename=eq.${oldFilename}&user_filename=eq.${comparePath}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -2659,7 +2727,7 @@ export default function Vault() {
                   {/* Image */}
                   <div className="relative w-full group mb-4" style={{ paddingBottom: '100%' }}>
                     <img
-                      src={`https://images.nymia.ai/cdn-cgi/image/w=400/${userData.id}/output/${image.system_filename}`}
+                      src={`https://images.nymia.ai/cdn-cgi/image/w=400/${userData.id}/${image.user_filename === "" ? "output" : "vault/" + image.user_filename}/${image.system_filename}`}
                       alt={image.system_filename}
                       className="absolute inset-0 w-full h-full object-cover rounded-md shadow-sm cursor-pointer"
                       onClick={() => setDetailedImageModal({ open: true, image })}
@@ -2944,7 +3012,7 @@ export default function Vault() {
       </DialogZoom>
 
       {/* Share Modal */}
-      <Dialog open={shareModal.open} onOpenChange={() => setShareModal({ open: false, itemId: null })}>
+      <Dialog open={shareModal.open} onOpenChange={() => setShareModal({ open: false, itemId: null, itemPath: null })}>
         <DialogContent className="max-w-md">
           <div className="space-y-4">
             <div className="text-center">
@@ -2959,14 +3027,14 @@ export default function Vault() {
                   <Label className="text-sm font-medium">Direct Link</Label>
                   <div className="flex gap-2">
                     <Input
-                      value={`https://images.nymia.ai/cdn-cgi/image/w=800/${userData.id}/output/${shareModal.itemId}`}
+                      value={`https://images.nymia.ai/cdn-cgi/image/w=800/${userData.id}/${shareModal.itemPath}/${shareModal.itemId}`}
                       readOnly
                       className="text-xs"
                     />
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => copyToClipboard(`https://images.nymia.ai/cdn-cgi/image/w=800/${userData.id}/output/${shareModal.itemId}`)}
+                      onClick={() => copyToClipboard(`https://images.nymia.ai/cdn-cgi/image/w=800/${userData.id}/${shareModal.itemPath}/${shareModal.itemId}`)}
                     >
                       Copy
                     </Button>
@@ -3241,7 +3309,7 @@ export default function Vault() {
                 <div className="relative group">
                   <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-purple-600/20 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-500"></div>
                   <img
-                    src={`https://images.nymia.ai/cdn-cgi/image/w=800/${userData.id}/output/${detailedImageModal.image.system_filename}`}
+                    src={`https://images.nymia.ai/cdn-cgi/image/w=800/${userData.id}/${detailedImageModal.image.user_filename === "" ? "output" : "vault/" + detailedImageModal.image.user_filename}/${detailedImageModal.image.system_filename}`}
                     alt={detailedImageModal.image.user_filename || detailedImageModal.image.system_filename}
                     className="relative max-w-full max-h-[65vh] object-contain rounded-2xl shadow-2xl border border-gray-200/50 dark:border-gray-700/50 group-hover:scale-[1.02] transition-transform duration-300"
                   />

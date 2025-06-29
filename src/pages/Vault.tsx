@@ -2954,7 +2954,7 @@ export default function Vault() {
                       </span>
                     )}
                     <span className="text-xs text-muted-foreground mt-1">
-                      {folder.children.length} items
+                      {folder.children.length} folders
                     </span>
                   </div>
                 </div>

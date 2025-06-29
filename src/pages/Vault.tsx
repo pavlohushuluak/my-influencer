@@ -141,18 +141,18 @@ export default function Vault() {
     user_filename: '',
     user_notes: '',
     user_tags: [] as string[],
-    file_type: 'pic',
-    image_format: 'png',
+    file_type: '',
+    image_format: '',
     model_version: '',
     t5xxl_prompt: '',
     clip_l_prompt: '',
     negative_prompt: '',
-    seed: 42,
-    guidance: 7.5,
-    steps: 20,
+    seed: 0,
+    guidance: 0,
+    steps: 0,
     nsfw_strength: 0,
     lora_strength: 0,
-    quality_setting: 'standard',
+    quality_setting: '',
     rating: 0,
     favorite: false
   });
@@ -177,6 +177,11 @@ export default function Vault() {
 
   // Filter menu state
   const [filterMenuOpen, setFilterMenuOpen] = useState<boolean>(false);
+
+  // Drag and drop state
+  const [draggedImage, setDraggedImage] = useState<GeneratedImageData | null>(null);
+  const [dragOverFolder, setDragOverFolder] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
 
   // Load copy state from localStorage on component mount
   useEffect(() => {
@@ -2164,6 +2169,8 @@ export default function Vault() {
       // Create form data for file upload
       const formData = new FormData();
       formData.append('file', uploadedFile);
+      formData.append('user', userData.id);
+      formData.append('filename', `${currentPath === '' ? 'output' : 'vault/' + currentPath}/${uploadModelData.system_filename}`);
 
       console.log(formData);
       console
@@ -2240,8 +2247,8 @@ export default function Vault() {
         user_filename: '',
         user_notes: '',
         user_tags: [],
-        file_type: 'pic',
-        image_format: 'png',
+        file_type: '',
+        image_format: '',
         model_version: '',
         t5xxl_prompt: '',
         clip_l_prompt: '',
@@ -2265,6 +2272,81 @@ export default function Vault() {
       toast.error('Failed to upload model. Please try again.');
     } finally {
       setIsUploading(false);
+    }
+  };
+
+  // Drag and drop handlers
+  const handleDragStart = (e: React.DragEvent, image: GeneratedImageData) => {
+    setDraggedImage(image);
+    setIsDragging(true);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', image.system_filename);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedImage(null);
+    setIsDragging(false);
+    setDragOverFolder(null);
+  };
+
+  const handleDragOver = (e: React.DragEvent, folderPath: string) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDragOverFolder(folderPath);
+  };
+
+  const handleDragLeave = () => {
+    setDragOverFolder(null);
+  };
+
+  const handleDrop = async (e: React.DragEvent, targetFolderPath: string) => {
+    e.preventDefault();
+    
+    if (!draggedImage) return;
+
+    // Don't allow dropping into the same folder
+    if (draggedImage.user_filename === targetFolderPath) {
+      toast.error('File is already in this folder');
+      setDragOverFolder(null);
+      return;
+    }
+
+    try {
+      // Check if file already exists in target folder
+      const fileExists = await checkFileExistsInFolder(draggedImage.system_filename, targetFolderPath);
+      if (fileExists) {
+        toast.error('A file with this name already exists in the target folder');
+        setDragOverFolder(null);
+        return;
+      }
+
+      // Update the file's user_filename in the database
+      const response = await fetch(`https://db.nymia.ai/rest/v1/generated_images?id=eq.${draggedImage.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          user_filename: targetFolderPath,
+          file_path: `vault/${targetFolderPath}/${draggedImage.system_filename}`
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to move file');
+      }
+
+      toast.success(`File moved to ${targetFolderPath || 'root'}`);
+      
+      // Refresh the files list
+      await fetchHomeFiles();
+
+    } catch (error) {
+      console.error('Error moving file:', error);
+      toast.error('Failed to move file. Please try again.');
+    } finally {
+      setDragOverFolder(null);
     }
   };
 
@@ -2611,39 +2693,47 @@ export default function Vault() {
       <Card className="border-blue-500/20 bg-gradient-to-r from-blue-50/50 to-purple-50/50 dark:from-blue-950/20 dark:to-purple-950/20 mb-6">
         <CardHeader className="pt-5 pb-2">
           {/* Breadcrumb Navigation */}
-          <div className="mb-4">
-            <div className="flex items-center gap-2 text-sm">
-              <div className="flex items-center gap-1.5 px-3 py-2 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30 rounded-lg border border-blue-200/50 dark:border-blue-800/50">
-                <Home className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={navigateToHome}
-                  className="h-6 px-2 text-xs font-medium text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/20 hover:text-blue-800 dark:hover:text-blue-200 transition-colors"
-                >
-                  Home
-                </Button>
-              </div>
-              {getBreadcrumbItems().map((item, index) => (
-                <div key={index} className="flex items-center gap-1.5">
-                  <ChevronRight className="w-4 h-4 text-gray-400 dark:text-gray-500" />
-                  <div className="flex items-center gap-1.5 px-3 py-2 bg-gradient-to-r from-gray-50 to-slate-50 dark:from-gray-900/30 dark:to-slate-900/30 rounded-lg border border-gray-200/50 dark:border-gray-700/50">
-                    <Folder className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => navigateToFolder(item.path)}
-                      className={`h-6 px-2 text-xs font-medium transition-colors ${index === getBreadcrumbItems().length - 1
-                        ? 'text-gray-900 dark:text-gray-100 bg-gray-100 dark:bg-gray-800'
-                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100'
-                        }`}
-                    >
-                      {item.name}
-                    </Button>
-                  </div>
-                </div>
-              ))}
+          <div className="flex items-center gap-2 mb-6">
+            <div
+              className={`flex items-center gap-2 p-2 rounded-lg transition-all duration-200 ${
+                dragOverFolder === '' ? 'ring-2 ring-blue-500 ring-opacity-50 bg-blue-100 dark:bg-blue-900/20' : 'hover:bg-gray-100 dark:hover:bg-gray-800'
+              }`}
+              onDragOver={(e) => handleDragOver(e, '')}
+              onDragLeave={handleDragLeave}
+              onDrop={(e) => handleDrop(e, '')}
+            >
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={navigateToHome}
+                className="h-8 px-2 text-sm font-medium"
+              >
+                <Home className="w-4 h-4 mr-1" />
+                Home
+              </Button>
             </div>
+            {getBreadcrumbItems().map((item, index) => (
+              <div key={item.path} className="flex items-center gap-2">
+                <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                <div
+                  className={`flex items-center gap-2 p-2 rounded-lg transition-all duration-200 ${
+                    dragOverFolder === item.path ? 'ring-2 ring-blue-500 ring-opacity-50 bg-blue-100 dark:bg-blue-900/20' : 'hover:bg-gray-100 dark:hover:bg-gray-800'
+                  }`}
+                  onDragOver={(e) => handleDragOver(e, item.path)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, item.path)}
+                >
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => navigateToFolder(item.path)}
+                    className="h-8 px-2 text-sm font-medium"
+                  >
+                    {item.name}
+                  </Button>
+                </div>
+              </div>
+            ))}
           </div>
 
           <div className="flex items-center justify-between">
@@ -2728,9 +2818,14 @@ export default function Vault() {
               return currentFolders.map((folder) => (
                 <div
                   key={folder.path}
-                  className={`group ${renamingFolder === folder.path ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}
+                  className={`group ${renamingFolder === folder.path ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'} ${
+                    dragOverFolder === folder.path ? 'ring-2 ring-blue-500 ring-opacity-50 bg-blue-100 dark:bg-blue-900/20' : ''
+                  }`}
                   onDoubleClick={() => renamingFolder !== folder.path && navigateToFolder(folder.path)}
                   onContextMenu={(e) => renamingFolder !== folder.path && handleContextMenu(e, folder.path)}
+                  onDragOver={(e) => renamingFolder !== folder.path && handleDragOver(e, folder.path)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => renamingFolder !== folder.path && handleDrop(e, folder.path)}
                 >
                   <div className={`flex flex-col items-center p-3 rounded-lg border-2 border-transparent transition-all duration-200 ${renamingFolder === folder.path
                     ? 'border-yellow-300 bg-yellow-50 dark:bg-yellow-950/20'
@@ -2804,7 +2899,9 @@ export default function Vault() {
                   return (
                     <div
                       key={folder.Key}
-                      className={`group ${renamingFolder === folderPath ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}
+                      className={`group ${renamingFolder === folderPath ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'} ${
+                        dragOverFolder === folderPath ? 'ring-2 ring-blue-500 ring-opacity-50 bg-blue-100 dark:bg-blue-900/20' : ''
+                      }`}
                       onClick={() => {
                         if (folderPath && renamingFolder !== folderPath) {
                           navigateToFolder(folderPath);
@@ -2816,6 +2913,9 @@ export default function Vault() {
                           handleContextMenu(e, folderPath);
                         }
                       }}
+                      onDragOver={(e) => folderPath && renamingFolder !== folderPath && handleDragOver(e, folderPath)}
+                      onDragLeave={handleDragLeave}
+                      onDrop={(e) => folderPath && renamingFolder !== folderPath && handleDrop(e, folderPath)}
                     >
                       <div className={`flex flex-col items-center p-3 rounded-lg border-2 border-transparent transition-all duration-200 ${renamingFolder === folderPath
                         ? 'border-yellow-300 bg-yellow-50 dark:bg-yellow-950/20'
@@ -2943,8 +3043,11 @@ export default function Vault() {
                   ? 'bg-gradient-to-br from-purple-50/20 to-pink-50/20 dark:from-purple-950/5 dark:to-pink-950/5 hover:border-purple-500/30'
                   : 'bg-gradient-to-br from-yellow-50/20 to-orange-50/20 dark:from-yellow-950/5 dark:to-orange-950/5'
                   } ${renamingFile === image.system_filename ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'
-                  }`}
+                  } ${isDragging && draggedImage?.id === image.id ? 'opacity-50 scale-95' : ''}`}
                 onContextMenu={(e) => renamingFile !== image.system_filename && handleFileContextMenu(e, image)}
+                draggable={renamingFile !== image.system_filename}
+                onDragStart={(e) => renamingFile !== image.system_filename && handleDragStart(e, image)}
+                onDragEnd={handleDragEnd}
               >
                 <CardContent className="p-4">
                   {/* Top Row: File Type, Ratings, Favorite */}
@@ -2988,6 +3091,7 @@ export default function Vault() {
                             e.stopPropagation();
                             updateRating(image.system_filename, star);
                           }}
+                          onDragStart={(e) => e.stopPropagation()}
                         >
                           <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
                         </svg>
@@ -3003,6 +3107,7 @@ export default function Vault() {
                             e.stopPropagation();
                             updateFavorite(image.system_filename, false);
                           }}
+                          onDragStart={(e) => e.stopPropagation()}
                         >
                           <svg className="w-4 h-4 text-white fill-current" viewBox="0 0 24 24">
                             <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
@@ -3015,6 +3120,7 @@ export default function Vault() {
                             e.stopPropagation();
                             updateFavorite(image.system_filename, true);
                           }}
+                          onDragStart={(e) => e.stopPropagation()}
                         >
                           <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
@@ -3031,6 +3137,7 @@ export default function Vault() {
                       alt={image.system_filename}
                       className="absolute inset-0 w-full h-full object-cover rounded-md shadow-sm cursor-pointer"
                       onClick={() => setDetailedImageModal({ open: true, image })}
+                      draggable={false}
                       onError={(e) => {
                         // Fallback for uploaded files that might not be accessible via CDN
                         const target = e.target as HTMLImageElement;
@@ -3058,7 +3165,7 @@ export default function Vault() {
 
                   {/* User Notes */}
                   {editingNotes === image.system_filename ? (
-                    <div className="mb-3 space-y-2">
+                    <div className="mb-3 space-y-2" onDragStart={(e) => e.stopPropagation()}>
                       <Input
                         value={notesInput}
                         onChange={(e) => setNotesInput(e.target.value)}
@@ -3103,7 +3210,7 @@ export default function Vault() {
                       </div>
                     </div>
                   ) : (
-                    <div className="mb-3">
+                    <div className="mb-3" onDragStart={(e) => e.stopPropagation()}>
                       {image.user_notes ? (
                         <p
                           className="text-sm text-gray-700 dark:text-gray-300 line-clamp-2 cursor-pointer hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
@@ -3130,7 +3237,7 @@ export default function Vault() {
 
                   {/* User Tags */}
                   {image.user_tags && image.user_tags.length > 0 && (
-                    <div className="mb-3 flex flex-wrap gap-1">
+                    <div className="mb-3 flex flex-wrap gap-1" onDragStart={(e) => e.stopPropagation()}>
                       {image.user_tags.map((tag, index) => (
                         <Badge
                           key={index}
@@ -3158,7 +3265,7 @@ export default function Vault() {
                   )}
 
                   {/* Editable User Tags */}
-                  <div className="mb-3">
+                  <div className="mb-3" onDragStart={(e) => e.stopPropagation()}>
                     {editingTags === image.system_filename ? (
                       <div className="space-y-2">
                         <Input
@@ -3226,7 +3333,7 @@ export default function Vault() {
                   </div>
 
                   {/* Filename and Date */}
-                  <div className="space-y-2">
+                  <div className="space-y-2" onDragStart={(e) => e.stopPropagation()}>
                     {editingFile === image.system_filename && renamingFile !== image.system_filename ? (
                       <div className="w-full">
                         <div className="relative">
@@ -3242,30 +3349,22 @@ export default function Vault() {
                               }
                             }}
                             onBlur={() => handleFileRename(image.system_filename, editingFileName, currentPath)}
-                            className="text-sm h-8 text-center pr-12"
+                            className="text-sm h-8"
                             autoFocus
                           />
-                          <div className="absolute right-2 top-1/2 transform -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">
-                            .{image.system_filename.split('.').pop()}
-                          </div>
-                        </div>
-                        <div className="text-xs text-muted-foreground mt-1 text-center">
-                          Extension will be preserved
                         </div>
                       </div>
                     ) : (
-                      <h3 className={`font-medium text-sm text-gray-800 dark:text-gray-200 truncate transition-colors ${renamingFile === image.system_filename
-                        ? 'text-yellow-700 dark:text-yellow-300'
-                        : 'group-hover:text-blue-600 dark:group-hover:text-blue-400'
-                        }`}>
-                        {image.system_filename}
-                        {renamingFile === image.system_filename && ' (Renaming...)'}
-                      </h3>
+                      <>
+                        <h3 className="font-medium text-sm text-gray-800 dark:text-gray-200 truncate">
+                          {image.system_filename}
+                        </h3>
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <Calendar className="w-3 h-3" />
+                          {new Date(image.created_at).toLocaleDateString()}
+                        </div>
+                      </>
                     )}
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <Calendar className="w-3 h-3" />
-                      {new Date(image.created_at).toLocaleDateString()}
-                    </div>
                   </div>
 
                   {/* Action Buttons */}

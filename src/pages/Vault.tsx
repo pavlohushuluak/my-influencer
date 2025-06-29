@@ -2164,16 +2164,17 @@ export default function Vault() {
       // Create form data for file upload
       const formData = new FormData();
       formData.append('file', uploadedFile);
-      formData.append('user', userData.id);
-      formData.append('filename', `${currentPath === '' ? 'output' : 'vault/' + currentPath}/${uploadModelData.system_filename}`);
 
+      console.log(formData);
+      console
       // Upload file
-      const uploadResponse = await fetch('https://api.nymia.ai/v1/uploadfile', {
+      const uploadResponse = await fetch(`https://api.nymia.ai/v1/uploadfile?user=${userData.id}&filename=${'vault/'+currentPath+'/'+uploadModelData.system_filename}`, {
         method: 'POST',
         headers: {
+          'Content-Type': 'application/octet-stream',
           'Authorization': 'Bearer WeInfl3nc3withAI'
         },
-        body: formData
+        body: uploadedFile
       });
 
       if (!uploadResponse.ok) {
@@ -2245,12 +2246,12 @@ export default function Vault() {
         t5xxl_prompt: '',
         clip_l_prompt: '',
         negative_prompt: '',
-        seed: 42,
-        guidance: 7.5,
-        steps: 20,
+        seed: 0,
+        guidance: 0,
+        steps: 0,
         nsfw_strength: 0,
         lora_strength: 0,
-        quality_setting: 'standard',
+        quality_setting: '',
         rating: 0,
         favorite: false
       });
@@ -2974,13 +2975,6 @@ export default function Vault() {
                         </>
                       )}
                     </div>
-
-                    {/* Upload Indicator */}
-                    {image.task_id?.startsWith('upload_') && (
-                      <div className="absolute top-2 right-2 bg-gradient-to-r from-purple-500 to-pink-600 text-white px-2 py-1 rounded-full text-xs font-medium shadow-lg">
-                        Uploaded
-                      </div>
-                    )}
 
                     {/* Rating Stars */}
                     <div className="flex gap-1">
@@ -4014,14 +4008,14 @@ export default function Vault() {
 
       {/* Upload Model Modal */}
       <Dialog open={uploadModelModal.open} onOpenChange={(open) => setUploadModelModal({ open })}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Upload className="w-5 h-5 text-purple-500" />
               Upload New Model
             </DialogTitle>
             <DialogDescription>
-              Upload a new model file and provide metadata for the generated image data.
+              Upload a new model file with basic information.
             </DialogDescription>
           </DialogHeader>
 
@@ -4030,391 +4024,121 @@ export default function Vault() {
             <div className="space-y-4">
               <Label className="text-sm font-medium">File Upload</Label>
               <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-purple-400 transition-colors">
-                <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                <p className="text-sm text-gray-600 mb-2">
-                  {uploadedFile ? uploadedFile.name : 'Click to select a file or drag and drop'}
-                </p>
-                <Input
-                  type="file"
-                  accept="image/*,video/*"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      setUploadedFile(file);
-                      // Auto-set filename and format
-                      const fileName = file.name;
-                      const fileExtension = fileName.split('.').pop()?.toLowerCase();
-                      setUploadModelData(prev => ({
-                        ...prev,
-                        system_filename: fileName,
-                        image_format: fileExtension || 'png',
-                        file_type: file.type.startsWith('video/') ? 'video' : 'pic'
-                      }));
-                    }
-                  }}
-                  className="hidden"
-                  id="file-upload"
-                />
-                <Button
-                  variant="outline"
-                  onClick={() => document.getElementById('file-upload')?.click()}
-                  className="mt-2"
-                >
-                  Select File
-                </Button>
+                {uploadedFile ? (
+                  <div className="space-y-4">
+                    <div className="relative w-32 h-32 mx-auto">
+                      <img
+                        src={URL.createObjectURL(uploadedFile)}
+                        alt={uploadedFile.name}
+                        className="w-full h-full object-cover rounded-md shadow-sm"
+                      />
+                    </div>
+                    <p className="text-sm text-gray-600 font-medium">{uploadedFile.name}</p>
+                    <p className="text-xs text-gray-500">{(uploadedFile.size / 1024 / 1024).toFixed(2)} MB</p>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setUploadedFile(null);
+                        setUploadModelData(prev => ({
+                          ...prev,
+                          system_filename: '',
+                          image_format: 'png',
+                          file_type: 'pic'
+                        }));
+                      }}
+                      className="mt-2"
+                    >
+                      Change File
+                    </Button>
+                  </div>
+                ) : (
+                  <>
+                    <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                    <p className="text-sm text-gray-600 mb-2">
+                      Click to select a file or drag and drop
+                    </p>
+                    <Input
+                      type="file"
+                      accept="image/*,video/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          setUploadedFile(file);
+                          // Auto-set filename and format
+                          const fileName = file.name;
+                          const fileExtension = fileName.split('.').pop()?.toLowerCase() || '';
+                          const isVideo = file.type.startsWith('video/');
+                          
+                          setUploadModelData(prev => ({
+                            ...prev,
+                            system_filename: fileName,
+                            image_format: fileExtension,
+                            file_type: isVideo ? 'video' : 'pic'
+                          }));
+                        }
+                      }}
+                      className="hidden"
+                      id="file-upload"
+                    />
+                    <Button
+                      variant="outline"
+                      onClick={() => document.getElementById('file-upload')?.click()}
+                      className="mt-2"
+                    >
+                      Select File
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
 
-            {/* Basic Information */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Basic Information - Only Required Fields */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="filename">Filename</Label>
-                <Input
-                  id="filename"
-                  value={uploadModelData.system_filename}
-                  onChange={(e) => setUploadModelData(prev => ({ ...prev, system_filename: e.target.value }))}
-                  placeholder="Enter filename"
-                />
+                <Label htmlFor="filename">Filename *</Label>
+                <div className="flex items-center border border-input rounded-md bg-background">
+                  <Input
+                    id="filename"
+                    value={uploadedFile ? uploadModelData.system_filename.split('.').slice(0, -1).join('.') : uploadModelData.system_filename}
+                    onChange={(e) => {
+                      const newName = e.target.value;
+                      if (uploadedFile) {
+                        const fileExtension = uploadedFile.name.split('.').pop() || '';
+                        setUploadModelData(prev => ({ 
+                          ...prev, 
+                          system_filename: `${newName}.${fileExtension}`
+                        }));
+                      } else {
+                        setUploadModelData(prev => ({ ...prev, system_filename: newName }));
+                      }
+                    }}
+                    placeholder="Enter filename"
+                    className="border-0 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-r-none"
+                  />
+                  {uploadedFile && (
+                    <div className="px-3 py-2 bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-400 text-sm font-mono border-l border-input rounded-r-md">
+                      .{uploadedFile.name.split('.').pop()}
+                    </div>
+                  )}
+                </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="file-type">File Type</Label>
-                <Select value={uploadModelData.file_type} onValueChange={(value) => setUploadModelData(prev => ({ ...prev, file_type: value }))}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="pic">Image</SelectItem>
-                    <SelectItem value="video">Video</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Input
+                  id="file-type"
+                  value={uploadModelData.file_type === 'pic' ? 'Image' : uploadModelData.file_type === 'video' ? 'Video' : ''}
+                  readOnly
+                  className="bg-gray-50 dark:bg-gray-800 cursor-not-allowed"
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="format">Format</Label>
-                <Select value={uploadModelData.image_format} onValueChange={(value) => setUploadModelData(prev => ({ ...prev, image_format: value }))}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="png">PNG</SelectItem>
-                    <SelectItem value="jpg">JPG</SelectItem>
-                    <SelectItem value="jpeg">JPEG</SelectItem>
-                    <SelectItem value="webp">WebP</SelectItem>
-                    <SelectItem value="mp4">MP4</SelectItem>
-                    <SelectItem value="mov">MOV</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="model-version">Model Version</Label>
                 <Input
-                  id="model-version"
-                  value={uploadModelData.model_version}
-                  onChange={(e) => setUploadModelData(prev => ({ ...prev, model_version: e.target.value }))}
-                  placeholder="e.g., Stable Diffusion 2.1"
+                  id="format"
+                  value={uploadModelData.image_format.toUpperCase()}
+                  readOnly
+                  className="bg-gray-50 dark:bg-gray-800 cursor-not-allowed"
                 />
-              </div>
-            </div>
-
-            {/* Prompts Section */}
-            <div className="space-y-4">
-              <Label className="text-sm font-medium">Prompts</Label>
-              <div className="space-y-3">
-                <div className="space-y-2">
-                  <Label htmlFor="t5xxl-prompt">T5XXL Prompt</Label>
-                  <Input
-                    id="t5xxl-prompt"
-                    value={uploadModelData.t5xxl_prompt}
-                    onChange={(e) => setUploadModelData(prev => ({ ...prev, t5xxl_prompt: e.target.value }))}
-                    placeholder="Enter T5XXL prompt"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="clip-prompt">CLIP Prompt</Label>
-                  <Input
-                    id="clip-prompt"
-                    value={uploadModelData.clip_l_prompt}
-                    onChange={(e) => setUploadModelData(prev => ({ ...prev, clip_l_prompt: e.target.value }))}
-                    placeholder="Enter CLIP prompt"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="negative-prompt">Negative Prompt</Label>
-                  <Input
-                    id="negative-prompt"
-                    value={uploadModelData.negative_prompt}
-                    onChange={(e) => setUploadModelData(prev => ({ ...prev, negative_prompt: e.target.value }))}
-                    placeholder="Enter negative prompt"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Generation Settings */}
-            <div className="space-y-4">
-              <Label className="text-sm font-medium">Generation Settings</Label>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="seed">Seed</Label>
-                  <Input
-                    id="seed"
-                    type="number"
-                    value={uploadModelData.seed}
-                    onChange={(e) => setUploadModelData(prev => ({ ...prev, seed: parseInt(e.target.value) || 0 }))}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="guidance">Guidance</Label>
-                  <Input
-                    id="guidance"
-                    type="number"
-                    step="0.1"
-                    value={uploadModelData.guidance}
-                    onChange={(e) => setUploadModelData(prev => ({ ...prev, guidance: parseFloat(e.target.value) || 0 }))}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="steps">Steps</Label>
-                  <Input
-                    id="steps"
-                    type="number"
-                    value={uploadModelData.steps}
-                    onChange={(e) => setUploadModelData(prev => ({ ...prev, steps: parseInt(e.target.value) || 0 }))}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="quality">Quality Setting</Label>
-                  <Select value={uploadModelData.quality_setting} onValueChange={(value) => setUploadModelData(prev => ({ ...prev, quality_setting: value }))}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="standard">Standard</SelectItem>
-                      <SelectItem value="high">High</SelectItem>
-                      <SelectItem value="ultra">Ultra</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </div>
-
-            {/* Additional Settings */}
-            <div className="space-y-4">
-              <Label className="text-sm font-medium">Additional Settings</Label>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="nsfw-strength">NSFW Strength</Label>
-                  <Input
-                    id="nsfw-strength"
-                    type="number"
-                    step="0.1"
-                    value={uploadModelData.nsfw_strength}
-                    onChange={(e) => setUploadModelData(prev => ({ ...prev, nsfw_strength: parseFloat(e.target.value) || 0 }))}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="lora-strength">LoRA Strength</Label>
-                  <Input
-                    id="lora-strength"
-                    type="number"
-                    step="0.1"
-                    value={uploadModelData.lora_strength}
-                    onChange={(e) => setUploadModelData(prev => ({ ...prev, lora_strength: parseFloat(e.target.value) || 0 }))}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="rating">Rating</Label>
-                  <Input
-                    id="rating"
-                    type="number"
-                    min="0"
-                    max="5"
-                    value={uploadModelData.rating}
-                    onChange={(e) => setUploadModelData(prev => ({ ...prev, rating: parseInt(e.target.value) || 0 }))}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={uploadModelData.favorite}
-                      onChange={(e) => setUploadModelData(prev => ({ ...prev, favorite: e.target.checked }))}
-                      className="rounded"
-                    />
-                    Favorite
-                  </Label>
-                </div>
-              </div>
-            </div>
-
-            {/* User Notes and Tags */}
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="user-notes">User Notes</Label>
-                <Input
-                  id="user-notes"
-                  value={uploadModelData.user_notes}
-                  onChange={(e) => setUploadModelData(prev => ({ ...prev, user_notes: e.target.value }))}
-                  placeholder="Add notes about this model"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="user-tags">Tags (comma separated)</Label>
-                <Input
-                  id="user-tags"
-                  value={uploadModelData.user_tags.join(', ')}
-                  onChange={(e) => {
-                    const tags = e.target.value.split(',').map(tag => tag.trim()).filter(tag => tag);
-                    setUploadModelData(prev => ({ ...prev, user_tags: tags }));
-                  }}
-                  placeholder="Enter tags separated by commas"
-                />
-              </div>
-            </div>
-
-            {/* Live Preview Section */}
-            <div className="space-y-4">
-              <Label className="text-sm font-medium">Live Preview</Label>
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 bg-gray-50 dark:bg-gray-900">
-                <div className="flex justify-center">
-                  <div className="w-64">
-                    <Card className="group hover:shadow-xl transition-all duration-300 border-border/50 hover:border-purple-500/30 backdrop-blur-sm bg-gradient-to-br from-purple-50/20 to-pink-50/20 dark:from-purple-950/5 dark:to-pink-950/5">
-                      <CardContent className="p-4">
-                        {/* Top Row: File Type, Ratings, Favorite */}
-                        <div className="flex items-center justify-between mb-3">
-                          {/* File Type Icon */}
-                          <div className="bg-gradient-to-br from-purple-500 to-pink-600 rounded-full w-8 h-8 flex items-center justify-center shadow-md">
-                            <Upload className="w-4 h-4 text-white" />
-                          </div>
-
-                          {/* Upload Indicator */}
-                          <div className="absolute top-2 right-2 bg-gradient-to-r from-purple-500 to-pink-600 text-white px-2 py-1 rounded-full text-xs font-medium shadow-lg">
-                            Uploaded
-                          </div>
-
-                          {/* Rating Stars */}
-                          <div className="flex gap-1">
-                            {[1, 2, 3, 4, 5].map((star) => (
-                              <svg
-                                key={star}
-                                className={`w-4 h-4 ${star <= uploadModelData.rating ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
-                                viewBox="0 0 24 24"
-                              >
-                                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                              </svg>
-                            ))}
-                          </div>
-
-                          {/* Favorite Heart */}
-                          <div>
-                            {uploadModelData.favorite ? (
-                              <div className="bg-red-500 rounded-full w-8 h-8 flex items-center justify-center">
-                                <svg className="w-4 h-4 text-white fill-current" viewBox="0 0 24 24">
-                                  <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-                                </svg>
-                              </div>
-                            ) : (
-                              <div className="bg-black/50 rounded-full w-8 h-8 flex items-center justify-center">
-                                <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                  <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-                                </svg>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Image Preview */}
-                        <div className="relative w-full group mb-4" style={{ paddingBottom: '100%' }}>
-                          {uploadedFile ? (
-                            <img
-                              src={URL.createObjectURL(uploadedFile)}
-                              alt={uploadModelData.system_filename}
-                              className="absolute inset-0 w-full h-full object-cover rounded-md shadow-sm"
-                            />
-                          ) : (
-                            <div className="absolute inset-0 w-full h-full bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/20 dark:to-pink-900/20 rounded-md flex items-center justify-center">
-                              <div className="text-center">
-                                <Upload className="w-8 h-8 text-purple-500 mx-auto mb-2" />
-                                <p className="text-xs text-purple-600 dark:text-purple-400">Upload Preview</p>
-                                <p className="text-xs text-gray-500 dark:text-gray-400">Select a file to preview</p>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* User Notes */}
-                        <div className="mb-3">
-                          {uploadModelData.user_notes ? (
-                            <p className="text-sm text-gray-700 dark:text-gray-300 line-clamp-2">
-                              {uploadModelData.user_notes}
-                            </p>
-                          ) : (
-                            <div className="text-sm text-gray-500 dark:text-gray-400">
-                              Add notes
-                            </div>
-                          )}
-                        </div>
-
-                        {/* User Tags */}
-                        {uploadModelData.user_tags.length > 0 && (
-                          <div className="mb-3 flex flex-wrap gap-1">
-                            {uploadModelData.user_tags.map((tag, index) => (
-                              <Badge
-                                key={index}
-                                variant="secondary"
-                                className="text-xs"
-                              >
-                                {tag.trim()}
-                              </Badge>
-                            ))}
-                          </div>
-                        )}
-
-                        {/* Filename and Date */}
-                        <div className="space-y-2">
-                          <h3 className="font-medium text-sm text-gray-800 dark:text-gray-200 truncate">
-                            {uploadModelData.system_filename || 'filename.ext'}
-                          </h3>
-                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                            <Calendar className="w-3 h-3" />
-                            {new Date().toLocaleDateString()}
-                          </div>
-                        </div>
-
-                        {/* Action Buttons */}
-                        <div className="flex gap-1.5 mt-3">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="flex-1 h-8 text-xs font-medium"
-                            disabled
-                          >
-                            <Download className="w-3 h-3 mr-1.5" />
-                            Download
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="h-8 w-8 p-0"
-                            disabled
-                          >
-                            <Share className="w-3 h-3" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="h-8 w-8 p-0 text-red-600"
-                            disabled
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </div>
-                </div>
-                <p className="text-xs text-center text-gray-500 dark:text-gray-400 mt-2">
-                  This is how your uploaded model will appear in the vault
-                </p>
               </div>
             </div>
 
@@ -4422,7 +4146,30 @@ export default function Vault() {
             <div className="flex gap-2 pt-4 border-t">
               <Button
                 variant="outline"
-                onClick={() => setUploadModelModal({ open: false })}
+                onClick={() => {
+                  setUploadModelModal({ open: false });
+                  setUploadedFile(null);
+                  setUploadModelData({
+                    system_filename: '',
+                    user_filename: '',
+                    user_notes: '',
+                    user_tags: [],
+                    file_type: '',
+                    image_format: '',
+                    model_version: '',
+                    t5xxl_prompt: '',
+                    clip_l_prompt: '',
+                    negative_prompt: '',
+                    seed: 0,
+                    guidance: 0,
+                    steps: 0,
+                    nsfw_strength: 0,
+                    lora_strength: 0,
+                    quality_setting: '',
+                    rating: 0,
+                    favorite: false
+                  });
+                }}
                 className="flex-1"
                 disabled={isUploading}
               >

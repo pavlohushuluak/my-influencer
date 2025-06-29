@@ -390,7 +390,7 @@ export default function Vault() {
 
       for (const file of filesData) {
         // Extract filename from the Key (remove path and get just the filename)
-        if(file.Key === undefined) continue;
+        if (file.Key === undefined) continue;
         const filename = file.Key.split('/').pop();
         console.log('Filename:', filename);
         console.log('Current path:', currentPath);
@@ -722,7 +722,7 @@ export default function Vault() {
 
   const handleShare = (itemId: string) => {
     const path = currentPath === "" ? "output" : "vault/" + currentPath;
-    setShareModal({ open: true, itemId, itemPath: path});
+    setShareModal({ open: true, itemId, itemPath: path });
   };
 
   const copyToClipboard = async (text: string) => {
@@ -1146,6 +1146,16 @@ export default function Vault() {
                     const fileName = fileKey.replace(re, "");
                     console.log("File Name:", fileName);
 
+                    // Check if file already exists in destination subfolder
+                    const fileExistsInDest = await checkFileExistsInFolder(fileName, `${currentPath}/${newFolderName}/${relativePath}`);
+                    if (fileExistsInDest) {
+                      console.warn(`File "${fileName}" already exists in destination subfolder. Skipping.`);
+                      toast.warning(`File "${fileName}" already exists in destination subfolder. Skipped.`, {
+                        duration: 3000
+                      });
+                      return; // Skip this file
+                    }
+
                     const copyResponse = await fetch('https://api.nymia.ai/v1/copyfile', {
                       method: 'POST',
                       headers: {
@@ -1155,7 +1165,7 @@ export default function Vault() {
                       body: JSON.stringify({
                         user: userData.id,
                         sourcefilename: `vault/${oldPath}/${relativePath}/${fileName}`,
-                        destinationfilename: `vault/${newPath}/${relativePath}/${fileName}`
+                        destinationfilename: `vault/${currentPath}/${newFolderName}/${relativePath}/${fileName}`
                       })
                     });
 
@@ -1497,6 +1507,16 @@ export default function Vault() {
             const fileName = fileKey.replace(re, "");
             console.log("File Name:", fileName);
 
+            // Check if file already exists in destination folder
+            const fileExistsInDest = await checkFileExistsInFolder(fileName, `${currentPath}/${newFolderName}`);
+            if (fileExistsInDest) {
+              console.warn(`File "${fileName}" already exists in destination folder. Skipping.`);
+              toast.warning(`File "${fileName}" already exists in destination. Skipped.`, {
+                duration: 3000
+              });
+              return; // Skip this file
+            }
+
             const copyResponse = await fetch('https://api.nymia.ai/v1/copyfile', {
               method: 'POST',
               headers: {
@@ -1521,23 +1541,26 @@ export default function Vault() {
             const postFileJson = await postFile.json();
             const postFileData = postFileJson[0];
 
-            delete postFileData.id;
+            if (postFileData.id) {
+              delete postFileData.id;
 
-            console.log("Post File Data:", postFileData);
-            console.log("Post File Data:", postFileData.user_filename);
-            console.log("Current Path:", `${currentPath}/${newFolderName}`);
+              console.log("Post File Data:", postFileData);
+              console.log("Post File Data:", postFileData.user_filename);
+              console.log("Current Path:", `${currentPath}/${newFolderName}`);
 
-            await fetch(`https://db.nymia.ai/rest/v1/generated_images`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': 'Bearer WeInfl3nc3withAI'
-              },
-              body: JSON.stringify({
-                ...postFileData,
-                user_filename: `${currentPath}/${newFolderName}`
-              })
-            });
+              await fetch(`https://db.nymia.ai/rest/v1/generated_images`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': 'Bearer WeInfl3nc3withAI'
+                },
+                body: JSON.stringify({
+                  ...postFileData,
+                  user_filename: `${currentPath}/${newFolderName}`
+                })
+              });
+
+            }
 
             if (!copyResponse.ok) {
               console.warn(`Failed to copy file ${file}`);
@@ -1623,6 +1646,16 @@ export default function Vault() {
                     const fileName = fileKey.replace(re, "");
                     console.log("File Name:", fileName);
 
+                    // Check if file already exists in destination subfolder
+                    const fileExistsInDest = await checkFileExistsInFolder(fileName, `${currentPath}/${newFolderName}/${relativePath}`);
+                    if (fileExistsInDest) {
+                      console.warn(`File "${fileName}" already exists in destination subfolder. Skipping.`);
+                      toast.warning(`File "${fileName}" already exists in destination subfolder. Skipped.`, {
+                        duration: 3000
+                      });
+                      return; // Skip this file
+                    }
+
                     const copyResponse = await fetch('https://api.nymia.ai/v1/copyfile', {
                       method: 'POST',
                       headers: {
@@ -1643,28 +1676,31 @@ export default function Vault() {
                         'Authorization': 'Bearer WeInfl3nc3withAI'
                       }
                     });
-        
+
                     const postFileJson = await postFile.json();
                     const postFileData = postFileJson[0];
-        
-                    delete postFileData.id;
-        
-                    console.log("Post File Data:", postFileData);
-                    console.log("Post File Data:", postFileData.user_filename);
-                    console.log("Current Path:", `${currentPath}/${newFolderName}/${relativePath}`);
-        
-                    await fetch(`https://db.nymia.ai/rest/v1/generated_images`, {
-                      method: 'POST',
-                      headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': 'Bearer WeInfl3nc3withAI'
-                      },
-                      body: JSON.stringify({
-                        ...postFileData,
-                        user_filename: `${currentPath}/${newFolderName}/${relativePath}`
-                      })
-                    });
-        
+
+                    if (postFileData.id) {
+
+                      delete postFileData.id;
+
+                      console.log("Post File Data:", postFileData);
+                      console.log("Post File Data:", postFileData.user_filename);
+                      console.log("Current Path:", `${currentPath}/${newFolderName}/${relativePath}`);
+
+                      await fetch(`https://db.nymia.ai/rest/v1/generated_images`, {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json',
+                          'Authorization': 'Bearer WeInfl3nc3withAI'
+                        },
+                        body: JSON.stringify({
+                          ...postFileData,
+                          user_filename: `${currentPath}/${newFolderName}/${relativePath}`
+                        })
+                      });
+                    }
+
 
                     if (!copyResponse.ok) {
                       console.warn(`Failed to copy file ${file}`);
@@ -1773,6 +1809,19 @@ export default function Vault() {
       const fileName = copiedFile.system_filename;
       const route = copiedFile.user_filename === "" ? "output" : "vault/" + copiedFile.user_filename;
       const newRoute = 'vault/' + currentPath;
+
+      // Check if file already exists in destination
+      const fileExists = await checkFileExists(fileName);
+      const fileExistsInDb = await checkFileExistsInDatabase(fileName);
+
+      if (fileExists || fileExistsInDb) {
+        toast.warning(`File "${fileName}" already exists in this location. Skipping paste operation.`, {
+          description: 'Please rename the existing file or choose a different location.',
+          duration: 5000
+        });
+        setIsPastingFile(false);
+        return;
+      }
 
       console.log("Copied File:", `${route}/${fileName}`);
       console.log("New Route:", `${newRoute}/${fileName}`);
@@ -1993,6 +2042,76 @@ export default function Vault() {
       document.removeEventListener('click', handleClickOutside);
     };
   }, []);
+
+  // Helper function to check if a file exists in the current path
+  const checkFileExists = async (fileName: string): Promise<boolean> => {
+    try {
+      const response = await fetch('https://api.nymia.ai/v1/getfilenames', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          user: userData.id,
+          folder: currentPath === '' ? 'output' : `vault/${currentPath}`
+        })
+      });
+
+      if (response.ok) {
+        const files = await response.json();
+        return files.some((file: FileData) => {
+          const fileKey = file.Key;
+          const fileNameFromKey = fileKey.split('/').pop();
+          return fileNameFromKey === fileName;
+        });
+      }
+      return false;
+    } catch (error) {
+      console.error('Error checking file existence:', error);
+      return false;
+    }
+  };
+
+  // Helper function to check if a file exists in database
+  const checkFileExistsInDatabase = async (fileName: string): Promise<boolean> => {
+    try {
+      const response = await fetch(`https://db.nymia.ai/rest/v1/generated_images?system_filename=eq.${fileName}&user_filename=eq.${currentPath}`, {
+        headers: {
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        }
+      });
+
+      if (response.ok) {
+        const files = await response.json();
+        return files.length > 0;
+      }
+      return false;
+    } catch (error) {
+      console.error('Error checking file existence in database:', error);
+      return false;
+    }
+  };
+
+  // Helper function to check if a file exists in a specific folder path
+  const checkFileExistsInFolder = async (fileName: string, folderPath: string): Promise<boolean> => {
+    try {
+      const response = await fetch(`https://db.nymia.ai/rest/v1/generated_images?system_filename=eq.${fileName}&user_filename=eq.${folderPath}`, {
+        headers: {
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        }
+      });
+
+      if (response.ok) {
+        const files = await response.json();
+        return files.length > 0;
+      }
+      return false;
+    } catch (error) {
+      console.error('Error checking file existence in folder:', error);
+      return false;
+    }
+  };
 
   if (foldersLoading) {
     return (

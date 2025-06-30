@@ -414,16 +414,21 @@ export default function InfluencerEdit() {
 
       const detailedImages: GeneratedImageData[] = [];
 
-      const responseData = await fetch(`https://db.nymia.ai/rest/v1/generated_images?system_filename=eq.${imagesWithUrls[0].image_url.split('/').pop()}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer WeInfl3nc3withAI'
-        },
-      });
+      for (const image of imagesWithUrls) {
+        const responseData = await fetch(`https://db.nymia.ai/rest/v1/generated_images?system_filename=eq.${image.image_url.split('/').pop()}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer WeInfl3nc3withAI'
+          },
+        });
 
-      const data = await responseData.json();
-      console.log(data);
+        const data = await responseData.json();
+        console.log(data);
+        detailedImages.push(data[0]);
+      }
+
+      console.log(detailedImages);
     } catch (error) {
       console.error('Error fetching vault images:', error);
       toast.error('Failed to fetch vault images');

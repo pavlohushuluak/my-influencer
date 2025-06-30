@@ -967,35 +967,6 @@ export default function Vault() {
     }
   };
 
-  // Create folder structure recursively
-  const createFolderStructure = async (basePath: string, subfolders: string[]): Promise<void> => {
-    for (const subfolder of subfolders) {
-      const relativePath = subfolder.replace(basePath + '/', '');
-      if (relativePath) {
-        try {
-          const response = await fetch('https://api.nymia.ai/v1/createfolder', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': 'Bearer WeInfl3nc3withAI'
-            },
-            body: JSON.stringify({
-              user: userData.id,
-              parentfolder: `vault/${basePath}/`,
-              folder: relativePath
-            })
-          });
-
-          if (!response.ok) {
-            console.warn(`Failed to create subfolder: ${relativePath}`);
-          }
-        } catch (error) {
-          console.error(`Error creating subfolder ${relativePath}:`, error);
-        }
-      }
-    }
-  };
-
   // Handle folder rename
   const handleFolderRename = async (oldPath: string, newName: string) => {
     try {

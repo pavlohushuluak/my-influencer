@@ -19,9 +19,41 @@ import { X, Plus, Save, Crown, Lock, Image, Settings, User, ChevronRight, MoreHo
 import { HexColorPicker } from 'react-colorful';
 import { toast } from 'sonner';
 
-const JOB_AREAS = ['Creative', 'Corporate', 'Tech', 'Healthcare', 'Education', 'Entertainment'];
-const SPEECH_STYLES = ['Friendly', 'Professional', 'Casual', 'Formal', 'Energetic', 'Calm'];
-const HUMOR_STYLES = ['Witty', 'Sarcastic', 'Dry', 'Playful', 'Absurd'];
+interface GeneratedImageData {
+  id: string;
+  task_id: string;
+  image_sequence_number: number;
+  system_filename: string;
+  user_filename: string | null;
+  user_notes: string | null;
+  user_tags: string[] | null;
+  file_path: string;
+  file_size_bytes: number;
+  image_format: string;
+  seed: number;
+  guidance: number;
+  steps: number;
+  nsfw_strength: number;
+  lora_strength: number;
+  model_version: string;
+  t5xxl_prompt: string;
+  clip_l_prompt: string;
+  negative_prompt: string;
+  generation_status: string;
+  generation_started_at: string;
+  generation_completed_at: string;
+  generation_time_seconds: number;
+  error_message: string;
+  retry_count: number;
+  created_at: string;
+  updated_at: string;
+  actual_seed_used: number;
+  prompt_file_used: string;
+  quality_setting: string;
+  rating: number;
+  favorite: boolean;
+  file_type: string;
+}
 
 // Subscription level features
 const SUBSCRIPTION_FEATURES = {
@@ -379,6 +411,19 @@ export default function InfluencerEdit() {
       console.log(imagesWithUrls);
 
       setVaultImages(imagesWithUrls);
+
+      const detailedImages: GeneratedImageData[] = [];
+
+      const responseData = await fetch(`https://db.nymia.ai/rest/v1/generated_images?system_filename=eq.${imagesWithUrls[0].image_url.split('/').pop()}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+      });
+
+      const data = await responseData.json();
+      console.log(data);
     } catch (error) {
       console.error('Error fetching vault images:', error);
       toast.error('Failed to fetch vault images');

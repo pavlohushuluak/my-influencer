@@ -2191,7 +2191,6 @@ export default function Vault() {
       }
 
       // Create database entry
-      const now = new Date().toISOString();
       const newImageData = {
         task_id: `upload_${Date.now()}`,
         image_sequence_number: 1,
@@ -2212,13 +2211,13 @@ export default function Vault() {
         clip_l_prompt: uploadModelData.clip_l_prompt,
         negative_prompt: uploadModelData.negative_prompt,
         generation_status: 'completed',
-        generation_started_at: now,
-        generation_completed_at: now,
+        generation_started_at: new Date().toISOString(),
+        generation_completed_at: new Date().toISOString(),
         generation_time_seconds: 0,
         error_message: '',
         retry_count: 0,
-        created_at: now,
-        updated_at: now,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
         actual_seed_used: uploadModelData.seed,
         prompt_file_used: '',
         quality_setting: uploadModelData.quality_setting,

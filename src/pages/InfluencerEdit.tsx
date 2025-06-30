@@ -284,7 +284,7 @@ export default function InfluencerEdit() {
 
   // Add state for image selection modal
   const [showImageSelector, setShowImageSelector] = useState(false);
-  const [vaultImages, setVaultImages] = useState<{ id: string; image_url: string; created_at: string }[]>([]);
+  const [vaultImages, setVaultImages] = useState<any[]>([]);
   const [loadingVaultImages, setLoadingVaultImages] = useState(false);
   const [profileImageId, setProfileImageId] = useState<string | null>(null);
 
@@ -352,10 +352,16 @@ export default function InfluencerEdit() {
   const fetchVaultImages = async () => {
     try {
       setLoadingVaultImages(true);
-      const response = await fetch(`https://db.nymia.ai/rest/v1/tasks?uuid=eq.${userData.id}`, {
+      const response = await fetch(`https://api.nymia.ai/v1/getfilenames`, {
+        method: 'POST',
         headers: {
+          'Content-Type': 'application/json',
           'Authorization': 'Bearer WeInfl3nc3withAI'
-        }
+        },
+        body: JSON.stringify({
+          user: userData.id,
+          folder: "vault/Inbox"
+        })
       });
 
       if (!response.ok) {
@@ -363,11 +369,14 @@ export default function InfluencerEdit() {
       }
 
       const data = await response.json();
+      console.log(data);
       const imagesWithUrls = data.map((item: any) => ({
         id: item.id,
-        image_url: `https://images.nymia.ai/cdn-cgi/image/w=800/${userData.id}/output/${item.id}.png`,
+        image_url: `https://images.nymia.ai/cdn-cgi/image/w=800/${userData.id}/vault/Inbox/${item.Key.split('/').pop()}`,
         created_at: item.created_at
       }));
+
+      console.log(imagesWithUrls);
 
       setVaultImages(imagesWithUrls);
     } catch (error) {

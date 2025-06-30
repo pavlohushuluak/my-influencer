@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { DialogZoom, DialogContentZoom, DialogHeaderZoom, DialogTitleZoom, DialogDescriptionZoom } from '@/components/ui/zoomdialog';
 import { updateInfluencer, setInfluencers, setLoading, setError, addInfluencer } from '@/store/slices/influencersSlice';
 import { X, Plus, Save, Crown, Lock, Image, Settings, User, ChevronRight, MoreHorizontal, Loader2, ZoomIn, Pencil } from 'lucide-react';
+import { HexColorPicker } from 'react-colorful';
 import { toast } from 'sonner';
 
 interface GeneratedImageData {
@@ -314,6 +315,12 @@ export default function InfluencerEdit() {
   const [loadingVaultImages, setLoadingVaultImages] = useState(false);
   const [profileImageId, setProfileImageId] = useState<string | null>(null);
 
+  // Add state for color pickers
+  const [showHairColorPicker, setShowHairColorPicker] = useState(false);
+  const [showEyeColorPicker, setShowEyeColorPicker] = useState(false);
+  const [selectedHairColor, setSelectedHairColor] = useState<string>('');
+  const [selectedEyeColor, setSelectedEyeColor] = useState<string>('');
+
   const isFeatureLocked = (feature: string) => {
     return FEATURE_RESTRICTIONS[subscriptionLevel].includes(feature);
   };
@@ -378,10 +385,10 @@ export default function InfluencerEdit() {
   const fetchVaultImages = async () => {
     try {
       setLoadingVaultImages(true);
-      
+
       // Step 1: Get files from vault/Inbox folder only
       const allImages: any[] = [];
-      
+
       // Get images from vault/Inbox folder
       const inboxResponse = await fetch(`https://api.nymia.ai/v1/getfilenames`, {
         method: 'POST',
@@ -1228,6 +1235,103 @@ export default function InfluencerEdit() {
     );
   };
 
+  // Function to handle color selection
+  const handleColorSelect = (type: 'hair' | 'eye', color: string) => {
+    if (type === 'hair') {
+      setSelectedHairColor(color);
+      setInfluencerData(prev => ({
+        ...prev,
+        hair_color: color
+      }));
+      setShowHairColorPicker(false);
+      toast.success('Hair color updated');
+    } else {
+      setSelectedEyeColor(color);
+      setInfluencerData(prev => ({
+        ...prev,
+        eye_color: color
+      }));
+      setShowEyeColorPicker(false);
+      toast.success('Eye color updated');
+    }
+  };
+
+  // Color Picker Component
+  const ColorPickerModal = ({
+    isOpen,
+    onClose,
+    type,
+    currentColor,
+    onColorSelect
+  }: {
+    isOpen: boolean;
+    onClose: () => void;
+    type: 'hair' | 'eye';
+    currentColor: string;
+    onColorSelect: (type: 'hair' | 'eye', color: string) => void;
+  }) => {
+    const [color, setColor] = useState(currentColor || '#000000');
+
+    const handleSave = () => {
+      onColorSelect(type, color);
+    };
+
+    if (!isOpen) return null;
+
+    return (
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <div
+                className="w-4 h-4 rounded-full border-2 border-gray-300"
+                style={{ backgroundColor: color }}
+              />
+              Select {type === 'hair' ? 'Hair' : 'Eye'} Color
+            </DialogTitle>
+            <DialogDescription>
+              Choose a custom color for the {type === 'hair' ? 'hair' : 'eye'}.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="flex justify-center">
+              <HexColorPicker
+                color={color}
+                onChange={setColor}
+                className="w-full max-w-xs"
+              />
+            </div>
+
+            <div className="flex items-center gap-3">
+              <div className="flex-1">
+                <Label>Color Code</Label>
+                <Input
+                  value={color}
+                  onChange={(e) => setColor(e.target.value)}
+                  placeholder="#000000"
+                />
+              </div>
+              <div
+                className="w-12 h-12 rounded-lg border-2 border-gray-300 mt-6"
+                style={{ backgroundColor: color }}
+              />
+            </div>
+
+            <div className="flex gap-2">
+              <Button onClick={handleSave} className="flex-1">
+                Save Color
+              </Button>
+              <Button onClick={onClose} variant="outline">
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -1822,6 +1926,7 @@ export default function InfluencerEdit() {
                             ))}
                           </SelectContent>
                         </Select>
+
                         <div
                           onClick={() => setShowHairColorSelector(true)}
                           className='flex items-center justify-center cursor-pointer w-full'
@@ -1850,6 +1955,22 @@ export default function InfluencerEdit() {
                               </Card>
                           }
                         </div>
+
+                        {/* Color Picker Button */}
+                        <Button
+                          variant="outline"
+                          onClick={() => {
+                            setSelectedHairColor(influencerData.hair_color || '#000000');
+                            setShowHairColorPicker(true);
+                          }}
+                          className="flex items-center gap-2"
+                        >
+                          <div
+                            className="w-4 h-4 rounded-full border border-gray-300"
+                            style={{ backgroundColor: influencerData.hair_color || '#000000' }}
+                          />
+                          Custom Hair Color
+                        </Button>
                       </div>
                     </div>
                     <div className="space-y-2">
@@ -1914,6 +2035,7 @@ export default function InfluencerEdit() {
                             ))}
                           </SelectContent>
                         </Select>
+
                         <div
                           onClick={() => setShowEyeColorSelector(true)}
                           className='flex items-center justify-center cursor-pointer w-full'
@@ -1942,6 +2064,22 @@ export default function InfluencerEdit() {
                               </Card>
                           }
                         </div>
+
+                        {/* Color Picker Button */}
+                        <Button
+                          variant="outline"
+                          onClick={() => {
+                            setSelectedEyeColor(influencerData.eye_color || '#000000');
+                            setShowEyeColorPicker(true);
+                          }}
+                          className="flex items-center gap-2"
+                        >
+                          <div
+                            className="w-4 h-4 rounded-full border border-gray-300"
+                            style={{ backgroundColor: influencerData.eye_color || '#000000' }}
+                          />
+                          Custom Eye Color
+                        </Button>
                       </div>
                     </div>
                     <div className="space-y-2">
@@ -3777,7 +3915,7 @@ export default function InfluencerEdit() {
               Choose an image from your Inbox to use as the profile picture for this influencer.
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4">
             {/* Results Summary */}
             <div className="flex justify-between items-center">
@@ -3801,11 +3939,10 @@ export default function InfluencerEdit() {
                 detailedImages.map((image) => (
                   <Card
                     key={image.id}
-                    className={`group hover:shadow-xl transition-all duration-300 border-border/50 hover:border-blue-500/30 backdrop-blur-sm ${
-                      image.task_id?.startsWith('upload_')
-                        ? 'bg-gradient-to-br from-purple-50/20 to-pink-50/20 dark:from-purple-950/5 dark:to-pink-950/5 hover:border-purple-500/30'
-                        : 'bg-gradient-to-br from-yellow-50/20 to-orange-50/20 dark:from-yellow-950/5 dark:to-orange-950/5'
-                    } cursor-pointer`}
+                    className={`group hover:shadow-xl transition-all duration-300 border-border/50 hover:border-blue-500/30 backdrop-blur-sm ${image.task_id?.startsWith('upload_')
+                      ? 'bg-gradient-to-br from-purple-50/20 to-pink-50/20 dark:from-purple-950/5 dark:to-pink-950/5 hover:border-purple-500/30'
+                      : 'bg-gradient-to-br from-yellow-50/20 to-orange-50/20 dark:from-yellow-950/5 dark:to-orange-950/5'
+                      } cursor-pointer`}
                     onClick={() => {
                       setProfileImageId(image.id);
                       const imageUrl = `https://images.nymia.ai/cdn-cgi/image/w=800/${userData.id}/${image.user_filename === "" ? "output" : "vault/" + image.user_filename}/${image.system_filename}`;
@@ -3816,11 +3953,10 @@ export default function InfluencerEdit() {
                       {/* Top Row: File Type, Ratings, Favorite */}
                       <div className="flex items-center justify-between mb-3">
                         {/* File Type Icon */}
-                        <div className={`rounded-full w-8 h-8 flex items-center justify-center shadow-md ${
-                          image.task_id?.startsWith('upload_')
-                            ? 'bg-gradient-to-br from-purple-500 to-pink-600'
-                            : 'bg-gradient-to-br from-blue-500 to-purple-600'
-                        }`}>
+                        <div className={`rounded-full w-8 h-8 flex items-center justify-center shadow-md ${image.task_id?.startsWith('upload_')
+                          ? 'bg-gradient-to-br from-purple-500 to-pink-600'
+                          : 'bg-gradient-to-br from-blue-500 to-purple-600'
+                          }`}>
                           {image.task_id?.startsWith('upload_') ? (
                             <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
@@ -3972,6 +4108,26 @@ export default function InfluencerEdit() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {showHairColorPicker && (
+        <ColorPickerModal
+          isOpen={showHairColorPicker}
+          onClose={() => setShowHairColorPicker(false)}
+          type="hair"
+          currentColor={selectedHairColor}
+          onColorSelect={handleColorSelect}
+        />
+      )}
+
+      {showEyeColorPicker && (
+        <ColorPickerModal
+          isOpen={showEyeColorPicker}
+          onClose={() => setShowEyeColorPicker(false)}
+          type="eye"
+          currentColor={selectedEyeColor}
+          onColorSelect={handleColorSelect}
+        />
+      )}
     </div>
   );
 }

@@ -6,17 +6,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { DialogZoom, DialogContentZoom, DialogHeaderZoom, DialogTitleZoom, DialogDescriptionZoom } from '@/components/ui/zoomdialog';
 import { updateInfluencer, setInfluencers, setLoading, setError, addInfluencer } from '@/store/slices/influencersSlice';
 import { X, Plus, Save, Crown, Lock, Image, Settings, User, ChevronRight, MoreHorizontal, Loader2, ZoomIn, Pencil } from 'lucide-react';
-import { HexColorPicker } from 'react-colorful';
 import { toast } from 'sonner';
 
 interface GeneratedImageData {
@@ -163,7 +160,6 @@ export default function InfluencerEdit() {
   const dispatch = useDispatch();
   const influencers = useSelector((state: RootState) => state.influencers.influencers);
   const displayedInfluencers = influencers;
-  const [showAllInfluencers, setShowAllInfluencers] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isOptionsLoading, setIsOptionsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -229,7 +225,6 @@ export default function InfluencerEdit() {
     image_num: 0
   });
 
-  const [newTag, setNewTag] = useState('');
   const [activeTab, setActiveTab] = useState('basic');
 
   const [eyeColorOptions, setEyeColorOptions] = useState<Option[]>([]);
@@ -271,8 +266,6 @@ export default function InfluencerEdit() {
   const [showClothingSexySelector, setShowClothingSexySelector] = useState(false);
   const [showHomeEnvironmentSelector, setShowHomeEnvironmentSelector] = useState(false);
 
-  const [showHairColorPicker, setShowHairColorPicker] = useState(false);
-  const [showEyeColorPicker, setShowEyeColorPicker] = useState(false);
   const [showCulturalBackgroundSelector, setShowCulturalBackgroundSelector] = useState(false);
   const [culturalBackgroundOptions, setCulturalBackgroundOptions] = useState<Option[]>([]);
 
@@ -317,6 +310,7 @@ export default function InfluencerEdit() {
   // Add state for image selection modal
   const [showImageSelector, setShowImageSelector] = useState(false);
   const [vaultImages, setVaultImages] = useState<any[]>([]);
+  const [detailedImages, setDetailedImages] = useState<GeneratedImageData[]>([]);
   const [loadingVaultImages, setLoadingVaultImages] = useState(false);
   const [profileImageId, setProfileImageId] = useState<string | null>(null);
 
@@ -384,7 +378,12 @@ export default function InfluencerEdit() {
   const fetchVaultImages = async () => {
     try {
       setLoadingVaultImages(true);
-      const response = await fetch(`https://api.nymia.ai/v1/getfilenames`, {
+      
+      // Step 1: Get files from vault/Inbox folder only
+      const allImages: any[] = [];
+      
+      // Get images from vault/Inbox folder
+      const inboxResponse = await fetch(`https://api.nymia.ai/v1/getfilenames`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -396,42 +395,63 @@ export default function InfluencerEdit() {
         })
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to fetch vault images');
+      if (inboxResponse.ok) {
+        const inboxData = await inboxResponse.json();
+        const inboxImages = inboxData.map((item: any) => ({
+          ...item,
+          user_filename: "Inbox",
+          folder: "vault/Inbox"
+        }));
+        allImages.push(...inboxImages);
       }
 
-      const data = await response.json();
-      console.log(data);
-      const imagesWithUrls = data.map((item: any) => ({
-        id: item.id,
-        image_url: `https://images.nymia.ai/cdn-cgi/image/w=800/${userData.id}/vault/Inbox/${item.Key.split('/').pop()}`,
-        created_at: item.created_at
-      }));
+      console.log('All images from Inbox:', allImages);
 
-      console.log(imagesWithUrls);
+      // Step 2: Get detailed information for each file from database
+      const detailedImagesData: GeneratedImageData[] = [];
+
+      for (const file of allImages) {
+        // Extract filename from the Key (remove path and get just the filename)
+        if (file.Key === undefined) continue;
+        const filename = file.Key.split('/').pop();
+        if (!filename) continue;
+
+        // For Inbox files, user_filename is always "Inbox"
+        const user_filename = "Inbox";
+
+        try {
+          const detailResponse = await fetch(`https://db.nymia.ai/rest/v1/generated_images?system_filename=eq.${filename}&user_filename=eq.${user_filename}`, {
+            headers: {
+              'Authorization': 'Bearer WeInfl3nc3withAI'
+            }
+          });
+
+          if (detailResponse.ok) {
+            const imageDetails: GeneratedImageData[] = await detailResponse.json();
+            if (imageDetails.length > 0) {
+              detailedImagesData.push(imageDetails[0]);
+            }
+          }
+        } catch (error) {
+          console.warn(`Failed to fetch details for ${filename}:`, error);
+        }
+      }
+
+      console.log('Detailed images from Inbox:', detailedImagesData);
+      setDetailedImages(detailedImagesData);
+
+      // Create the old format for backward compatibility
+      const imagesWithUrls = detailedImagesData.map((image) => ({
+        id: image.id,
+        image_url: `https://images.nymia.ai/cdn-cgi/image/w=800/${userData.id}/vault/Inbox/${image.system_filename}`,
+        created_at: image.created_at
+      }));
 
       setVaultImages(imagesWithUrls);
 
-      const detailedImages: GeneratedImageData[] = [];
-
-      for (const image of imagesWithUrls) {
-        const responseData = await fetch(`https://db.nymia.ai/rest/v1/generated_images?system_filename=eq.${image.image_url.split('/').pop()}`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer WeInfl3nc3withAI'
-          },
-        });
-
-        const data = await responseData.json();
-        console.log(data);
-        detailedImages.push(data[0]);
-      }
-
-      console.log(detailedImages);
     } catch (error) {
-      console.error('Error fetching vault images:', error);
-      toast.error('Failed to fetch vault images');
+      console.error('Error fetching Inbox images:', error);
+      toast.error('Failed to fetch Inbox images');
     } finally {
       setLoadingVaultImages(false);
     }
@@ -3747,60 +3767,208 @@ export default function InfluencerEdit() {
 
       {/* Image Selection Modal */}
       <Dialog open={showImageSelector} onOpenChange={setShowImageSelector}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Select Profile Image</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <Image className="w-5 h-5 text-blue-500" />
+              Select Profile Image
+            </DialogTitle>
+            <DialogDescription>
+              Choose an image from your Inbox to use as the profile picture for this influencer.
+            </DialogDescription>
           </DialogHeader>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 p-4">
-            {loadingVaultImages ? (
-              <div className="col-span-full flex items-center justify-center py-12">
-                <div className="flex flex-col items-center gap-4">
-                  <Loader2 className="w-8 h-8 animate-spin text-ai-purple-500" />
-                  <p className="text-muted-foreground">Loading vault images...</p>
-                </div>
-              </div>
-            ) : vaultImages.length > 0 ? (
-              vaultImages.map((item) => (
-                <Card
-                  key={item.id}
-                  className="cursor-pointer hover:shadow-lg transition-all duration-300"
-                  onClick={() => {
-                    setProfileImageId(item.id);
-                    handleImageSelect(item.image_url);
-                  }}
-                >
-                  <CardContent className="p-4">
-                    <div className="relative w-full group" style={{ paddingBottom: '100%' }}>
-                      <img
-                        src={item.image_url}
-                        alt={`Vault image ${item.id}`}
-                        className="absolute inset-0 w-full h-full object-cover rounded-md"
-                      />
-                      <div
-                        className="absolute right-2 top-2 bg-black/50 rounded-full w-8 h-8 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setPreviewImage(item.image_url);
-                        }}
-                      >
-                        <ZoomIn className="w-5 h-5 text-white" />
-                      </div>
-                    </div>
-                    <p className="text-sm text-center font-medium mt-2">
-                      {new Date(item.created_at).toLocaleDateString()}
-                    </p>
-                  </CardContent>
-                </Card>
-              ))
-            ) : (
-              <div className="col-span-full text-center py-12">
-                <Image className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold mb-2">No images found</h3>
-                <p className="text-muted-foreground">
-                  You don't have any images in your vault yet. Create some content first!
+          
+          <div className="space-y-4">
+            {/* Results Summary */}
+            <div className="flex justify-between items-center">
+              <div className="flex items-center gap-4">
+                <p className="text-sm text-muted-foreground">
+                  Showing {detailedImages.length} images from your Inbox
                 </p>
               </div>
-            )}
+            </div>
+
+            {/* Image Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+              {loadingVaultImages ? (
+                <div className="col-span-full flex items-center justify-center py-12">
+                  <div className="flex flex-col items-center gap-4">
+                    <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+                    <p className="text-muted-foreground">Loading Inbox images...</p>
+                  </div>
+                </div>
+              ) : detailedImages.length > 0 ? (
+                detailedImages.map((image) => (
+                  <Card
+                    key={image.id}
+                    className={`group hover:shadow-xl transition-all duration-300 border-border/50 hover:border-blue-500/30 backdrop-blur-sm ${
+                      image.task_id?.startsWith('upload_')
+                        ? 'bg-gradient-to-br from-purple-50/20 to-pink-50/20 dark:from-purple-950/5 dark:to-pink-950/5 hover:border-purple-500/30'
+                        : 'bg-gradient-to-br from-yellow-50/20 to-orange-50/20 dark:from-yellow-950/5 dark:to-orange-950/5'
+                    } cursor-pointer`}
+                    onClick={() => {
+                      setProfileImageId(image.id);
+                      const imageUrl = `https://images.nymia.ai/cdn-cgi/image/w=800/${userData.id}/${image.user_filename === "" ? "output" : "vault/" + image.user_filename}/${image.system_filename}`;
+                      handleImageSelect(imageUrl);
+                    }}
+                  >
+                    <CardContent className="p-4">
+                      {/* Top Row: File Type, Ratings, Favorite */}
+                      <div className="flex items-center justify-between mb-3">
+                        {/* File Type Icon */}
+                        <div className={`rounded-full w-8 h-8 flex items-center justify-center shadow-md ${
+                          image.task_id?.startsWith('upload_')
+                            ? 'bg-gradient-to-br from-purple-500 to-pink-600'
+                            : 'bg-gradient-to-br from-blue-500 to-purple-600'
+                        }`}>
+                          {image.task_id?.startsWith('upload_') ? (
+                            <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+                            </svg>
+                          ) : image.file_type === 'video' ? (
+                            <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="currentColor">
+                              <path d="M8 5v14l11-7z" />
+                              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15V7l8 5-8 5z" opacity="0.3" />
+                            </svg>
+                          ) : (
+                            <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="currentColor">
+                              <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z" />
+                              <circle cx="8.5" cy="8.5" r="1.5" opacity="0.8" />
+                            </svg>
+                          )}
+                        </div>
+
+                        {/* Rating Stars */}
+                        <div className="flex gap-1">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <svg
+                              key={star}
+                              className={`w-4 h-4 ${star <= image.rating ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
+                              viewBox="0 0 24 24"
+                            >
+                              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                            </svg>
+                          ))}
+                        </div>
+
+                        {/* Favorite Heart */}
+                        <div>
+                          {image.favorite ? (
+                            <div className="bg-red-500 rounded-full w-8 h-8 flex items-center justify-center">
+                              <svg className="w-4 h-4 text-white fill-current" viewBox="0 0 24 24">
+                                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                              </svg>
+                            </div>
+                          ) : (
+                            <div className="bg-black/50 rounded-full w-8 h-8 flex items-center justify-center">
+                              <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                              </svg>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Image */}
+                      <div className="relative w-full group mb-4" style={{ paddingBottom: '100%' }}>
+                        <img
+                          src={`https://images.nymia.ai/cdn-cgi/image/w=400/${userData.id}/${image.user_filename === "" ? "output" : "vault/" + image.user_filename}/${image.system_filename}`}
+                          alt={image.system_filename}
+                          className="absolute inset-0 w-full h-full object-cover rounded-md shadow-sm cursor-pointer transition-all duration-200 hover:scale-105"
+                          onError={(e) => {
+                            // Fallback for uploaded files that might not be accessible via CDN
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                            const fallback = document.createElement('div');
+                            fallback.className = 'absolute inset-0 w-full h-full bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/20 dark:to-pink-900/20 rounded-md flex items-center justify-center';
+                            fallback.innerHTML = `
+                              <div class="text-center">
+                                <svg class="w-8 h-8 text-purple-500 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+                                </svg>
+                                <p class="text-xs text-purple-600 dark:text-purple-400">Uploaded File</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">${image.system_filename}</p>
+                              </div>
+                            `;
+                            target.parentNode?.appendChild(fallback);
+                          }}
+                        />
+
+                        {/* Zoom Button */}
+                        <div
+                          className="absolute right-2 top-2 bg-black/50 rounded-full w-8 h-8 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const imageUrl = `https://images.nymia.ai/cdn-cgi/image/w=800/${userData.id}/${image.user_filename === "" ? "output" : "vault/" + image.user_filename}/${image.system_filename}`;
+                            setPreviewImage(imageUrl);
+                          }}
+                        >
+                          <ZoomIn className="w-5 h-5 text-white" />
+                        </div>
+                      </div>
+
+                      {/* User Notes */}
+                      {image.user_notes && (
+                        <div className="mb-3">
+                          <p className="text-sm text-gray-700 dark:text-gray-300 line-clamp-2">
+                            {image.user_notes}
+                          </p>
+                        </div>
+                      )}
+
+                      {/* User Tags */}
+                      {image.user_tags && image.user_tags.length > 0 && (
+                        <div className="mb-3 flex flex-wrap gap-1">
+                          {image.user_tags.slice(0, 3).map((tag, index) => (
+                            <Badge
+                              key={index}
+                              variant="secondary"
+                              className="text-xs"
+                            >
+                              {tag.trim()}
+                            </Badge>
+                          ))}
+                          {image.user_tags.length > 3 && (
+                            <Badge variant="secondary" className="text-xs">
+                              +{image.user_tags.length - 3}
+                            </Badge>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Filename and Date */}
+                      <div className="space-y-2">
+                        <h3 className="font-medium text-sm text-gray-800 dark:text-gray-200 truncate">
+                          {image.system_filename}
+                        </h3>
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
+                          {new Date(image.created_at).toLocaleDateString()}
+                        </div>
+                        {image.user_filename && (
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" />
+                            </svg>
+                            {image.user_filename}
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+              ) : (
+                <div className="col-span-full text-center py-12">
+                  <Image className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">No images found</h3>
+                  <p className="text-muted-foreground">
+                    You don't have any images in your vault yet. Create some content first!
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
         </DialogContent>
       </Dialog>

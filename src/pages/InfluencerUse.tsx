@@ -65,7 +65,6 @@ export default function InfluencerUse() {
   const [isCopyingImage, setIsCopyingImage] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
 
   const filteredInfluencers = influencers.filter(influencer => {
     if (!debouncedSearchTerm) return true;
@@ -172,39 +171,61 @@ export default function InfluencerUse() {
 
     setIsCopyingImage(true);
     try {
-      const latestImageNum = selectedInfluencerData.image_num-1 || 1;
-      
-      // Determine source and destination based on whether we have an uploaded file
-      const sourceFilename = uploadedFile 
-        ? `temp/${uploadedFile.name}` // Temporary path for uploaded file
-        : `models/${selectedInfluencerData.id}/profilepic/profilepic${latestImageNum}.png`;
-      
-      // Copy the profile picture to the LoRA folder
-      const copyResponse = await fetch('https://api.nymia.ai/v1/copyfile', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer WeInfl3nc3withAI'
-        },
-        body: JSON.stringify({
-          user: userData.id,
-          sourcefilename: sourceFilename,
-          destinationfilename: `models/${selectedInfluencerData.id}/lora/lora.png`
-        })
-      });
+      if (uploadedFile) {
+        // Upload the image directly to the LoRA folder
+        const fileExtension = uploadedFile.name.split('.').pop() || 'png';
+        const loraFilePath = `models/${selectedInfluencerData.id}/lora/lora.${fileExtension}`;
 
-      if (!copyResponse.ok) {
-        throw new Error('Failed to copy profile image to LoRA folder');
+        // Upload file directly to LoRA folder
+        const uploadResponse = await fetch(`https://api.nymia.ai/v1/uploadfile?user=${userData.id}&filename=${loraFilePath}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/octet-stream',
+            'Authorization': 'Bearer WeInfl3nc3withAI'
+          },
+          body: uploadedFile
+        });
+
+        if (!uploadResponse.ok) {
+          throw new Error('Failed to upload image to LoRA folder');
+        }
+
+        toast.success('Image uploaded to LoRA folder successfully');
+      } else {
+        // Copy existing profile picture to LoRA folder
+        const latestImageNum = selectedInfluencerData.image_num-1 || 1;
+        const sourceFilename = `models/${selectedInfluencerData.id}/profilepic/profilepic${latestImageNum}.png`;
+        
+        const copyResponse = await fetch('https://api.nymia.ai/v1/copyfile', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer WeInfl3nc3withAI'
+          },
+          body: JSON.stringify({
+            user: userData.id,
+            sourcefilename: sourceFilename,
+            destinationfilename: `models/${selectedInfluencerData.id}/lora/lora.png`
+          })
+        });
+
+        if (!copyResponse.ok) {
+          throw new Error('Failed to copy profile image to LoRA folder');
+        }
+
+        toast.success('Profile image copied to LoRA folder successfully');
       }
 
-      toast.success('Profile image copied to LoRA folder successfully');
       setShowCharacterConsistencyModal(false);
       // Reset upload state
+      if (uploadedImageUrl) {
+        URL.revokeObjectURL(uploadedImageUrl);
+      }
       setUploadedFile(null);
       setUploadedImageUrl(null);
     } catch (error) {
-      console.error('Error copying profile image:', error);
-      toast.error('Failed to copy profile image to LoRA folder');
+      console.error('Error uploading/copying image:', error);
+      toast.error('Failed to upload/copy image to LoRA folder');
     } finally {
       setIsCopyingImage(false);
     }
@@ -627,59 +648,86 @@ export default function InfluencerUse() {
                               <Upload className="w-4 h-4 text-white" />
                             </div>
                           </div>
-                          <div className="text-center space-y-2">
+                          <div className="text-center space-y-3">
                             <h4 className="font-semibold text-lg text-gray-900 dark:text-gray-100">
                               Uploaded Image
                             </h4>
                             <p className="text-sm text-gray-600 dark:text-gray-300">
                               {uploadedFile?.name} • {(uploadedFile?.size / 1024 / 1024).toFixed(2)} MB
                             </p>
-                            <div className="flex items-center justify-center gap-2 text-xs text-blue-600 dark:text-blue-400">
+                            <div className="flex items-center justify-center gap-2 text-xs text-blue-600 dark:text-blue-400 mb-3">
                               <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
                               Ready for LoRA Training
                             </div>
                           </div>
                         </div>
                       ) : (
-                        // Show upload interface
+                        // Show professional upload interface
                         <div 
-                          className="text-center space-y-4"
+                          className="space-y-4"
                           onDragOver={handleDragOver}
                           onDragLeave={handleDragLeave}
                           onDrop={handleDrop}
                         >
-                          <div className="w-20 h-20 mx-auto bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/30 dark:to-purple-900/30 rounded-2xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow duration-300">
-                            <Upload className="w-10 h-10 text-blue-600 dark:text-blue-400" />
-                          </div>
-                          <div className="space-y-2">
-                            <h4 className="font-semibold text-lg text-gray-900 dark:text-gray-100">
-                              Upload New Image
-                            </h4>
-                            <p className="text-sm text-gray-600 dark:text-gray-300">
-                              Drag & drop or click to upload a new profile picture
-                            </p>
-                            <p className="text-xs text-gray-500 dark:text-gray-400">
-                              PNG, JPG, JPEG up to 10MB
-                            </p>
-                          </div>
-                          <div className="space-y-2">
+                          {/* Drag & Drop Area - Looks like an image */}
+                          <div className="relative group/drag">
+                            <div className="aspect-square bg-gradient-to-br from-blue-100 via-purple-100 to-indigo-100 dark:from-blue-900/20 dark:via-purple-900/20 dark:to-indigo-900/20 rounded-2xl overflow-hidden shadow-lg border-2 border-dashed border-blue-300 dark:border-blue-600 group-hover/drag:border-blue-400 dark:group-hover/drag:border-blue-500 transition-all duration-300">
+                              {/* Background Pattern */}
+                              <div className="absolute inset-0 bg-gradient-to-br from-blue-50/50 to-purple-50/50 dark:from-blue-950/30 dark:to-purple-950/30"></div>
+                              
+                              {/* Upload Icon and Text */}
+                              <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6">
+                                <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-xl mb-4 group-hover/drag:scale-110 transition-transform duration-300">
+                                  <Upload className="w-8 h-8 text-white" />
+                                </div>
+                                <h4 className="font-semibold text-lg text-gray-900 dark:text-gray-100 mb-2">
+                                  Upload New Image
+                                </h4>
+                                <p className="text-sm text-gray-600 dark:text-gray-300 mb-3 max-w-xs">
+                                  Drag & drop your image here or click to browse
+                                </p>
+                                <div className="flex items-center gap-2 text-xs text-blue-600 dark:text-blue-400">
+                                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                                  PNG, JPG, JPEG up to 10MB
+                                </div>
+                              </div>
+
+                              {/* Hover Overlay */}
+                              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-purple-500/10 opacity-0 group-hover/drag:opacity-100 transition-opacity duration-300 rounded-2xl"></div>
+                            </div>
+
+                            {/* File Input */}
                             <input
                               type="file"
                               accept="image/*"
                               onChange={handleFileUpload}
-                              className="hidden"
+                              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                               id="profile-image-upload"
                             />
-                            <label
-                              htmlFor="profile-image-upload"
-                              className="inline-flex items-center justify-center w-full px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-300 rounded-lg hover:bg-blue-100 dark:bg-blue-950/20 dark:border-blue-700 dark:text-blue-400 dark:hover:bg-blue-950/40 transition-colors cursor-pointer"
-                            >
-                              <Upload className="w-4 h-4 mr-2" />
-                              Choose File
-                            </label>
-                            <p className="text-xs text-gray-500 dark:text-gray-400">
-                              or drag and drop here
-                            </p>
+                          </div>
+
+                          {/* Additional Upload Options */}
+                          <div className="text-center space-y-3">
+                            <div className="flex items-center justify-center gap-4">
+                              <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                                <div className="w-1.5 h-1.5 bg-gray-400 rounded-full"></div>
+                                High Quality
+                              </div>
+                              <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                                <div className="w-1.5 h-1.5 bg-gray-400 rounded-full"></div>
+                                Secure Upload
+                              </div>
+                              <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                                <div className="w-1.5 h-1.5 bg-gray-400 rounded-full"></div>
+                                Instant Processing
+                              </div>
+                            </div>
+                            
+                            <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-lg p-3 border border-blue-200/50 dark:border-blue-800/50">
+                              <p className="text-xs text-gray-600 dark:text-gray-300">
+                                <span className="font-medium">Tip:</span> Use high-resolution images for better character consistency training results.
+                              </p>
+                            </div>
                           </div>
                         </div>
                       )}
@@ -741,7 +789,7 @@ export default function InfluencerUse() {
                   ) : (
                     <>
                       <Copy className="w-5 h-5 mr-3" />
-                      {uploadedFile ? 'Copy Uploaded Image to LoRA' : 'Copy Profile Image to LoRA'}
+                      {uploadedFile ? 'Upload to LoRA Folder' : 'Copy Profile Image to LoRA'}
                     </>
                   )}
                 </Button>

@@ -7,11 +7,12 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Star, Search, Download, Share, Trash2, Filter, Calendar, Image, Video, SortAsc, SortDesc, ZoomIn, Folder, Plus, Upload, ChevronRight, Home, ArrowLeft, Pencil, Menu, X, File } from 'lucide-react';
+import { Star, Search, Download, Share, Trash2, Filter, Calendar, Image, Video, SortAsc, SortDesc, ZoomIn, Folder, Plus, Upload, ChevronRight, Home, ArrowLeft, Pencil, Menu, X, File, User } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { DialogContentZoom } from '@/components/ui/zoomdialog';
 import { DialogZoom } from '@/components/ui/zoomdialog';
+import { setInfluencers, updateInfluencer } from '@/store/slices/influencersSlice';
 
 // Interface for folder data from API
 interface FolderData {
@@ -74,6 +75,7 @@ interface FolderStructure {
 
 export default function Vault() {
   const userData = useSelector((state: RootState) => state.user);
+  const dispatch = useDispatch();
   const [folders, setFolders] = useState<FolderData[]>([]);
   const [foldersLoading, setFoldersLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -184,6 +186,13 @@ export default function Vault() {
 
   // Drag and drop state for upload card
   const [dragOverUpload, setDragOverUpload] = useState<boolean>(false);
+
+  // Influencer profile picture state
+  const [showInfluencerSelector, setShowInfluencerSelector] = useState<boolean>(false);
+  const [selectedImageForProfile, setSelectedImageForProfile] = useState<GeneratedImageData | null>(null);
+  const [influencers, setInfluencersLocal] = useState<any[]>([]);
+  const [loadingInfluencers, setLoadingInfluencers] = useState<boolean>(false);
+  const [settingProfilePicture, setSettingProfilePicture] = useState<string | null>(null);
 
   // Load copy state from localStorage on component mount
   useEffect(() => {
@@ -2407,6 +2416,126 @@ export default function Vault() {
     }
   };
 
+  // Handle drag and drop for upload card
+  const handleDragOverUpload = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+    setDragOverUpload(true);
+  };
+
+  const handleDragLeaveUpload = () => {
+    setDragOverUpload(false);
+  };
+
+  const handleDropUpload = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOverUpload(false);
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length > 0) {
+      const file = files[0];
+      setUploadedFile(file);
+      
+      // Auto-set filename and format
+      const fileName = file.name;
+      const fileExtension = fileName.split('.').pop()?.toLowerCase() || '';
+      const isVideo = file.type.startsWith('video/');
+      
+      setUploadModelData(prev => ({
+        ...prev,
+        system_filename: fileName,
+        image_format: fileExtension,
+        file_type: isVideo ? 'video' : 'pic'
+      }));
+      
+      setUploadModelModal({ open: true });
+    }
+  };
+
+  // Fetch influencers for profile picture selection
+  const fetchInfluencers = async () => {
+    setLoadingInfluencers(true);
+    try {
+      const response = await fetch(`https://db.nymia.ai/rest/v1/influencer?user_id=eq.${userData.id}`, {
+        headers: {
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch influencers');
+      }
+
+      const data = await response.json();
+      setInfluencersLocal(data);
+    } catch (error) {
+      console.error('Error fetching influencers:', error);
+      toast.error('Failed to fetch influencers');
+    } finally {
+      setLoadingInfluencers(false);
+    }
+  };
+
+  // Set profile picture for influencer
+  const setInfluencerProfilePicture = async (influencer: any, image: GeneratedImageData) => {
+    setSettingProfilePicture(influencer.id);
+    try {
+      const extension = image.system_filename.split('.').pop();
+      const sourcePath = image.user_filename === "" ? "output" : `vault/${image.user_filename}`;
+      
+      // Copy the image to the influencer's profile picture folder
+      await fetch('https://api.nymia.ai/v1/copyfile', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          user: userData.id,
+          sourcefilename: `${sourcePath}/${image.system_filename}`,
+          destinationfilename: `models/${influencer.id}/profilepic/profilepic${influencer.image_num}.${extension}`
+        })
+      });
+
+      // Update the influencer data
+      const updatedInfluencer = {
+        ...influencer,
+        image_url: `https://images.nymia.ai/cdn-cgi/image/w=400/${userData.id}/models/${influencer.id}/profilepic/profilepic${influencer.image_num}.${extension}`,
+        image_num: influencer.image_num + 1
+      };
+
+      // Update in database
+      const response = await fetch(`https://db.nymia.ai/rest/v1/influencer?id=eq.${influencer.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify(updatedInfluencer)
+      });
+
+      if (response.ok) {
+        // Update local state
+        setInfluencersLocal(prev => 
+          prev.map(inf => inf.id === influencer.id ? updatedInfluencer : inf)
+        );
+        
+        // Update Redux store
+        dispatch(updateInfluencer(updatedInfluencer));
+        
+        toast.success(`Profile picture updated for ${influencer.name_first} ${influencer.name_last}`);
+        setShowInfluencerSelector(false);
+        setSelectedImageForProfile(null);
+      } else {
+        throw new Error('Failed to update influencer');
+      }
+    } catch (error) {
+      console.error('Error setting profile picture:', error);
+      toast.error('Failed to set profile picture');
+    } finally {
+      setSettingProfilePicture(null);
+    }
+  };
+
   if (foldersLoading) {
     return (
       <div className="p-6 space-y-6 animate-fade-in">
@@ -4246,6 +4375,19 @@ export default function Vault() {
           </button>
           <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>
           <button
+            className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+            onClick={() => {
+              setSelectedImageForProfile(fileContextMenu.image);
+              fetchInfluencers();
+              setShowInfluencerSelector(true);
+              setFileContextMenu(null);
+            }}
+          >
+            <User className="w-4 h-4" />
+            Set as Influencer Profile Picture
+          </button>
+          <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>
+          <button
             className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 text-red-600 dark:text-red-400"
             onClick={() => handleFileDelete(fileContextMenu.image)}
           >
@@ -4464,6 +4606,122 @@ export default function Vault() {
                 )}
               </Button>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Influencer Profile Picture Selector Modal */}
+      <Dialog open={showInfluencerSelector} onOpenChange={setShowInfluencerSelector}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <User className="w-5 h-5 text-blue-500" />
+              Set as Influencer Profile Picture
+            </DialogTitle>
+            <DialogDescription>
+              Select an influencer to set this image as their profile picture.
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedImageForProfile && (
+            <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+              <div className="flex items-center gap-4">
+                <div className="relative w-20 h-20">
+                  <img
+                    src={`https://images.nymia.ai/cdn-cgi/image/w=400/${userData.id}/${selectedImageForProfile.user_filename === "" ? "output" : "vault/" + selectedImageForProfile.user_filename}/${selectedImageForProfile.system_filename}`}
+                    alt={selectedImageForProfile.system_filename}
+                    className="w-full h-full object-cover rounded-md"
+                  />
+                </div>
+                <div>
+                  <h3 className="font-medium text-sm">Selected Image</h3>
+                  <p className="text-xs text-muted-foreground">{selectedImageForProfile.system_filename}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="space-y-4">
+            {loadingInfluencers ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="flex flex-col items-center gap-4">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                  <p className="text-muted-foreground">Loading influencers...</p>
+                </div>
+              </div>
+            ) : influencers.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {influencers.map((influencer) => (
+                  <Card
+                    key={influencer.id}
+                    className={`group hover:shadow-lg transition-all duration-300 border-border/50 hover:border-blue-500/20 ${settingProfilePicture === influencer.id ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                    onClick={() => selectedImageForProfile && settingProfilePicture !== influencer.id && setInfluencerProfilePicture(influencer, selectedImageForProfile)}
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex flex-col justify-between h-full space-y-4">
+                        <div className="w-full h-full bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg overflow-hidden">
+                          {influencer.image_url ? (
+                            <img
+                              src={influencer.image_url}
+                              alt={`${influencer.name_first} ${influencer.name_last}`}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="flex flex-col w-full h-full items-center justify-center max-h-32 min-h-24">
+                              <User className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                              <p className="text-xs text-gray-500">No image</p>
+                            </div>
+                          )}
+                        </div>
+
+                        <div>
+                          <div className="flex items-center justify-between mb-2">
+                            <h3 className="font-semibold text-sm group-hover:text-blue-500 transition-colors">
+                              {influencer.name_first} {influencer.name_last}
+                            </h3>
+                          </div>
+
+                          <div className="flex flex-col gap-1 mb-3">
+                            <div className="flex text-xs text-muted-foreground flex-col">
+                              <span className="font-medium mr-2">Age/Lifestyle:</span>
+                              {influencer.age_lifestyle || 'Not set'}
+                            </div>
+                            <div className="flex items-center text-xs text-muted-foreground">
+                              <span className="font-medium mr-2">Type:</span>
+                              {influencer.influencer_type || 'Not set'}
+                            </div>
+                          </div>
+
+                          <Button
+                            size="sm"
+                            className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                            disabled={settingProfilePicture === influencer.id}
+                            onClick={() => selectedImageForProfile && setInfluencerProfilePicture(influencer, selectedImageForProfile)}
+                          >
+                            {settingProfilePicture === influencer.id ? (
+                              <>
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                Setting...
+                              </>
+                            ) : (
+                              'Set as Profile Picture'
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <User className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold mb-2">No influencers found</h3>
+                <p className="text-muted-foreground">
+                  You don't have any influencers yet. Create some influencers first!
+                </p>
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>

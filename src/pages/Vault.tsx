@@ -250,6 +250,15 @@ export default function Vault() {
     return pathWithoutPrefix;
   };
 
+  const encodeName = (name: string): string => {
+    return name.replace(/\s/g, '_space_');
+  };
+
+  // Decode folder/file name from URL (replace %20 with spaces)
+  const decodeName = (name: string): string => {
+    return name.replace(/_space_/g, ' ');
+  };
+
   // Build folder structure from raw folder data
   const buildFolderStructure = (folderData: FolderData[]): FolderStructure[] => {
     const structure: FolderStructure[] = [];
@@ -495,7 +504,7 @@ export default function Vault() {
   // Update favorite status
   const updateFavorite = async (systemFilename: string, favorite: boolean) => {
     try {
-      const response = await fetch(`https://db.nymia.ai/rest/v1/generated_images?system_filename=eq.${systemFilename}`, {
+      const response = await fetch(`https://db.nymia.ai/rest/v1/generated_images?system_filename=eq.${systemFilename}&user_filename=eq.${currentPath}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -527,7 +536,7 @@ export default function Vault() {
   // Update rating
   const updateRating = async (systemFilename: string, rating: number) => {
     try {
-      const response = await fetch(`https://db.nymia.ai/rest/v1/generated_images?system_filename=eq.${systemFilename}`, {
+      const response = await fetch(`https://db.nymia.ai/rest/v1/generated_images?system_filename=eq.${systemFilename}&user_filename=eq.${currentPath}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -559,7 +568,7 @@ export default function Vault() {
   // Update user notes
   const updateUserNotes = async (systemFilename: string, userNotes: string) => {
     try {
-      const response = await fetch(`https://db.nymia.ai/rest/v1/generated_images?system_filename=eq.${systemFilename}`, {
+      const response = await fetch(`https://db.nymia.ai/rest/v1/generated_images?system_filename=eq.${systemFilename}&user_filename=eq.${currentPath}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -591,7 +600,7 @@ export default function Vault() {
   // Update user tags
   const updateUserTags = async (systemFilename: string, userTags: string[]) => {
     try {
-      const response = await fetch(`https://db.nymia.ai/rest/v1/generated_images?system_filename=eq.${systemFilename}`, {
+      const response = await fetch(`https://db.nymia.ai/rest/v1/generated_images?system_filename=eq.${systemFilename}&user_filename=eq.${currentPath}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -703,7 +712,7 @@ export default function Vault() {
   const handleRemoveFromVault = async (contentId: string) => {
     try {
       // Delete from database
-      const dbResponse = await fetch(`https://db.nymia.ai/rest/v1/generated_images?system_filename=eq.${contentId}`, {
+      const dbResponse = await fetch(`https://db.nymia.ai/rest/v1/generated_images?system_filename=eq.${contentId}&user_filename=eq.${currentPath}`, {
         method: 'DELETE',
         headers: {
           'Authorization': 'Bearer WeInfl3nc3withAI'
@@ -828,8 +837,10 @@ export default function Vault() {
       return;
     }
 
+    const enFolderName = encodeName(newFolderName);
+
     try {
-      const folderPath = currentPath ? `${currentPath}/${newFolderName}` : newFolderName;
+      const folderPath = currentPath ? `${currentPath}/${enFolderName}` : enFolderName;
 
       const response = await fetch('https://api.nymia.ai/v1/createfolder', {
         method: 'POST',
@@ -840,7 +851,7 @@ export default function Vault() {
         body: JSON.stringify({
           user: userData.id,
           parentfolder: `vault/${currentPath ? currentPath + '/' : ''}`,
-          folder: newFolderName
+          folder: enFolderName
         })
       });
 
@@ -850,7 +861,7 @@ export default function Vault() {
 
       // Add the new folder to the structure
       const newFolder: FolderStructure = {
-        name: newFolderName,
+        name: enFolderName,
         path: folderPath,
         children: [],
         isFolder: true
@@ -884,7 +895,7 @@ export default function Vault() {
       setUploadedIcon(null);
       setShowNewFolderModal(false);
 
-      toast.success(`Folder "${newFolderName}" created successfully`);
+      toast.success(`Folder "${enFolderName}" created successfully`);
     } catch (error) {
       console.error('Error creating folder:', error);
       toast.error('Failed to create folder');
@@ -1001,9 +1012,10 @@ export default function Vault() {
     try {
       // Get the old folder name from the path
       const oldFolderName = oldPath.split('/').pop() || '';
+      const enNewName = encodeName(newName);
 
       // Check if the new name is the same as the old name
-      if (oldFolderName === newName) {
+      if (oldFolderName === enNewName) {
         console.log('Folder name unchanged, cancelling rename operation');
         setEditingFolder(null);
         setEditingFolderName('');
@@ -1022,13 +1034,13 @@ export default function Vault() {
         description: 'This may take a moment depending on the folder contents'
       });
 
-      console.log('Renaming folder:', oldPath, 'to:', newName);
+      console.log('Renaming folder:', oldPath, 'to:', enNewName);
 
       // Get the parent path and construct the new path
       const pathParts = oldPath.split('/');
       const oldFolderNameFromPath = pathParts.pop() || '';
       const parentPath = pathParts.join('/');
-      const newPath = parentPath ? `${parentPath}/${newName}` : newName;
+      const newPath = parentPath ? `${parentPath}/${enNewName}` : enNewName;
 
       console.log('Parent path:', parentPath);
       console.log('New path:', newPath);
@@ -1043,7 +1055,7 @@ export default function Vault() {
         body: JSON.stringify({
           user: userData.id,
           parentfolder: `vault/${parentPath ? parentPath + '/' : ''}`,
-          folder: newName
+          folder: enNewName
         })
       });
 
@@ -1090,6 +1102,17 @@ export default function Vault() {
                 user: userData.id,
                 sourcefilename: `vault/${oldPath}/${fileName}`,
                 destinationfilename: `vault/${newPath}/${fileName}`
+              })
+            });
+
+            await fetch(`https://db.nymia.ai/rest/v1/generated_images?system_filename=eq.${fileName}&user_filename=eq.${oldPath}`, {
+              method: 'PATCH',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer WeInfl3nc3withAI'
+              },
+              body: JSON.stringify({
+                user_filename: `${newPath}`
               })
             });
 
@@ -1938,13 +1961,14 @@ export default function Vault() {
 
   // File rename handler
   const handleFileRename = async (oldFilename: string, newName: string, oldPath: string) => {
+    const enNewName = encodeName(newName);
 
     const comparePath = oldPath;
     oldPath = oldPath === "" ? "output" : "vault/" + oldPath;
 
     // Preserve the original file extension
     const fileExtension = oldFilename.split('.').pop();
-    const finalNewName = newName + '.' + fileExtension;
+    const finalNewName = enNewName + '.' + fileExtension;
 
     console.log("Compare Path:", comparePath);
     console.log("Old Filename:", oldFilename);
@@ -2968,7 +2992,7 @@ export default function Vault() {
                     onClick={() => navigateToFolder(item.path)}
                     className="h-8 px-2 text-sm font-medium"
                   >
-                    {item.name}
+                    {decodeName(item.name)}
                   </Button>
                 </div>
               </div>
@@ -3101,7 +3125,7 @@ export default function Vault() {
                         ? 'text-yellow-700 dark:text-yellow-300'
                         : 'text-gray-700 dark:text-gray-300 group-hover:text-blue-600 dark:group-hover:text-blue-400'
                         }`}>
-                        {folder.name}
+                        {decodeName(folder.name)}
                         {renamingFolder === folder.path && ' (Renaming...)'}
                       </span>
                     )}
@@ -3215,7 +3239,7 @@ export default function Vault() {
                             ? 'text-yellow-700 dark:text-yellow-300'
                             : 'text-gray-700 dark:text-gray-300 group-hover:text-blue-600 dark:group-hover:text-blue-400'
                             }`}>
-                            {folderName}
+                            {decodeName(folderName)}
                             {renamingFolder === folderPath && ' (Renaming...)'}
                           </span>
                         )}
@@ -3265,13 +3289,13 @@ export default function Vault() {
             {currentPath === '' ? (
               `Showing ${filteredAndSortedGeneratedImages.length} of ${generatedImages.length} items`
             ) : (
-              `Showing ${filteredAndSortedGeneratedImages.length} of ${generatedImages.length} items in "${currentPath}"`
+              `Showing ${filteredAndSortedGeneratedImages.length} of ${generatedImages.length} items in "${decodeName(currentPath)}"`
             )}
           </p>
           {currentPath && (
             <Badge variant="outline" className="bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800">
               <Folder className="w-3 h-3 mr-1" />
-              {currentPath}
+              {decodeName(currentPath)}
             </Badge>
           )}
         </div>
@@ -3721,7 +3745,7 @@ export default function Vault() {
                     ) : (
                       <>
                         <h3 className="font-medium text-sm text-gray-800 dark:text-gray-200 truncate">
-                          {image.system_filename}
+                          {decodeName(image.system_filename)}
                         </h3>
                         <div className="flex items-center gap-1 text-xs text-muted-foreground">
                           <Calendar className="w-3 h-3" />
@@ -4002,7 +4026,7 @@ export default function Vault() {
             className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
             onClick={() => {
               setEditingFolder(contextMenu.folderPath);
-              setEditingFolderName(contextMenu.folderPath.split('/').pop() || '');
+              setEditingFolderName(decodeName(contextMenu.folderPath.split('/').pop() || ''));
               setContextMenu(null);
             }}
           >
@@ -4064,7 +4088,7 @@ export default function Vault() {
                     )}
                   </div>
                   <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                    {detailedImageModal.image.user_filename || detailedImageModal.image.system_filename}
+                    {decodeName(detailedImageModal.image.user_filename)}
                   </DialogTitle>
                 </div>
                 <DialogDescription className="text-base text-gray-600 dark:text-gray-400">
@@ -4107,12 +4131,12 @@ export default function Vault() {
                   <CardContent className="space-y-4 pt-6">
                     <div className="flex justify-between items-center p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
                       <span className="font-semibold text-gray-700 dark:text-gray-300">Filename:</span>
-                      <span className="text-gray-600 dark:text-gray-400 font-mono text-sm">{detailedImageModal.image.system_filename}</span>
+                      <span className="text-gray-600 dark:text-gray-400 font-mono text-sm">{decodeName(detailedImageModal.image.system_filename)}</span>
                     </div>
                     {detailedImageModal.image.user_filename && (
                       <div className="flex justify-between items-center p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
                         <span className="font-semibold text-gray-700 dark:text-gray-300">Custom Name:</span>
-                        <span className="text-gray-600 dark:text-gray-400">{detailedImageModal.image.user_filename}</span>
+                        <span className="text-gray-600 dark:text-gray-400">{decodeName(detailedImageModal.image.user_filename)}</span>
                       </div>
                     )}
                     <div className="flex justify-between items-center p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
@@ -4607,10 +4631,10 @@ export default function Vault() {
                         const fileExtension = uploadedFile.name.split('.').pop() || '';
                         setUploadModelData(prev => ({ 
                           ...prev, 
-                          system_filename: `${newName}.${fileExtension}`
+                          system_filename: `${encodeName(newName)}.${fileExtension}`
                         }));
                       } else {
-                        setUploadModelData(prev => ({ ...prev, system_filename: newName }));
+                        setUploadModelData(prev => ({ ...prev, system_filename: encodeName(newName) }));
                       }
                     }}
                     placeholder="Enter filename"

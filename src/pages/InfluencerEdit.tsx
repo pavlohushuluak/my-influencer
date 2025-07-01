@@ -446,7 +446,7 @@ export default function InfluencerEdit() {
           if (detailResponse.ok) {
             const imageDetails: GeneratedImageData[] = await detailResponse.json();
             if (imageDetails.length > 0) {
-              detailedImagesData.push({...imageDetails[0], id:filename});
+              detailedImagesData.push({ ...imageDetails[0], id: filename });
             }
           }
         } catch (error) {

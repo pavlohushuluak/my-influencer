@@ -194,6 +194,10 @@ export default function Vault() {
   const [loadingInfluencers, setLoadingInfluencers] = useState<boolean>(false);
   const [settingProfilePicture, setSettingProfilePicture] = useState<string | null>(null);
 
+  // Folder file counts state
+  const [folderFileCounts, setFolderFileCounts] = useState<{[key: string]: number}>({});
+  const [loadingFileCounts, setLoadingFileCounts] = useState<{[key: string]: boolean}>({});
+
   // Load copy state from localStorage on component mount
   useEffect(() => {
     const savedCopyState = localStorage.getItem('copystate');
@@ -395,6 +399,22 @@ export default function Vault() {
       fetchFolders();
     }
   }, [userData.id]);
+
+  // Fetch file counts for all folders when folder structure changes
+  useEffect(() => {
+    const fetchAllFolderFileCounts = async () => {
+      const currentFolders = getCurrentPathFolders();
+      
+      // Fetch file counts for each immediate children folder of current path
+      for (const folder of currentFolders) {
+        await fetchFolderFileCount(folder.path);
+      }
+    };
+
+    if (folderStructure.length > 0) {
+      fetchAllFolderFileCounts();
+    }
+  }, [folderStructure, userData.id, currentPath]);
 
   // Fetch files from home route
   const fetchHomeFiles = async () => {
@@ -2492,47 +2512,80 @@ export default function Vault() {
         body: JSON.stringify({
           user: userData.id,
           sourcefilename: `${sourcePath}/${image.system_filename}`,
-          destinationfilename: `models/${influencer.id}/profilepic/profilepic${influencer.image_num}.${extension}`
+          destinationfilename: `models/${influencer.id}/profilepic/profile.${extension}`
         })
       });
 
-      // Update the influencer data
-      const updatedInfluencer = {
-        ...influencer,
-        image_url: `https://images.nymia.ai/cdn-cgi/image/w=400/${userData.id}/models/${influencer.id}/profilepic/profilepic${influencer.image_num}.${extension}`,
-        image_num: influencer.image_num + 1
-      };
-
-      // Update in database
-      const response = await fetch(`https://db.nymia.ai/rest/v1/influencer?id=eq.${influencer.id}`, {
+      // Update the influencer's profile picture in the database
+      await fetch(`https://db.nymia.ai/rest/v1/influencers?id=eq.${influencer.id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer WeInfl3nc3withAI'
         },
-        body: JSON.stringify(updatedInfluencer)
+        body: JSON.stringify({
+          image_url: `models/${influencer.id}/profilepic/profile.${extension}`
+        })
       });
 
-      if (response.ok) {
-        // Update local state
-        setInfluencersLocal(prev => 
-          prev.map(inf => inf.id === influencer.id ? updatedInfluencer : inf)
-        );
-        
-        // Update Redux store
-        dispatch(updateInfluencer(updatedInfluencer));
-        
-        toast.success(`Profile picture updated for ${influencer.name_first} ${influencer.name_last}`);
-        setShowInfluencerSelector(false);
-        setSelectedImageForProfile(null);
-      } else {
-        throw new Error('Failed to update influencer');
-      }
+      toast.success(`Profile picture updated for ${influencer.name}`);
+      setShowInfluencerSelector(false);
+      setSelectedImageForProfile(null);
     } catch (error) {
       console.error('Error setting profile picture:', error);
       toast.error('Failed to set profile picture');
     } finally {
       setSettingProfilePicture(null);
+    }
+  };
+
+  // Fetch file count for a specific folder
+  const fetchFolderFileCount = async (folderPath: string) => {
+    if (!userData.id || loadingFileCounts[folderPath]) return;
+
+    setLoadingFileCounts(prev => ({ ...prev, [folderPath]: true }));
+    
+    try {
+      const folder = `vault/${folderPath}`;
+      console.log("Folder path: ", folder);
+      
+      const filesResponse = await fetch('https://api.nymia.ai/v1/getfilenames', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          user: userData.id,
+          folder: folder
+        })
+      });
+
+      if (filesResponse.ok) {
+        const filesData: FileData[] = await filesResponse.json();
+        // console.log("Files data: ", filesData);
+        
+        // Count only files that are directly in this folder (not in subfolders)
+        const directFiles = filesData.filter(file => {
+          const filePath = file.Key;
+          if(filePath!==undefined) {
+            const relativePath = filePath.replace(`/${folder}/`, '');
+            // console.log("Relative path: ", relativePath); 
+            // Only count files that don't contain '/' (meaning they're directly in this folder)
+            return !relativePath.includes('/');
+          }
+          return false;
+        });
+
+        // console.log(directFiles);
+
+        setFolderFileCounts(prev => ({ ...prev, [folderPath]: directFiles.length }));
+      }
+    } catch (error) {
+      console.error(`Error fetching file count for folder ${folderPath}:`, error);
+      setFolderFileCounts(prev => ({ ...prev, [folderPath]: 0 }));
+    } finally {
+      setLoadingFileCounts(prev => ({ ...prev, [folderPath]: false }));
     }
   };
 
@@ -3055,6 +3108,16 @@ export default function Vault() {
                     <span className="text-xs text-muted-foreground mt-1">
                       {folder.children.length} folders
                     </span>
+                    <span className="text-xs text-muted-foreground">
+                      {loadingFileCounts[folder.path] ? (
+                        <div className="flex items-center gap-1">
+                          <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-gray-400"></div>
+                          Loading...
+                        </div>
+                      ) : (
+                        `${folderFileCounts[folder.path] || 0} files`
+                      )}
+                    </span>
                   </div>
                 </div>
               ));
@@ -3070,6 +3133,18 @@ export default function Vault() {
                 if (rawFolders.length === 0) {
                   return null; // Don't show anything if no valid folders
                 }
+
+                // Fetch file counts for fallback folders
+                rawFolders.forEach(folder => {
+                  const folderPath = extractFolderName(folder.Key);
+                  if (folderPath && folderPath.trim() !== '' && !loadingFileCounts[folderPath] && folderFileCounts[folderPath] === undefined) {
+                    // Only fetch for immediate children of current path
+                    const isImmediateChild = !folderPath.includes('/') || folderPath.split('/').length === 1;
+                    if (isImmediateChild) {
+                      fetchFolderFileCount(folderPath);
+                    }
+                  }
+                });
 
                 return rawFolders.map((folder) => {
                   const folderPath = extractFolderName(folder.Key);
@@ -3145,7 +3220,17 @@ export default function Vault() {
                           </span>
                         )}
                         <span className="text-xs text-muted-foreground mt-1">
-                          0 items
+                          0 folders
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {loadingFileCounts[folderPath] ? (
+                            <div className="flex items-center gap-1">
+                              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-gray-400"></div>
+                              Loading...
+                            </div>
+                          ) : (
+                            `${folderFileCounts[folderPath] || 0} files`
+                          )}
                         </span>
                       </div>
                     </div>

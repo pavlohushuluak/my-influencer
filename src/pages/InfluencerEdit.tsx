@@ -743,7 +743,8 @@ export default function InfluencerEdit() {
           name_first: influencerData.name_first,
           name_last: influencerData.name_last,
           visual_only: influencerData.visual_only,
-          age_lifestyle: influencerData.age_lifestyle
+          age: influencerData.age,
+          lifestyle: influencerData.lifestyle
         } : null,
         scene: {
           framing: "",

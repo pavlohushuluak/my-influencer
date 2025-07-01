@@ -151,6 +151,7 @@ const FEATURE_RESTRICTIONS = {
 interface Option {
   label: string;
   image: string;
+  description?: string;
 }
 
 const INFLUENCER_TYPES = ['Lifestyle', 'Educational'];
@@ -943,7 +944,8 @@ export default function InfluencerEdit() {
           if (responseData && responseData.fieldoptions && Array.isArray(responseData.fieldoptions)) {
             setCulturalBackgroundOptions(responseData.fieldoptions.map((item: any) => ({
               label: item.label,
-              image: item.image
+              image: item.image,
+              description: item.description
             })));
           }
         }
@@ -995,7 +997,8 @@ export default function InfluencerEdit() {
             if (responseData && responseData.fieldoptions && Array.isArray(responseData.fieldoptions)) {
               setter(responseData.fieldoptions.map((item: any) => ({
                 label: item.label,
-                image: item.image
+                image: item.image,
+                description: item.description
               })));
             }
           }
@@ -1121,6 +1124,11 @@ export default function InfluencerEdit() {
                       </div>
                     </div>
                     <p className="text-sm text-center font-medium mt-2">{option.label}</p>
+                    {option.description && (
+                      <p className="text-xs text-center text-muted-foreground mt-1 line-clamp-2">
+                        {option.description}
+                      </p>
+                    )}
                   </CardContent>
                 </Card>
               ))}
@@ -1216,6 +1224,11 @@ export default function InfluencerEdit() {
                       </div>
                     </div>
                     <p className="text-sm text-center font-medium mt-2">{option.label}</p>
+                    {option.description && (
+                      <p className="text-xs text-center text-muted-foreground mt-1 line-clamp-2">
+                        {option.description}
+                      </p>
+                    )}
                   </CardContent>
                 </Card>
               ))}
@@ -1662,29 +1675,10 @@ export default function InfluencerEdit() {
                           onClick={() => setShowSexSelector(true)}
                           className='flex items-center justify-center cursor-pointer w-full'
                         >
-                          {
-                            sexOptions.find(option => option.label === influencerData.sex)?.image ? (
-                              <Card className="relative w-full max-w-[250px]">
-                                <CardContent className="p-4">
-                                  <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
-                                    <img
-                                      src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${sexOptions.find(option => option.label === influencerData.sex)?.image}`}
-                                      className="absolute inset-0 w-full h-full object-cover rounded-md"
-                                    />
-                                  </div>
-                                  <p className="text-sm text-center font-medium mt-2">{sexOptions.find(option => option.label === influencerData.sex)?.label}</p>
-                                </CardContent>
-                              </Card>
-                            )
-                              :
-                              <Card className="relative w-full border max-w-[250px]">
-                                <CardContent className="p-4">
-                                  <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
-                                    Select option
-                                  </div>
-                                </CardContent>
-                              </Card>
-                          }
+                          {renderOptionCard(
+                            sexOptions.find(option => option.label === influencerData.sex),
+                            "Select sex"
+                          )}
                         </div>
                       </div>
                     </div>
@@ -1709,29 +1703,10 @@ export default function InfluencerEdit() {
                             onClick={() => setShowPersonaSelector(true)}
                             className='flex items-center justify-center cursor-pointer w-full'
                           >
-                            {
-                              personaOptions.find(option => option.label === influencerData.age_lifestyle)?.image ? (
-                                <Card className="relative w-full max-w-[250px]">
-                                  <CardContent className="p-4">
-                                    <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
-                                      <img
-                                        src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${personaOptions.find(option => option.label === influencerData.age_lifestyle)?.image}`}
-                                        className="absolute inset-0 w-full h-full object-cover rounded-md"
-                                      />
-                                    </div>
-                                    <p className="text-sm text-center font-medium mt-2">{personaOptions.find(option => option.label === influencerData.age_lifestyle)?.label}</p>
-                                  </CardContent>
-                                </Card>
-                              )
-                                :
-                                <Card className="relative w-full border max-w-[250px]">
-                                  <CardContent className="p-4">
-                                    <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
-                                      Select option
-                                    </div>
-                                  </CardContent>
-                                </Card>
-                            }
+                            {renderOptionCard(
+                              personaOptions.find(option => option.label === influencerData.age_lifestyle),
+                              "Select age & lifestyle"
+                            )}
                           </div>
                         </div>
                       </div>
@@ -1757,29 +1732,10 @@ export default function InfluencerEdit() {
                           onClick={() => setShowCulturalBackgroundSelector(true)}
                           className='flex items-center justify-center cursor-pointer w-full'
                         >
-                          {
-                            culturalBackgroundOptions.find(option => option.label === influencerData.cultural_background)?.image ? (
-                              <Card className="relative w-full max-w-[250px]">
-                                <CardContent className="p-4">
-                                  <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
-                                    <img
-                                      src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${culturalBackgroundOptions.find(option => option.label === influencerData.cultural_background)?.image}`}
-                                      className="absolute inset-0 w-full h-full object-cover rounded-md"
-                                    />
-                                  </div>
-                                  <p className="text-sm text-center font-medium mt-2">{culturalBackgroundOptions.find(option => option.label === influencerData.cultural_background)?.label}</p>
-                                </CardContent>
-                              </Card>
-                            )
-                              :
-                              <Card className="relative w-full border max-w-[250px]">
-                                <CardContent className="p-4">
-                                  <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
-                                    Select option
-                                  </div>
-                                </CardContent>
-                              </Card>
-                          }
+                          {renderOptionCard(
+                            culturalBackgroundOptions.find(option => option.label === influencerData.cultural_background),
+                            "Select cultural background"
+                          )}
                         </div>
                       </div>
                     </div>
@@ -1838,29 +1794,10 @@ export default function InfluencerEdit() {
                           onClick={() => setShowHairLengthSelector(true)}
                           className='flex items-center justify-center cursor-pointer w-full'
                         >
-                          {
-                            hairLengthOptions.find(option => option.label === influencerData.hair_length)?.image ? (
-                              <Card className="relative w-full max-w-[250px]">
-                                <CardContent className="p-4">
-                                  <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
-                                    <img
-                                      src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${hairLengthOptions.find(option => option.label === influencerData.hair_length)?.image}`}
-                                      className="absolute inset-0 w-full h-full object-cover rounded-md"
-                                    />
-                                  </div>
-                                  <p className="text-sm text-center font-medium mt-2">{hairLengthOptions.find(option => option.label === influencerData.hair_length)?.label}</p>
-                                </CardContent>
-                              </Card>
-                            )
-                              :
-                              <Card className="relative w-full border max-w-[250px]">
-                                <CardContent className="p-4">
-                                  <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
-                                    Select option
-                                  </div>
-                                </CardContent>
-                              </Card>
-                          }
+                          {renderOptionCard(
+                            hairLengthOptions.find(option => option.label === influencerData.hair_length),
+                            "Select hair length"
+                          )}
                         </div>
                       </div>
                     </div>
@@ -1884,29 +1821,10 @@ export default function InfluencerEdit() {
                           onClick={() => setShowHairStyleSelector(true)}
                           className='flex items-center justify-center cursor-pointer w-full'
                         >
-                          {
-                            hairStyleOptions.find(option => option.label === influencerData.hair_style)?.image ? (
-                              <Card className="relative w-full max-w-[250px]">
-                                <CardContent className="p-4">
-                                  <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
-                                    <img
-                                      src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${hairStyleOptions.find(option => option.label === influencerData.hair_style)?.image}`}
-                                      className="absolute inset-0 w-full h-full object-cover rounded-md"
-                                    />
-                                  </div>
-                                  <p className="text-sm text-center font-medium mt-2">{hairStyleOptions.find(option => option.label === influencerData.hair_style)?.label}</p>
-                                </CardContent>
-                              </Card>
-                            )
-                              :
-                              <Card className="relative w-full border max-w-[250px]">
-                                <CardContent className="p-4">
-                                  <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
-                                    Select option
-                                  </div>
-                                </CardContent>
-                              </Card>
-                          }
+                          {renderOptionCard(
+                            hairStyleOptions.find(option => option.label === influencerData.hair_style),
+                            "Select hair style"
+                          )}
                         </div>
                       </div>
                     </div>
@@ -1931,29 +1849,10 @@ export default function InfluencerEdit() {
                           onClick={() => setShowHairColorSelector(true)}
                           className='flex items-center justify-center cursor-pointer w-full'
                         >
-                          {
-                            hairColorOptions.find(option => option.label === influencerData.hair_color)?.image ? (
-                              <Card className="relative w-full max-w-[250px]">
-                                <CardContent className="p-4">
-                                  <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
-                                    <img
-                                      src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${hairColorOptions.find(option => option.label === influencerData.hair_color)?.image}`}
-                                      className="absolute inset-0 w-full h-full object-cover rounded-md"
-                                    />
-                                  </div>
-                                  <p className="text-sm text-center font-medium mt-2">{hairColorOptions.find(option => option.label === influencerData.hair_color)?.label}</p>
-                                </CardContent>
-                              </Card>
-                            )
-                              :
-                              <Card className="relative w-full border max-w-[250px]">
-                                <CardContent className="p-4">
-                                  <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
-                                    Select option
-                                  </div>
-                                </CardContent>
-                              </Card>
-                          }
+                          {renderOptionCard(
+                            hairColorOptions.find(option => option.label === influencerData.hair_color),
+                            "Select hair color"
+                          )}
                         </div>
 
                         {/* Color Picker Button */}
@@ -2040,29 +1939,10 @@ export default function InfluencerEdit() {
                           onClick={() => setShowEyeColorSelector(true)}
                           className='flex items-center justify-center cursor-pointer w-full'
                         >
-                          {
-                            eyeColorOptions.find(option => option.label === influencerData.eye_color)?.image ? (
-                              <Card className="relative w-full max-w-[250px]">
-                                <CardContent className="p-4">
-                                  <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
-                                    <img
-                                      src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${eyeColorOptions.find(option => option.label === influencerData.eye_color)?.image}`}
-                                      className="absolute inset-0 w-full h-full object-cover rounded-md"
-                                    />
-                                  </div>
-                                  <p className="text-sm text-center font-medium mt-2">{eyeColorOptions.find(option => option.label === influencerData.eye_color)?.label}</p>
-                                </CardContent>
-                              </Card>
-                            )
-                              :
-                              <Card className="relative w-full border max-w-[250px]">
-                                <CardContent className="p-4">
-                                  <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
-                                    Select option
-                                  </div>
-                                </CardContent>
-                              </Card>
-                          }
+                          {renderOptionCard(
+                            eyeColorOptions.find(option => option.label === influencerData.eye_color),
+                            "Select eye color"
+                          )}
                         </div>
 
                         {/* Color Picker Button */}
@@ -2758,6 +2638,11 @@ export default function InfluencerEdit() {
                                 </div>
                               </div>
                               <p className="text-sm text-center font-medium mt-2">{option.label}</p>
+                              {option.description && (
+                                <p className="text-xs text-center text-muted-foreground mt-1 line-clamp-2">
+                                  {option.description}
+                                </p>
+                              )}
                             </CardContent>
                           </Card>
                         ))}
@@ -4131,3 +4016,37 @@ export default function InfluencerEdit() {
     </div>
   );
 }
+
+// Helper function to render option cards with descriptions
+const renderOptionCard = (option: Option | undefined, placeholder: string = "Select option", showDescription: boolean = false) => {
+  if (!option?.image) {
+    return (
+      <Card className="relative w-full border max-w-[250px]">
+        <CardContent className="p-4">
+          <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
+            {placeholder}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="relative w-full max-w-[250px]">
+      <CardContent className="p-4">
+        <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
+          <img
+            src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
+            className="absolute inset-0 w-full h-full object-cover rounded-md"
+          />
+        </div>
+        <p className="text-sm text-center font-medium mt-2">{option.label}</p>
+        {showDescription && option.description && (
+          <p className="text-xs text-center text-muted-foreground mt-1 line-clamp-2">
+            {option.description}
+          </p>
+        )}
+      </CardContent>
+    </Card>
+  );
+};

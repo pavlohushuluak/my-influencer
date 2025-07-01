@@ -154,6 +154,32 @@ interface Option {
   description?: string;
 }
 
+interface FacialTemplateDetail {
+  template_id: string;
+  template_name: string;
+  category: string;
+  description: string;
+  base_prompt: string;
+  implied_face_shape: string;
+  implied_nose_style: string;
+  implied_lip_style: string;
+  implied_eye_color: string;
+  implied_eye_shape: string;
+  implied_eyebrow_style: string;
+  implied_skin_tone: string;
+  weight_without_lora: number;
+  weight_with_lora: number;
+  is_active: boolean;
+  created_at: string;
+  implied_hair_color: string;
+  implied_hair_length: string;
+  implied_hair_style: string;
+  sortid: number;
+  implied_cultural_background: string;
+  id: number;
+  prompt_mapping_ref_id: number;
+}
+
 const INFLUENCER_TYPES = ['Lifestyle', 'Educational'];
 
 export default function InfluencerEdit() {
@@ -330,6 +356,13 @@ export default function InfluencerEdit() {
   const [showEyeColorPicker, setShowEyeColorPicker] = useState(false);
   const [selectedHairColor, setSelectedHairColor] = useState<string>('');
   const [selectedEyeColor, setSelectedEyeColor] = useState<string>('');
+
+  // Add state for enhanced facial features functionality
+  const [selectedFacialTemplate, setSelectedFacialTemplate] = useState<FacialTemplateDetail | null>(null);
+  const [showFacialTemplateDetails, setShowFacialTemplateDetails] = useState(false);
+  const [showFacialTemplateConfirm, setShowFacialTemplateConfirm] = useState(false);
+  const [isLoadingFacialTemplate, setIsLoadingFacialTemplate] = useState(false);
+  const [isApplyingTemplate, setIsApplyingTemplate] = useState(false);
 
   const isFeatureLocked = (feature: string) => {
     return FEATURE_RESTRICTIONS[subscriptionLevel].includes(feature);
@@ -986,7 +1019,7 @@ export default function InfluencerEdit() {
           nose: setNoseOptions,
           eyebrow: setEyebrowOptions,
           faceshape: setFaceShapeOptions,
-          facialfeatures: setFacialFeaturesOptions,
+          facial_features: setFacialFeaturesOptions,
           skin: setSkinToneOptions,
           bodytype: setBodyTypeOptions,
           bust: setBustOptions,
@@ -1114,6 +1147,8 @@ export default function InfluencerEdit() {
     title: string
   }) => {
     const [previewImage, setPreviewImage] = useState<string | null>(null);
+    console.log("facial_features: ");
+    console.log(options);
 
     const handleImageClick = (e: React.MouseEvent, imageUrl: string) => {
       e.stopPropagation();
@@ -1121,8 +1156,14 @@ export default function InfluencerEdit() {
     };
 
     const handleSelect = (label: string) => {
-      onSelect(label);
-      onClose();
+      // Special handling for facial features - show template details instead of selecting
+      if (title === "Select Facial Features") {
+        fetchFacialTemplateDetails(label);
+        onClose();
+      } else {
+        onSelect(label);
+        onClose();
+      }
     };
 
     return (
@@ -1154,7 +1195,7 @@ export default function InfluencerEdit() {
                       </div>
                     </div>
                     <p className="text-sm text-center font-medium mt-2">{option.label}</p>
-                    {option.description && (
+                    {option.label && (
                       <p className="text-xs text-center text-muted-foreground mt-1 line-clamp-2">
                         {option.description}
                       </p>
@@ -1373,6 +1414,86 @@ export default function InfluencerEdit() {
         </DialogContent>
       </Dialog>
     );
+  };
+
+  // Function to fetch facial template details
+  const fetchFacialTemplateDetails = async (templateName: string) => {
+    try {
+      setIsLoadingFacialTemplate(true);
+      const response = await fetch(`https://db.nymia.ai/rest/v1/facial_templates_global?template_name=eq.${templateName}`, {
+        headers: {
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch facial template details');
+      }
+
+      const data = await response.json();
+      if (data && data.length > 0) {
+        setSelectedFacialTemplate(data[0]);
+        setShowFacialTemplateDetails(true);
+      } else {
+        toast.error('Template details not found');
+      }
+    } catch (error) {
+      console.error('Error fetching facial template details:', error);
+      toast.error('Failed to fetch template details');
+    } finally {
+      setIsLoadingFacialTemplate(false);
+    }
+  };
+
+  // Function to handle facial template selection
+  const handleFacialTemplateSelect = (templateName: string) => {
+    fetchFacialTemplateDetails(templateName);
+  };
+
+  // Function to apply facial template
+  const applyFacialTemplate = async () => {
+    if (!selectedFacialTemplate) return;
+
+    try {
+      setIsApplyingTemplate(true);
+      
+      // Update influencer data with template values
+      setInfluencerData(prev => ({
+        ...prev,
+        face_shape: selectedFacialTemplate.implied_face_shape,
+        nose_style: selectedFacialTemplate.implied_nose_style,
+        lip_style: selectedFacialTemplate.implied_lip_style,
+        eye_color: selectedFacialTemplate.implied_eye_color,
+        eye_shape: selectedFacialTemplate.implied_eye_shape,
+        eyebrow_style: selectedFacialTemplate.implied_eyebrow_style,
+        skin_tone: selectedFacialTemplate.implied_skin_tone,
+        hair_color: selectedFacialTemplate.implied_hair_color,
+        hair_length: selectedFacialTemplate.implied_hair_length,
+        hair_style: selectedFacialTemplate.implied_hair_style,
+        cultural_background: selectedFacialTemplate.implied_cultural_background
+      }));
+
+      toast.success('Facial template applied successfully');
+      setShowFacialTemplateConfirm(false);
+      setShowFacialTemplateDetails(false);
+      setSelectedFacialTemplate(null);
+    } catch (error) {
+      console.error('Error applying facial template:', error);
+      toast.error('Failed to apply template');
+    } finally {
+      setIsApplyingTemplate(false);
+    }
+  };
+
+  // Function to get image for implied hair style
+  const getImpliedHairStyleImage = (impliedHairStyle: string) => {
+    const hairStyleOption = hairStyleOptions.find(option => option.label === impliedHairStyle);
+    return hairStyleOption?.image || '';
+  };
+
+  const getImpliedHairColorImage = (impliedHairColor: string) => {
+    const hairColorOption = hairColorOptions.find(option => option.label === impliedHairColor);
+    return hairColorOption?.image || '';
   };
 
   if (isLoading) {
@@ -4137,6 +4258,592 @@ export default function InfluencerEdit() {
           />
         )
       }
+
+      {/* Facial Template Details Modal */}
+      {showFacialTemplateDetails && selectedFacialTemplate && (
+        <Dialog open={showFacialTemplateDetails} onOpenChange={setShowFacialTemplateDetails}>
+          <DialogContent className="max-w-4xl w-[95vw] max-h-[90vh] overflow-y-auto p-0">
+            <DialogHeader className="px-6 py-6 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 border-b border-green-200/50 dark:border-green-800/50">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-r from-green-500 to-emerald-500 flex items-center justify-center shadow-lg">
+                  <Settings className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
+                    {selectedFacialTemplate.template_name}
+                  </DialogTitle>
+                  <DialogDescription className="text-base text-gray-600 dark:text-gray-300 mt-1">
+                    {selectedFacialTemplate.description}
+                  </DialogDescription>
+                </div>
+              </div>
+            </DialogHeader>
+
+            <div className="p-6 space-y-8">
+              {/* Implied Features Grid */}
+              <div className="space-y-6">
+                <div className="text-center sm:text-left">
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+                    Template Features
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-300">
+                    These features will be automatically applied when you set this template
+                  </p>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {/* Face Shape */}
+                  <Card className="group border-2 border-blue-500/20 hover:border-blue-500/40 transition-all duration-300 shadow-lg hover:shadow-xl bg-gradient-to-br from-blue-50/30 to-indigo-50/30 dark:from-blue-950/10 dark:to-indigo-950/10">
+                    <CardContent className="p-6">
+                      <div className="space-y-4">
+                        <div className="relative">
+                          <div className="aspect-square bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-900/30 rounded-2xl overflow-hidden shadow-lg">
+                            {faceShapeOptions.find(option => option.label === selectedFacialTemplate.implied_face_shape)?.image ? (
+                              <img
+                                src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${faceShapeOptions.find(option => option.label === selectedFacialTemplate.implied_face_shape)?.image}`}
+                                alt={selectedFacialTemplate.implied_face_shape}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center">
+                                <div className="text-center">
+                                  <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-2">
+                                    <User className="w-6 h-6 text-white" />
+                                  </div>
+                                  <p className="text-sm text-blue-600 dark:text-blue-400">No Image</p>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <div className="text-center space-y-2">
+                          <h4 className="font-semibold text-lg text-gray-900 dark:text-gray-100">
+                            Face Shape
+                          </h4>
+                          <p className="text-sm text-gray-600 dark:text-gray-300">
+                            {selectedFacialTemplate.implied_face_shape}
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Hair Style */}
+                  <Card className="group border-2 border-purple-500/20 hover:border-purple-500/40 transition-all duration-300 shadow-lg hover:shadow-xl bg-gradient-to-br from-purple-50/30 to-pink-50/30 dark:from-purple-950/10 dark:to-pink-950/10">
+                    <CardContent className="p-6">
+                      <div className="space-y-4">
+                        <div className="relative">
+                          <div className="aspect-square bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30 rounded-2xl overflow-hidden shadow-lg">
+                            {getImpliedHairStyleImage(selectedFacialTemplate.implied_hair_style) ? (
+                              <img
+                                src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${getImpliedHairStyleImage(selectedFacialTemplate.implied_hair_style)}`}
+                                alt={selectedFacialTemplate.implied_hair_style}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center">
+                                <div className="text-center">
+                                  <div className="w-12 h-12 bg-purple-500 rounded-full flex items-center justify-center mx-auto mb-2">
+                                    <User className="w-6 h-6 text-white" />
+                                  </div>
+                                  <p className="text-sm text-purple-600 dark:text-purple-400">No Image</p>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <div className="text-center space-y-2">
+                          <h4 className="font-semibold text-lg text-gray-900 dark:text-gray-100">
+                            Hair Style
+                          </h4>
+                          <p className="text-sm text-gray-600 dark:text-gray-300">
+                            {selectedFacialTemplate.implied_hair_style}
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Hair Color */}
+                  <Card className="group border-2 border-red-500/20 hover:border-red-500/40 transition-all duration-300 shadow-lg hover:shadow-xl bg-gradient-to-br from-red-50/30 to-pink-50/30 dark:from-red-950/10 dark:to-pink-950/10">
+                    <CardContent className="p-6">
+                      <div className="space-y-4">
+                      <div className="relative">
+                          <div className="aspect-square bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30 rounded-2xl overflow-hidden shadow-lg">
+                            {getImpliedHairColorImage(selectedFacialTemplate.implied_hair_color) ? (
+                              <img
+                                src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${getImpliedHairColorImage(selectedFacialTemplate.implied_hair_color)}`}
+                                alt={selectedFacialTemplate.implied_hair_color}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center">
+                                <div className="text-center">
+                                  <div className="w-12 h-12 bg-purple-500 rounded-full flex items-center justify-center mx-auto mb-2">
+                                    <User className="w-6 h-6 text-white" />
+                                  </div>
+                                  <p className="text-sm text-purple-600 dark:text-purple-400">No Image</p>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <div className="text-center space-y-2">
+                          <h4 className="font-semibold text-lg text-gray-900 dark:text-gray-100">
+                            Hair Color
+                          </h4>
+                          <p className="text-sm text-gray-600 dark:text-gray-300">
+                            {selectedFacialTemplate.implied_hair_color}
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Hair Length */}
+                  <Card className="group border-2 border-green-500/20 hover:border-green-500/40 transition-all duration-300 shadow-lg hover:shadow-xl bg-gradient-to-br from-green-50/30 to-emerald-50/30 dark:from-green-950/10 dark:to-emerald-950/10">
+                    <CardContent className="p-6">
+                      <div className="space-y-4">
+                        <div className="relative">
+                          <div className="aspect-square bg-gradient-to-br from-green-100 to-emerald-100 dark:from-green-900/30 dark:to-emerald-900/30 rounded-2xl overflow-hidden shadow-lg">
+                            {hairLengthOptions.find(option => option.label === selectedFacialTemplate.implied_hair_length)?.image ? (
+                              <img
+                                src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${hairLengthOptions.find(option => option.label === selectedFacialTemplate.implied_hair_length)?.image}`}
+                                alt={selectedFacialTemplate.implied_hair_length}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center">
+                                <div className="text-center">
+                                  <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-2">
+                                    <User className="w-6 h-6 text-white" />
+                                  </div>
+                                  <p className="text-sm text-green-600 dark:text-green-400">No Image</p>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <div className="text-center space-y-2">
+                          <h4 className="font-semibold text-lg text-gray-900 dark:text-gray-100">
+                            Hair Length
+                          </h4>
+                          <p className="text-sm text-gray-600 dark:text-gray-300">
+                            {selectedFacialTemplate.implied_hair_length}
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Eye Color */}
+                  <Card className="group border-2 border-amber-500/20 hover:border-amber-500/40 transition-all duration-300 shadow-lg hover:shadow-xl bg-gradient-to-br from-amber-50/30 to-orange-50/30 dark:from-amber-950/10 dark:to-orange-950/10">
+                    <CardContent className="p-6">
+                      <div className="space-y-4">
+                      <div className="relative">
+                          <div className="aspect-square bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-900/30 dark:to-orange-900/30 rounded-2xl overflow-hidden shadow-lg">
+                            {eyeColorOptions.find(option => option.label === selectedFacialTemplate.implied_eye_color)?.image ? (
+                              <img
+                                src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${eyeColorOptions.find(option => option.label === selectedFacialTemplate.implied_eye_color)?.image}`}
+                                alt={selectedFacialTemplate.implied_eye_color}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center">
+                                <div className="text-center">
+                                  <div className="w-12 h-12 bg-amber-500 rounded-full flex items-center justify-center mx-auto mb-2">
+                                    <User className="w-6 h-6 text-white" />
+                                  </div>
+                                  <p className="text-sm text-amber-600 dark:text-amber-400">No Image</p>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <div className="text-center space-y-2">
+                          <h4 className="font-semibold text-lg text-gray-900 dark:text-gray-100">
+                            Eye Color
+                          </h4>
+                          <p className="text-sm text-gray-600 dark:text-gray-300">
+                            {selectedFacialTemplate.implied_eye_color}
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Eye Shape */}
+                  <Card className="group border-2 border-cyan-500/20 hover:border-cyan-500/40 transition-all duration-300 shadow-lg hover:shadow-xl bg-gradient-to-br from-cyan-50/30 to-blue-50/30 dark:from-cyan-950/10 dark:to-blue-950/10">
+                    <CardContent className="p-6">
+                      <div className="space-y-4">
+                        <div className="relative">
+                          <div className="aspect-square bg-gradient-to-br from-cyan-100 to-blue-100 dark:from-cyan-900/30 dark:to-blue-900/30 rounded-2xl overflow-hidden shadow-lg">
+                            {eyeShapeOptions.find(option => option.label === selectedFacialTemplate.implied_eye_shape)?.image ? (
+                              <img
+                                src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${eyeShapeOptions.find(option => option.label === selectedFacialTemplate.implied_eye_shape)?.image}`}
+                                alt={selectedFacialTemplate.implied_eye_shape}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center">
+                                <div className="text-center">
+                                  <div className="w-12 h-12 bg-cyan-500 rounded-full flex items-center justify-center mx-auto mb-2">
+                                    <User className="w-6 h-6 text-white" />
+                                  </div>
+                                  <p className="text-sm text-cyan-600 dark:text-cyan-400">No Image</p>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <div className="text-center space-y-2">
+                          <h4 className="font-semibold text-lg text-gray-900 dark:text-gray-100">
+                            Eye Shape
+                          </h4>
+                          <p className="text-sm text-gray-600 dark:text-gray-300">
+                            {selectedFacialTemplate.implied_eye_shape}
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Nose Style */}
+                  <Card className="group border-2 border-orange-500/20 hover:border-orange-500/40 transition-all duration-300 shadow-lg hover:shadow-xl bg-gradient-to-br from-orange-50/30 to-red-50/30 dark:from-orange-950/10 dark:to-red-950/10">
+                    <CardContent className="p-6">
+                      <div className="space-y-4">
+                        <div className="relative">
+                          <div className="aspect-square bg-gradient-to-br from-orange-100 to-red-100 dark:from-orange-900/30 dark:to-red-900/30 rounded-2xl overflow-hidden shadow-lg">
+                            {noseOptions.find(option => option.label === selectedFacialTemplate.implied_nose_style)?.image ? (
+                              <img
+                                src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${noseOptions.find(option => option.label === selectedFacialTemplate.implied_nose_style)?.image}`}
+                                alt={selectedFacialTemplate.implied_nose_style}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center">
+                                <div className="text-center">
+                                  <div className="w-12 h-12 bg-orange-500 rounded-full flex items-center justify-center mx-auto mb-2">
+                                    <User className="w-6 h-6 text-white" />
+                                  </div>
+                                  <p className="text-sm text-orange-600 dark:text-orange-400">No Image</p>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <div className="text-center space-y-2">
+                          <h4 className="font-semibold text-lg text-gray-900 dark:text-gray-100">
+                            Nose Style
+                          </h4>
+                          <p className="text-sm text-gray-600 dark:text-gray-300">
+                            {selectedFacialTemplate.implied_nose_style}
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Lip Style */}
+                  <Card className="group border-2 border-pink-500/20 hover:border-pink-500/40 transition-all duration-300 shadow-lg hover:shadow-xl bg-gradient-to-br from-pink-50/30 to-rose-50/30 dark:from-pink-950/10 dark:to-rose-950/10">
+                    <CardContent className="p-6">
+                      <div className="space-y-4">
+                        <div className="relative">
+                          <div className="aspect-square bg-gradient-to-br from-pink-100 to-rose-100 dark:from-pink-900/30 dark:to-rose-900/30 rounded-2xl overflow-hidden shadow-lg">
+                            {lipOptions.find(option => option.label === selectedFacialTemplate.implied_lip_style)?.image ? (
+                              <img
+                                src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${lipOptions.find(option => option.label === selectedFacialTemplate.implied_lip_style)?.image}`}
+                                alt={selectedFacialTemplate.implied_lip_style}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center">
+                                <div className="text-center">
+                                  <div className="w-12 h-12 bg-pink-500 rounded-full flex items-center justify-center mx-auto mb-2">
+                                    <User className="w-6 h-6 text-white" />
+                                  </div>
+                                  <p className="text-sm text-pink-600 dark:text-pink-400">No Image</p>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <div className="text-center space-y-2">
+                          <h4 className="font-semibold text-lg text-gray-900 dark:text-gray-100">
+                            Lip Style
+                          </h4>
+                          <p className="text-sm text-gray-600 dark:text-gray-300">
+                            {selectedFacialTemplate.implied_lip_style}
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Eyebrow Style */}
+                  <Card className="group border-2 border-yellow-500/20 hover:border-yellow-500/40 transition-all duration-300 shadow-lg hover:shadow-xl bg-gradient-to-br from-yellow-50/30 to-amber-50/30 dark:from-yellow-950/10 dark:to-amber-950/10">
+                    <CardContent className="p-6">
+                      <div className="space-y-4">
+                        <div className="relative">
+                          <div className="aspect-square bg-gradient-to-br from-yellow-100 to-amber-100 dark:from-yellow-900/30 dark:to-amber-900/30 rounded-2xl overflow-hidden shadow-lg">
+                            {eyebrowOptions.find(option => option.label === selectedFacialTemplate.implied_eyebrow_style)?.image ? (
+                              <img
+                                src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${eyebrowOptions.find(option => option.label === selectedFacialTemplate.implied_eyebrow_style)?.image}`}
+                                alt={selectedFacialTemplate.implied_eyebrow_style}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center">
+                                <div className="text-center">
+                                  <div className="w-12 h-12 bg-yellow-500 rounded-full flex items-center justify-center mx-auto mb-2">
+                                    <User className="w-6 h-6 text-white" />
+                                  </div>
+                                  <p className="text-sm text-yellow-600 dark:text-yellow-400">No Image</p>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <div className="text-center space-y-2">
+                          <h4 className="font-semibold text-lg text-gray-900 dark:text-gray-100">
+                            Eyebrow Style
+                          </h4>
+                          <p className="text-sm text-gray-600 dark:text-gray-300">
+                            {selectedFacialTemplate.implied_eyebrow_style}
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Skin Tone */}
+                  <Card className="group border-2 border-indigo-500/20 hover:border-indigo-500/40 transition-all duration-300 shadow-lg hover:shadow-xl bg-gradient-to-br from-indigo-50/30 to-purple-50/30 dark:from-indigo-950/10 dark:to-purple-950/10">
+                    <CardContent className="p-6">
+                      <div className="space-y-4">
+                        <div className="relative">
+                          <div className="aspect-square bg-gradient-to-br from-indigo-100 to-purple-100 dark:from-indigo-900/30 dark:to-purple-900/30 rounded-2xl overflow-hidden shadow-lg">
+                            {skinToneOptions.find(option => option.label === selectedFacialTemplate.implied_skin_tone)?.image ? (
+                              <img
+                                src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${skinToneOptions.find(option => option.label === selectedFacialTemplate.implied_skin_tone)?.image}`}
+                                alt={selectedFacialTemplate.implied_skin_tone}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center">
+                                <div className="text-center">
+                                  <div className="w-12 h-12 bg-indigo-500 rounded-full flex items-center justify-center mx-auto mb-2">
+                                    <User className="w-6 h-6 text-white" />
+                                  </div>
+                                  <p className="text-sm text-indigo-600 dark:text-indigo-400">No Image</p>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <div className="text-center space-y-2">
+                          <h4 className="font-semibold text-lg text-gray-900 dark:text-gray-100">
+                            Skin Tone
+                          </h4>
+                          <p className="text-sm text-gray-600 dark:text-gray-300">
+                            {selectedFacialTemplate.implied_skin_tone}
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Cultural Background */}
+                  <Card className="group border-2 border-teal-500/20 hover:border-teal-500/40 transition-all duration-300 shadow-lg hover:shadow-xl bg-gradient-to-br from-teal-50/30 to-cyan-50/30 dark:from-teal-950/10 dark:to-cyan-950/10">
+                    <CardContent className="p-6">
+                      <div className="space-y-4">
+                        <div className="relative">
+                          <div className="aspect-square bg-gradient-to-br from-teal-100 to-cyan-100 dark:from-teal-900/30 dark:to-cyan-900/30 rounded-2xl overflow-hidden shadow-lg">
+                            {culturalBackgroundOptions.find(option => option.label === selectedFacialTemplate.implied_cultural_background)?.image ? (
+                              <img
+                                src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${culturalBackgroundOptions.find(option => option.label === selectedFacialTemplate.implied_cultural_background)?.image}`}
+                                alt={selectedFacialTemplate.implied_cultural_background}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center">
+                                <div className="text-center">
+                                  <div className="w-12 h-12 bg-teal-500 rounded-full flex items-center justify-center mx-auto mb-2">
+                                    <User className="w-6 h-6 text-white" />
+                                  </div>
+                                  <p className="text-sm text-teal-600 dark:text-teal-400">No Image</p>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <div className="text-center space-y-2">
+                          <h4 className="font-semibold text-lg text-gray-900 dark:text-gray-100">
+                            Cultural Background
+                          </h4>
+                          <p className="text-sm text-gray-600 dark:text-gray-300">
+                            {selectedFacialTemplate.implied_cultural_background}
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-col sm:flex-row gap-3 pt-6 border-t border-gray-200 dark:border-gray-700">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowFacialTemplateDetails(false);
+                    setSelectedFacialTemplate(null);
+                    setShowFacialFeaturesSelector(true);
+                  }}
+                  className="flex-1 h-12 text-base font-medium border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
+                >
+                  <ChevronRight className="w-5 h-5 mr-3 rotate-180" />
+                  Back to Features
+                </Button>
+                <Button
+                  onClick={() => {
+                    setShowFacialTemplateDetails(false);
+                    setShowFacialTemplateConfirm(true);
+                  }}
+                  className="flex-1 h-12 text-base font-medium bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 shadow-lg hover:shadow-xl transition-all duration-300"
+                >
+                  <Settings className="w-5 h-5 mr-3" />
+                  Set Template
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Facial Template Confirmation Modal */}
+      {showFacialTemplateConfirm && selectedFacialTemplate && (
+        <Dialog open={showFacialTemplateConfirm} onOpenChange={setShowFacialTemplateConfirm}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-r from-green-500 to-emerald-500 flex items-center justify-center">
+                  <Settings className="w-5 h-5 text-white" />
+                </div>
+                <span className="text-xl font-bold">Confirm Template Application</span>
+              </DialogTitle>
+              <DialogDescription className="text-base mt-2">
+                Are you sure you want to apply the <strong>{selectedFacialTemplate.template_name}</strong> template? 
+                This will update all the following features:
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-6">
+              {/* Current vs New Values */}
+              <div className="bg-gradient-to-br from-amber-50/50 to-orange-50/50 dark:from-amber-950/20 dark:to-orange-950/20 rounded-lg p-4 border border-amber-200/50 dark:border-amber-800/50">
+                <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center gap-2">
+                  <div className="w-2 h-2 bg-amber-500 rounded-full"></div>
+                  Features to be Updated
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600 dark:text-gray-300">Face Shape:</span>
+                      <span className="font-medium">{influencerData.face_shape} → {selectedFacialTemplate.implied_face_shape}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600 dark:text-gray-300">Hair Style:</span>
+                      <span className="font-medium">{influencerData.hair_style} → {selectedFacialTemplate.implied_hair_style}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600 dark:text-gray-300">Hair Color:</span>
+                      <span className="font-medium">{influencerData.hair_color} → {selectedFacialTemplate.implied_hair_color}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600 dark:text-gray-300">Hair Length:</span>
+                      <span className="font-medium">{influencerData.hair_length} → {selectedFacialTemplate.implied_hair_length}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600 dark:text-gray-300">Eye Color:</span>
+                      <span className="font-medium">{influencerData.eye_color} → {selectedFacialTemplate.implied_eye_color}</span>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600 dark:text-gray-300">Nose Style:</span>
+                      <span className="font-medium">{influencerData.nose_style} → {selectedFacialTemplate.implied_nose_style}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600 dark:text-gray-300">Lip Style:</span>
+                      <span className="font-medium">{influencerData.lip_style} → {selectedFacialTemplate.implied_lip_style}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600 dark:text-gray-300">Eye Shape:</span>
+                      <span className="font-medium">{influencerData.eye_shape} → {selectedFacialTemplate.implied_eye_shape}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600 dark:text-gray-300">Eyebrow Style:</span>
+                      <span className="font-medium">{influencerData.eyebrow_style} → {selectedFacialTemplate.implied_eyebrow_style}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600 dark:text-gray-300">Cultural Background:</span>
+                      <span className="font-medium">{influencerData.cultural_background} → {selectedFacialTemplate.implied_cultural_background}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Warning */}
+              <div className="bg-gradient-to-br from-red-50/50 to-pink-50/50 dark:from-red-950/20 dark:to-pink-950/20 rounded-lg p-4 border border-red-200/50 dark:border-red-800/50">
+                <div className="flex items-start gap-3">
+                  <div className="w-6 h-6 rounded-full bg-red-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-red-800 dark:text-red-200 mb-1">Warning</h4>
+                    <p className="text-sm text-red-700 dark:text-red-300">
+                      This action will overwrite all current facial features with the template values. 
+                      This change cannot be undone automatically.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-col sm:flex-row gap-3 pt-4">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowFacialTemplateConfirm(false);
+                    setSelectedFacialTemplate(null);
+                  }}
+                  className="flex-1 h-12 text-base font-medium border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={applyFacialTemplate}
+                  disabled={isApplyingTemplate}
+                  className="flex-1 h-12 text-base font-medium bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isApplyingTemplate ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-3" />
+                      Applying Template...
+                    </>
+                  ) : (
+                    <>
+                      <Settings className="w-5 h-5 mr-3" />
+                      Apply Template
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }

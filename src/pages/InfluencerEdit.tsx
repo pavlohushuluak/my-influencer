@@ -646,6 +646,7 @@ export default function InfluencerEdit() {
         }
       }
       else {
+        console.log(influencerData);
         const response = await fetch(`https://db.nymia.ai/rest/v1/influencer?id=eq.${influencerData.id}`, {
           method: 'PATCH',
           headers: {
@@ -1460,6 +1461,7 @@ export default function InfluencerEdit() {
       // Update influencer data with template values
       setInfluencerData(prev => ({
         ...prev,
+        facial_features: selectedFacialTemplate.template_name,
         face_shape: selectedFacialTemplate.implied_face_shape,
         nose_style: selectedFacialTemplate.implied_nose_style,
         lip_style: selectedFacialTemplate.implied_lip_style,

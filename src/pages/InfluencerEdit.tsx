@@ -225,7 +225,9 @@ export default function InfluencerEdit() {
     background_elements: [],
     image_url: '',
     image_num: 0,
-    eye_shape: ''
+    eye_shape: '',
+    age: '',
+    lifestyle: ''
   });
 
   const [activeTab, setActiveTab] = useState('basic');
@@ -249,6 +251,8 @@ export default function InfluencerEdit() {
   const [clothingSexyOptions, setClothingSexyOptions] = useState<Option[]>([]);
   const [homeEnvironmentOptions, setHomeEnvironmentOptions] = useState<Option[]>([]);
   const [eyeShapeOptions, setEyeShapeOptions] = useState<Option[]>([]);
+  const [ageOptions, setAgeOptions] = useState<Option[]>([]);
+  const [lifestyleOptions, setLifestyleOptions] = useState<Option[]>([]);
 
   // Add state for selectors
   const [showEyeColorSelector, setShowEyeColorSelector] = useState(false);
@@ -270,6 +274,8 @@ export default function InfluencerEdit() {
   const [showClothingSexySelector, setShowClothingSexySelector] = useState(false);
   const [showHomeEnvironmentSelector, setShowHomeEnvironmentSelector] = useState(false);
   const [showEyeShapeSelector, setShowEyeShapeSelector] = useState(false);
+  const [showAgeSelector, setShowAgeSelector] = useState(false);
+  const [showLifestyleSelector, setShowLifestyleSelector] = useState(false);
 
   const [showCulturalBackgroundSelector, setShowCulturalBackgroundSelector] = useState(false);
   const [culturalBackgroundOptions, setCulturalBackgroundOptions] = useState<Option[]>([]);
@@ -994,6 +1000,8 @@ export default function InfluencerEdit() {
           niche: setContentFocusAreasOptions,
           cvalues: setCoreValuesOptions,
           eye_shape: setEyeShapeOptions,
+          age: setAgeOptions,
+          lifestyle: setLifestyleOptions,
         };
 
         const promises = Object.entries(endpoints).map(async ([fieldtype, setter]) => {
@@ -1699,8 +1707,8 @@ export default function InfluencerEdit() {
                     </div>
                   </div>
 
-                  {/* Second Row: Sex, Age & Lifestyle, Cultural Background, Facial Features */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+                  {/* Second Row: Sex, Age, Lifestyle, Cultural Background, Facial Features */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5 gap-4">
                     <div className="space-y-2">
                       <Label>Sex</Label>
                       <div className="flex flex-col gap-2">
@@ -1730,28 +1738,57 @@ export default function InfluencerEdit() {
                     </div>
                     {
                       influencerData.visual_only === false && <div className="space-y-2">
-                        <Label>Age & Lifestyle</Label>
+                        <Label>Age</Label>
                         <div className="flex flex-col gap-2">
                           <Select
-                            value={influencerData.age_lifestyle}
-                            onValueChange={(value) => handleInputChange('age_lifestyle', value)}
+                            value={influencerData.age}
+                            onValueChange={(value) => handleInputChange('age', value)}
                           >
                             <SelectTrigger>
-                              <SelectValue placeholder="Select age & lifestyle" />
+                              <SelectValue placeholder="Select age" />
                             </SelectTrigger>
                             <SelectContent>
-                              {personaOptions.map((option, index) => (
+                              {ageOptions.map((option, index) => (
                                 <SelectItem key={index} value={option.label}>{option.label}</SelectItem>
                               ))}
                             </SelectContent>
                           </Select>
                           <div
-                            onClick={() => setShowPersonaSelector(true)}
+                            onClick={() => setShowAgeSelector(true)}
                             className='flex items-center justify-center cursor-pointer w-full'
                           >
                             {renderOptionCard(
-                              personaOptions.find(option => option.label === influencerData.age_lifestyle),
-                              "Select age & lifestyle"
+                              ageOptions.find(option => option.label === influencerData.age),
+                              "Select age"
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    }
+                    {
+                      influencerData.visual_only === false && <div className="space-y-2">
+                        <Label>Lifestyle</Label>
+                        <div className="flex flex-col gap-2">
+                          <Select
+                            value={influencerData.lifestyle}
+                            onValueChange={(value) => handleInputChange('lifestyle', value)}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select lifestyle" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {lifestyleOptions.map((option, index) => (
+                                <SelectItem key={index} value={option.label}>{option.label}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <div
+                            onClick={() => setShowLifestyleSelector(true)}
+                            className='flex items-center justify-center cursor-pointer w-full'
+                          >
+                            {renderOptionCard(
+                              lifestyleOptions.find(option => option.label === influencerData.lifestyle),
+                              "Select lifestyle"
                             )}
                           </div>
                         </div>
@@ -4063,6 +4100,28 @@ export default function InfluencerEdit() {
             onSelect={(label) => handleInputChange('cultural_background', label)}
             onClose={() => setShowCulturalBackgroundSelector(false)}
             title="Select Cultural Background"
+          />
+        )
+      }
+
+      {
+        showAgeSelector && (
+          <OptionSelector
+            options={ageOptions}
+            onSelect={(label) => handleInputChange('age', label)}
+            onClose={() => setShowAgeSelector(false)}
+            title="Select Age"
+          />
+        )
+      }
+
+      {
+        showLifestyleSelector && (
+          <OptionSelector
+            options={lifestyleOptions}
+            onSelect={(label) => handleInputChange('lifestyle', label)}
+            onClose={() => setShowLifestyleSelector(false)}
+            title="Select Lifestyle"
           />
         )
       }

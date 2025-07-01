@@ -902,6 +902,17 @@ export default function InfluencerEdit() {
         image_num: prev.image_num + 1
       }));
 
+      await fetch(`https://db.nymia.ai/rest/v1/influencer?id=eq.${influencerData.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          image_num: influencerData.image_num + 1
+        })
+      });
+
       // Close the preview modal
       setPreviewImage(null);
       setGeneratedImageData(null);

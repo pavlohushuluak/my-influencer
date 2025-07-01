@@ -2521,6 +2521,7 @@ export default function Vault() {
 
   // Set profile picture for influencer
   const setInfluencerProfilePicture = async (influencer: any, image: GeneratedImageData) => {
+    console.log(influencer);
     setSettingProfilePicture(influencer.id);
     try {
       const extension = image.system_filename.split('.').pop();
@@ -2536,23 +2537,34 @@ export default function Vault() {
         body: JSON.stringify({
           user: userData.id,
           sourcefilename: `${sourcePath}/${image.system_filename}`,
-          destinationfilename: `models/${influencer.id}/profilepic/profile.${extension}`
+          destinationfilename: `models/${influencer.id}/profilepic/profilepic${influencer.image_num}.${extension}`
         })
       });
 
       // Update the influencer's profile picture in the database
-      await fetch(`https://db.nymia.ai/rest/v1/influencers?id=eq.${influencer.id}`, {
+      await fetch(`https://db.nymia.ai/rest/v1/influencer?id=eq.${influencer.id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer WeInfl3nc3withAI'
         },
         body: JSON.stringify({
-          image_url: `models/${influencer.id}/profilepic/profile.${extension}`
+          image_url: `https://images.nymia.ai/cdn-cgi/image/w=400/${userData.id}/models/${influencer.id}/profilepic/profilepic${influencer.image_num}.${extension}`
         })
       });
 
-      toast.success(`Profile picture updated for ${influencer.name}`);
+      await fetch(`https://db.nymia.ai/rest/v1/influencer?id=eq.${influencer.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          image_num: influencer.image_num + 1
+        })
+      });
+
+      toast.success(`Profile picture updated for ${influencer.name_first} ${influencer.name_last}`);
       setShowInfluencerSelector(false);
       setSelectedImageForProfile(null);
     } catch (error) {

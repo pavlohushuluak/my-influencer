@@ -440,7 +440,7 @@ export default function InfluencerEdit() {
           if (detailResponse.ok) {
             const imageDetails: GeneratedImageData[] = await detailResponse.json();
             if (imageDetails.length > 0) {
-              detailedImagesData.push(imageDetails[0]);
+              detailedImagesData.push({...imageDetails[0], id:filename});
             }
           }
         } catch (error) {
@@ -453,7 +453,7 @@ export default function InfluencerEdit() {
 
       // Create the old format for backward compatibility
       const imagesWithUrls = detailedImagesData.map((image) => ({
-        id: image.id,
+        id: image.system_filename,
         image_url: `https://images.nymia.ai/cdn-cgi/image/w=800/${userData.id}/vault/Inbox/${image.system_filename}`,
         created_at: image.created_at
       }));
@@ -492,6 +492,7 @@ export default function InfluencerEdit() {
     setIsSaving(true);
 
     if (profileImageId) {
+      const extension = profileImageId.split('.').pop();
       await fetch('https://api.nymia.ai/v1/copyfile', {
         method: 'POST',
         headers: {
@@ -500,8 +501,8 @@ export default function InfluencerEdit() {
         },
         body: JSON.stringify({
           user: userData.id,
-          sourcefilename: `output/${profileImageId}.png`,
-          destinationfilename: `models/${influencerData.id}/profilepic/profilepic${influencerData.image_num}.png`
+          sourcefilename: `vault/Inbox/${profileImageId}`,
+          destinationfilename: `models/${influencerData.id}/profilepic/profilepic${influencerData.image_num}.${extension}`
         })
       });
 
@@ -641,6 +642,8 @@ export default function InfluencerEdit() {
     setIsUpdating(true);
 
     if (profileImageId) {
+      console.log(profileImageId);
+      const extension = profileImageId.substring(profileImageId.lastIndexOf('.') + 1);
       await fetch('https://api.nymia.ai/v1/copyfile', {
         method: 'POST',
         headers: {
@@ -649,10 +652,13 @@ export default function InfluencerEdit() {
         },
         body: JSON.stringify({
           user: userData.id,
-          sourcefilename: `output/${profileImageId}.png`,
-          destinationfilename: `models/${influencerData.id}/profilepic/profilepic${influencerData.image_num}.png`
+          sourcefilename: `vault/Inbox/${profileImageId}`,
+          destinationfilename: `models/${influencerData.id}/profilepic/profilepic${influencerData.image_num}.${extension}`
         })
       });
+
+      console.log(`https://images.nymia.ai/cdn-cgi/image/w=400/${userData.id}/models/${influencerData.id}/profilepic/profilepic${influencerData.image_num}.${extension}`);
+      console.log(`vault/Inbox/${profileImageId}`);
 
       influencerData.image_url = `https://images.nymia.ai/cdn-cgi/image/w=400/${userData.id}/models/${influencerData.id}/profilepic/profilepic${influencerData.image_num}.png`;
       influencerData.image_num = influencerData.image_num + 1;

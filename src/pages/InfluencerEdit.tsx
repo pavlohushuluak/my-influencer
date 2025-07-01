@@ -224,7 +224,8 @@ export default function InfluencerEdit() {
     current_goals: [],
     background_elements: [],
     image_url: '',
-    image_num: 0
+    image_num: 0,
+    eye_shape: ''
   });
 
   const [activeTab, setActiveTab] = useState('basic');
@@ -247,6 +248,7 @@ export default function InfluencerEdit() {
   const [clothingSportsOptions, setClothingSportsOptions] = useState<Option[]>([]);
   const [clothingSexyOptions, setClothingSexyOptions] = useState<Option[]>([]);
   const [homeEnvironmentOptions, setHomeEnvironmentOptions] = useState<Option[]>([]);
+  const [eyeShapeOptions, setEyeShapeOptions] = useState<Option[]>([]);
 
   // Add state for selectors
   const [showEyeColorSelector, setShowEyeColorSelector] = useState(false);
@@ -267,6 +269,7 @@ export default function InfluencerEdit() {
   const [showClothingSportsSelector, setShowClothingSportsSelector] = useState(false);
   const [showClothingSexySelector, setShowClothingSexySelector] = useState(false);
   const [showHomeEnvironmentSelector, setShowHomeEnvironmentSelector] = useState(false);
+  const [showEyeShapeSelector, setShowEyeShapeSelector] = useState(false);
 
   const [showCulturalBackgroundSelector, setShowCulturalBackgroundSelector] = useState(false);
   const [culturalBackgroundOptions, setCulturalBackgroundOptions] = useState<Option[]>([]);
@@ -984,6 +987,7 @@ export default function InfluencerEdit() {
           jobarea: setJobAreaOptions,
           niche: setContentFocusAreasOptions,
           cvalues: setCoreValuesOptions,
+          eye_shape: setEyeShapeOptions,
         };
 
         const promises = Object.entries(endpoints).map(async ([fieldtype, setter]) => {
@@ -1558,53 +1562,85 @@ export default function InfluencerEdit() {
                   <CardTitle>Basic Information</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                    <div className="space-y-2">
-                      <Label>First Name <span className="text-red-500">*</span></Label>
-                      <Input
-                        value={influencerData.name_first}
-                        onChange={(e) => handleInputChange('name_first', e.target.value)}
-                        placeholder="Enter first name"
-                      />
-                      {validationErrors.name_first && (
-                        <p className="text-sm text-red-500 mt-1">{validationErrors.name_first}</p>
-                      )}
+                  {/* First Row: 4 columns */}
+                  <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+                    {/* Left Section: First Name/Last Name, Birth Origin/Current Residence, Influencer Type (3 columns) */}
+                    <div className="lg:col-span-3 space-y-4">
+                      {/* First Name and Last Name on one row */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>First Name <span className="text-red-500">*</span></Label>
+                          <Input
+                            value={influencerData.name_first}
+                            onChange={(e) => handleInputChange('name_first', e.target.value)}
+                            placeholder="Enter first name"
+                          />
+                          {validationErrors.name_first && (
+                            <p className="text-sm text-red-500 mt-1">{validationErrors.name_first}</p>
+                          )}
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Last Name <span className="text-red-500">*</span></Label>
+                          <Input
+                            value={influencerData.name_last}
+                            onChange={(e) => handleInputChange('name_last', e.target.value)}
+                            placeholder="Enter last name"
+                          />
+                          {validationErrors.name_last && (
+                            <p className="text-sm text-red-500 mt-1">{validationErrors.name_last}</p>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Influencer Type <span className="text-red-500">*</span></Label>
+                        <Select
+                          value={influencerData.influencer_type}
+                          onValueChange={(value) => handleInputChange('influencer_type', value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {INFLUENCER_TYPES.map((type) => (
+                              <SelectItem key={type} value={type}>
+                                {type}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {validationErrors.influencer_type && (
+                          <p className="text-sm text-red-500 mt-1">{validationErrors.influencer_type}</p>
+                        )}
+                      </div>
+
+                      {/* Birth Origin and Current Residence on one row */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {
+                          influencerData.visual_only === false && <div className="space-y-2">
+                            <Label>Birth Origin</Label>
+                            <Input
+                              value={influencerData.origin_birth}
+                              onChange={(e) => handleInputChange('origin_birth', e.target.value)}
+                              placeholder="e.g., New York, USA"
+                            />
+                          </div>
+                        }
+                        {
+                          influencerData.visual_only === false && <div className="space-y-2">
+                            <Label>Current Residence</Label>
+                            <Input
+                              value={influencerData.origin_residence}
+                              onChange={(e) => handleInputChange('origin_residence', e.target.value)}
+                              placeholder="e.g., Los Angeles, USA"
+                            />
+                          </div>
+                        }
+                      </div>
                     </div>
-                    <div className="space-y-2">
-                      <Label>Last Name <span className="text-red-500">*</span></Label>
-                      <Input
-                        value={influencerData.name_last}
-                        onChange={(e) => handleInputChange('name_last', e.target.value)}
-                        placeholder="Enter last name"
-                      />
-                      {validationErrors.name_last && (
-                        <p className="text-sm text-red-500 mt-1">{validationErrors.name_last}</p>
-                      )}
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Influencer Type <span className="text-red-500">*</span></Label>
-                      <Select
-                        value={influencerData.influencer_type}
-                        onValueChange={(value) => handleInputChange('influencer_type', value)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {INFLUENCER_TYPES.map((type) => (
-                            <SelectItem key={type} value={type}>
-                              {type}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      {validationErrors.influencer_type && (
-                        <p className="text-sm text-red-500 mt-1">{validationErrors.influencer_type}</p>
-                      )}
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-                    <div className="space-y-2">
+
+                    {/* Right Section: Profile Image (1 column) */}
+                    <div className="lg:col-span-1 space-y-2">
                       <Label>Profile Image</Label>
                       <div className="flex flex-col gap-2">
                         <Select
@@ -1655,6 +1691,10 @@ export default function InfluencerEdit() {
                         </div>
                       </div>
                     </div>
+                  </div>
+
+                  {/* Second Row: Sex, Age & Lifestyle, Cultural Background, Facial Features */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
                     <div className="space-y-2">
                       <Label>Sex</Label>
                       <div className="flex flex-col gap-2">
@@ -1739,29 +1779,33 @@ export default function InfluencerEdit() {
                         </div>
                       </div>
                     </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {
-                      influencerData.visual_only === false && <div className="space-y-2">
-                        <Label>Birth Origin</Label>
-                        <Input
-                          value={influencerData.origin_birth}
-                          onChange={(e) => handleInputChange('origin_birth', e.target.value)}
-                          placeholder="e.g., New York, USA"
-                        />
+                    <div className="space-y-2">
+                      <Label>Facial Features</Label>
+                      <div className="flex flex-col gap-2">
+                        <Select
+                          value={influencerData.facial_features}
+                          onValueChange={(value) => handleInputChange('facial_features', value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select facial features" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {facialFeaturesOptions.map((option, index) => (
+                              <SelectItem key={index} value={option.label}>{option.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <div
+                          onClick={() => setShowFacialFeaturesSelector(true)}
+                          className='flex items-center justify-center cursor-pointer w-full'
+                        >
+                          {renderOptionCard(
+                            facialFeaturesOptions.find(option => option.label === influencerData.facial_features),
+                            "Select facial features"
+                          )}
+                        </div>
                       </div>
-                    }
-                    {
-                      influencerData.visual_only === false && <div className="space-y-2">
-                        <Label>Current Residence</Label>
-                        <Input
-                          value={influencerData.origin_residence}
-                          onChange={(e) => handleInputChange('origin_residence', e.target.value)}
-                          placeholder="e.g., Los Angeles, USA"
-                        />
-                      </div>
-                    }
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -1960,6 +2004,33 @@ export default function InfluencerEdit() {
                           />
                           Custom Eye Color
                         </Button>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Eye Shape</Label>
+                      <div className="flex flex-col gap-2">
+                        <Select
+                          value={influencerData.eye_shape}
+                          onValueChange={(value) => handleInputChange('eye_shape', value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select eye shape" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {eyeShapeOptions.map((option, index) => (
+                              <SelectItem key={index} value={option.label}>{option.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <div
+                          onClick={() => setShowEyeShapeSelector(true)}
+                          className='flex items-center justify-center cursor-pointer w-full'
+                        >
+                          {renderOptionCard(
+                            eyeShapeOptions.find(option => option.label === influencerData.eye_shape),
+                            "Select eye shape"
+                          )}
+                        </div>
                       </div>
                     </div>
                     <div className="space-y-2">
@@ -2177,52 +2248,6 @@ export default function InfluencerEdit() {
                                     />
                                   </div>
                                   <p className="text-sm text-center font-medium mt-2">{bodyTypeOptions.find(option => option.label === influencerData.body_type)?.label}</p>
-                                </CardContent>
-                              </Card>
-                            )
-                              :
-                              <Card className="relative w-full border max-w-[250px]">
-                                <CardContent className="p-4">
-                                  <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
-                                    Select option
-                                  </div>
-                                </CardContent>
-                              </Card>
-                          }
-                        </div>
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Facial Features</Label>
-                      <div className="flex flex-col gap-2">
-                        <Select
-                          value={influencerData.facial_features}
-                          onValueChange={(value) => handleInputChange('facial_features', value)}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select facial features" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {facialFeaturesOptions.map((option, index) => (
-                              <SelectItem key={index} value={option.label}>{option.label}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <div
-                          onClick={() => setShowFacialFeaturesSelector(true)}
-                          className='flex items-center justify-center cursor-pointer w-full'
-                        >
-                          {
-                            facialFeaturesOptions.find(option => option.label === influencerData.facial_features)?.image ? (
-                              <Card className="relative w-full max-w-[250px]">
-                                <CardContent className="p-4">
-                                  <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
-                                    <img
-                                      src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${facialFeaturesOptions.find(option => option.label === influencerData.facial_features)?.image}`}
-                                      className="absolute inset-0 w-full h-full object-cover rounded-md"
-                                    />
-                                  </div>
-                                  <p className="text-sm text-center font-medium mt-2">{facialFeaturesOptions.find(option => option.label === influencerData.facial_features)?.label}</p>
                                 </CardContent>
                               </Card>
                             )
@@ -4013,6 +4038,28 @@ export default function InfluencerEdit() {
           onColorSelect={handleColorSelect}
         />
       )}
+
+      {
+        showEyeShapeSelector && (
+          <OptionSelector
+            options={eyeShapeOptions}
+            onSelect={(label) => handleInputChange('eye_shape', label)}
+            onClose={() => setShowEyeShapeSelector(false)}
+            title="Select Eye Shape"
+          />
+        )
+      }
+
+      {
+        showCulturalBackgroundSelector && (
+          <OptionSelector
+            options={culturalBackgroundOptions}
+            onSelect={(label) => handleInputChange('cultural_background', label)}
+            onClose={() => setShowCulturalBackgroundSelector(false)}
+            title="Select Cultural Background"
+          />
+        )
+      }
     </div>
   );
 }

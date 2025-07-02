@@ -1,5 +1,4 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import axios from 'axios';
 
 export interface TemplateInfluencer {
     id: string;
@@ -47,6 +46,7 @@ export interface TemplateInfluencer {
     core_values: string[];
     current_goals: string[];
     background_elements: string[];
+    prompt: string;
 }
 
 interface TemplateInfluencerState {
@@ -71,6 +71,7 @@ export const fetchTemplateInfluencers = createAsyncThunk(
         });
 
         const data = await response.json();
+        console.log(data);
         return data;
     }
 );

@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { DialogZoom, DialogContentZoom, DialogHeaderZoom, DialogTitleZoom, DialogDescriptionZoom } from '@/components/ui/zoomdialog';
+import { DialogZoom, DialogContentZoom } from '@/components/ui/zoomdialog';
 import { updateInfluencer, setInfluencers, setLoading, setError, addInfluencer } from '@/store/slices/influencersSlice';
 import { X, Plus, Save, Crown, Lock, Image, Settings, User, ChevronRight, MoreHorizontal, Loader2, ZoomIn, Pencil } from 'lucide-react';
 import { HexColorPicker } from 'react-colorful';
@@ -349,7 +349,6 @@ export default function InfluencerEdit() {
 
   // Add state for image selection modal
   const [showImageSelector, setShowImageSelector] = useState(false);
-  const [vaultImages, setVaultImages] = useState<any[]>([]);
   const [detailedImages, setDetailedImages] = useState<GeneratedImageData[]>([]);
   const [loadingVaultImages, setLoadingVaultImages] = useState(false);
   const [profileImageId, setProfileImageId] = useState<string | null>(null);
@@ -364,7 +363,6 @@ export default function InfluencerEdit() {
   const [selectedFacialTemplate, setSelectedFacialTemplate] = useState<FacialTemplateDetail | null>(null);
   const [showFacialTemplateDetails, setShowFacialTemplateDetails] = useState(false);
   const [showFacialTemplateConfirm, setShowFacialTemplateConfirm] = useState(false);
-  const [isLoadingFacialTemplate, setIsLoadingFacialTemplate] = useState(false);
   const [isApplyingTemplate, setIsApplyingTemplate] = useState(false);
 
   const isFeatureLocked = (feature: string) => {
@@ -372,19 +370,6 @@ export default function InfluencerEdit() {
   };
 
   const handleInputChange = (field: string, value: string) => {
-    if (isFeatureLocked(field)) {
-      setLockedFeature(field);
-      setShowUpgradeModal(true);
-      return;
-    }
-
-    setInfluencerData(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
-
-  const handleArrayInputChange = (field: string, value: string[]) => {
     if (isFeatureLocked(field)) {
       setLockedFeature(field);
       setShowUpgradeModal(true);
@@ -458,8 +443,6 @@ export default function InfluencerEdit() {
         allImages.push(...inboxImages);
       }
 
-      console.log('All images from Inbox:', allImages);
-
       // Step 2: Get detailed information for each file from database
       const detailedImagesData: GeneratedImageData[] = [];
 
@@ -490,18 +473,7 @@ export default function InfluencerEdit() {
         }
       }
 
-      console.log('Detailed images from Inbox:', detailedImagesData);
       setDetailedImages(detailedImagesData);
-
-      // Create the old format for backward compatibility
-      const imagesWithUrls = detailedImagesData.map((image) => ({
-        id: image.system_filename,
-        image_url: `https://images.nymia.ai/cdn-cgi/image/w=800/${userData.id}/vault/Inbox/${image.system_filename}`,
-        created_at: image.created_at
-      }));
-
-      setVaultImages(imagesWithUrls);
-
     } catch (error) {
       console.error('Error fetching Inbox images:', error);
       toast.error('Failed to fetch Inbox images');
@@ -550,7 +522,6 @@ export default function InfluencerEdit() {
 
       influencerData.image_url = `https://images.nymia.ai/cdn-cgi/image/w=400/${userData.id}/models/${influencerData.id}/profilepic/profilepic${influencerData.image_num}.png`;
       influencerData.image_num = influencerData.image_num + 1;
-      console.log(influencerData.image_url);
     }
 
     try {
@@ -572,8 +543,6 @@ export default function InfluencerEdit() {
         });
 
         const data = await responseId.json();
-        console.log(data);
-
 
         dispatch(addInfluencer(influencerData));
 
@@ -649,7 +618,6 @@ export default function InfluencerEdit() {
         }
       }
       else {
-        console.log(influencerData);
         const response = await fetch(`https://db.nymia.ai/rest/v1/influencer?id=eq.${influencerData.id}`, {
           method: 'PATCH',
           headers: {
@@ -680,12 +648,9 @@ export default function InfluencerEdit() {
       return;
     }
 
-    console.log('Influencer data before saving:', influencerData);
-
     setIsUpdating(true);
 
     if (profileImageId) {
-      console.log(profileImageId);
       const extension = profileImageId.substring(profileImageId.lastIndexOf('.') + 1);
       await fetch('https://api.nymia.ai/v1/copyfile', {
         method: 'POST',
@@ -700,12 +665,8 @@ export default function InfluencerEdit() {
         })
       });
 
-      console.log(`https://images.nymia.ai/cdn-cgi/image/w=400/${userData.id}/models/${influencerData.id}/profilepic/profilepic${influencerData.image_num}.${extension}`);
-      console.log(`vault/Inbox/${profileImageId}`);
-
       influencerData.image_url = `https://images.nymia.ai/cdn-cgi/image/w=400/${userData.id}/models/${influencerData.id}/profilepic/profilepic${influencerData.image_num}.png`;
       influencerData.image_num = influencerData.image_num + 1;
-      console.log(influencerData.image_url);
     }
 
     try {
@@ -802,8 +763,6 @@ export default function InfluencerEdit() {
 
       const useridData = await useridResponse.json();
 
-      console.log(useridData);
-
       // Send the request to create task
       const response = await fetch(`https://api.nymia.ai/v1/createtask?userid=${useridData[0].userid}&type=createimage`, {
         method: 'POST',
@@ -819,7 +778,6 @@ export default function InfluencerEdit() {
       }
 
       const result = await response.json();
-      console.log(result);
       const taskId = result.id;
 
       // Poll for the generated images
@@ -827,8 +785,6 @@ export default function InfluencerEdit() {
       const maxAttempts = 30; // 30 seconds max
 
       const pollForImages = async () => {
-
-        console.log(taskId);
         try {
           const imagesResponse = await fetch('https://api.nymia.ai/v1/get-images-by-task', {
             method: 'POST',
@@ -838,8 +794,6 @@ export default function InfluencerEdit() {
             },
             body: JSON.stringify({ task_id: taskId })
           });
-
-          console.log(imagesResponse);
 
           if (!imagesResponse.ok) {
             throw new Error('Failed to fetch images');
@@ -912,8 +866,6 @@ export default function InfluencerEdit() {
         }
       });
       const taskFilenameData = await taskFilename.json();
-      console.log(`output/${taskFilenameData[0].system_filename}`);
-      console.log(`models/${influencerData.id}/profilepic/profilepic${influencerData.image_num}.png`);
       const copyResponse = await fetch('https://api.nymia.ai/v1/copyfile', {
         method: 'POST',
         headers: {
@@ -979,18 +931,6 @@ export default function InfluencerEdit() {
 
   const handleUseTemplate = () => {
     navigate('/influencers/templates');
-  };
-
-  const handleUseInfluencer = (id: string) => {
-    const influencer = influencers.find(inf => inf.id === id);
-    if (influencer) {
-      navigate('/content/create', {
-        state: {
-          influencerData: influencer,
-          mode: 'create'
-        }
-      });
-    }
   };
 
   useEffect(() => {
@@ -1083,7 +1023,6 @@ export default function InfluencerEdit() {
     fetchOptions();
   }, []);
 
-  // console.log('Cultural background options:', culturalBackgroundOptions);
   const fetchInfluencers = async () => {
     setIsLoading(true);
     try {
@@ -1151,8 +1090,6 @@ export default function InfluencerEdit() {
     title: string
   }) => {
     const [previewImage, setPreviewImage] = useState<string | null>(null);
-    console.log("facial_features: ");
-    console.log(options);
 
     const handleImageClick = (e: React.MouseEvent, imageUrl: string) => {
       e.stopPropagation();
@@ -1423,7 +1360,6 @@ export default function InfluencerEdit() {
   // Function to fetch facial template details
   const fetchFacialTemplateDetails = async (templateName: string) => {
     try {
-      setIsLoadingFacialTemplate(true);
       const response = await fetch(`https://db.nymia.ai/rest/v1/facial_templates_global?template_name=eq.${templateName}`, {
         headers: {
           'Authorization': 'Bearer WeInfl3nc3withAI'
@@ -1445,13 +1381,7 @@ export default function InfluencerEdit() {
       console.error('Error fetching facial template details:', error);
       toast.error('Failed to fetch template details');
     } finally {
-      setIsLoadingFacialTemplate(false);
     }
-  };
-
-  // Function to handle facial template selection
-  const handleFacialTemplateSelect = (templateName: string) => {
-    fetchFacialTemplateDetails(templateName);
   };
 
   // Function to apply facial template

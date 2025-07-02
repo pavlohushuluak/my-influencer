@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '@/store/store';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,14 +11,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
-import { Image, ArrowLeft, Wand2, Settings, Image as ImageIcon, Sparkles, Loader2, Play, Eye, Palette, Camera, Zap, Search, X, Filter, Plus, Check, RotateCcw } from 'lucide-react';
+import { Image, Wand2, Settings, Image as ImageIcon, Sparkles, Loader2, Camera, Search, X, Filter, Plus, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Command, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { cn } from '@/lib/utils';
 import { useDebounce } from '@/hooks/useDebounce';
 import { Influencer } from '@/store/slices/influencersSlice';
 import { setInfluencers, setLoading, setError } from '@/store/slices/influencersSlice';
@@ -592,8 +590,6 @@ export default function ContentCreate() {
     });
 
     const data = await response.json();
-
-    console.log(data);
 
     try {
       // Create the JSON data structure

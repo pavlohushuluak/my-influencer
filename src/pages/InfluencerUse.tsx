@@ -6,9 +6,8 @@ import { Input } from '@/components/ui/input';
 import { useState, useEffect } from 'react';
 import { Search, MessageCircle, Instagram, Send, X, Filter, Crown, Plus, Sparkles, Image, Copy, Upload, Trash } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Command, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { cn } from '@/lib/utils';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useNavigate } from 'react-router-dom';
 import { Influencer } from '@/store/slices/influencersSlice';
@@ -54,7 +53,6 @@ export default function InfluencerUse() {
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedInfluencer, setSelectedInfluencer] = useState<string>('');
-  const [selectedPlatform, setSelectedPlatform] = useState<string>('');
   const [showPlatformModal, setShowPlatformModal] = useState(false);
   const [selectedSearchField, setSelectedSearchField] = useState(SEARCH_FIELDS[0]);
   const [openFilter, setOpenFilter] = useState(false);
@@ -352,8 +350,6 @@ export default function InfluencerUse() {
     }
   };
 
-  console.log(selectedInfluencerData);
-
   return (
     <div className="p-6 space-y-6 animate-fade-in">
       {/* Header */}
@@ -558,7 +554,6 @@ export default function InfluencerUse() {
                     <span className="bg-background px-2 text-muted-foreground">Or select platform</span>
                   </div>
                 </div>
-
                 {PLATFORMS.map((platform) => (
                   <Button
                     key={platform.id}

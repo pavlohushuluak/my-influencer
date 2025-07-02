@@ -2,9 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { addInfluencer } from '@/store/slices/influencersSlice';
-import { Loader2, Plus, Shirt } from 'lucide-react';
+import { Loader2, Plus } from 'lucide-react';
 import { RootState } from '@/store/store';
 import { fetchTemplateInfluencers, TemplateInfluencer } from '@/store/slices/templateInfluencerSlice';
 import { useEffect, useState } from 'react';
@@ -16,7 +14,7 @@ export default function InfluencerTemplates() {
   const [loadingButtons, setLoadingButtons] = useState<{ [key: string]: boolean }>({});
 
   const dispatch = useDispatch<AppDispatch>();
-  const { templates, loading, error } = useSelector((state: RootState) => state.templateInfluencer);
+  const { templates, loading } = useSelector((state: RootState) => state.templateInfluencer);
 
   useEffect(() => {
     dispatch(fetchTemplateInfluencers());
@@ -92,9 +90,6 @@ export default function InfluencerTemplates() {
         })
       });
 
-      console.log(response);
-
-      console.log(userData);
       const responseId = await fetch(`https://db.nymia.ai/rest/v1/influencer?user_id=eq.${userData.id}&new=eq.true`, {
         headers: {
           'Content-Type': 'application/json',
@@ -103,7 +98,6 @@ export default function InfluencerTemplates() {
       });
 
       const data = await responseId.json();
-      console.log(data);
 
       await fetch('https://api.nymia.ai/v1/createfolder', {
         method: 'POST',
@@ -198,7 +192,7 @@ export default function InfluencerTemplates() {
           <Card key={template.id} className="group hover:shadow-lg transition-all duration-300">
             <CardContent className="p-6">
               <div className="space-y-4">
-                <div className="w-full h-48 bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg flex items-center justify-center">
+                <div className="w-full h-full bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg flex items-center justify-center">
                   {
                     template.image_url && (
                       <img src={template.image_url} alt={template.id} className="w-full h-full object-cover rounded-lg" />

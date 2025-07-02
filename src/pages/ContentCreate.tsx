@@ -249,7 +249,8 @@ export default function ContentCreate() {
       const fullDescription = parts.join(', ');
       setFormData(prev => ({
         ...prev,
-        model: fullDescription
+        model: fullDescription,
+        prompt: influencerData.prompt || '' // Automatically populate prompt with influencer's prompt
       }));
 
       toast.success(`Using ${influencerData.name_first} ${influencerData.name_last} for content generation`);
@@ -560,7 +561,8 @@ export default function ContentCreate() {
     const fullDescription = parts.join(', ');
     setFormData(prev => ({
       ...prev,
-      model: fullDescription
+      model: fullDescription,
+      prompt: influencer.prompt || '' // Automatically populate prompt with influencer's prompt
     }));
 
     toast.success(`Using ${influencer.name_first} ${influencer.name_last} for content generation`);

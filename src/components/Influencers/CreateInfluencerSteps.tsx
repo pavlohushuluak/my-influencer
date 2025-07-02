@@ -60,6 +60,7 @@ interface InfluencerData {
   core_values: string[];
   current_goals: string[];
   background_elements: string[];
+  prompt: string;
 }
 
 export function CreateInfluencerSteps({ onComplete }: CreateInfluencerStepsProps) {
@@ -114,7 +115,8 @@ export function CreateInfluencerSteps({ onComplete }: CreateInfluencerStepsProps
     humor: [],
     core_values: [],
     current_goals: [],
-    background_elements: []
+    background_elements: [],
+    prompt: ''
   });
 
   const handleOptionSelect = (field: string, value: string | boolean) => {

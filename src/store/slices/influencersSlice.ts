@@ -46,6 +46,7 @@ export interface Influencer {
   core_values: string[];
   current_goals: string[];
   background_elements: string[];
+  prompt: string;
   created_at: string;
   updated_at: string;
   image_num: number;

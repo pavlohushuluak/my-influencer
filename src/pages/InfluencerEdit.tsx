@@ -16,6 +16,8 @@ import { updateInfluencer, setInfluencers, setLoading, setError, addInfluencer }
 import { X, Plus, Save, Crown, Lock, Image, Settings, User, ChevronRight, MoreHorizontal, Loader2, ZoomIn, Pencil } from 'lucide-react';
 import { HexColorPicker } from 'react-colorful';
 import { toast } from 'sonner';
+import { Textarea } from '@/components/ui/textarea';
+import { Separator } from '@/components/ui/separator';
 
 interface GeneratedImageData {
   id: string;
@@ -249,6 +251,7 @@ export default function InfluencerEdit() {
     core_values: [],
     current_goals: [],
     background_elements: [],
+    prompt: '',
     image_url: '',
     image_num: 0,
     eye_shape: '',
@@ -2950,6 +2953,36 @@ export default function InfluencerEdit() {
                     <CardTitle>Personality & Content</CardTitle>
                   </CardHeader>
                   <CardContent>
+                    <div className="space-y-2">
+                      <Label className="flex items-center gap-2">
+                        <div className="p-1.5 bg-gradient-to-br from-green-500 to-emerald-600 rounded-md">
+                          <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                        </div>
+                        Content Generation Prompt
+                      </Label>
+                      <div className="relative">
+                        <Textarea
+                          value={influencerData.prompt || ''}
+                          onChange={(e) => handleInputChange('prompt', e.target.value)}
+                          placeholder="Describe the type of content this influencer typically creates... (e.g., 'Fashion influencer sharing daily outfit inspiration and style tips' or 'Tech reviewer creating detailed product reviews and tutorials')"
+                          rows={4}
+                          className="pl-10 pr-4 border-2 focus:border-green-500/50 focus:ring-green-500/20 transition-all duration-200"
+                        />
+                        <div className="absolute left-3 top-3 text-muted-foreground">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                        </div>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        This prompt will be automatically used when creating content for this influencer. It helps define their content style and personality.
+                      </p>
+                    </div>
+
+                    <Separator className="my-6" />
+
                     <div className="space-y-2">
                       <Label>Content Focus (Max 4)</Label>
                       <div className="space-y-4">

@@ -1711,10 +1711,63 @@ export default function InfluencerEdit() {
                   <CardTitle>Basic Information</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {/* First Row: 4 columns */}
-                  <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-                    {/* Left Section: First Name/Last Name, Birth Origin/Current Residence, Influencer Type (3 columns) */}
-                    <div className="lg:col-span-3 space-y-4">
+                  {/* First Row: 4 columns on desktop, 2 rows on mobile */}
+                  <div className="grid grid-cols-1 xl:grid-cols-4 gap-4">
+                    {/* Column 1: Profile Image (hidden on mobile, shown in second row) */}
+                    <div className="hidden xl:block space-y-2">
+                      <Label>Profile Image</Label>
+                      <div className="flex flex-col gap-2">
+                        <Select
+                          value={influencerData.image_url ? 'selected' : ''}
+                          onValueChange={() => openImageSelector()}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select profile image" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="selected" onClick={openImageSelector}>
+                              {influencerData.image_url ? 'Change Image' : 'Select Image'}
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <div
+                          onClick={openImageSelector}
+                          className='flex items-center justify-center cursor-pointer w-full'
+                        >
+                          {influencerData.image_url ? (
+                            <Card className="relative w-full max-w-[250px]">
+                              <CardContent className="p-4">
+                                <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
+                                  <img
+                                    src={influencerData.image_url}
+                                    alt="Profile"
+                                    className="absolute inset-0 w-full h-full object-cover rounded-md"
+                                  />
+                                </div>
+                                <p className="text-sm text-center font-medium mt-2">Profile Image</p>
+                              </CardContent>
+                            </Card>
+                          ) : (
+                            <Card className="relative w-full border max-w-[250px]">
+                              <CardContent className="p-4">
+                                <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
+                                  <div className="absolute inset-0 flex items-center justify-center bg-gray-100 dark:bg-gray-800 rounded-md">
+                                    <div className="text-center">
+                                      <Image className="w-8 h-8 mx-auto text-gray-400 mb-2" />
+                                      <p className="text-sm text-gray-500">Select option</p>
+                                    </div>
+                                  </div>
+                                </div>
+                                <p className="text-sm text-center font-medium mt-2">Select Image</p>
+                              </CardContent>
+                            </Card>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Columns 2+3: Input fields (spans 2 columns on desktop, full width on mobile) */}
+                    <div className="xl:col-span-2 space-y-4">
                       {/* First Name and Last Name on one row */}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
@@ -1788,8 +1841,40 @@ export default function InfluencerEdit() {
                       </div>
                     </div>
 
-                    {/* Right Section: Profile Image (1 column) */}
-                    <div className="lg:col-span-1 space-y-2">
+                    {/* Column 4: Facial Features (hidden on mobile, shown in second row) */}
+                    <div className="hidden xl:block space-y-2">
+                      <Label>Facial Features</Label>
+                      <div className="flex flex-col gap-2">
+                        <Select
+                          value={influencerData.facial_features}
+                          onValueChange={(value) => handleInputChange('facial_features', value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select facial features" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {facialFeaturesOptions.map((option, index) => (
+                              <SelectItem key={index} value={option.label}>{option.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <div
+                          onClick={() => setShowFacialFeaturesSelector(true)}
+                          className='flex items-center justify-center cursor-pointer w-full'
+                        >
+                          {renderOptionCard(
+                            facialFeaturesOptions.find(option => option.label === influencerData.facial_features),
+                            "Select facial features"
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Second Row: Mobile-only layout for Profile Image and Facial Features */}
+                  <div className="xl:hidden grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Profile Image */}
+                    <div className="space-y-2">
                       <Label>Profile Image</Label>
                       <div className="flex flex-col gap-2">
                         <Select
@@ -1840,10 +1925,39 @@ export default function InfluencerEdit() {
                         </div>
                       </div>
                     </div>
+
+                    {/* Facial Features */}
+                    <div className="space-y-2">
+                      <Label>Facial Features</Label>
+                      <div className="flex flex-col gap-2">
+                        <Select
+                          value={influencerData.facial_features}
+                          onValueChange={(value) => handleInputChange('facial_features', value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select facial features" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {facialFeaturesOptions.map((option, index) => (
+                              <SelectItem key={index} value={option.label}>{option.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <div
+                          onClick={() => setShowFacialFeaturesSelector(true)}
+                          className='flex items-center justify-center cursor-pointer w-full'
+                        >
+                          {renderOptionCard(
+                            facialFeaturesOptions.find(option => option.label === influencerData.facial_features),
+                            "Select facial features"
+                          )}
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
-                  {/* Second Row: Sex, Age, Lifestyle, Cultural Background, Facial Features */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5 gap-4">
+                  {/* Third Row: Sex, Age, Lifestyle, Cultural Background */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
                     <div className="space-y-2">
                       <Label>Sex</Label>
                       <div className="flex flex-col gap-2">
@@ -1953,33 +2067,6 @@ export default function InfluencerEdit() {
                           {renderOptionCard(
                             culturalBackgroundOptions.find(option => option.label === influencerData.cultural_background),
                             "Select cultural background"
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Facial Features</Label>
-                      <div className="flex flex-col gap-2">
-                        <Select
-                          value={influencerData.facial_features}
-                          onValueChange={(value) => handleInputChange('facial_features', value)}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select facial features" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {facialFeaturesOptions.map((option, index) => (
-                              <SelectItem key={index} value={option.label}>{option.label}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <div
-                          onClick={() => setShowFacialFeaturesSelector(true)}
-                          className='flex items-center justify-center cursor-pointer w-full'
-                        >
-                          {renderOptionCard(
-                            facialFeaturesOptions.find(option => option.label === influencerData.facial_features),
-                            "Select facial features"
                           )}
                         </div>
                       </div>

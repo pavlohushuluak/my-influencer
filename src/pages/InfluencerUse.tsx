@@ -4,7 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useState, useEffect } from 'react';
-import { Search, MessageCircle, Instagram, Send, X, Filter, Crown, Plus, Sparkles, Image, Copy, Upload } from 'lucide-react';
+import { Search, MessageCircle, Instagram, Send, X, Filter, Crown, Plus, Sparkles, Image, Copy, Upload, Trash } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -65,6 +65,9 @@ export default function InfluencerUse() {
   const [isCopyingImage, setIsCopyingImage] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [influencerToDelete, setInfluencerToDelete] = useState<Influencer | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const filteredInfluencers = influencers.filter(influencer => {
     if (!debouncedSearchTerm) return true;
@@ -311,7 +314,42 @@ export default function InfluencerUse() {
     }
     setUploadedFile(null);
     setUploadedImageUrl(null);
-    toast.info('Uploaded image removed');
+  };
+
+  const handleDeleteInfluencer = (influencer: Influencer) => {
+    setInfluencerToDelete(influencer);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!influencerToDelete) return;
+
+    setIsDeleting(true);
+    try {
+      const response = await fetch(`https://db.nymia.ai/rest/v1/influencer?id=eq.${influencerToDelete.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete influencer');
+      }
+
+      // Remove from local state
+      const updatedInfluencers = influencers.filter(inf => inf.id !== influencerToDelete.id);
+      dispatch(setInfluencers(updatedInfluencers));
+
+      toast.success('Influencer deleted successfully');
+      setShowDeleteModal(false);
+      setInfluencerToDelete(null);
+    } catch (error) {
+      console.error('Error deleting influencer:', error);
+      toast.error('Failed to delete influencer');
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   console.log(selectedInfluencerData);
@@ -428,15 +466,27 @@ export default function InfluencerUse() {
                     </div>
                   </div>
 
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleUseInfluencer(influencer.id)}
-                    className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 w-full"
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                    Use
-                  </Button>
+                  <div className="flex flex-col gap-3">
+                    <Button
+                      size="sm"
+                      onClick={() => handleUseInfluencer(influencer.id)}
+                      className="group relative overflow-hidden bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white font-medium shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] border-0 h-10"
+                    >
+                      <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                      <Plus className="w-4 h-4 mr-2 transition-transform duration-300 group-hover:scale-110" />
+                      <span className="relative z-10">Use Influencer</span>
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleDeleteInfluencer(influencer)}
+                      className="group relative overflow-hidden border-red-200 hover:border-red-300 bg-white hover:bg-red-50 text-red-600 hover:text-red-700 font-medium shadow-sm hover:shadow-md transition-all duration-300 transform hover:scale-[1.02] h-10"
+                    >
+                      <div className="absolute inset-0 bg-gradient-to-r from-red-500/0 via-red-500/5 to-red-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                      <Trash className="w-4 h-4 mr-2 transition-transform duration-300 group-hover:scale-110" />
+                      <span className="relative z-10">Delete</span>
+                    </Button>
+                  </div>
                 </div>
               </div>
             </CardContent>
@@ -807,6 +857,73 @@ export default function InfluencerUse() {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Modal */}
+      <Dialog
+        open={showDeleteModal}
+        onOpenChange={(open) => setShowDeleteModal(open)}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <Trash className="w-5 h-5" />
+              Delete Influencer
+            </DialogTitle>
+            <DialogDescription className="text-base">
+              Are you sure you want to delete <strong>{influencerToDelete?.name_first} {influencerToDelete?.name_last}</strong>?
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+              <div className="flex items-start gap-3">
+                <div className="w-5 h-5 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <span className="text-red-600 dark:text-red-400 text-sm font-bold">!</span>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-red-800 dark:text-red-200">
+                    This action cannot be undone
+                  </p>
+                  <p className="text-sm text-red-600 dark:text-red-300">
+                    All associated data, images, and content will be permanently deleted.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-3 pt-4">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowDeleteModal(false);
+                  setInfluencerToDelete(null);
+                }}
+                className="flex-1"
+                disabled={isDeleting}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={confirmDelete}
+                disabled={isDeleting}
+                className="flex-1 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800"
+              >
+                {isDeleting ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                    Deleting...
+                  </>
+                ) : (
+                  <>
+                    <Trash className="w-4 h-4 mr-2" />
+                    Delete
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

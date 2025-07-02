@@ -20,7 +20,7 @@ export default function Dashboard() {
   const error = useSelector((state: RootState) => state.influencers.error);
   const [showAllInfluencers, setShowAllInfluencers] = useState(false);
   const [showAllStoryContent, setShowAllStoryContent] = useState(false);
-  const displayedInfluencers = showAllInfluencers ? influencers : influencers.slice(0, 4);
+  const displayedInfluencers = showAllInfluencers ? influencers : influencers.slice(0, 5);
 
   // Mock data for story content
   const mockStoryContent = [

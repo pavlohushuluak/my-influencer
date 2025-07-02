@@ -157,7 +157,7 @@ export default function InfluencerUse() {
   const handleCharacterConsistency = () => {
     if (selectedInfluencerData) {
       // Get the latest profile picture URL with correct format
-      const latestImageNum = selectedInfluencerData.image_num-1 || 1;
+      const latestImageNum = selectedInfluencerData.image_num-1;
       const profileImageUrl = `https://images.nymia.ai/cdn-cgi/image/w=400/${userData.id}/models/${selectedInfluencerData.id}/profilepic/profilepic${latestImageNum}.png`;
       
       setSelectedProfileImage(profileImageUrl);
@@ -193,7 +193,7 @@ export default function InfluencerUse() {
         toast.success('Image uploaded to LoRA folder successfully');
       } else {
         // Copy existing profile picture to LoRA folder
-        const latestImageNum = selectedInfluencerData.image_num-1 || 1;
+        const latestImageNum = selectedInfluencerData.image_num-1;
         const sourceFilename = `models/${selectedInfluencerData.id}/profilepic/profilepic${latestImageNum}.png`;
         
         const copyResponse = await fetch('https://api.nymia.ai/v1/copyfile', {
@@ -304,6 +304,8 @@ export default function InfluencerUse() {
     setUploadedImageUrl(null);
     toast.info('Uploaded image removed');
   };
+
+  console.log(selectedInfluencerData);
 
   return (
     <div className="p-6 space-y-6 animate-fade-in">
@@ -565,7 +567,7 @@ export default function InfluencerUse() {
                         {selectedInfluencerData.name_first} {selectedInfluencerData.name_last}
                       </h3>
                       <p className="text-gray-600 dark:text-gray-300 mb-2">
-                        Latest profile picture • Version {selectedInfluencerData.image_num-1 || 1}
+                        Latest profile picture • Version {selectedInfluencerData.image_num-1}
                       </p>
                       <div className="flex flex-wrap gap-2">
                         <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
@@ -613,7 +615,7 @@ export default function InfluencerUse() {
                             Latest Profile Picture
                           </h4>
                           <p className="text-sm text-gray-600 dark:text-gray-300">
-                            Version {selectedInfluencerData.image_num-1 || 1} • High Quality
+                            Version {selectedInfluencerData.image_num-1} • High Quality
                           </p>
                           <div className="flex items-center justify-center gap-2 text-xs text-green-600 dark:text-green-400">
                             <div className="w-2 h-2 bg-green-500 rounded-full"></div>

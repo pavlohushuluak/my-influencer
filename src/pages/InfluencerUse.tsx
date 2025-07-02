@@ -157,9 +157,9 @@ export default function InfluencerUse() {
   const handleCharacterConsistency = () => {
     if (selectedInfluencerData) {
       // Get the latest profile picture URL with correct format
-      const latestImageNum = selectedInfluencerData.image_num-1;
+      const latestImageNum = selectedInfluencerData.image_num - 1;
       const profileImageUrl = `https://images.nymia.ai/cdn-cgi/image/w=400/${userData.id}/models/${selectedInfluencerData.id}/profilepic/profilepic${latestImageNum}.png`;
-      
+
       setSelectedProfileImage(profileImageUrl);
       setShowCharacterConsistencyModal(true);
       setShowPlatformModal(false);
@@ -173,8 +173,7 @@ export default function InfluencerUse() {
     try {
       if (uploadedFile) {
         // Upload the image directly to the LoRA folder
-        const fileExtension = uploadedFile.name.split('.').pop() || 'png';
-        const loraFilePath = `models/${selectedInfluencerData.id}/lora/lora.${fileExtension}`;
+        const loraFilePath = `models/${selectedInfluencerData.id}/loratraining/${uploadedFile.name}`;
 
         // Upload file directly to LoRA folder
         const uploadResponse = await fetch(`https://api.nymia.ai/v1/uploadfile?user=${userData.id}&filename=${loraFilePath}`, {
@@ -190,30 +189,40 @@ export default function InfluencerUse() {
           throw new Error('Failed to upload image to LoRA folder');
         }
 
-        toast.success('Image uploaded to LoRA folder successfully');
-      } else {
-        // Copy existing profile picture to LoRA folder
-        const latestImageNum = selectedInfluencerData.image_num-1;
-        const sourceFilename = `models/${selectedInfluencerData.id}/profilepic/profilepic${latestImageNum}.png`;
-        
-        const copyResponse = await fetch('https://api.nymia.ai/v1/copyfile', {
+        await fetch(`https://api.nymia.ai/v1/createtask?userid=${userData.id}&type=createlora`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Authorization': 'Bearer WeInfl3nc3withAI'
           },
           body: JSON.stringify({
-            user: userData.id,
-            sourcefilename: sourceFilename,
-            destinationfilename: `models/${selectedInfluencerData.id}/lora/lora.png`
+            task: "createlora",
+            fromsingleimage: false,
+            modelid: selectedInfluencerData.id,
+            inputimage: `/models/${selectedInfluencerData.id}/loratraining/${uploadedFile.name}`,
           })
         });
 
-        if (!copyResponse.ok) {
-          throw new Error('Failed to copy profile image to LoRA folder');
-        }
+        toast.success('Image uploaded to LoRA training folder successfully');
+      } else {
+        // Copy existing profile picture to LoRA folder
+        const latestImageNum = selectedInfluencerData.image_num - 1;
 
-        toast.success('Profile image copied to LoRA folder successfully');
+        await fetch(`https://api.nymia.ai/v1/createtask?userid=${userData.id}&type=createlora`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer WeInfl3nc3withAI'
+          },
+          body: JSON.stringify({
+            task: "createlora",
+            fromsingleimage: true,
+            modelid: selectedInfluencerData.id,
+            inputimage: `/models/${selectedInfluencerData.id}/profilepic/profilepic${latestImageNum}.png`,
+          })
+        });
+
+        toast.success('Profile image selected successfully for LoRA training');
       }
 
       setShowCharacterConsistencyModal(false);
@@ -225,7 +234,7 @@ export default function InfluencerUse() {
       setUploadedImageUrl(null);
     } catch (error) {
       console.error('Error uploading/copying image:', error);
-      toast.error('Failed to upload/copy image to LoRA folder');
+      toast.error('Failed to upload/copy image to LoRA training folder');
     } finally {
       setIsCopyingImage(false);
     }
@@ -274,7 +283,7 @@ export default function InfluencerUse() {
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     e.currentTarget.classList.remove('border-blue-500', 'bg-blue-50/50');
-    
+
     const file = e.dataTransfer.files[0];
     if (file) {
       // Validate file type
@@ -487,7 +496,7 @@ export default function InfluencerUse() {
                   </div>
                   <div className="text-left">
                     <div className="font-medium">Character Consistency</div>
-                    <div className="text-sm text-muted-foreground">Copy profile picture to LoRA folder</div>
+                    <div className="text-sm text-muted-foreground">Select profile picture for LORA training.</div>
                   </div>
                 </Button>
 
@@ -538,7 +547,7 @@ export default function InfluencerUse() {
                   Character Consistency
                 </DialogTitle>
                 <DialogDescription className="text-base text-gray-600 dark:text-gray-300 mt-1">
-                  Select and copy the latest profile picture to the LoRA folder for enhanced character consistency training.
+                  Select the latest profile picture for enhanced character consistency training.
                 </DialogDescription>
               </div>
             </div>
@@ -567,7 +576,7 @@ export default function InfluencerUse() {
                         {selectedInfluencerData.name_first} {selectedInfluencerData.name_last}
                       </h3>
                       <p className="text-gray-600 dark:text-gray-300 mb-2">
-                        Latest profile picture • Version {selectedInfluencerData.image_num-1}
+                        Latest profile picture • Version {selectedInfluencerData.image_num - 1}
                       </p>
                       <div className="flex flex-wrap gap-2">
                         <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
@@ -592,7 +601,7 @@ export default function InfluencerUse() {
                     Choose the profile picture to copy for character consistency training
                   </p>
                 </div>
-                
+
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   {/* Profile Image Card */}
                   <Card className="group border-2 border-green-500/20 hover:border-green-500/40 transition-all duration-300 shadow-lg hover:shadow-xl bg-gradient-to-br from-green-50/30 to-emerald-50/30 dark:from-green-950/10 dark:to-emerald-950/10">
@@ -615,7 +624,7 @@ export default function InfluencerUse() {
                             Latest Profile Picture
                           </h4>
                           <p className="text-sm text-gray-600 dark:text-gray-300">
-                            Version {selectedInfluencerData.image_num-1} • High Quality
+                            Version {selectedInfluencerData.image_num - 1} • High Quality
                           </p>
                           <div className="flex items-center justify-center gap-2 text-xs text-green-600 dark:text-green-400">
                             <div className="w-2 h-2 bg-green-500 rounded-full"></div>
@@ -665,7 +674,7 @@ export default function InfluencerUse() {
                         </div>
                       ) : (
                         // Show professional upload interface
-                        <div 
+                        <div
                           className="space-y-4"
                           onDragOver={handleDragOver}
                           onDragLeave={handleDragLeave}
@@ -676,7 +685,7 @@ export default function InfluencerUse() {
                             <div className="aspect-square bg-gradient-to-br from-blue-100 via-purple-100 to-indigo-100 dark:from-blue-900/20 dark:via-purple-900/20 dark:to-indigo-900/20 rounded-2xl overflow-hidden shadow-lg border-2 border-dashed border-blue-300 dark:border-blue-600 group-hover/drag:border-blue-400 dark:group-hover/drag:border-blue-500 transition-all duration-300">
                               {/* Background Pattern */}
                               <div className="absolute inset-0 bg-gradient-to-br from-blue-50/50 to-purple-50/50 dark:from-blue-950/30 dark:to-purple-950/30"></div>
-                              
+
                               {/* Upload Icon and Text */}
                               <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6">
                                 <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-xl mb-4 group-hover/drag:scale-110 transition-transform duration-300">
@@ -724,7 +733,7 @@ export default function InfluencerUse() {
                                 Instant Processing
                               </div>
                             </div>
-                            
+
                             <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-lg p-3 border border-blue-200/50 dark:border-blue-800/50">
                               <p className="text-xs text-gray-600 dark:text-gray-300">
                                 <span className="font-medium">Tip:</span> Use high-resolution images for better character consistency training results.
@@ -744,7 +753,7 @@ export default function InfluencerUse() {
                   <div className="flex items-start gap-4">
                     <div className="w-10 h-10 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 flex items-center justify-center flex-shrink-0">
                       <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
                       </svg>
                     </div>
                     <div className="space-y-2">
@@ -752,8 +761,8 @@ export default function InfluencerUse() {
                         Character Consistency Training
                       </h4>
                       <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
-                        This action will copy the selected profile picture to the LoRA training folder, 
-                        enabling enhanced character consistency in AI-generated content. The image will be 
+                        This action will copy the selected profile picture to the LoRA training folder,
+                        enabling enhanced character consistency in AI-generated content. The image will be
                         used as a reference for maintaining the influencer's visual characteristics.
                       </p>
                     </div>
@@ -786,12 +795,12 @@ export default function InfluencerUse() {
                   {isCopyingImage ? (
                     <>
                       <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-3" />
-                      Copying to LoRA Folder...
+                      Setting for LoRA training...
                     </>
                   ) : (
                     <>
                       <Copy className="w-5 h-5 mr-3" />
-                      {uploadedFile ? 'Upload to LoRA Folder' : 'Copy Profile Image to LoRA'}
+                      {uploadedFile ? 'Upload to LoRA training Folder' : 'Select Profile Image for LORA training'}
                     </>
                   )}
                 </Button>

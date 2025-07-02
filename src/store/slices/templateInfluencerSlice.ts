@@ -64,7 +64,7 @@ const initialState: TemplateInfluencerState = {
 export const fetchTemplateInfluencers = createAsyncThunk(
     'templateInfluencer/fetchAll',
     async () => {
-        const response = await fetch(`https://db.nymia.ai/rest/v1/influencer?user_id=eq.template`, {
+        const response = await fetch(`https://db.nymia.ai/rest/v1/influencer?user_id=eq.21df831a-4ed7-4b40-abd0-bf568b132134`, {
             headers: {
                 'Authorization': 'Bearer WeInfl3nc3withAI'
             }

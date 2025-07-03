@@ -2,19 +2,14 @@ import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { CreateInfluencerSteps } from '@/components/Influencers/CreateInfluencerSteps';
-import { CreateInfluencerWizard } from '@/components/Influencers/CreateInfluencerWizard';
 import { useNavigate } from 'react-router-dom';
 
 export function CreateInfluencer() {
   const [showSteps, setShowSteps] = useState(false);
-  const [showWizard, setShowWizard] = useState(false);
   const navigate = useNavigate();
+  
   if (showSteps) {
     return <CreateInfluencerSteps onComplete={() => setShowSteps(false)} />;
-  }
-
-  if (showWizard) {
-    return <CreateInfluencerWizard onComplete={() => setShowWizard(false)} />;
   }
 
   return (
@@ -37,7 +32,7 @@ export function CreateInfluencer() {
             <p className="text-muted-foreground mb-4">
               Follow a step-by-step wizard to create your influencer profile.
             </p>
-            <Button onClick={() => setShowWizard(true)}>Start Wizard</Button>
+            <Button onClick={() => navigate('/influencers/wizard')}>Start Wizard</Button>
           </CardContent>
         </Card>
 

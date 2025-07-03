@@ -353,13 +353,23 @@ export default function InfluencerUse() {
   return (
     <div className="p-6 space-y-6 animate-fade-in">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight bg-ai-gradient bg-clip-text text-transparent">
-          Use Influencer
-        </h1>
-        <p className="text-muted-foreground">
-          Select an influencer and platform to create content.
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight bg-ai-gradient bg-clip-text text-transparent">
+            Use Influencer
+          </h1>
+          <p className="text-muted-foreground">
+            Select an influencer and platform to create content.
+          </p>
+        </div>
+        
+        <Button
+          onClick={() => navigate('/influencers/wizard')}
+          className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+        >
+          <Sparkles className="w-4 h-4 mr-2" />
+          Create with Wizard
+        </Button>
       </div>
 
       {/* Search Section */}

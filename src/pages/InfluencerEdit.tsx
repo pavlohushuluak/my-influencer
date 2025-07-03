@@ -216,7 +216,6 @@ export default function InfluencerEdit() {
     name_first: '',
     name_last: '',
     sex: '',
-    age_lifestyle: '',
     origin_birth: '',
     origin_residence: '',
     cultural_background: '',
@@ -252,7 +251,11 @@ export default function InfluencerEdit() {
     current_goals: [],
     background_elements: [],
     prompt: '',
-    notes: ''
+    notes: '',
+    age: '',
+    lifestyle: '',
+    eye_shape: '',
+    bust_size: ''
   });
 
   const [activeTab, setActiveTab] = useState('basic');
@@ -453,8 +456,8 @@ export default function InfluencerEdit() {
 
         try {
           const detailResponse = await fetch(`https://db.nymia.ai/rest/v1/generated_images?system_filename=eq.${filename}&user_filename=eq.${user_filename}`, {
-          headers: {
-            'Authorization': 'Bearer WeInfl3nc3withAI'
+            headers: {
+              'Authorization': 'Bearer WeInfl3nc3withAI'
             }
           });
 
@@ -924,7 +927,10 @@ export default function InfluencerEdit() {
         name_first: influencer.name_first || '',
         name_last: influencer.name_last || '',
         sex: influencer.sex || 'Female',
-        age_lifestyle: influencer.age_lifestyle || '',
+        age: influencer.age || '',
+        lifestyle: influencer.lifestyle || '',
+        eye_shape: influencer.eye_shape || 'Default',
+        bust_size: influencer.bust_size || 'Default',
         origin_birth: influencer.origin_birth || '',
         origin_residence: influencer.origin_residence || '',
         cultural_background: influencer.cultural_background || 'Default',
@@ -1143,8 +1149,8 @@ export default function InfluencerEdit() {
         fetchFacialTemplateDetails(label);
         onClose();
       } else {
-      onSelect(label);
-      onClose();
+        onSelect(label);
+        onClose();
       }
     };
 
@@ -1744,51 +1750,51 @@ export default function InfluencerEdit() {
                     <div className="xl:col-span-2 space-y-4">
                       {/* First Name and Last Name on one row */}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>First Name <span className="text-red-500">*</span></Label>
-                      <Input
-                        value={influencerData.name_first}
-                        onChange={(e) => handleInputChange('name_first', e.target.value)}
-                        placeholder="Enter first name"
-                      />
-                      {validationErrors.name_first && (
-                        <p className="text-sm text-red-500 mt-1">{validationErrors.name_first}</p>
-                      )}
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Last Name <span className="text-red-500">*</span></Label>
-                      <Input
-                        value={influencerData.name_last}
-                        onChange={(e) => handleInputChange('name_last', e.target.value)}
-                        placeholder="Enter last name"
-                      />
-                      {validationErrors.name_last && (
-                        <p className="text-sm text-red-500 mt-1">{validationErrors.name_last}</p>
-                      )}
-                    </div>
+                        <div className="space-y-2">
+                          <Label>First Name <span className="text-red-500">*</span></Label>
+                          <Input
+                            value={influencerData.name_first}
+                            onChange={(e) => handleInputChange('name_first', e.target.value)}
+                            placeholder="Enter first name"
+                          />
+                          {validationErrors.name_first && (
+                            <p className="text-sm text-red-500 mt-1">{validationErrors.name_first}</p>
+                          )}
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Last Name <span className="text-red-500">*</span></Label>
+                          <Input
+                            value={influencerData.name_last}
+                            onChange={(e) => handleInputChange('name_last', e.target.value)}
+                            placeholder="Enter last name"
+                          />
+                          {validationErrors.name_last && (
+                            <p className="text-sm text-red-500 mt-1">{validationErrors.name_last}</p>
+                          )}
+                        </div>
                       </div>
 
-                    <div className="space-y-2">
-                      <Label>Influencer Type <span className="text-red-500">*</span></Label>
-                      <Select
-                        value={influencerData.influencer_type}
-                        onValueChange={(value) => handleInputChange('influencer_type', value)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {INFLUENCER_TYPES.map((type) => (
-                            <SelectItem key={type} value={type}>
-                              {type}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      {validationErrors.influencer_type && (
-                        <p className="text-sm text-red-500 mt-1">{validationErrors.influencer_type}</p>
-                      )}
-                    </div>
+                      <div className="space-y-2">
+                        <Label>Influencer Type <span className="text-red-500">*</span></Label>
+                        <Select
+                          value={influencerData.influencer_type}
+                          onValueChange={(value) => handleInputChange('influencer_type', value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {INFLUENCER_TYPES.map((type) => (
+                              <SelectItem key={type} value={type}>
+                                {type}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {validationErrors.influencer_type && (
+                          <p className="text-sm text-red-500 mt-1">{validationErrors.influencer_type}</p>
+                        )}
+                      </div>
 
                       {/* Birth Origin and Current Residence on one row */}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1800,7 +1806,7 @@ export default function InfluencerEdit() {
                               onChange={(e) => handleInputChange('origin_birth', e.target.value)}
                               placeholder="e.g., New York, USA"
                             />
-                  </div>
+                          </div>
                         }
                         {
                           influencerData.visual_only === false && <div className="space-y-2">
@@ -1979,7 +1985,7 @@ export default function InfluencerEdit() {
                             handleInputChange,
                             'Female'
                           )}
-                                  </div>
+                        </div>
                       </div>
                     </div>
                     {
@@ -2011,8 +2017,8 @@ export default function InfluencerEdit() {
                               handleInputChange,
                               'Default'
                             )}
-                                    </div>
-                                    </div>
+                          </div>
+                        </div>
                       </div>
                     }
                     {
@@ -2077,9 +2083,9 @@ export default function InfluencerEdit() {
                             handleInputChange,
                             'Default'
                           )}
-                                  </div>
-                                  </div>
                         </div>
+                      </div>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -2120,7 +2126,7 @@ export default function InfluencerEdit() {
                             handleInputChange,
                             'Default'
                           )}
-                                  </div>
+                        </div>
                       </div>
                     </div>
                     <div className="space-y-2">
@@ -2151,7 +2157,7 @@ export default function InfluencerEdit() {
                             handleInputChange,
                             'Default'
                           )}
-                                  </div>
+                        </div>
                       </div>
                     </div>
                     <div className="space-y-2">
@@ -2230,7 +2236,7 @@ export default function InfluencerEdit() {
                             handleInputChange,
                             'Default'
                           )}
-                                  </div>
+                        </div>
                       </div>
                     </div>
                     <div className="space-y-2">
@@ -2279,8 +2285,8 @@ export default function InfluencerEdit() {
                           />
                           Custom Eye Color
                         </Button>
-                                  </div>
-                                  </div>
+                      </div>
+                    </div>
                     <div className="space-y-2">
                       <Label>Eye Shape</Label>
                       <div className="flex flex-col gap-2">
@@ -2340,7 +2346,7 @@ export default function InfluencerEdit() {
                             handleInputChange,
                             'Default'
                           )}
-                                  </div>
+                        </div>
                       </div>
                     </div>
                     <div className="space-y-2">
@@ -2371,7 +2377,7 @@ export default function InfluencerEdit() {
                             handleInputChange,
                             'Default'
                           )}
-                                  </div>
+                        </div>
                       </div>
                     </div>
                     <div className="space-y-2">
@@ -2402,7 +2408,7 @@ export default function InfluencerEdit() {
                             handleInputChange,
                             'Default'
                           )}
-                                  </div>
+                        </div>
                       </div>
                     </div>
                     <div className="space-y-2">
@@ -2433,7 +2439,7 @@ export default function InfluencerEdit() {
                             handleInputChange,
                             'Default'
                           )}
-                                  </div>
+                        </div>
                       </div>
                     </div>
                     <div className="space-y-2">
@@ -2464,7 +2470,7 @@ export default function InfluencerEdit() {
                             handleInputChange,
                             'Default'
                           )}
-                                  </div>
+                        </div>
                       </div>
                     </div>
                     <div className="space-y-2">
@@ -2495,10 +2501,10 @@ export default function InfluencerEdit() {
                             handleInputChange,
                             'Default'
                           )}
-                                  </div>
-                                  </div>
                         </div>
                       </div>
+                    </div>
+                  </div>
                   <Separator className="my-6" />
 
                   <div className="space-y-2">
@@ -2507,7 +2513,7 @@ export default function InfluencerEdit() {
                         <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                         </svg>
-                    </div>
+                      </div>
                       Content Generation Prompt
                     </Label>
                     <div className="relative">
@@ -2567,7 +2573,7 @@ export default function InfluencerEdit() {
                             handleInputChange,
                             'Default'
                           )}
-                                  </div>
+                        </div>
                       </div>
                     </div>
                     <div className="space-y-2">
@@ -2598,7 +2604,7 @@ export default function InfluencerEdit() {
                             handleInputChange,
                             'Default'
                           )}
-                                  </div>
+                        </div>
                       </div>
                     </div>
                     <div className="space-y-2">
@@ -2629,7 +2635,7 @@ export default function InfluencerEdit() {
                             handleInputChange,
                             'Default'
                           )}
-                                  </div>
+                        </div>
                       </div>
                     </div>
                     <div className='space-y-2'>
@@ -2660,7 +2666,7 @@ export default function InfluencerEdit() {
                             handleInputChange,
                             'Default'
                           )}
-                                  </div>
+                        </div>
                       </div>
                     </div>
                     <div className="space-y-2">
@@ -2691,7 +2697,7 @@ export default function InfluencerEdit() {
                             handleInputChange,
                             'Default'
                           )}
-                                  </div>
+                        </div>
                       </div>
                     </div>
                     <div className="space-y-2">
@@ -2722,7 +2728,7 @@ export default function InfluencerEdit() {
                             handleInputChange,
                             'Default'
                           )}
-                                  </div>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -3200,61 +3206,61 @@ export default function InfluencerEdit() {
 
                     <Separator className="my-6" />
 
-                      <div className="space-y-2">
+                    <div className="space-y-2">
                       <Button onClick={() => setShowHumorSelector(true)}>
                         <Image className="w-4 h-4 mr-2" />
                         Humor Style (Max 4)
                       </Button>
-                        <div className="space-y-4">
-                          <div className="flex flex-wrap gap-2">
-                            {influencerData.humor.map((style, index) => (
-                              <Badge
-                                key={index}
-                                variant="secondary"
-                                className="flex items-center gap-1 px-3 py-1"
+                      <div className="space-y-4">
+                        <div className="flex flex-wrap gap-2">
+                          {influencerData.humor.map((style, index) => (
+                            <Badge
+                              key={index}
+                              variant="secondary"
+                              className="flex items-center gap-1 px-3 py-1"
+                            >
+                              {style}
+                              <button
+                                onClick={() => handleRemoveTag('humor', style)}
+                                className="ml-1 hover:text-destructive"
                               >
-                                {style}
-                                <button
-                                  onClick={() => handleRemoveTag('humor', style)}
-                                  className="ml-1 hover:text-destructive"
-                                >
-                                  <X className="h-3 w-3" />
-                                </button>
-                              </Badge>
-                            ))}
-                          </div>
-                          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                            {influencerData.humor.map((style, index) => {
-                              const option = humorOptions.find(opt => opt.label === style);
-                              if (!option) return null;
-                              return (
-                                <Card key={index} className="relative">
-                                  <CardContent className="p-4">
-                                    <div className="relative w-full group" style={{ paddingBottom: '100%' }}>
-                                      <img
-                                        src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
-                                        alt={option.label}
-                                        className="absolute inset-0 w-full h-full object-cover rounded-md"
-                                      />
-                                      <div
-                                        className="absolute right-2 top-2 bg-black/50 rounded-full w-8 h-8 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
-                                        onClick={() => setPreviewImage(`https://images.nymia.ai/cdn-cgi/image/w=800/wizard/${option.image}`)}
-                                      >
-                                        <ZoomIn className="w-5 h-5 text-white" />
-                                      </div>
+                                <X className="h-3 w-3" />
+                              </button>
+                            </Badge>
+                          ))}
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                          {influencerData.humor.map((style, index) => {
+                            const option = humorOptions.find(opt => opt.label === style);
+                            if (!option) return null;
+                            return (
+                              <Card key={index} className="relative">
+                                <CardContent className="p-4">
+                                  <div className="relative w-full group" style={{ paddingBottom: '100%' }}>
+                                    <img
+                                      src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
+                                      alt={option.label}
+                                      className="absolute inset-0 w-full h-full object-cover rounded-md"
+                                    />
+                                    <div
+                                      className="absolute right-2 top-2 bg-black/50 rounded-full w-8 h-8 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
+                                      onClick={() => setPreviewImage(`https://images.nymia.ai/cdn-cgi/image/w=800/wizard/${option.image}`)}
+                                    >
+                                      <ZoomIn className="w-5 h-5 text-white" />
                                     </div>
-                                    <p className="text-sm text-center font-medium mt-2">{option.label}</p>
-                                  </CardContent>
-                                </Card>
-                              );
-                            })}
-                          </div>
+                                  </div>
+                                  <p className="text-sm text-center font-medium mt-2">{option.label}</p>
+                                </CardContent>
+                              </Card>
+                            );
+                          })}
                         </div>
                       </div>
+                    </div>
 
                     <Separator className="my-6" />
 
-                      <div className="space-y-2">
+                    <div className="space-y-2">
                       <div className="space-y-2">
                         <Button onClick={() => setShowCoreValuesSelector(true)}>
                           <Image className="w-4 h-4 mr-2" />
@@ -3979,28 +3985,28 @@ export default function InfluencerEdit() {
 
             {/* Image Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-            {loadingVaultImages ? (
-              <div className="col-span-full flex items-center justify-center py-12">
-                <div className="flex flex-col items-center gap-4">
+              {loadingVaultImages ? (
+                <div className="col-span-full flex items-center justify-center py-12">
+                  <div className="flex flex-col items-center gap-4">
                     <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
                     <p className="text-muted-foreground">Loading Inbox images...</p>
+                  </div>
                 </div>
-              </div>
               ) : detailedImages.length > 0 ? (
                 detailedImages.map((image) => (
-                <Card
+                  <Card
                     key={image.id}
                     className={`group hover:shadow-xl transition-all duration-300 border-border/50 hover:border-blue-500/30 backdrop-blur-sm ${image.task_id?.startsWith('upload_')
                       ? 'bg-gradient-to-br from-purple-50/20 to-pink-50/20 dark:from-purple-950/5 dark:to-pink-950/5 hover:border-purple-500/30'
                       : 'bg-gradient-to-br from-yellow-50/20 to-orange-50/20 dark:from-yellow-950/5 dark:to-orange-950/5'
                       } cursor-pointer`}
-                  onClick={() => {
+                    onClick={() => {
                       setProfileImageId(image.id);
                       const imageUrl = `https://images.nymia.ai/cdn-cgi/image/w=800/${userData.id}/${image.user_filename === "" ? "output" : "vault/" + image.user_filename}/${image.system_filename}`;
                       handleImageSelect(imageUrl);
-                  }}
-                >
-                  <CardContent className="p-4">
+                    }}
+                  >
+                    <CardContent className="p-4">
                       {/* Top Row: File Type, Ratings, Favorite */}
                       <div className="flex items-center justify-between mb-3">
                         {/* File Type Icon */}
@@ -4084,15 +4090,15 @@ export default function InfluencerEdit() {
                         {/* Zoom Button */}
                         <div
                           className="absolute right-2 top-2 bg-black/50 rounded-full w-8 h-8 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer"
-                        onClick={(e) => {
-                          e.stopPropagation();
+                          onClick={(e) => {
+                            e.stopPropagation();
                             const imageUrl = `https://images.nymia.ai/cdn-cgi/image/w=800/${userData.id}/${image.user_filename === "" ? "output" : "vault/" + image.user_filename}/${image.system_filename}`;
                             setPreviewImage(imageUrl);
-                        }}
-                      >
-                        <ZoomIn className="w-5 h-5 text-white" />
+                          }}
+                        >
+                          <ZoomIn className="w-5 h-5 text-white" />
+                        </div>
                       </div>
-                    </div>
 
                       {/* User Notes */}
                       {image.user_notes && (
@@ -4143,18 +4149,18 @@ export default function InfluencerEdit() {
                           </div>
                         )}
                       </div>
-                  </CardContent>
-                </Card>
-              ))
-            ) : (
-              <div className="col-span-full text-center py-12">
-                <Image className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold mb-2">No images found</h3>
-                <p className="text-muted-foreground">
-                  You don't have any images in your vault yet. Create some content first!
-                </p>
-              </div>
-            )}
+                    </CardContent>
+                  </Card>
+                ))
+              ) : (
+                <div className="col-span-full text-center py-12">
+                  <Image className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">No images found</h3>
+                  <p className="text-muted-foreground">
+                    You don't have any images in your vault yet. Create some content first!
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         </DialogContent>

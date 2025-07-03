@@ -152,7 +152,7 @@ export default function Accessories() {
                     <Watch className="w-16 h-16 text-purple-600 dark:text-purple-400" />
                   )}
                 </div>
-                
+
                 <div>
                   <h3 className="font-semibold text-lg mb-2">{accessory.name}</h3>
                   <div className="space-y-2">
@@ -164,7 +164,7 @@ export default function Accessories() {
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
                         <span className="text-sm text-muted-foreground">Color:</span>
-                        <div 
+                        <div
                           className="w-4 h-4 rounded-full border"
                           style={{ backgroundColor: accessory.color.toLowerCase() }}
                         />
@@ -184,20 +184,20 @@ export default function Accessories() {
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="flex gap-2">
-                  <Button 
+                  <Button
                     onClick={() => handleEdit(accessory)}
-                    variant="outline" 
+                    variant="outline"
                     size="sm"
                     className="flex-1"
                   >
                     <Edit className="w-4 h-4 mr-1" />
                     Edit
                   </Button>
-                  <Button 
+                  <Button
                     onClick={() => handleDelete(accessory.id)}
-                    variant="outline" 
+                    variant="outline"
                     size="sm"
                     className="text-red-600 hover:text-red-700"
                   >
@@ -218,21 +218,21 @@ export default function Accessories() {
               {editingAccessory ? 'Edit Accessory' : 'Add New Accessory'}
             </DialogTitle>
           </DialogHeader>
-          
+
           <div className="space-y-4">
             <div>
               <Label htmlFor="name">Accessory Name</Label>
               <Input
                 id="name"
                 value={formData.name}
-                onChange={(e) => setFormData({...formData, name: e.target.value})}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 placeholder="e.g., Gold Chain Necklace"
               />
             </div>
-            
+
             <div>
               <Label htmlFor="category">Category</Label>
-              <Select value={formData.category} onValueChange={(value) => setFormData({...formData, category: value})}>
+              <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
@@ -249,7 +249,7 @@ export default function Accessories() {
               <Textarea
                 id="description"
                 value={formData.description}
-                onChange={(e) => setFormData({...formData, description: e.target.value})}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 placeholder="Describe the accessory..."
                 rows={2}
               />
@@ -258,7 +258,7 @@ export default function Accessories() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="material">Material</Label>
-                <Select value={formData.material} onValueChange={(value) => setFormData({...formData, material: value})}>
+                <Select value={formData.material} onValueChange={(value) => setFormData({ ...formData, material: value })}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select material" />
                   </SelectTrigger>
@@ -275,7 +275,7 @@ export default function Accessories() {
                 <Input
                   id="color"
                   value={formData.color}
-                  onChange={(e) => setFormData({...formData, color: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, color: e.target.value })}
                   placeholder="e.g., Gold, Black"
                 />
               </div>
@@ -283,7 +283,7 @@ export default function Accessories() {
 
             <div>
               <Label htmlFor="style">Style</Label>
-              <Select value={formData.style} onValueChange={(value) => setFormData({...formData, style: value})}>
+              <Select value={formData.style} onValueChange={(value) => setFormData({ ...formData, style: value })}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select style" />
                 </SelectTrigger>
@@ -300,7 +300,7 @@ export default function Accessories() {
               <Input
                 id="brand"
                 value={formData.brand}
-                onChange={(e) => setFormData({...formData, brand: e.target.value})}
+                onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
                 placeholder="e.g., Tiffany & Co., Coach"
               />
             </div>
@@ -320,7 +320,7 @@ export default function Accessories() {
                 ))}
               </div>
             </div>
-            
+
             <div className="flex gap-3 pt-4">
               <Button variant="outline" onClick={() => setShowAddModal(false)} className="flex-1">
                 Cancel

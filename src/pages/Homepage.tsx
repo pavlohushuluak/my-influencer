@@ -207,8 +207,8 @@ export default function Homepage() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 max-w-6xl mx-auto">
             {pricingPlans.map((plan, index) => (
-              <Card 
-                key={index} 
+              <Card
+                key={index}
                 className={cn(
                   "relative overflow-hidden transition-all duration-300 hover:shadow-xl",
                   plan.popular ? "border-purple-500 shadow-lg scale-105" : "border-border/50"
@@ -236,18 +236,18 @@ export default function Homepage() {
                       </li>
                     ))}
                   </ul>
-                  <Button 
+                  <Button
                     className={cn(
                       "w-full mt-6",
-                      plan.popular 
-                        ? "bg-ai-gradient hover:opacity-90" 
+                      plan.popular
+                        ? "bg-ai-gradient hover:opacity-90"
                         : "bg-background border border-border hover:bg-accent text-foreground"
                     )}
                     onClick={() => handlePricingClick(plan.name.toLowerCase())}
                   >
-                    {isLoggedIn 
-                      ? currentPlan === plan.name.toLowerCase() 
-                        ? 'Current Plan' 
+                    {isLoggedIn
+                      ? currentPlan === plan.name.toLowerCase()
+                        ? 'Current Plan'
                         : 'Change Plan'
                       : 'Get Started'}
                   </Button>
@@ -266,11 +266,11 @@ export default function Homepage() {
               About AI Influence
             </h2>
             <p className="text-lg sm:text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed px-4">
-              We're a team of AI researchers, engineers, and designers passionate about democratizing 
+              We're a team of AI researchers, engineers, and designers passionate about democratizing
               AI-powered content creation. Our mission is to empower creators worldwide with cutting-edge technology.
             </p>
           </div>
-          
+
           {/* Company Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8 mb-16">
             <div className="text-center">
@@ -297,8 +297,8 @@ export default function Homepage() {
               <Card key={index} className="text-center border-border/50 bg-card/50 backdrop-blur">
                 <CardHeader>
                   <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-muted overflow-hidden">
-                    <img 
-                      src={member.image} 
+                    <img
+                      src={member.image}
                       alt={member.name}
                       className="w-full h-full object-cover"
                     />
@@ -326,7 +326,7 @@ export default function Homepage() {
               Have questions? We'd love to hear from you. Send us a message and we'll respond as soon as possible.
             </p>
           </div>
-          
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-12 max-w-6xl mx-auto">
             {/* Contact Info */}
             <div className="space-y-6">
@@ -365,16 +365,16 @@ export default function Homepage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="text-sm font-medium text-foreground mb-2 block">First Name</label>
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       className="w-full px-3 py-2 bg-background border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary/20"
                       placeholder="John"
                     />
                   </div>
                   <div>
                     <label className="text-sm font-medium text-foreground mb-2 block">Last Name</label>
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       className="w-full px-3 py-2 bg-background border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary/20"
                       placeholder="Doe"
                     />
@@ -382,23 +382,23 @@ export default function Homepage() {
                 </div>
                 <div>
                   <label className="text-sm font-medium text-foreground mb-2 block">Email</label>
-                  <input 
-                    type="email" 
+                  <input
+                    type="email"
                     className="w-full px-3 py-2 bg-background border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary/20"
                     placeholder="john@example.com"
                   />
                 </div>
                 <div>
                   <label className="text-sm font-medium text-foreground mb-2 block">Subject</label>
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     className="w-full px-3 py-2 bg-background border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary/20"
                     placeholder="How can we help?"
                   />
                 </div>
                 <div>
                   <label className="text-sm font-medium text-foreground mb-2 block">Message</label>
-                  <textarea 
+                  <textarea
                     rows={4}
                     className="w-full px-3 py-2 bg-background border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none"
                     placeholder="Tell us more about your inquiry..."
@@ -423,8 +423,8 @@ export default function Homepage() {
             <p className="text-lg sm:text-xl text-muted-foreground mb-6 sm:mb-8 leading-relaxed px-4">
               Join thousands of creators who are already building their AI influencer networks
             </p>
-            <Button 
-              size="lg" 
+            <Button
+              size="lg"
               className="bg-ai-gradient hover:opacity-90 text-base sm:text-lg px-6 sm:px-8 py-3 shadow-lg transition-all hover:shadow-xl w-full sm:w-auto"
               onClick={() => navigate(isLoggedIn ? '/dashboard' : '/signup')}
             >

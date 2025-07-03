@@ -14,24 +14,24 @@ export default function ContentEdit() {
   const [editMode, setEditMode] = useState('basic');
 
   const mockContent = [
-    { 
-      id: '1', 
-      title: 'Summer Fashion Shoot', 
-      type: 'image', 
+    {
+      id: '1',
+      title: 'Summer Fashion Shoot',
+      type: 'image',
       url: 'https://images.unsplash.com/photo-1649972904349-6e44c42644a7?w=400&h=400&fit=crop',
       description: 'Beautiful summer fashion content'
     },
-    { 
-      id: '2', 
-      title: 'Workout Video', 
-      type: 'video', 
+    {
+      id: '2',
+      title: 'Workout Video',
+      type: 'video',
       url: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=400&fit=crop',
       description: 'High-energy fitness routine'
     },
-    { 
-      id: '3', 
-      title: 'Lifestyle Portrait', 
-      type: 'image', 
+    {
+      id: '3',
+      title: 'Lifestyle Portrait',
+      type: 'image',
       url: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=400&h=400&fit=crop',
       description: 'Casual lifestyle photography'
     },
@@ -60,17 +60,16 @@ export default function ContentEdit() {
             {mockContent.map((item) => (
               <div
                 key={item.id}
-                className={`p-3 rounded-lg border cursor-pointer transition-all ${
-                  selectedContent === item.id 
-                    ? 'border-purple-500 bg-purple-50 dark:bg-purple-950/20' 
+                className={`p-3 rounded-lg border cursor-pointer transition-all ${selectedContent === item.id
+                    ? 'border-purple-500 bg-purple-50 dark:bg-purple-950/20'
                     : 'border-border hover:border-purple-300'
-                }`}
+                  }`}
                 onClick={() => setSelectedContent(item.id)}
               >
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 rounded-lg overflow-hidden bg-muted">
-                    <img 
-                      src={item.url} 
+                    <img
+                      src={item.url}
                       alt={item.title}
                       className="w-full h-full object-cover"
                     />
@@ -121,8 +120,8 @@ export default function ContentEdit() {
                 </CardHeader>
                 <CardContent>
                   <div className="aspect-video bg-muted rounded-lg overflow-hidden">
-                    <img 
-                      src={selectedItem.url} 
+                    <img
+                      src={selectedItem.url}
                       alt={selectedItem.title}
                       className="w-full h-full object-cover"
                     />
@@ -142,7 +141,7 @@ export default function ContentEdit() {
                       <TabsTrigger value="filters">Filters</TabsTrigger>
                       <TabsTrigger value="text">Text</TabsTrigger>
                     </TabsList>
-                    
+
                     <TabsContent value="basic" className="space-y-4">
                       <div className="grid grid-cols-2 gap-4">
                         <Button variant="outline" className="h-20 flex-col">
@@ -155,7 +154,7 @@ export default function ContentEdit() {
                         </Button>
                       </div>
                     </TabsContent>
-                    
+
                     <TabsContent value="filters" className="space-y-4">
                       <div className="grid grid-cols-3 gap-3">
                         {['Original', 'Vintage', 'B&W', 'Warm', 'Cool', 'Vibrant'].map((filter) => (
@@ -165,7 +164,7 @@ export default function ContentEdit() {
                         ))}
                       </div>
                     </TabsContent>
-                    
+
                     <TabsContent value="text" className="space-y-4">
                       <div className="space-y-3">
                         <div>

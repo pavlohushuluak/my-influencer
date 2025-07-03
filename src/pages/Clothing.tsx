@@ -138,7 +138,7 @@ export default function Clothing() {
                     <Shirt className="w-16 h-16 text-purple-600 dark:text-purple-400" />
                   )}
                 </div>
-                
+
                 <div>
                   <h3 className="font-semibold text-lg mb-2">{item.name}</h3>
                   <div className="space-y-2">
@@ -146,7 +146,7 @@ export default function Clothing() {
                     <Badge variant="secondary">{item.style}</Badge>
                     <div className="flex items-center gap-2">
                       <span className="text-sm text-muted-foreground">Color:</span>
-                      <div 
+                      <div
                         className="w-4 h-4 rounded-full border"
                         style={{ backgroundColor: item.color.toLowerCase() }}
                       />
@@ -162,20 +162,20 @@ export default function Clothing() {
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="flex gap-2">
-                  <Button 
+                  <Button
                     onClick={() => handleEdit(item)}
-                    variant="outline" 
+                    variant="outline"
                     size="sm"
                     className="flex-1"
                   >
                     <Edit className="w-4 h-4 mr-1" />
                     Edit
                   </Button>
-                  <Button 
+                  <Button
                     onClick={() => handleDelete(item.id)}
-                    variant="outline" 
+                    variant="outline"
                     size="sm"
                     className="text-red-600 hover:text-red-700"
                   >
@@ -196,21 +196,21 @@ export default function Clothing() {
               {editingItem ? 'Edit Clothing Item' : 'Add New Clothing Item'}
             </DialogTitle>
           </DialogHeader>
-          
+
           <div className="space-y-4">
             <div>
               <Label htmlFor="name">Name</Label>
               <Input
                 id="name"
                 value={formData.name}
-                onChange={(e) => setFormData({...formData, name: e.target.value})}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 placeholder="e.g., White Cotton T-Shirt"
               />
             </div>
-            
+
             <div>
               <Label htmlFor="category">Category</Label>
-              <Select value={formData.category} onValueChange={(value) => setFormData({...formData, category: value})}>
+              <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
@@ -224,7 +224,7 @@ export default function Clothing() {
 
             <div>
               <Label htmlFor="style">Style</Label>
-              <Select value={formData.style} onValueChange={(value) => setFormData({...formData, style: value})}>
+              <Select value={formData.style} onValueChange={(value) => setFormData({ ...formData, style: value })}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select style" />
                 </SelectTrigger>
@@ -241,14 +241,14 @@ export default function Clothing() {
               <Input
                 id="color"
                 value={formData.color}
-                onChange={(e) => setFormData({...formData, color: e.target.value})}
+                onChange={(e) => setFormData({ ...formData, color: e.target.value })}
                 placeholder="e.g., White, Blue, Red"
               />
             </div>
 
             <div>
               <Label htmlFor="season">Season</Label>
-              <Select value={formData.season} onValueChange={(value) => setFormData({...formData, season: value})}>
+              <Select value={formData.season} onValueChange={(value) => setFormData({ ...formData, season: value })}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select season" />
                 </SelectTrigger>
@@ -275,7 +275,7 @@ export default function Clothing() {
                 ))}
               </div>
             </div>
-            
+
             <div className="flex gap-3 pt-4">
               <Button variant="outline" onClick={() => setShowAddModal(false)} className="flex-1">
                 Cancel

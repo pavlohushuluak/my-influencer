@@ -5,10 +5,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { ChevronRight, ChevronLeft, Loader2, User, Sparkles, Palette, Settings, ArrowRight, Check } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Loader2, User, Sparkles, Palette, Settings, ArrowRight, Check, ZoomIn, RefreshCcw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { RootState } from '@/store/store';
 import { toast } from 'sonner';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
 interface InfluencerWizardProps {
   onComplete: () => void;
@@ -42,7 +43,8 @@ interface InfluencerData {
   clothing_style_sports: string;
   clothing_style_sexy_dress: string;
   home_environment: string;
-  age_lifestyle: string;
+  age: string;
+  lifestyle: string;
   origin_birth: string;
   origin_residence: string;
   content_focus: string[];
@@ -74,6 +76,32 @@ interface SexOption {
   label: string;
   description: string;
   image: string;
+}
+
+interface FacialTemplateDetail {
+  template_id: string;
+  template_name: string;
+  category: string;
+  description: string;
+  base_prompt: string;
+  implied_face_shape: string;
+  implied_nose_style: string;
+  implied_lip_style: string;
+  implied_eye_color: string;
+  implied_eye_shape: string;
+  implied_eyebrow_style: string;
+  implied_skin_tone: string;
+  weight_without_lora: number;
+  weight_with_lora: number;
+  is_active: boolean;
+  created_at: string;
+  implied_hair_color: string;
+  implied_hair_length: string;
+  implied_hair_style: string;
+  sortid: number;
+  implied_cultural_background: string;
+  id: number;
+  prompt_mapping_ref_id: number;
 }
 
 const steps = [
@@ -110,6 +138,14 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [sexOptions, setSexOptions] = useState<SexOption[]>([]);
   const [isLoadingSexOptions, setIsLoadingSexOptions] = useState(true);
+  const [facialFeaturesOptions, setFacialFeaturesOptions] = useState<Option[]>([]);
+  const [isLoadingFacialFeatures, setIsLoadingFacialFeatures] = useState(true);
+  const [selectedFacialTemplate, setSelectedFacialTemplate] = useState<FacialTemplateDetail | null>(null);
+  const [showFacialTemplateDetails, setShowFacialTemplateDetails] = useState(false);
+  const [showFacialTemplateConfirm, setShowFacialTemplateConfirm] = useState(false);
+  const [isApplyingTemplate, setIsApplyingTemplate] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const userData = useSelector((state: RootState) => state.user);
 
   const [influencerData, setInfluencerData] = useState<InfluencerData>({
@@ -140,7 +176,8 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
     clothing_style_sports: '',
     clothing_style_sexy_dress: '',
     home_environment: '',
-    age_lifestyle: '',
+    age: '',
+    lifestyle: '',
     origin_birth: '',
     origin_residence: '',
     content_focus: [],
@@ -161,6 +198,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
     notes: ''
   });
 
+  console.log(influencerData);
   // Fetch sex options from API
   useEffect(() => {
     const fetchSexOptions = async () => {
@@ -208,6 +246,145 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
 
     fetchSexOptions();
   }, []);
+
+  // Fetch facial features options from API
+  useEffect(() => {
+    const fetchFacialFeaturesOptions = async () => {
+      try {
+        setIsLoadingFacialFeatures(true);
+        const response = await fetch('https://api.nymia.ai/v1/fieldoptions?fieldtype=facial_features', {
+          headers: {
+            'Authorization': 'Bearer WeInfl3nc3withAI'
+          }
+        });
+        if (response.ok) {
+          const responseData = await response.json();
+          if (responseData && responseData.fieldoptions && Array.isArray(responseData.fieldoptions)) {
+            setFacialFeaturesOptions(responseData.fieldoptions.map((item: any) => ({
+              label: item.label,
+              image: item.image,
+              description: item.description
+            })));
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching facial features options:', error);
+      } finally {
+        setIsLoadingFacialFeatures(false);
+      }
+    };
+
+    fetchFacialFeaturesOptions();
+  }, []);
+
+  // Function to fetch facial template details
+  const fetchFacialTemplateDetails = async (templateName: string) => {
+    try {
+      const response = await fetch(`https://db.nymia.ai/rest/v1/facial_templates_global?template_name=eq.${templateName}`, {
+        headers: {
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch facial template details');
+      }
+
+      const data = await response.json();
+      if (data && data.length > 0) {
+        setSelectedFacialTemplate(data[0]);
+        setShowFacialTemplateDetails(true);
+      } else {
+        toast.error('Template details not found');
+      }
+    } catch (error) {
+      console.error('Error fetching facial template details:', error);
+      toast.error('Failed to fetch template details');
+    }
+  };
+
+  // Function to apply facial template
+  const applyFacialTemplate = async (templateName: string) => {
+    try {
+      setIsApplyingTemplate(true);
+      toast.loading(`Applying ${templateName} template...`, {
+        id: 'template-application'
+      });
+
+      // Fetch template details first
+      const response = await fetch(`https://db.nymia.ai/rest/v1/facial_templates_global?template_name=eq.${templateName}`, {
+        headers: {
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch facial template details');
+      }
+
+      const data = await response.json();
+      if (data && data.length > 0) {
+        const template = data[0];
+        
+        // Update influencer data with template values
+        setInfluencerData(prev => ({
+          ...prev,
+          facial_features: template.template_name,
+          face_shape: template.implied_face_shape,
+          nose_style: template.implied_nose_style,
+          lip_style: template.implied_lip_style,
+          eye_color: template.implied_eye_color,
+          eye_shape: template.implied_eye_shape,
+          eyebrow_style: template.implied_eyebrow_style,
+          skin_tone: template.implied_skin_tone,
+          hair_color: template.implied_hair_color,
+          hair_length: template.implied_hair_length,
+          hair_style: template.implied_hair_style,
+          cultural_background: template.implied_cultural_background
+        }));
+
+        toast.success(`${template.template_name} template applied successfully`, {
+          id: 'template-application'
+        });
+      } else {
+        // If no template found, just set the facial features name
+        setInfluencerData(prev => ({
+          ...prev,
+          facial_features: templateName
+        }));
+        toast.success(`${templateName} selected`, {
+          id: 'template-application'
+        });
+      }
+    } catch (error) {
+      console.error('Error applying facial template:', error);
+      // Fallback: just set the facial features name
+      setInfluencerData(prev => ({
+        ...prev,
+        facial_features: templateName
+      }));
+      toast.success(`${templateName} selected`, {
+        id: 'template-application'
+      });
+    } finally {
+      setIsApplyingTemplate(false);
+    }
+  };
+
+  // Pagination helper functions
+  const totalPages = Math.ceil(facialFeaturesOptions.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentItems = facialFeaturesOptions.slice(startIndex, endIndex);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  const handleItemsPerPageChange = (newItemsPerPage: number) => {
+    setItemsPerPage(newItemsPerPage);
+    setCurrentPage(1); // Reset to first page when changing items per page
+  };
 
   const handleOptionSelect = (field: string, value: string | boolean) => {
     setInfluencerData(prev => ({
@@ -330,64 +507,193 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
         return (
           <div className="space-y-8">
             <div className="text-center space-y-6">
-              <div className="w-20 h-20 mx-auto bg-gradient-to-br from-purple-500 via-pink-600 to-orange-600 rounded-full flex items-center justify-center shadow-2xl">
-                <Sparkles className="w-10 h-10 text-white" />
-              </div>
               <div className="space-y-3">
-                <h2 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-                  Select Influencer Type
+                <h2 className="text-2xl font-bold">
+                  Facial Features Selection
                 </h2>
                 <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto text-lg leading-relaxed">
-                  Choose the type of influencer you want to create. This will define their content focus, personality, and overall brand direction.
+                  To ease your start, we provide you with a list of well curated Facial templates, that help you to get started.
+                  You can select out of the portfolio or start from Scratch.
+                  All setting can be modified.
                 </p>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-4xl mx-auto">
-              {['Lifestyle', 'Educational', 'Fashion', 'Fitness', 'Food', 'Travel'].map((type) => (
-                <Card
-                  key={type}
-                  className={cn(
-                    "group cursor-pointer transition-all duration-300 hover:shadow-xl border-2 transform hover:scale-105",
-                    influencerData.influencer_type === type
-                      ? "border-purple-500 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/20 dark:to-pink-950/20 shadow-xl scale-105"
-                      : "border-gray-200 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-600"
-                  )}
-                  onClick={() => handleOptionSelect('influencer_type', type)}
-                >
-                  <CardContent className="p-8">
-                    <div className="text-center space-y-4">
-                      <div className={cn(
-                        "w-16 h-16 mx-auto rounded-2xl flex items-center justify-center shadow-lg transition-all duration-300",
-                        influencerData.influencer_type === type
-                          ? "bg-gradient-to-br from-purple-500 to-pink-600 scale-110"
-                          : "bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 group-hover:from-purple-100 group-hover:to-pink-100 dark:group-hover:from-purple-900/30 dark:group-hover:to-pink-900/30"
-                      )}>
-                        <Sparkles className={cn(
-                          "w-8 h-8 transition-colors duration-300",
-                          influencerData.influencer_type === type
-                            ? "text-white"
-                            : "text-gray-600 dark:text-gray-400 group-hover:text-purple-600 dark:group-hover:text-purple-400"
-                        )} />
-                      </div>
-                      <div className="space-y-2">
-                        <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">
-                          {type}
-                        </h3>
-                        <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed">
-                          {type} content and lifestyle focus with engaging personality
-                        </p>
-                      </div>
-                      {influencerData.influencer_type === type && (
-                        <div className="flex items-center justify-center gap-2 text-purple-600 dark:text-purple-400">
-                          <Check className="w-4 h-4" />
-                          <span className="text-sm font-medium">Selected</span>
-                        </div>
-                      )}
+            <div className="mx-auto">
+              {isLoadingFacialFeatures ? (
+                <div className="flex justify-center items-center py-12">
+                  <div className="text-center space-y-4">
+                    <Loader2 className="w-8 h-8 animate-spin text-purple-600 mx-auto" />
+                    <p className="text-gray-600 dark:text-gray-400">Loading facial features...</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {/* Items per page control */}
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-3">
+                      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Items per page:
+                      </label>
+                      <select
+                        value={itemsPerPage}
+                        onChange={(e) => handleItemsPerPageChange(Number(e.target.value))}
+                        className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      >
+                        <option value={5}>5</option>
+                        <option value={10}>10</option>
+                        <option value={20}>20</option>
+                        <option value={50}>50</option>
+                        <option value={100}>100</option>
+                      </select>
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
+                  </div>
+
+                  {/* Facial Features Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+                    {currentItems.map((option) => (
+                      <Card
+                        key={option.label}
+                        className={cn(
+                          "group cursor-pointer transition-all duration-300 hover:shadow-xl border-2 transform hover:scale-105",
+                          (option.label === "Default" && influencerData.facial_features === 'Default') || influencerData.facial_features === option.label
+                            ? "border-purple-500 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/20 dark:to-pink-950/20 shadow-xl scale-105"
+                            : "border-gray-200 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-600"
+                        )}
+                        onClick={() => {
+                          if (option.label === "Default") {
+                            // Set all facial feature fields to "Default"
+                            setInfluencerData(prev => ({
+                              ...prev,
+                              facial_features: 'Default',
+                              face_shape: 'Default',
+                              hair_style: 'Default',
+                              hair_color: 'Default',
+                              hair_length: 'Default',
+                              eye_color: 'Default',
+                              nose_style: 'Default',
+                              lip_style: 'Default',
+                              eye_shape: 'Default',
+                              eyebrow_style: 'Default',
+                              cultural_background: 'Default'
+                            }));
+                            toast.success('Start from Scratch selected', {
+                              id: 'start-from-scratch'
+                            });
+                          } else {
+                            applyFacialTemplate(option.label);
+                          }
+                        }}
+                      >
+                        <CardContent className="p-6">
+                          <div className="space-y-4">
+                            <div className="relative">
+                              <img
+                                src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
+                                alt={option.label === "Default" ? "Start from Scratch" : option.label}
+                                className="w-full h-48 object-cover rounded-lg shadow-md group-hover:scale-105 transition-transform duration-300"
+                              />
+                              {(option.label === "Default" && influencerData.facial_features === 'Default') || influencerData.facial_features === option.label ? (
+                                <div className="absolute top-2 right-2 w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center shadow-lg">
+                                  <Check className="w-5 h-5 text-white" />
+                                </div>
+                              ) : null}
+                            </div>
+                            <div className="text-center space-y-2">
+                              <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                                {option.label === "Default" ? "Start from Scratch" : option.label}
+                              </h3>
+                              <p className="text-gray-600 dark:text-gray-400 text-sm">
+                                {option.label === "Default" 
+                                  ? "Create a completely custom facial template with your own specifications and preferences"
+                                  : option.description
+                                }
+                              </p>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+
+                  {/* Pagination */}
+                  {totalPages > 1 && (
+                    <div className="flex flex-col sm:flex-row justify-between items-center gap-4 py-6 border-t border-gray-200 dark:border-gray-700">
+                      <div className="text-sm text-gray-600 dark:text-gray-400">
+                        Showing {startIndex + 1}-{Math.min(endIndex, facialFeaturesOptions.length)} of {facialFeaturesOptions.length} templates
+                      </div>
+                      
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          onClick={() => handlePageChange(1)}
+                          disabled={currentPage === 1}
+                          className="px-3 py-1 text-sm font-medium border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300"
+                        >
+                          First
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={() => handlePageChange(currentPage - 1)}
+                          disabled={currentPage === 1}
+                          className="px-3 py-1 text-sm font-medium border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300"
+                        >
+                          Previous
+                        </Button>
+                        
+                        {/* Page numbers */}
+                        <div className="flex items-center gap-1">
+                          {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                            let pageNum;
+                            if (totalPages <= 5) {
+                              pageNum = i + 1;
+                            } else if (currentPage <= 3) {
+                              pageNum = i + 1;
+                            } else if (currentPage >= totalPages - 2) {
+                              pageNum = totalPages - 4 + i;
+                            } else {
+                              pageNum = currentPage - 2 + i;
+                            }
+                            
+                            return (
+                              <Button
+                                key={pageNum}
+                                variant={currentPage === pageNum ? "default" : "outline"}
+                                onClick={() => handlePageChange(pageNum)}
+                                className={`px-3 py-1 text-sm font-medium transition-all duration-300 ${
+                                  currentPage === pageNum
+                                    ? "bg-purple-600 text-white border-purple-600"
+                                    : "border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
+                                }`}
+                              >
+                                {pageNum}
+                              </Button>
+                            );
+                          })}
+                        </div>
+                        
+                        <Button
+                          variant="outline"
+                          onClick={() => handlePageChange(currentPage + 1)}
+                          disabled={currentPage === totalPages}
+                          className="px-3 py-1 text-sm font-medium border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300"
+                        >
+                          Next
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={() => handlePageChange(totalPages)}
+                          disabled={currentPage === totalPages}
+                          className="px-3 py-1 text-sm font-medium border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300"
+                        >
+                          Last
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
+                </div>
+              )}
             </div>
           </div>
         );
@@ -443,8 +749,8 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                   Age & Lifestyle
                 </label>
                 <select
-                  value={influencerData.age_lifestyle}
-                  onChange={(e) => handleOptionSelect('age_lifestyle', e.target.value)}
+                  value={influencerData.age}
+                  onChange={(e) => handleOptionSelect('age', e.target.value)}
                   className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 transition-all duration-300 hover:border-green-300 dark:hover:border-green-600"
                 >
                   <option value="">Select age & lifestyle</option>
@@ -488,9 +794,9 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                         </Badge>
                       </div>
                       <div className="flex items-center justify-between p-3 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950/20 dark:to-pink-950/20 rounded-lg">
-                        <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Type:</span>
+                        <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Facial Features:</span>
                         <Badge variant="secondary" className="bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200 px-3 py-1">
-                          {influencerData.influencer_type}
+                          {influencerData.facial_features || 'Not selected'}
                         </Badge>
                       </div>
                     </div>
@@ -504,7 +810,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                       <div className="flex items-center justify-between p-3 bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950/20 dark:to-teal-950/20 rounded-lg">
                         <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Age & Lifestyle:</span>
                         <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                          {influencerData.age_lifestyle}
+                          {influencerData.age}
                         </span>
                       </div>
                     </div>
@@ -525,7 +831,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
       case 1:
         return influencerData.sex !== '';
       case 2:
-        return influencerData.influencer_type !== '';
+        return influencerData.facial_features !== '';
       case 3:
         return influencerData.name_first !== '' && influencerData.name_last !== '';
       case 4:
@@ -537,7 +843,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
 
   return (
     <div className="justify-center items-center flex">
-      <Card className="w-full max-w-5xl border-0">
+      <Card className="w-full border-0">
         <CardHeader className="text-center pb-8">
           <CardTitle className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent mb-4">
             Create Your Influencer

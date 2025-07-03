@@ -70,7 +70,7 @@ export default function ContentBatch() {
   const handleStartBatch = () => {
     setIsProcessing(true);
     setProgress(0);
-    
+
     // Simulate batch processing
     const interval = setInterval(() => {
       setProgress(prev => {
@@ -180,7 +180,7 @@ export default function ContentBatch() {
               />
             </div>
 
-            <Button 
+            <Button
               onClick={handleStartBatch}
               disabled={isProcessing}
               className="w-full bg-ai-gradient hover:opacity-90"
@@ -230,21 +230,21 @@ export default function ContentBatch() {
                     </Badge>
                   </div>
                 </div>
-                
+
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm text-muted-foreground">
                     <span>Influencer: {job.influencer}</span>
                     <span>Platform: {job.platform}</span>
                   </div>
-                  
+
                   <div className="flex justify-between text-sm">
                     <span>Progress: {job.completed}/{job.items} items</span>
                     <span>Created: {job.created}</span>
                   </div>
-                  
+
                   {job.status === 'processing' && (
-                    <Progress 
-                      value={(job.completed / job.items) * 100} 
+                    <Progress
+                      value={(job.completed / job.items) * 100}
                       className="w-full h-2"
                     />
                   )}

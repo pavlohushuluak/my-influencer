@@ -215,7 +215,7 @@ export default function InfluencerEdit() {
     influencer_type: 'Lifestyle',
     name_first: '',
     name_last: '',
-    sex: 'Female',
+    sex: 'Default',
     age_lifestyle: '',
     origin_birth: '',
     origin_residence: '',
@@ -227,7 +227,7 @@ export default function InfluencerEdit() {
     lip_style: 'Default',
     nose_style: 'Default',
     face_shape: 'Default',
-    facial_features: '',
+    facial_features: 'Default',
     skin_tone: 'Default',
     body_type: 'Default',
     color_palette: [],
@@ -928,7 +928,7 @@ export default function InfluencerEdit() {
         influencer_type: influencer.influencer_type || 'Lifestyle',
         name_first: influencer.name_first || '',
         name_last: influencer.name_last || '',
-        sex: influencer.sex || 'Female',
+        sex: influencer.sex || 'Default',
         age_lifestyle: influencer.age_lifestyle || '',
         origin_birth: influencer.origin_birth || '',
         origin_residence: influencer.origin_residence || '',
@@ -940,7 +940,7 @@ export default function InfluencerEdit() {
         lip_style: influencer.lip_style || 'Default',
         nose_style: influencer.nose_style || 'Default',
         face_shape: influencer.face_shape || 'Default',
-        facial_features: influencer.facial_features || 'Classic Beauty',
+        facial_features: influencer.facial_features || 'Default',
         skin_tone: influencer.skin_tone || 'Default',
         body_type: influencer.body_type || 'Default',
         color_palette: influencer.color_palette || [],
@@ -950,20 +950,20 @@ export default function InfluencerEdit() {
         clothing_style_sports: influencer.clothing_style_sports || 'Default',
         clothing_style_sexy_dress: influencer.clothing_style_sexy_dress || 'Default',
         home_environment: influencer.home_environment || 'Default',
-        content_focus: influencer.content_focus || [],
-        content_focus_areas: influencer.content_focus_areas || [],
-        job_area: influencer.job_area || '',
+        content_focus: influencer.content_focus.length === 0 ? ['Default'] : influencer.content_focus,
+        content_focus_areas: influencer.content_focus_areas.length === 0 ? ['Default'] : influencer.content_focus_areas,
+        job_area: influencer.job_area || 'Default',
         job_title: influencer.job_title || '',
         job_vibe: influencer.job_vibe || '',
-        hobbies: influencer.hobbies || [],
+        hobbies: influencer.hobbies.length === 0 ? ['Default'] : influencer.hobbies,
         social_circle: influencer.social_circle || '',
-        strengths: influencer.strengths || [],
-        weaknesses: influencer.weaknesses || [],
-        speech_style: influencer.speech_style || [],
-        humor: influencer.humor || [],
-        core_values: influencer.core_values || [],
-        current_goals: influencer.current_goals || [],
-        background_elements: influencer.background_elements || [],
+        strengths: influencer.strengths.length === 0 ? ['Default'] : influencer.strengths,
+        weaknesses: influencer.weaknesses.length === 0 ? ['Default'] : influencer.weaknesses,
+        speech_style: influencer.speech_style.length === 0 ? ['Default'] : influencer.speech_style,
+        humor: influencer.humor.length === 0 ? ['Default'] : influencer.humor,
+        core_values: influencer.core_values.length === 0 ? ['Default'] : influencer.core_values,
+        current_goals: influencer.current_goals.length === 0 ? ['Default'] : influencer.current_goals,
+        background_elements: influencer.background_elements.length === 0 ? ['Default'] : influencer.background_elements,
         prompt: influencer.prompt || '',
         image_url: influencer.image_url || '',
         image_num: influencer.image_num || 0,
@@ -1852,7 +1852,7 @@ export default function InfluencerEdit() {
                             false,
                             "facial_features",
                             handleInputChange,
-                            ''
+                            'Default'
                           )}
                         </div>
                       </div>
@@ -1976,7 +1976,7 @@ export default function InfluencerEdit() {
                             false,
                             "sex",
                             handleInputChange,
-                            'Female'
+                            'Default'
                           )}
                         </div>
                       </div>
@@ -2776,12 +2776,13 @@ export default function InfluencerEdit() {
             </TabsContent>
 
             {
-              influencerData.visual_only === false && <TabsContent value="personality">
+              influencerData.visual_only === false &&
+              <TabsContent value="personality">
                 <Card>
                   <CardHeader>
                     <CardTitle>Personality & Content</CardTitle>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="space-y-4">
                     <div className="space-y-2">
                       <Label className="flex items-center gap-2">
                         <div className="p-1.5 bg-gradient-to-br from-green-500 to-emerald-600 rounded-md">
@@ -2813,8 +2814,11 @@ export default function InfluencerEdit() {
                     <Separator className="my-6" />
 
                     <div className="space-y-2">
-                      <Label>Content Focus (Max 4)</Label>
-                      <div className="space-y-4">
+                      <Button onClick={() => setShowContentFocusSelector(true)}>
+                        <Image className="w-4 h-4 mr-2" />
+                        Content Focus (Max 4)
+                      </Button>
+                      <div className="space-y-2">
                         <div className="flex flex-wrap gap-2">
                           {influencerData.content_focus.map((focus, index) => (
                             <Badge
@@ -2858,15 +2862,16 @@ export default function InfluencerEdit() {
                             );
                           })}
                         </div>
-                        <Button onClick={() => setShowContentFocusSelector(true)}>
-                          <Image className="w-4 h-4 mr-2" />
-                          Select Content Focus
-                        </Button>
                       </div>
                     </div>
 
+                    <Separator className="my-6" />
+
                     <div className="space-y-2">
-                      <Label>Content Focus Areas (Max 5)</Label>
+                      <Button onClick={() => setShowContentFocusAreasSelector(true)}>
+                        <Image className="w-4 h-4 mr-2" />
+                        Content Focus Areas (Max 5)
+                      </Button>
                       <div className="space-y-4">
                         <div className="flex flex-wrap gap-2">
                           {influencerData.content_focus_areas.map((area, index) => (
@@ -2911,15 +2916,16 @@ export default function InfluencerEdit() {
                             );
                           })}
                         </div>
-                        <Button onClick={() => setShowContentFocusAreasSelector(true)}>
-                          <Image className="w-4 h-4 mr-2" />
-                          Select Content Focus Areas
-                        </Button>
                       </div>
                     </div>
 
+                    <Separator className="my-6" />
+
                     <div className="space-y-2">
-                      <Label>Job Area</Label>
+                      <Button onClick={() => setShowJobAreaSelector(true)}>
+                        <Image className="w-4 h-4 mr-2" />
+                        Job Area
+                      </Button>
                       <div className="space-y-4">
                         {influencerData.job_area && (
                           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
@@ -2931,23 +2937,24 @@ export default function InfluencerEdit() {
                                     alt={influencerData.job_area}
                                     className="absolute inset-0 w-full h-full object-cover rounded-md"
                                   />
-                                  <div
-                                    className="absolute right-2 top-2 bg-black/50 rounded-full w-8 h-8 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
-                                    onClick={() => setPreviewImage(`https://images.nymia.ai/cdn-cgi/image/w=800/wizard/${jobAreaOptions.find(opt => opt.label === influencerData.job_area)?.image}`)}
+                                  <Button
+                                    variant="destructive"
+                                    size="sm"
+                                    className="absolute bottom-2 right-2 w-8 h-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleInputChange('job_area', 'Default');
+                                    }}
                                   >
-                                    <ZoomIn className="w-5 h-5 text-white" />
-                                  </div>
+                                    <RefreshCcw className="w-4 h-4 text-white" />
+                                  </Button>
                                 </div>
                                 <p className="text-sm text-center font-medium mt-2">{influencerData.job_area}</p>
                               </CardContent>
                             </Card>
                           </div>
                         )}
-                        <Button onClick={() => setShowJobAreaSelector(true)}>
-                          <Image className="w-4 h-4 mr-2" />
-                          Select Job Area
-                        </Button>
-                        <div className="space-y-4">
+                        <div className="space-y-2">
                           <div className="space-y-2">
                             <Label>Job Title</Label>
                             <Input
@@ -2968,8 +2975,13 @@ export default function InfluencerEdit() {
                       </div>
                     </div>
 
+                    <Separator className="my-6" />
+
                     <div className="space-y-2">
-                      <Label>Hobbies (Max 5)</Label>
+                      <Button onClick={() => setShowHobbySelector(true)}>
+                        <Image className="w-4 h-4 mr-2" />
+                        Hobbies (Max 5)
+                      </Button>
                       <div className="space-y-4">
                         <div className="flex flex-wrap gap-2">
                           {influencerData.hobbies.map((hobby, index) => (
@@ -3014,12 +3026,7 @@ export default function InfluencerEdit() {
                             );
                           })}
                         </div>
-                        <Button onClick={() => setShowHobbySelector(true)}>
-                          <Image className="w-4 h-4 mr-2" />
-                          Select Hobbies
-                        </Button>
                         <div className="space-y-2">
-                          <Label>Social Circle</Label>
                           <Input
                             value={influencerData.social_circle || ''}
                             onChange={(e) => handleInputChange('social_circle', e.target.value)}
@@ -3029,8 +3036,13 @@ export default function InfluencerEdit() {
                       </div>
                     </div>
 
+                    <Separator className="my-6" />
+
                     <div className="space-y-2">
-                      <Label>Strengths (Max 3)</Label>
+                      <Button onClick={() => setShowStrengthSelector(true)}>
+                        <Image className="w-4 h-4 mr-2" />
+                        Strengths (Max 3)
+                      </Button>
                       <div className="space-y-4">
                         <div className="flex flex-wrap gap-2">
                           {influencerData.strengths.map((strength, index) => (
@@ -3075,15 +3087,16 @@ export default function InfluencerEdit() {
                             );
                           })}
                         </div>
-                        <Button onClick={() => setShowStrengthSelector(true)}>
-                          <Image className="w-4 h-4 mr-2" />
-                          Select Strengths
-                        </Button>
                       </div>
                     </div>
 
+                    <Separator className="my-6" />
+
                     <div className="space-y-2">
-                      <Label>Weaknesses (Max 2)</Label>
+                      <Button onClick={() => setShowWeaknessSelector(true)}>
+                        <Image className="w-4 h-4 mr-2" />
+                        Weaknesses (Max 2)
+                      </Button>
                       <div className="space-y-4">
                         <div className="flex flex-wrap gap-2">
                           {influencerData.weaknesses.map((weakness, index) => (
@@ -3128,15 +3141,16 @@ export default function InfluencerEdit() {
                             );
                           })}
                         </div>
-                        <Button onClick={() => setShowWeaknessSelector(true)}>
-                          <Image className="w-4 h-4 mr-2" />
-                          Select Weaknesses
-                        </Button>
                       </div>
                     </div>
 
+                    <Separator className="my-6" />
+
                     <div className="space-y-2">
-                      <Label>Speech Style (Max 4)</Label>
+                      <Button onClick={() => setShowSpeechSelector(true)}>
+                        <Image className="w-4 h-4 mr-2" />
+                        Speech Style (Max 4)
+                      </Button>
                       <div className="space-y-4">
                         <div className="flex flex-wrap gap-2">
                           {influencerData.speech_style.map((style, index) => (
@@ -3181,69 +3195,71 @@ export default function InfluencerEdit() {
                             );
                           })}
                         </div>
-                        <Button onClick={() => setShowSpeechSelector(true)}>
-                          <Image className="w-4 h-4 mr-2" />
-                          Select Speech Style
-                        </Button>
                       </div>
                     </div>
 
-                    <div className="space-y-4 mt-6">
-                      <div className="space-y-2">
-                        <Label>Humor Style (Max 4)</Label>
-                        <div className="space-y-4">
-                          <div className="flex flex-wrap gap-2">
-                            {influencerData.humor.map((style, index) => (
-                              <Badge
-                                key={index}
-                                variant="secondary"
-                                className="flex items-center gap-1 px-3 py-1"
+                    <Separator className="my-6" />
+
+                    <div className="space-y-2">
+                      <Button onClick={() => setShowHumorSelector(true)}>
+                        <Image className="w-4 h-4 mr-2" />
+                        Humor Style (Max 4)
+                      </Button>
+                      <div className="space-y-4">
+                        <div className="flex flex-wrap gap-2">
+                          {influencerData.humor.map((style, index) => (
+                            <Badge
+                              key={index}
+                              variant="secondary"
+                              className="flex items-center gap-1 px-3 py-1"
+                            >
+                              {style}
+                              <button
+                                onClick={() => handleRemoveTag('humor', style)}
+                                className="ml-1 hover:text-destructive"
                               >
-                                {style}
-                                <button
-                                  onClick={() => handleRemoveTag('humor', style)}
-                                  className="ml-1 hover:text-destructive"
-                                >
-                                  <X className="h-3 w-3" />
-                                </button>
-                              </Badge>
-                            ))}
-                          </div>
-                          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                            {influencerData.humor.map((style, index) => {
-                              const option = humorOptions.find(opt => opt.label === style);
-                              if (!option) return null;
-                              return (
-                                <Card key={index} className="relative">
-                                  <CardContent className="p-4">
-                                    <div className="relative w-full group" style={{ paddingBottom: '100%' }}>
-                                      <img
-                                        src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
-                                        alt={option.label}
-                                        className="absolute inset-0 w-full h-full object-cover rounded-md"
-                                      />
-                                      <div
-                                        className="absolute right-2 top-2 bg-black/50 rounded-full w-8 h-8 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
-                                        onClick={() => setPreviewImage(`https://images.nymia.ai/cdn-cgi/image/w=800/wizard/${option.image}`)}
-                                      >
-                                        <ZoomIn className="w-5 h-5 text-white" />
-                                      </div>
+                                <X className="h-3 w-3" />
+                              </button>
+                            </Badge>
+                          ))}
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                          {influencerData.humor.map((style, index) => {
+                            const option = humorOptions.find(opt => opt.label === style);
+                            if (!option) return null;
+                            return (
+                              <Card key={index} className="relative">
+                                <CardContent className="p-4">
+                                  <div className="relative w-full group" style={{ paddingBottom: '100%' }}>
+                                    <img
+                                      src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
+                                      alt={option.label}
+                                      className="absolute inset-0 w-full h-full object-cover rounded-md"
+                                    />
+                                    <div
+                                      className="absolute right-2 top-2 bg-black/50 rounded-full w-8 h-8 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
+                                      onClick={() => setPreviewImage(`https://images.nymia.ai/cdn-cgi/image/w=800/wizard/${option.image}`)}
+                                    >
+                                      <ZoomIn className="w-5 h-5 text-white" />
                                     </div>
-                                    <p className="text-sm text-center font-medium mt-2">{option.label}</p>
-                                  </CardContent>
-                                </Card>
-                              );
-                            })}
-                          </div>
-                          <Button onClick={() => setShowHumorSelector(true)}>
-                            <Image className="w-4 h-4 mr-2" />
-                            Select Humor Style
-                          </Button>
+                                  </div>
+                                  <p className="text-sm text-center font-medium mt-2">{option.label}</p>
+                                </CardContent>
+                              </Card>
+                            );
+                          })}
                         </div>
                       </div>
+                    </div>
 
+                    <Separator className="my-6" />
+
+                    <div className="space-y-2">
                       <div className="space-y-2">
-                        <Label>Core Values Style (Max 5)</Label>
+                        <Button onClick={() => setShowCoreValuesSelector(true)}>
+                          <Image className="w-4 h-4 mr-2" />
+                          Core Values Style (Max 5)
+                        </Button>
                         <div className="space-y-4">
                           <div className="flex flex-wrap gap-2">
                             {influencerData.core_values.map((style, index) => (
@@ -3288,15 +3304,16 @@ export default function InfluencerEdit() {
                               );
                             })}
                           </div>
-                          <Button onClick={() => setShowCoreValuesSelector(true)}>
-                            <Image className="w-4 h-4 mr-2" />
-                            Select Core Values Style
-                          </Button>
                         </div>
                       </div>
 
+                      <Separator className="my-6" />
+
                       <div className="space-y-2">
-                        <Label>Current Goals (Max 3)</Label>
+                        <Button onClick={() => setShowGoalsSelector(true)}>
+                          <Image className="w-4 h-4 mr-2" />
+                          Current Goals (Max 3)
+                        </Button>
                         <div className="space-y-4">
                           <div className="flex flex-wrap gap-2">
                             {influencerData.current_goals.map((goal, index) => (
@@ -3341,15 +3358,16 @@ export default function InfluencerEdit() {
                               );
                             })}
                           </div>
-                          <Button onClick={() => setShowGoalsSelector(true)}>
-                            <Image className="w-4 h-4 mr-2" />
-                            Select Current Goals
-                          </Button>
                         </div>
                       </div>
 
+                      <Separator className="my-6" />
+
                       <div className="space-y-2">
-                        <Label>Background Elements (Max 4)</Label>
+                        <Button onClick={() => setShowBackgroundSelector(true)}>
+                          <Image className="w-4 h-4 mr-2" />
+                          Background Elements (Max 4)
+                        </Button>
                         <div className="space-y-4">
                           <div className="flex flex-wrap gap-2">
                             {influencerData.background_elements.map((element, index) => (
@@ -3394,10 +3412,6 @@ export default function InfluencerEdit() {
                               );
                             })}
                           </div>
-                          <Button onClick={() => setShowBackgroundSelector(true)}>
-                            <Image className="w-4 h-4 mr-2" />
-                            Select Background Elements
-                          </Button>
                         </div>
                       </div>
                     </div>

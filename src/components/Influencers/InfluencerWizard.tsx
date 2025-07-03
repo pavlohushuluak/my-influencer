@@ -113,18 +113,24 @@ const steps = [
   },
   { 
     id: 2, 
-    title: 'Influencer Type', 
-    description: 'Select your influencer type',
+    title: 'Facial Features', 
+    description: 'Select facial features template',
     icon: Sparkles
   },
   { 
     id: 3, 
-    title: 'Basic Details', 
-    description: 'Add basic information',
+    title: 'Age Selection', 
+    description: 'Choose age range',
     icon: Palette
   },
   { 
     id: 4, 
+    title: 'Lifestyle Selection', 
+    description: 'Choose lifestyle',
+    icon: Settings
+  },
+  { 
+    id: 5, 
     title: 'Review & Create', 
     description: 'Review and create your influencer',
     icon: Settings
@@ -140,12 +146,16 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
   const [isLoadingSexOptions, setIsLoadingSexOptions] = useState(true);
   const [facialFeaturesOptions, setFacialFeaturesOptions] = useState<Option[]>([]);
   const [isLoadingFacialFeatures, setIsLoadingFacialFeatures] = useState(true);
+  const [ageOptions, setAgeOptions] = useState<Option[]>([]);
+  const [isLoadingAge, setIsLoadingAge] = useState(true);
+  const [lifestyleOptions, setLifestyleOptions] = useState<Option[]>([]);
+  const [isLoadingLifestyle, setIsLoadingLifestyle] = useState(true);
   const [selectedFacialTemplate, setSelectedFacialTemplate] = useState<FacialTemplateDetail | null>(null);
   const [showFacialTemplateDetails, setShowFacialTemplateDetails] = useState(false);
   const [showFacialTemplateConfirm, setShowFacialTemplateConfirm] = useState(false);
   const [isApplyingTemplate, setIsApplyingTemplate] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [itemsPerPage, setItemsPerPage] = useState(5);
   const userData = useSelector((state: RootState) => state.user);
 
   const [influencerData, setInfluencerData] = useState<InfluencerData>({
@@ -277,6 +287,66 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
     fetchFacialFeaturesOptions();
   }, []);
 
+  // Fetch age options from API
+  useEffect(() => {
+    const fetchAgeOptions = async () => {
+      try {
+        setIsLoadingAge(true);
+        const response = await fetch('https://api.nymia.ai/v1/fieldoptions?fieldtype=age', {
+          headers: {
+            'Authorization': 'Bearer WeInfl3nc3withAI'
+          }
+        });
+        if (response.ok) {
+          const responseData = await response.json();
+          if (responseData && responseData.fieldoptions && Array.isArray(responseData.fieldoptions)) {
+            setAgeOptions(responseData.fieldoptions.map((item: any) => ({
+              label: item.label,
+              image: item.image,
+              description: item.description
+            })));
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching age options:', error);
+      } finally {
+        setIsLoadingAge(false);
+      }
+    };
+
+    fetchAgeOptions();
+  }, []);
+
+  // Fetch lifestyle options from API
+  useEffect(() => {
+    const fetchLifestyleOptions = async () => {
+      try {
+        setIsLoadingLifestyle(true);
+        const response = await fetch('https://api.nymia.ai/v1/fieldoptions?fieldtype=lifestyle', {
+          headers: {
+            'Authorization': 'Bearer WeInfl3nc3withAI'
+          }
+        });
+        if (response.ok) {
+          const responseData = await response.json();
+          if (responseData && responseData.fieldoptions && Array.isArray(responseData.fieldoptions)) {
+            setLifestyleOptions(responseData.fieldoptions.map((item: any) => ({
+              label: item.label,
+              image: item.image,
+              description: item.description
+            })));
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching lifestyle options:', error);
+      } finally {
+        setIsLoadingLifestyle(false);
+      }
+    };
+
+    fetchLifestyleOptions();
+  }, []);
+
   // Function to fetch facial template details
   const fetchFacialTemplateDetails = async (templateName: string) => {
     try {
@@ -308,7 +378,8 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
     try {
       setIsApplyingTemplate(true);
       toast.loading(`Applying ${templateName} template...`, {
-        id: 'template-application'
+        id: 'template-application',
+        position: 'bottom-center'
       });
 
       // Fetch template details first
@@ -344,7 +415,8 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
         }));
 
         toast.success(`${template.template_name} template applied successfully`, {
-          id: 'template-application'
+          id: 'template-application',
+          position: 'bottom-center'
         });
       } else {
         // If no template found, just set the facial features name
@@ -353,7 +425,8 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
           facial_features: templateName
         }));
         toast.success(`${templateName} selected`, {
-          id: 'template-application'
+          id: 'template-application',
+          position: 'bottom-center'
         });
       }
     } catch (error) {
@@ -364,7 +437,8 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
         facial_features: templateName
       }));
       toast.success(`${templateName} selected`, {
-        id: 'template-application'
+        id: 'template-application',
+        position: 'bottom-center'
       });
     } finally {
       setIsApplyingTemplate(false);
@@ -372,9 +446,9 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
   };
 
   // Pagination helper functions
-  const totalPages = Math.ceil(facialFeaturesOptions.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
+  const totalPages = itemsPerPage === -1 ? 1 : Math.ceil(facialFeaturesOptions.length / itemsPerPage);
+  const startIndex = itemsPerPage === -1 ? 0 : (currentPage - 1) * itemsPerPage;
+  const endIndex = itemsPerPage === -1 ? facialFeaturesOptions.length : startIndex + itemsPerPage;
   const currentItems = facialFeaturesOptions.slice(startIndex, endIndex);
 
   const handlePageChange = (page: number) => {
@@ -420,7 +494,9 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
 
       if (response.ok) {
         const newInfluencer = await response.json();
-        toast.success('Influencer created successfully!');
+        toast.success('Influencer created successfully!', {
+          position: 'bottom-center'
+        });
         navigate('/influencers/edit', { state: { influencerData: newInfluencer[0] } });
         onComplete();
       } else {
@@ -428,7 +504,9 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
       }
     } catch (error) {
       console.error('Error creating influencer:', error);
-      toast.error('Failed to create influencer. Please try again.');
+      toast.error('Failed to create influencer. Please try again.', {
+        position: 'bottom-center'
+      });
     } finally {
       setIsLoading(false);
     }
@@ -545,6 +623,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                         <option value={20}>20</option>
                         <option value={50}>50</option>
                         <option value={100}>100</option>
+                        <option value={-1}>All</option>
                       </select>
                     </div>
                   </div>
@@ -578,7 +657,8 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                               cultural_background: 'Default'
                             }));
                             toast.success('Start from Scratch selected', {
-                              id: 'start-from-scratch'
+                              id: 'start-from-scratch',
+                              position: 'bottom-center'
                             });
                           } else {
                             applyFacialTemplate(option.label);
@@ -702,70 +782,353 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
         return (
           <div className="space-y-8">
             <div className="text-center space-y-6">
-              <div className="w-20 h-20 mx-auto bg-gradient-to-br from-green-500 via-emerald-600 to-teal-600 rounded-full flex items-center justify-center shadow-2xl">
-                <Palette className="w-10 h-10 text-white" />
-              </div>
               <div className="space-y-3">
-                <h2 className="text-3xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
-                  Basic Information
+                <h2 className="text-2xl font-bold">
+                  Age Selection
                 </h2>
                 <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto text-lg leading-relaxed">
-                  Add some basic details to personalize your influencer. You can modify everything later in the detailed editor.
+                  Choose the age range that best represents your influencer. This will help define their personality, interests, and content style.
                 </p>
               </div>
             </div>
 
-            <div className="max-w-2xl mx-auto space-y-8">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-3">
-                  <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-                    First Name
-                  </label>
-                  <input
-                    type="text"
-                    value={influencerData.name_first}
-                    onChange={(e) => handleOptionSelect('name_first', e.target.value)}
-                    placeholder="Enter first name"
-                    className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 transition-all duration-300 hover:border-green-300 dark:hover:border-green-600"
-                  />
+            <div className="mx-auto">
+              {isLoadingAge ? (
+                <div className="flex justify-center items-center py-12">
+                  <div className="text-center space-y-4">
+                    <Loader2 className="w-8 h-8 animate-spin text-green-600 mx-auto" />
+                    <p className="text-gray-600 dark:text-gray-400">Loading age options...</p>
+                  </div>
                 </div>
+              ) : (
+                <div className="space-y-6">
+                  {/* Items per page control */}
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-3">
+                      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Items per page:
+                      </label>
+                      <select
+                        value={itemsPerPage}
+                        onChange={(e) => handleItemsPerPageChange(Number(e.target.value))}
+                        className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      >
+                        <option value={5}>5</option>
+                        <option value={10}>10</option>
+                        <option value={15}>15</option>
+                        <option value={-1}>All</option>
+                      </select>
+                    </div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400">
+                      Showing {startIndex + 1}-{Math.min(endIndex, ageOptions.length)} of {ageOptions.length} age options
+                    </div>
+                  </div>
 
-                <div className="space-y-3">
-                  <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-                    Last Name
-                  </label>
-                  <input
-                    type="text"
-                    value={influencerData.name_last}
-                    onChange={(e) => handleOptionSelect('name_last', e.target.value)}
-                    placeholder="Enter last name"
-                    className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 transition-all duration-300 hover:border-green-300 dark:hover:border-green-600"
-                  />
+                  {/* Age Options Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+                    {ageOptions.slice(startIndex, endIndex).map((option) => (
+                      <Card
+                        key={option.label}
+                        className={cn(
+                          "group cursor-pointer transition-all duration-300 hover:shadow-xl border-2 transform hover:scale-105",
+                          influencerData.age === option.label
+                            ? "border-green-500 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 shadow-xl scale-105"
+                            : "border-gray-200 dark:border-gray-700 hover:border-green-300 dark:hover:border-green-600"
+                        )}
+                        onClick={() => {
+                          handleOptionSelect('age', option.label);
+                          toast.success(`${option.label} selected`, {
+                            id: 'age-selection',
+                            position: 'bottom-center'
+                          });
+                        }}
+                      >
+                        <CardContent className="p-6">
+                          <div className="space-y-4">
+                            <div className="relative">
+                              <img
+                                src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
+                                alt={option.label}
+                                className="w-full h-48 object-cover rounded-lg shadow-md group-hover:scale-105 transition-transform duration-300"
+                              />
+                              {influencerData.age === option.label && (
+                                <div className="absolute top-2 right-2 w-8 h-8 bg-green-500 rounded-full flex items-center justify-center shadow-lg">
+                                  <Check className="w-5 h-5 text-white" />
+                                </div>
+                              )}
+                            </div>
+                            <div className="text-center space-y-2">
+                              <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                                {option.label}
+                              </h3>
+                              <p className="text-gray-600 dark:text-gray-400 text-sm">
+                                {option.description}
+                              </p>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+
+                  {/* Pagination */}
+                  {Math.ceil(ageOptions.length / (itemsPerPage === -1 ? ageOptions.length : itemsPerPage)) > 1 && (
+                    <div className="flex flex-col sm:flex-row justify-between items-center gap-4 py-6 border-t border-gray-200 dark:border-gray-700">
+                      <div className="text-sm text-gray-600 dark:text-gray-400">
+                        Showing {startIndex + 1}-{Math.min(endIndex, ageOptions.length)} of {ageOptions.length} age options
+                      </div>
+                      
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          onClick={() => handlePageChange(1)}
+                          disabled={currentPage === 1}
+                          className="px-3 py-1 text-sm font-medium border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300"
+                        >
+                          First
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={() => handlePageChange(currentPage - 1)}
+                          disabled={currentPage === 1}
+                          className="px-3 py-1 text-sm font-medium border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300"
+                        >
+                          Previous
+                        </Button>
+                        
+                        {/* Page numbers */}
+                        <div className="flex items-center gap-1">
+                          {Array.from({ length: Math.min(5, Math.ceil(ageOptions.length / (itemsPerPage === -1 ? ageOptions.length : itemsPerPage))) }, (_, i) => {
+                            let pageNum;
+                            const totalPages = Math.ceil(ageOptions.length / (itemsPerPage === -1 ? ageOptions.length : itemsPerPage));
+                            if (totalPages <= 5) {
+                              pageNum = i + 1;
+                            } else if (currentPage <= 3) {
+                              pageNum = i + 1;
+                            } else if (currentPage >= totalPages - 2) {
+                              pageNum = totalPages - 4 + i;
+                            } else {
+                              pageNum = currentPage - 2 + i;
+                            }
+                            
+                            return (
+                              <Button
+                                key={pageNum}
+                                variant={currentPage === pageNum ? "default" : "outline"}
+                                onClick={() => handlePageChange(pageNum)}
+                                className={`px-3 py-1 text-sm font-medium transition-all duration-300 ${
+                                  currentPage === pageNum
+                                    ? "bg-green-600 text-white border-green-600"
+                                    : "border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
+                                }`}
+                              >
+                                {pageNum}
+                              </Button>
+                            );
+                          })}
+                        </div>
+                        
+                        <Button
+                          variant="outline"
+                          onClick={() => handlePageChange(currentPage + 1)}
+                          disabled={currentPage === Math.ceil(ageOptions.length / (itemsPerPage === -1 ? ageOptions.length : itemsPerPage))}
+                          className="px-3 py-1 text-sm font-medium border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300"
+                        >
+                          Next
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={() => handlePageChange(Math.ceil(ageOptions.length / (itemsPerPage === -1 ? ageOptions.length : itemsPerPage)))}
+                          disabled={currentPage === Math.ceil(ageOptions.length / (itemsPerPage === -1 ? ageOptions.length : itemsPerPage))}
+                          className="px-3 py-1 text-sm font-medium border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300"
+                        >
+                          Last
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
-              </div>
-
-              <div className="space-y-3">
-                <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-                  Age & Lifestyle
-                </label>
-                <select
-                  value={influencerData.age}
-                  onChange={(e) => handleOptionSelect('age', e.target.value)}
-                  className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 transition-all duration-300 hover:border-green-300 dark:hover:border-green-600"
-                >
-                  <option value="">Select age & lifestyle</option>
-                  <option value="Teen (16-19)">Teen (16-19)</option>
-                  <option value="Young Adult (20-25)">Young Adult (20-25)</option>
-                  <option value="Adult (26-35)">Adult (26-35)</option>
-                  <option value="Mature (36-50)">Mature (36-50)</option>
-                  <option value="Senior (50+)">Senior (50+)</option>
-                </select>
-              </div>
+              )}
             </div>
           </div>
         );
 
       case 4:
+        return (
+          <div className="space-y-8">
+            <div className="text-center space-y-6">
+              <div className="space-y-3">
+                <h2 className="text-2xl font-bold">
+                  Lifestyle Selection
+                </h2>
+                <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto text-lg leading-relaxed">
+                  Choose the lifestyle that best represents your influencer's daily routine, interests, and way of living.
+                </p>
+              </div>
+            </div>
+
+            <div className="mx-auto">
+              {isLoadingLifestyle ? (
+                <div className="flex justify-center items-center py-12">
+                  <div className="text-center space-y-4">
+                    <Loader2 className="w-8 h-8 animate-spin text-orange-600 mx-auto" />
+                    <p className="text-gray-600 dark:text-gray-400">Loading lifestyle options...</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {/* Items per page control */}
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-3">
+                      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Items per page:
+                      </label>
+                      <select
+                        value={itemsPerPage}
+                        onChange={(e) => handleItemsPerPageChange(Number(e.target.value))}
+                        className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      >
+                        <option value={5}>5</option>
+                        <option value={10}>10</option>
+                        <option value={15}>15</option>
+                        <option value={-1}>All</option>
+                      </select>
+                    </div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400">
+                      Showing {startIndex + 1}-{Math.min(endIndex, lifestyleOptions.length)} of {lifestyleOptions.length} lifestyle options
+                    </div>
+                  </div>
+
+                  {/* Lifestyle Options Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+                    {lifestyleOptions.slice(startIndex, endIndex).map((option) => (
+                      <Card
+                        key={option.label}
+                        className={cn(
+                          "group cursor-pointer transition-all duration-300 hover:shadow-xl border-2 transform hover:scale-105",
+                          influencerData.lifestyle === option.label
+                            ? "border-orange-500 bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-950/20 dark:to-red-950/20 shadow-xl scale-105"
+                            : "border-gray-200 dark:border-gray-700 hover:border-orange-300 dark:hover:border-orange-600"
+                        )}
+                        onClick={() => {
+                          handleOptionSelect('lifestyle', option.label);
+                          toast.success(`${option.label} selected`, {
+                            id: 'lifestyle-selection',
+                            position: 'bottom-center'
+                          });
+                        }}
+                      >
+                        <CardContent className="p-6">
+                          <div className="space-y-4">
+                            <div className="relative">
+                              <img
+                                src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
+                                alt={option.label}
+                                className="w-full h-48 object-cover rounded-lg shadow-md group-hover:scale-105 transition-transform duration-300"
+                              />
+                              {influencerData.lifestyle === option.label && (
+                                <div className="absolute top-2 right-2 w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center shadow-lg">
+                                  <Check className="w-5 h-5 text-white" />
+                                </div>
+                              )}
+                            </div>
+                            <div className="text-center space-y-2">
+                              <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                                {option.label}
+                              </h3>
+                              <p className="text-gray-600 dark:text-gray-400 text-sm">
+                                {option.description}
+                              </p>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+
+                  {/* Pagination */}
+                  {Math.ceil(lifestyleOptions.length / (itemsPerPage === -1 ? lifestyleOptions.length : itemsPerPage)) > 1 && (
+                    <div className="flex flex-col sm:flex-row justify-between items-center gap-4 py-6 border-t border-gray-200 dark:border-gray-700">
+                      <div className="text-sm text-gray-600 dark:text-gray-400">
+                        Showing {startIndex + 1}-{Math.min(endIndex, lifestyleOptions.length)} of {lifestyleOptions.length} lifestyle options
+                      </div>
+                      
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          onClick={() => handlePageChange(1)}
+                          disabled={currentPage === 1}
+                          className="px-3 py-1 text-sm font-medium border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300"
+                        >
+                          First
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={() => handlePageChange(currentPage - 1)}
+                          disabled={currentPage === 1}
+                          className="px-3 py-1 text-sm font-medium border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300"
+                        >
+                          Previous
+                        </Button>
+                        
+                        {/* Page numbers */}
+                        <div className="flex items-center gap-1">
+                          {Array.from({ length: Math.min(5, Math.ceil(lifestyleOptions.length / (itemsPerPage === -1 ? lifestyleOptions.length : itemsPerPage))) }, (_, i) => {
+                            let pageNum;
+                            const totalPages = Math.ceil(lifestyleOptions.length / (itemsPerPage === -1 ? lifestyleOptions.length : itemsPerPage));
+                            if (totalPages <= 5) {
+                              pageNum = i + 1;
+                            } else if (currentPage <= 3) {
+                              pageNum = i + 1;
+                            } else if (currentPage >= totalPages - 2) {
+                              pageNum = totalPages - 4 + i;
+                            } else {
+                              pageNum = currentPage - 2 + i;
+                            }
+                            
+                            return (
+                              <Button
+                                key={pageNum}
+                                variant={currentPage === pageNum ? "default" : "outline"}
+                                onClick={() => handlePageChange(pageNum)}
+                                className={`px-3 py-1 text-sm font-medium transition-all duration-300 ${
+                                  currentPage === pageNum
+                                    ? "bg-orange-600 text-white border-orange-600"
+                                    : "border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
+                                }`}
+                              >
+                                {pageNum}
+                              </Button>
+                            );
+                          })}
+                        </div>
+                        
+                        <Button
+                          variant="outline"
+                          onClick={() => handlePageChange(currentPage + 1)}
+                          disabled={currentPage === Math.ceil(lifestyleOptions.length / (itemsPerPage === -1 ? lifestyleOptions.length : itemsPerPage))}
+                          className="px-3 py-1 text-sm font-medium border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300"
+                        >
+                          Next
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={() => handlePageChange(Math.ceil(lifestyleOptions.length / (itemsPerPage === -1 ? lifestyleOptions.length : itemsPerPage)))}
+                          disabled={currentPage === Math.ceil(lifestyleOptions.length / (itemsPerPage === -1 ? lifestyleOptions.length : itemsPerPage))}
+                          className="px-3 py-1 text-sm font-medium border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300"
+                        >
+                          Last
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        );
+
+      case 5:
         return (
           <div className="space-y-8">
             <div className="text-center space-y-6">
@@ -785,33 +1148,65 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
             <div className="max-w-3xl mx-auto">
               <Card className="border-2 border-gray-200 dark:border-gray-700 shadow-xl bg-gradient-to-br from-gray-50 to-white dark:from-gray-900 dark:to-gray-800">
                 <CardContent className="p-8">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between p-3 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-lg">
-                        <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Sex:</span>
-                        <Badge variant="secondary" className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 px-3 py-1">
-                          {influencerData.sex}
-                        </Badge>
+                  <div className="space-y-6">
+                    {/* Name Input Fields */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-3">
+                        <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                          First Name
+                        </label>
+                        <input
+                          type="text"
+                          value={influencerData.name_first}
+                          onChange={(e) => handleOptionSelect('name_first', e.target.value)}
+                          placeholder="Enter first name"
+                          className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 transition-all duration-300 hover:border-orange-300 dark:hover:border-orange-600"
+                        />
                       </div>
-                      <div className="flex items-center justify-between p-3 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950/20 dark:to-pink-950/20 rounded-lg">
-                        <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Facial Features:</span>
-                        <Badge variant="secondary" className="bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200 px-3 py-1">
-                          {influencerData.facial_features || 'Not selected'}
-                        </Badge>
+
+                      <div className="space-y-3">
+                        <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                          Last Name
+                        </label>
+                        <input
+                          type="text"
+                          value={influencerData.name_last}
+                          onChange={(e) => handleOptionSelect('name_last', e.target.value)}
+                          placeholder="Enter last name"
+                          className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 transition-all duration-300 hover:border-orange-300 dark:hover:border-orange-600"
+                        />
                       </div>
                     </div>
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between p-3 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 rounded-lg">
-                        <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Name:</span>
-                        <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                          {influencerData.name_first} {influencerData.name_last}
-                        </span>
+
+                    {/* Review Summary */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between p-3 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-lg">
+                          <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Sex:</span>
+                          <Badge variant="secondary" className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 px-3 py-1">
+                            {influencerData.sex}
+                          </Badge>
+                        </div>
+                        <div className="flex items-center justify-between p-3 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950/20 dark:to-pink-950/20 rounded-lg">
+                          <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Facial Features:</span>
+                          <Badge variant="secondary" className="bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200 px-3 py-1">
+                            {influencerData.facial_features || 'Not selected'}
+                          </Badge>
+                        </div>
                       </div>
-                      <div className="flex items-center justify-between p-3 bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950/20 dark:to-teal-950/20 rounded-lg">
-                        <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Age & Lifestyle:</span>
-                        <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                          {influencerData.age}
-                        </span>
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between p-3 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 rounded-lg">
+                          <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Age:</span>
+                          <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 px-3 py-1">
+                            {influencerData.age || 'Not selected'}
+                          </Badge>
+                        </div>
+                        <div className="flex items-center justify-between p-3 bg-gradient-to-r from-orange-50 to-red-50 dark:from-orange-950/20 dark:to-red-950/20 rounded-lg">
+                          <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Lifestyle:</span>
+                          <Badge variant="secondary" className="bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200 px-3 py-1">
+                            {influencerData.lifestyle || 'Not selected'}
+                          </Badge>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -833,9 +1228,11 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
       case 2:
         return influencerData.facial_features !== '';
       case 3:
-        return influencerData.name_first !== '' && influencerData.name_last !== '';
+        return influencerData.age !== '';
       case 4:
-        return true;
+        return influencerData.lifestyle !== '';
+      case 5:
+        return influencerData.name_first !== '' && influencerData.name_last !== '';
       default:
         return false;
     }

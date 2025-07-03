@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Star, Search, Download, Share, Trash2, Filter, Calendar, Image, Video, SortAsc, SortDesc, ZoomIn, Folder, Plus, Upload, ChevronRight, Home, ArrowLeft, Pencil, Menu, X, File, User } from 'lucide-react';
+import { Star, Search, Download, Share, Trash2, Filter, Calendar, Image, Video, SortAsc, SortDesc, ZoomIn, Folder, Plus, Upload, ChevronRight, Home, ArrowLeft, Pencil, Menu, X, File, User, RefreshCcw } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { DialogContentZoom } from '@/components/ui/zoomdialog';
@@ -195,8 +195,9 @@ export default function Vault() {
   const [settingProfilePicture, setSettingProfilePicture] = useState<string | null>(null);
 
   // Folder file counts state
-  const [folderFileCounts, setFolderFileCounts] = useState<{[key: string]: number}>({});
-  const [loadingFileCounts, setLoadingFileCounts] = useState<{[key: string]: boolean}>({});
+  const [folderFileCounts, setFolderFileCounts] = useState<{ [key: string]: number }>({});
+  const [loadingFileCounts, setLoadingFileCounts] = useState<{ [key: string]: boolean }>({});
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
 
   // Load copy state from localStorage on component mount
   useEffect(() => {
@@ -413,7 +414,7 @@ export default function Vault() {
   useEffect(() => {
     const fetchAllFolderFileCounts = async () => {
       const currentFolders = getCurrentPathFolders();
-      
+
       // Fetch file counts for each immediate children folder of current path
       for (const folder of currentFolders) {
         await fetchFolderFileCount(folder.path);
@@ -2201,7 +2202,7 @@ export default function Vault() {
       console.log(formData);
       console
       // Upload file
-      const uploadResponse = await fetch(`https://api.nymia.ai/v1/uploadfile?user=${userData.id}&filename=${'vault/'+currentPath+'/'+uploadModelData.system_filename}`, {
+      const uploadResponse = await fetch(`https://api.nymia.ai/v1/uploadfile?user=${userData.id}&filename=${'vault/' + currentPath + '/' + uploadModelData.system_filename}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/octet-stream',
@@ -2306,7 +2307,7 @@ export default function Vault() {
     setIsDragging(true);
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', image.system_filename);
-    
+
     // Show toast when drag starts
     toast.info('Drag started', {
       description: `Moving "${image.system_filename}" - drop on a folder to move it`,
@@ -2332,7 +2333,7 @@ export default function Vault() {
 
   const handleDrop = async (e: React.DragEvent, targetFolderPath: string) => {
     e.preventDefault();
-    
+
     if (!draggedImage) return;
 
     // Don't allow dropping into the same folder
@@ -2387,7 +2388,7 @@ export default function Vault() {
       }
 
       const path = draggedImage.user_filename === '' ? 'output' : `vault/${draggedImage.user_filename}`;
-      
+
       // Copy the file to the target folder
       toast.loading('Copying file...', {
         id: movingToast,
@@ -2478,19 +2479,19 @@ export default function Vault() {
     if (files.length > 0) {
       const file = files[0];
       setUploadedFile(file);
-      
+
       // Auto-set filename and format
       const fileName = file.name;
       const fileExtension = fileName.split('.').pop()?.toLowerCase() || '';
       const isVideo = file.type.startsWith('video/');
-      
+
       setUploadModelData(prev => ({
         ...prev,
         system_filename: fileName,
         image_format: fileExtension,
         file_type: isVideo ? 'video' : 'pic'
       }));
-      
+
       setUploadModelModal({ open: true });
     }
   };
@@ -2526,7 +2527,7 @@ export default function Vault() {
     try {
       const extension = image.system_filename.split('.').pop();
       const sourcePath = image.user_filename === "" ? "output" : `vault/${image.user_filename}`;
-      
+
       // Copy the image to the influencer's profile picture folder
       await fetch('https://api.nymia.ai/v1/copyfile', {
         method: 'POST',
@@ -2577,15 +2578,12 @@ export default function Vault() {
 
   // Fetch file count for a specific folder
   const fetchFolderFileCount = async (folderPath: string) => {
-    if (!userData.id || loadingFileCounts[folderPath]) return;
+    if (loadingFileCounts[folderPath]) return;
 
     setLoadingFileCounts(prev => ({ ...prev, [folderPath]: true }));
-    
+
     try {
-      const folder = `vault/${folderPath}`;
-      console.log("Folder path: ", folder);
-      
-      const filesResponse = await fetch('https://api.nymia.ai/v1/getfilenames', {
+      const response = await fetch('https://api.nymia.ai/v1/getfilenames', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -2593,21 +2591,15 @@ export default function Vault() {
         },
         body: JSON.stringify({
           user: userData.id,
-          folder: folder
+          folder: `vault/${folderPath}`
         })
       });
 
-      if (filesResponse.ok) {
-        const filesData: FileData[] = await filesResponse.json();
-        // console.log("Files data: ", filesData);
-        
-        // Count only files that are directly in this folder (not in subfolders)
-        const directFiles = filesData.filter(file => {
-          const filePath = file.Key;
-          if(filePath!==undefined) {
-            const relativePath = filePath.replace(`/${folder}/`, '');
-            // console.log("Relative path: ", relativePath); 
-            // Only count files that don't contain '/' (meaning they're directly in this folder)
+      if (response.ok) {
+        const files = await response.json();
+        const directFiles = files.filter((file: any) => {
+          const relativePath = file.Key.replace(`vault/${userData.id}/vault/${folderPath}/`, '');
+          if (folderPath === '') {
             return !relativePath.includes('/');
           }
           return false;
@@ -2622,6 +2614,51 @@ export default function Vault() {
       setFolderFileCounts(prev => ({ ...prev, [folderPath]: 0 }));
     } finally {
       setLoadingFileCounts(prev => ({ ...prev, [folderPath]: false }));
+    }
+  };
+
+  // Comprehensive refresh function
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+
+    try {
+
+      // Refresh folder structure
+      const folderResponse = await fetch('https://api.nymia.ai/v1/getfoldernames', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          user: userData.id,
+          folder: "vault"
+        })
+      });
+
+      if (folderResponse.ok) {
+        const folderData = await folderResponse.json();
+        setFolders(folderData);
+        const structure = buildFolderStructure(folderData);
+        setFolderStructure(structure);
+      }
+
+      // Refresh files for current path
+      await fetchHomeFiles();
+
+      // Refresh file counts for current path folders
+      const currentFolders = getCurrentPathFolders();
+      const refreshPromises = currentFolders.map(folder => fetchFolderFileCount(folder.path));
+      await Promise.all(refreshPromises);
+
+    } catch (error) {
+      console.error('Error refreshing data:', error);
+      toast.error('Failed to refresh data. Please try again.', {
+        description: 'An error occurred while refreshing the folder and file data',
+        duration: 5000
+      });
+    } finally {
+      setIsRefreshing(false);
     }
   };
 
@@ -2968,11 +3005,11 @@ export default function Vault() {
       <Card className="border-blue-500/20 bg-gradient-to-r from-blue-50/50 to-purple-50/50 dark:from-blue-950/20 dark:to-purple-950/20 mb-6">
         <CardHeader className="pt-5 pb-2">
           {/* Breadcrumb Navigation */}
-          <div className="flex items-center gap-2 mb-6">
+          <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
             <div
-              className={`flex items-center gap-2 p-2 rounded-lg transition-all duration-200 ${
-                dragOverFolder === '' ? 'ring-2 ring-blue-500 ring-opacity-50 bg-blue-100 dark:bg-blue-900/20 scale-105 shadow-lg' : 'hover:bg-gray-100 dark:hover:bg-gray-800'
-              }`}
+              className={`flex items-center gap-2 p-2 rounded-lg transition-all duration-200 ${dragOverFolder === '' ? 'ring-2 ring-blue-500 ring-opacity-50 bg-blue-100 dark:bg-blue-900/20 scale-105 shadow-lg' : 'hover:bg-gray-100 dark:hover:bg-gray-800'
+                }`}
               onDragOver={(e) => handleDragOver(e, '')}
               onDragLeave={handleDragLeave}
               onDrop={(e) => handleDrop(e, '')}
@@ -2991,9 +3028,8 @@ export default function Vault() {
               <div key={item.path} className="flex items-center gap-2">
                 <ChevronRight className="w-4 h-4 text-muted-foreground" />
                 <div
-                  className={`flex items-center gap-2 p-2 rounded-lg transition-all duration-200 ${
-                    dragOverFolder === item.path ? 'ring-2 ring-blue-500 ring-opacity-50 bg-blue-100 dark:bg-blue-900/20 scale-105 shadow-lg' : 'hover:bg-gray-100 dark:hover:bg-gray-800'
-                  }`}
+                  className={`flex items-center gap-2 p-2 rounded-lg transition-all duration-200 ${dragOverFolder === item.path ? 'ring-2 ring-blue-500 ring-opacity-50 bg-blue-100 dark:bg-blue-900/20 scale-105 shadow-lg' : 'hover:bg-gray-100 dark:hover:bg-gray-800'
+                    }`}
                   onDragOver={(e) => handleDragOver(e, item.path)}
                   onDragLeave={handleDragLeave}
                   onDrop={(e) => handleDrop(e, item.path)}
@@ -3009,6 +3045,27 @@ export default function Vault() {
                 </div>
               </div>
             ))}
+          </div>
+          {/* Refresh Button */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className="flex items-center gap-1.5 transition-all duration-200 bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 dark:from-blue-950/20 dark:to-indigo-950/20 dark:hover:from-blue-900/30 dark:hover:to-indigo-900/30 border-blue-200 dark:border-blue-800 hover:border-blue-300 dark:hover:border-blue-700 text-blue-700 dark:text-blue-300 hover:text-blue-800 dark:hover:text-blue-200 shadow-sm hover:shadow-md"
+          >
+            {isRefreshing ? (
+              <>
+                <RefreshCcw className="w-4 h-4 animate-spin" />
+                Refreshing...
+              </>
+            ) : (
+              <>
+                <RefreshCcw className="w-4 h-4" />
+                Refresh
+              </>
+            )}
+          </Button>
           </div>
 
           <div className="flex items-center justify-between">
@@ -3093,9 +3150,8 @@ export default function Vault() {
               return currentFolders.map((folder) => (
                 <div
                   key={folder.path}
-                  className={`group ${renamingFolder === folder.path ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'} ${
-                    dragOverFolder === folder.path ? 'ring-2 ring-blue-500 ring-opacity-50 bg-blue-100 dark:bg-blue-900/20' : ''
-                  }`}
+                  className={`group ${renamingFolder === folder.path ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'} ${dragOverFolder === folder.path ? 'ring-2 ring-blue-500 ring-opacity-50 bg-blue-100 dark:bg-blue-900/20' : ''
+                    }`}
                   onDoubleClick={() => renamingFolder !== folder.path && navigateToFolder(folder.path)}
                   onContextMenu={(e) => renamingFolder !== folder.path && handleContextMenu(e, folder.path)}
                   onDragOver={(e) => renamingFolder !== folder.path && handleDragOver(e, folder.path)}
@@ -3196,9 +3252,8 @@ export default function Vault() {
                   return (
                     <div
                       key={folder.Key}
-                      className={`group ${renamingFolder === folderPath ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'} ${
-                        dragOverFolder === folderPath ? 'ring-4 ring-blue-500 ring-opacity-70 bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/40 dark:to-purple-900/40 scale-105 shadow-lg' : ''
-                      }`}
+                      className={`group ${renamingFolder === folderPath ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'} ${dragOverFolder === folderPath ? 'ring-4 ring-blue-500 ring-opacity-70 bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/40 dark:to-purple-900/40 scale-105 shadow-lg' : ''
+                        }`}
                       onClick={() => {
                         if (folderPath && renamingFolder !== folderPath) {
                           navigateToFolder(folderPath);
@@ -3331,9 +3386,8 @@ export default function Vault() {
             {
               currentPath !== '' && (
                 <Card
-                  className={`group hover:shadow-xl transition-all duration-300 border-border/50 hover:border-purple-500/30 backdrop-blur-sm bg-gradient-to-br from-purple-50/20 to-pink-50/20 dark:from-purple-950/5 dark:to-pink-950/5 cursor-pointer ${
-                    dragOverUpload ? 'ring-4 ring-purple-500 ring-opacity-70 bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/40 dark:to-pink-900/40 scale-105 shadow-lg' : ''
-                  }`}
+                  className={`group hover:shadow-xl transition-all duration-300 border-border/50 hover:border-purple-500/30 backdrop-blur-sm bg-gradient-to-br from-purple-50/20 to-pink-50/20 dark:from-purple-950/5 dark:to-pink-950/5 cursor-pointer ${dragOverUpload ? 'ring-4 ring-purple-500 ring-opacity-70 bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/40 dark:to-pink-900/40 scale-105 shadow-lg' : ''
+                    }`}
                   onClick={() => setUploadModelModal({ open: true })}
                   onDragOver={(e) => {
                     e.preventDefault();
@@ -3348,19 +3402,19 @@ export default function Vault() {
                     if (files.length > 0) {
                       const file = files[0];
                       setUploadedFile(file);
-                      
+
                       // Auto-set filename and format
                       const fileName = file.name;
                       const fileExtension = fileName.split('.').pop()?.toLowerCase() || '';
                       const isVideo = file.type.startsWith('video/');
-                      
+
                       setUploadModelData(prev => ({
                         ...prev,
                         system_filename: fileName,
                         image_format: fileExtension,
                         file_type: isVideo ? 'video' : 'pic'
                       }));
-                      
+
                       setUploadModelModal({ open: true });
                     }
                   }}
@@ -3371,29 +3425,26 @@ export default function Vault() {
                     </div>
                     <span className="text-lg font-semibold text-purple-700 dark:text-purple-300 mb-2">Upload Model</span>
                     <span className="text-xs text-gray-500 dark:text-gray-400 text-center mb-4">Add a new model to this folder</span>
-                    
+
                     {/* Image Preview Window */}
-                    <div className={`w-full h-32 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center mb-4 transition-all duration-200 ${
-                      dragOverUpload 
-                        ? 'border-purple-400 dark:border-purple-500 bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30 scale-105' 
+                    <div className={`w-full h-32 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center mb-4 transition-all duration-200 ${dragOverUpload
+                        ? 'border-purple-400 dark:border-purple-500 bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30 scale-105'
                         : 'group-hover:border-purple-400 dark:group-hover:border-purple-500'
-                    }`}>
+                      }`}>
                       <div className="text-center">
-                        <Upload className={`w-6 h-6 mx-auto mb-2 transition-colors ${
-                          dragOverUpload 
-                            ? 'text-purple-500 dark:text-purple-400' 
+                        <Upload className={`w-6 h-6 mx-auto mb-2 transition-colors ${dragOverUpload
+                            ? 'text-purple-500 dark:text-purple-400'
                             : 'text-gray-400 dark:text-gray-500'
-                        }`} />
-                        <p className={`text-xs transition-colors ${
-                          dragOverUpload 
-                            ? 'text-purple-600 dark:text-purple-400' 
+                          }`} />
+                        <p className={`text-xs transition-colors ${dragOverUpload
+                            ? 'text-purple-600 dark:text-purple-400'
                             : 'text-gray-500 dark:text-gray-400'
-                        }`}>
+                          }`}>
                           {dragOverUpload ? 'Drop file here!' : 'Drop file here or click to upload'}
                         </p>
                       </div>
                     </div>
-                    
+
                     <div className="text-xs text-gray-500 dark:text-gray-400 text-center">
                       Drag & drop files here or click to browse
                     </div>
@@ -3501,13 +3552,12 @@ export default function Vault() {
                     <img
                       src={`https://images.nymia.ai/cdn-cgi/image/w=400/${userData.id}/${image.user_filename === "" ? "output" : "vault/" + image.user_filename}/${image.system_filename}`}
                       alt={image.system_filename}
-                      className={`absolute inset-0 w-full h-full object-cover rounded-md shadow-sm cursor-pointer transition-all duration-200 ${
-                        isDragging && draggedImage?.id === image.id 
-                          ? 'opacity-50 scale-95 ring-2 ring-blue-500 ring-opacity-50' 
-                          : isDragging 
-                            ? 'opacity-30 scale-98' 
+                      className={`absolute inset-0 w-full h-full object-cover rounded-md shadow-sm cursor-pointer transition-all duration-200 ${isDragging && draggedImage?.id === image.id
+                          ? 'opacity-50 scale-95 ring-2 ring-blue-500 ring-opacity-50'
+                          : isDragging
+                            ? 'opacity-30 scale-98'
                             : 'hover:scale-105'
-                      }`}
+                        }`}
                       onClick={(e) => {
                         // Only open modal if not dragging
                         if (!isDragging) {
@@ -4546,12 +4596,12 @@ export default function Vault() {
                   if (files.length > 0) {
                     const file = files[0];
                     setUploadedFile(file);
-                    
+
                     // Auto-set filename and format
                     const fileName = file.name;
                     const fileExtension = fileName.split('.').pop()?.toLowerCase() || '';
                     const isVideo = file.type.startsWith('video/');
-                    
+
                     setUploadModelData(prev => ({
                       ...prev,
                       system_filename: fileName,
@@ -4605,7 +4655,7 @@ export default function Vault() {
                           const fileName = file.name;
                           const fileExtension = fileName.split('.').pop()?.toLowerCase() || '';
                           const isVideo = file.type.startsWith('video/');
-                          
+
                           setUploadModelData(prev => ({
                             ...prev,
                             system_filename: fileName,
@@ -4641,8 +4691,8 @@ export default function Vault() {
                       const newName = e.target.value;
                       if (uploadedFile) {
                         const fileExtension = uploadedFile.name.split('.').pop() || '';
-                        setUploadModelData(prev => ({ 
-                          ...prev, 
+                        setUploadModelData(prev => ({
+                          ...prev,
                           system_filename: `${encodeName(newName)}.${fileExtension}`
                         }));
                       } else {

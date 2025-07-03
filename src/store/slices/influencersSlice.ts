@@ -50,6 +50,9 @@ export interface Influencer {
   created_at: string;
   updated_at: string;
   image_num: number;
+  age: string;
+  lifestyle: string;
+  eye_shape: string;
 }
 
 interface InfluencersState {

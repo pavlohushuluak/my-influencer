@@ -13,7 +13,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { DialogZoom, DialogContentZoom } from '@/components/ui/zoomdialog';
 import { updateInfluencer, setInfluencers, setLoading, setError, addInfluencer } from '@/store/slices/influencersSlice';
-import { X, Plus, Save, Crown, Lock, Image, Settings, User, ChevronRight, MoreHorizontal, Loader2, ZoomIn, Pencil } from 'lucide-react';
+import { X, Plus, Save, Crown, RefreshCcw, Image, Settings, User, ChevronRight, MoreHorizontal, Loader2, ZoomIn, Pencil } from 'lucide-react';
 import { HexColorPicker } from 'react-colorful';
 import { toast } from 'sonner';
 import { Textarea } from '@/components/ui/textarea';
@@ -211,32 +211,32 @@ export default function InfluencerEdit() {
   const [influencerData, setInfluencerData] = useState(location.state?.influencerData || {
     id: '',
     visual_only: false,
-    eyebrow_style: '',
-    influencer_type: '',
+    eyebrow_style: 'Default',
+    influencer_type: 'Lifestyle',
     name_first: '',
     name_last: '',
-    sex: '',
+    sex: 'Female',
     age_lifestyle: '',
     origin_birth: '',
     origin_residence: '',
-    cultural_background: '',
-    hair_length: '',
-    hair_color: '',
-    hair_style: '',
-    eye_color: '',
-    lip_style: '',
-    nose_style: '',
-    face_shape: '',
+    cultural_background: 'Default',
+    hair_length: 'Default',
+    hair_color: 'Default',
+    hair_style: 'Default',
+    eye_color: 'Default',
+    lip_style: 'Default',
+    nose_style: 'Default',
+    face_shape: 'Default',
     facial_features: '',
-    skin_tone: '',
-    body_type: '',
+    skin_tone: 'Default',
+    body_type: 'Default',
     color_palette: [],
-    clothing_style_everyday: '',
-    clothing_style_occasional: '',
-    clothing_style_home: '',
-    clothing_style_sports: '',
-    clothing_style_sexy_dress: '',
-    home_environment: '',
+    clothing_style_everyday: 'Default',
+    clothing_style_occasional: 'Default',
+    clothing_style_home: 'Default',
+    clothing_style_sports: 'Default',
+    clothing_style_sexy_dress: 'Default',
+    home_environment: 'Default',
     content_focus: [],
     content_focus_areas: [],
     job_area: '',
@@ -254,9 +254,10 @@ export default function InfluencerEdit() {
     prompt: '',
     image_url: '',
     image_num: 0,
-    eye_shape: '',
-    age: '',
-    lifestyle: ''
+    eye_shape: 'Default',
+    age: 'Default',
+    lifestyle: 'Default',
+    bust_size: 'Default'
   });
 
   const [activeTab, setActiveTab] = useState('basic');
@@ -920,7 +921,57 @@ export default function InfluencerEdit() {
   const handleEditInfluencer = (id: string) => {
     const influencer = influencers.find(inf => inf.id === id);
     if (influencer) {
-      setInfluencerData(influencer);
+      setInfluencerData({
+        id: influencer.id,
+        visual_only: influencer.visual_only,
+        eyebrow_style: influencer.eyebrow_style || 'Default',
+        influencer_type: influencer.influencer_type || 'Lifestyle',
+        name_first: influencer.name_first || '',
+        name_last: influencer.name_last || '',
+        sex: influencer.sex || 'Female',
+        age_lifestyle: influencer.age_lifestyle || '',
+        origin_birth: influencer.origin_birth || '',
+        origin_residence: influencer.origin_residence || '',
+        cultural_background: influencer.cultural_background || 'Default',
+        hair_length: influencer.hair_length || 'Default',
+        hair_color: influencer.hair_color || 'Default',
+        hair_style: influencer.hair_style || 'Default',
+        eye_color: influencer.eye_color || 'Default',
+        lip_style: influencer.lip_style || 'Default',
+        nose_style: influencer.nose_style || 'Default',
+        face_shape: influencer.face_shape || 'Default',
+        facial_features: influencer.facial_features || 'Classic Beauty',
+        skin_tone: influencer.skin_tone || 'Default',
+        body_type: influencer.body_type || 'Default',
+        color_palette: influencer.color_palette || [],
+        clothing_style_everyday: influencer.clothing_style_everyday || 'Default',
+        clothing_style_occasional: influencer.clothing_style_occasional || 'Default',
+        clothing_style_home: influencer.clothing_style_home || 'Default',
+        clothing_style_sports: influencer.clothing_style_sports || 'Default',
+        clothing_style_sexy_dress: influencer.clothing_style_sexy_dress || 'Default',
+        home_environment: influencer.home_environment || 'Default',
+        content_focus: influencer.content_focus || [],
+        content_focus_areas: influencer.content_focus_areas || [],
+        job_area: influencer.job_area || '',
+        job_title: influencer.job_title || '',
+        job_vibe: influencer.job_vibe || '',
+        hobbies: influencer.hobbies || [],
+        social_circle: influencer.social_circle || '',
+        strengths: influencer.strengths || [],
+        weaknesses: influencer.weaknesses || [],
+        speech_style: influencer.speech_style || [],
+        humor: influencer.humor || [],
+        core_values: influencer.core_values || [],
+        current_goals: influencer.current_goals || [],
+        background_elements: influencer.background_elements || [],
+        prompt: influencer.prompt || '',
+        image_url: influencer.image_url || '',
+        image_num: influencer.image_num || 0,
+        eye_shape: influencer.eye_shape || 'Default',
+        age: influencer.age || 'Default',
+        lifestyle: influencer.lifestyle || 'Default',
+        bust_size: influencer.bust_size || 'Default'
+      });
       setShowEditView(true);
     }
   };
@@ -1390,7 +1441,7 @@ export default function InfluencerEdit() {
 
     try {
       setIsApplyingTemplate(true);
-      
+
       // Update influencer data with template values
       setInfluencerData(prev => ({
         ...prev,
@@ -1797,7 +1848,11 @@ export default function InfluencerEdit() {
                         >
                           {renderOptionCard(
                             facialFeaturesOptions.find(option => option.label === influencerData.facial_features),
-                            "Select facial features"
+                            "Select facial features",
+                            false,
+                            "facial_features",
+                            handleInputChange,
+                            ''
                           )}
                         </div>
                       </div>
@@ -1882,7 +1937,11 @@ export default function InfluencerEdit() {
                         >
                           {renderOptionCard(
                             facialFeaturesOptions.find(option => option.label === influencerData.facial_features),
-                            "Select facial features"
+                            "Select facial features",
+                            false,
+                            "facial_features",
+                            handleInputChange,
+                            ''
                           )}
                         </div>
                       </div>
@@ -1913,7 +1972,11 @@ export default function InfluencerEdit() {
                         >
                           {renderOptionCard(
                             sexOptions.find(option => option.label === influencerData.sex),
-                            "Select sex"
+                            "Select sex",
+                            false,
+                            "sex",
+                            handleInputChange,
+                            'Female'
                           )}
                         </div>
                       </div>
@@ -1941,7 +2004,11 @@ export default function InfluencerEdit() {
                           >
                             {renderOptionCard(
                               ageOptions.find(option => option.label === influencerData.age),
-                              "Select age"
+                              "Select age",
+                              false,
+                              "age",
+                              handleInputChange,
+                              'Default'
                             )}
                           </div>
                         </div>
@@ -1970,7 +2037,11 @@ export default function InfluencerEdit() {
                           >
                             {renderOptionCard(
                               lifestyleOptions.find(option => option.label === influencerData.lifestyle),
-                              "Select lifestyle"
+                              "Select lifestyle",
+                              false,
+                              "lifestyle",
+                              handleInputChange,
+                              'Default'
                             )}
                           </div>
                         </div>
@@ -1999,7 +2070,11 @@ export default function InfluencerEdit() {
                         >
                           {renderOptionCard(
                             culturalBackgroundOptions.find(option => option.label === influencerData.cultural_background),
-                            "Select cultural background"
+                            "Select cultural background",
+                            false,
+                            "cultural_background",
+                            handleInputChange,
+                            'Default'
                           )}
                         </div>
                       </div>
@@ -2038,7 +2113,11 @@ export default function InfluencerEdit() {
                         >
                           {renderOptionCard(
                             hairLengthOptions.find(option => option.label === influencerData.hair_length),
-                            "Select hair length"
+                            "Select hair length",
+                            false,
+                            "hair_length",
+                            handleInputChange,
+                            'Default'
                           )}
                         </div>
                       </div>
@@ -2065,7 +2144,11 @@ export default function InfluencerEdit() {
                         >
                           {renderOptionCard(
                             hairStyleOptions.find(option => option.label === influencerData.hair_style),
-                            "Select hair style"
+                            "Select hair style",
+                            false,
+                            "hair_style",
+                            handleInputChange,
+                            'Default'
                           )}
                         </div>
                       </div>
@@ -2093,7 +2176,11 @@ export default function InfluencerEdit() {
                         >
                           {renderOptionCard(
                             hairColorOptions.find(option => option.label === influencerData.hair_color),
-                            "Select hair color"
+                            "Select hair color",
+                            false,
+                            "hair_color",
+                            handleInputChange,
+                            'Default'
                           )}
                         </div>
 
@@ -2183,7 +2270,11 @@ export default function InfluencerEdit() {
                         >
                           {renderOptionCard(
                             eyeColorOptions.find(option => option.label === influencerData.eye_color),
-                            "Select eye color"
+                            "Select eye color",
+                            false,
+                            "eye_color",
+                            handleInputChange,
+                            'Default'
                           )}
                         </div>
 
@@ -2226,7 +2317,11 @@ export default function InfluencerEdit() {
                         >
                           {renderOptionCard(
                             eyeShapeOptions.find(option => option.label === influencerData.eye_shape),
-                            "Select eye shape"
+                            "Select eye shape",
+                            false,
+                            "eye_shape",
+                            handleInputChange,
+                            'Default'
                           )}
                         </div>
                       </div>
@@ -4342,7 +4437,7 @@ export default function InfluencerEdit() {
                     These features will be automatically applied when you set this template
                   </p>
                 </div>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {/* Face Shape */}
                   <Card className="group border-2 border-blue-500/20 hover:border-blue-500/40 transition-all duration-300 shadow-lg hover:shadow-xl bg-gradient-to-br from-blue-50/30 to-indigo-50/30 dark:from-blue-950/10 dark:to-indigo-950/10">
@@ -4420,7 +4515,7 @@ export default function InfluencerEdit() {
                   <Card className="group border-2 border-red-500/20 hover:border-red-500/40 transition-all duration-300 shadow-lg hover:shadow-xl bg-gradient-to-br from-red-50/30 to-pink-50/30 dark:from-red-950/10 dark:to-pink-950/10">
                     <CardContent className="p-6">
                       <div className="space-y-4">
-                      <div className="relative">
+                        <div className="relative">
                           <div className="aspect-square bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30 rounded-2xl overflow-hidden shadow-lg">
                             {getImpliedHairColorImage(selectedFacialTemplate.implied_hair_color) ? (
                               <img
@@ -4492,7 +4587,7 @@ export default function InfluencerEdit() {
                   <Card className="group border-2 border-amber-500/20 hover:border-amber-500/40 transition-all duration-300 shadow-lg hover:shadow-xl bg-gradient-to-br from-amber-50/30 to-orange-50/30 dark:from-amber-950/10 dark:to-orange-950/10">
                     <CardContent className="p-6">
                       <div className="space-y-4">
-                      <div className="relative">
+                        <div className="relative">
                           <div className="aspect-square bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-900/30 dark:to-orange-900/30 rounded-2xl overflow-hidden shadow-lg">
                             {eyeColorOptions.find(option => option.label === selectedFacialTemplate.implied_eye_color)?.image ? (
                               <img
@@ -4784,7 +4879,7 @@ export default function InfluencerEdit() {
                 <span className="text-xl font-bold">Confirm Template Application</span>
               </DialogTitle>
               <DialogDescription className="text-base mt-2">
-                Are you sure you want to apply the <strong>{selectedFacialTemplate.template_name}</strong> template? 
+                Are you sure you want to apply the <strong>{selectedFacialTemplate.template_name}</strong> template?
                 This will update all the following features:
               </DialogDescription>
             </DialogHeader>
@@ -4849,13 +4944,13 @@ export default function InfluencerEdit() {
                 <div className="flex items-start gap-3">
                   <div className="w-6 h-6 rounded-full bg-red-500 flex items-center justify-center flex-shrink-0 mt-0.5">
                     <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
                     </svg>
                   </div>
                   <div>
                     <h4 className="font-semibold text-red-800 dark:text-red-200 mb-1">Warning</h4>
                     <p className="text-sm text-red-700 dark:text-red-300">
-                      This action will overwrite all current facial features with the template values. 
+                      This action will overwrite all current facial features with the template values.
                       This change cannot be undone automatically.
                     </p>
                   </div>
@@ -4901,7 +4996,7 @@ export default function InfluencerEdit() {
 }
 
 // Helper function to render option cards with descriptions
-const renderOptionCard = (option: Option | undefined, placeholder: string = "Select option", showDescription: boolean = false) => {
+const renderOptionCard = (option: Option | undefined, placeholder: string = "Select option", showDescription: boolean = false, item: string = '', handleInputChange: (field: string, value: string) => void, refreshData: string = '') => {
   if (!option?.image) {
     return (
       <Card className="relative w-full border max-w-[250px]">
@@ -4922,6 +5017,17 @@ const renderOptionCard = (option: Option | undefined, placeholder: string = "Sel
             src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
             className="absolute inset-0 w-full h-full object-cover rounded-md"
           />
+          <Button
+            variant="destructive"
+            size="sm"
+            className="absolute bottom-2 right-2 w-8 h-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleInputChange(item, refreshData);
+            }}
+          >
+            <RefreshCcw className="w-4 h-4 text-white" />
+          </Button>
         </div>
         <p className="text-sm text-center font-medium mt-2">{option.label}</p>
         {showDescription && option.description && (

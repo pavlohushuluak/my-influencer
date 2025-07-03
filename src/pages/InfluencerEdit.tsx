@@ -211,32 +211,32 @@ export default function InfluencerEdit() {
   const [influencerData, setInfluencerData] = useState(location.state?.influencerData || {
     id: '',
     visual_only: false,
-    eyebrow_style: 'Default',
-    influencer_type: 'Lifestyle',
+    eyebrow_style: '',
+    influencer_type: '',
     name_first: '',
     name_last: '',
-    sex: 'Default',
+    sex: '',
     age_lifestyle: '',
     origin_birth: '',
     origin_residence: '',
-    cultural_background: 'Default',
-    hair_length: 'Default',
-    hair_color: 'Default',
-    hair_style: 'Default',
-    eye_color: 'Default',
-    lip_style: 'Default',
-    nose_style: 'Default',
-    face_shape: 'Default',
-    facial_features: 'Default',
-    skin_tone: 'Default',
-    body_type: 'Default',
+    cultural_background: '',
+    hair_length: '',
+    hair_color: '',
+    hair_style: '',
+    eye_color: '',
+    lip_style: '',
+    nose_style: '',
+    face_shape: '',
+    facial_features: '',
+    skin_tone: '',
+    body_type: '',
     color_palette: [],
-    clothing_style_everyday: 'Default',
-    clothing_style_occasional: 'Default',
-    clothing_style_home: 'Default',
-    clothing_style_sports: 'Default',
-    clothing_style_sexy_dress: 'Default',
-    home_environment: 'Default',
+    clothing_style_everyday: '',
+    clothing_style_occasional: '',
+    clothing_style_home: '',
+    clothing_style_sports: '',
+    clothing_style_sexy_dress: '',
+    home_environment: '',
     content_focus: [],
     content_focus_areas: [],
     job_area: '',
@@ -252,12 +252,7 @@ export default function InfluencerEdit() {
     current_goals: [],
     background_elements: [],
     prompt: '',
-    image_url: '',
-    image_num: 0,
-    eye_shape: 'Default',
-    age: 'Default',
-    lifestyle: 'Default',
-    bust_size: 'Default'
+    notes: ''
   });
 
   const [activeTab, setActiveTab] = useState('basic');
@@ -928,7 +923,7 @@ export default function InfluencerEdit() {
         influencer_type: influencer.influencer_type || 'Lifestyle',
         name_first: influencer.name_first || '',
         name_last: influencer.name_last || '',
-        sex: influencer.sex || 'Default',
+        sex: influencer.sex || 'Female',
         age_lifestyle: influencer.age_lifestyle || '',
         origin_birth: influencer.origin_birth || '',
         origin_residence: influencer.origin_residence || '',
@@ -965,12 +960,7 @@ export default function InfluencerEdit() {
         current_goals: influencer.current_goals.length === 0 ? ['Default'] : influencer.current_goals,
         background_elements: influencer.background_elements.length === 0 ? ['Default'] : influencer.background_elements,
         prompt: influencer.prompt || '',
-        image_url: influencer.image_url || '',
-        image_num: influencer.image_num || 0,
-        eye_shape: influencer.eye_shape || 'Default',
-        age: influencer.age || 'Default',
-        lifestyle: influencer.lifestyle || 'Default',
-        bust_size: influencer.bust_size || 'Default'
+        notes: influencer.notes || ''
       });
       setShowEditView(true);
     }
@@ -1823,6 +1813,17 @@ export default function InfluencerEdit() {
                           </div>
                         }
                       </div>
+
+                      {/* Notes field - spans 2 columns */}
+                      <div className="space-y-2">
+                        <Label>Notes</Label>
+                        <Textarea
+                          value={influencerData.notes}
+                          onChange={(e) => handleInputChange('notes', e.target.value)}
+                          placeholder="Add any additional notes or comments about this influencer..."
+                          className="min-h-[50px] resize-none"
+                        />
+                      </div>
                     </div>
 
                     {/* Column 4: Facial Features (hidden on mobile, shown in second row) */}
@@ -1976,7 +1977,7 @@ export default function InfluencerEdit() {
                             false,
                             "sex",
                             handleInputChange,
-                            'Default'
+                            'Female'
                           )}
                         </div>
                       </div>

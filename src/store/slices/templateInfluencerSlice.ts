@@ -47,6 +47,7 @@ export interface TemplateInfluencer {
     current_goals: string[];
     background_elements: string[];
     prompt: string;
+    notes: string;
 }
 
 interface TemplateInfluencerState {

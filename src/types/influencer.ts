@@ -45,4 +45,5 @@ export interface Influencer {
   current_goals: string[];
   background_elements: string[];
   prompt: string;
+  notes: string;
 } 

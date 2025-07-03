@@ -86,6 +86,7 @@ export default function InfluencerTemplates() {
           current_goals: template.current_goals,
           background_elements: template.background_elements,
           prompt: template.prompt || '', // Include the prompt field from template
+          notes: template.notes || '', // Include the notes field from template
           new: true
         })
       });

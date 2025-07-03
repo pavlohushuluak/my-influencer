@@ -105,128 +105,142 @@ interface FacialTemplateDetail {
   prompt_mapping_ref_id: number;
 }
 
-const steps = [
-  {
-    id: 1,
-    title: 'Sex Selection',
+interface Step {
+  id: number;
+  title: string;
+  description: string;
+  icon: any;
+  condition?: (influencerData: InfluencerData) => boolean;
+}
+
+const steps: Step[] = [
+  { 
+    id: 1, 
+    title: 'Sex Selection', 
     description: 'Choose the sex of your influencer',
     icon: User
   },
-  {
-    id: 2,
-    title: 'Facial Features',
+  { 
+    id: 2, 
+    title: 'Facial Features', 
     description: 'Select facial features template',
     icon: Sparkles
   },
-  {
-    id: 3,
-    title: 'Age Selection',
+  { 
+    id: 3, 
+    title: 'Age Selection', 
     description: 'Choose age range',
     icon: Palette
   },
-  {
-    id: 4,
-    title: 'Lifestyle Selection',
+  { 
+    id: 4, 
+    title: 'Lifestyle Selection', 
     description: 'Choose lifestyle',
     icon: Settings
   },
-  {
-    id: 5,
-    title: 'Cultural Background',
+  { 
+    id: 5, 
+    title: 'Cultural Background', 
     description: 'Select cultural background',
     icon: Settings
   },
-  {
-    id: 6,
-    title: 'Hair Length',
+  { 
+    id: 6, 
+    title: 'Hair Length', 
     description: 'Choose hair length',
     icon: Settings
   },
-  {
-    id: 7,
-    title: 'Hair Style',
+  { 
+    id: 7, 
+    title: 'Hair Style', 
     description: 'Select hair style',
     icon: Settings
   },
-  {
-    id: 8,
-    title: 'Hair Color',
+  { 
+    id: 8, 
+    title: 'Hair Color', 
     description: 'Choose hair color',
     icon: Settings
   },
-  {
-    id: 9,
-    title: 'Face Shape',
+  { 
+    id: 9, 
+    title: 'Face Shape', 
     description: 'Select face shape',
     icon: Settings
   },
-  {
-    id: 10,
-    title: 'Eye Color',
+  { 
+    id: 10, 
+    title: 'Eye Color', 
     description: 'Choose eye color',
     icon: Settings
   },
-  {
-    id: 11,
-    title: 'Eye Shape',
+  { 
+    id: 11, 
+    title: 'Eye Shape', 
     description: 'Select eye shape',
     icon: Settings
   },
-  {
-    id: 12,
-    title: 'Lip Style',
+  { 
+    id: 12, 
+    title: 'Lip Style', 
     description: 'Choose lip style',
     icon: Settings
   },
-  {
-    id: 13,
-    title: 'Nose Style',
+  { 
+    id: 13, 
+    title: 'Nose Style', 
     description: 'Select nose style',
     icon: Settings
   },
-  {
-    id: 14,
-    title: 'Eyebrow Style',
+  { 
+    id: 14, 
+    title: 'Eyebrow Style', 
     description: 'Choose eyebrow style',
     icon: Settings
   },
-  {
-    id: 15,
-    title: 'Skin Tone',
+  { 
+    id: 15, 
+    title: 'Skin Tone', 
     description: 'Select skin tone',
     icon: Settings
   },
-  {
-    id: 16,
-    title: 'Body Type',
+  { 
+    id: 16, 
+    title: 'Body Type', 
     description: 'Choose body type',
     icon: Settings
   },
-  {
-    id: 17,
-    title: 'Bust Size',
+  { 
+    id: 17, 
+    title: 'Bust Size', 
     description: 'Select bust size (Female only)',
-    icon: Settings
+    icon: Settings,
+    condition: (influencerData: InfluencerData) => influencerData.sex === 'Female'
   },
-  {
-    id: 18,
-    title: 'Origin Details',
-    description: 'Enter birth and residence origin',
-    icon: Settings
+  { 
+    id: 18, 
+    title: 'Origin & Residence', 
+    description: 'Set birth origin and current residence',
+    icon: Globe
   },
-  {
-    id: 19,
-    title: 'Name',
+  { 
+    id: 19, 
+    title: 'Name', 
     description: 'Enter first and last name',
-    icon: Settings
+    icon: User
   },
-  {
-    id: 20,
-    title: 'Confirm Creation',
-    description: 'Review and create your influencer',
+  { 
+    id: 20, 
+    title: 'Review & Create', 
+    description: 'Review all selections and create influencer',
     icon: Settings
   }
 ];
+
+// Helper function to get active steps based on conditions
+const getActiveSteps = (influencerData: InfluencerData) => {
+  return steps.filter(step => !step.condition || step.condition(influencerData));
+};
 
 export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
   const navigate = useNavigate();
@@ -1053,13 +1067,27 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
 
   const handleNext = () => {
     if (currentStep < steps.length) {
-      setCurrentStep(currentStep + 1);
+      let nextStep = currentStep + 1;
+      
+      // Skip step 17 (Bust Size) if sex is not Female
+      if (nextStep === 17 && influencerData.sex !== 'Female') {
+        nextStep = 18;
+      }
+      
+      setCurrentStep(nextStep);
     }
   };
 
   const handleBack = () => {
     if (currentStep > 1) {
-      setCurrentStep(currentStep - 1);
+      let prevStep = currentStep - 1;
+      
+      // Skip step 17 (Bust Size) if sex is not Female when going back
+      if (prevStep === 17 && influencerData.sex !== 'Female') {
+        prevStep = 16;
+      }
+      
+      setCurrentStep(prevStep);
     }
   };
 
@@ -1151,7 +1179,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
 
       if (response.ok) {
         toast.success('Influencer created successfully!', {
-          position: 'bottom-center'
+          position: 'bottom-right'
         });
         navigate('/influencers/edit');
         onComplete();
@@ -4227,6 +4255,11 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
   };
 
   const canProceed = () => {
+    const activeSteps = getActiveSteps(influencerData);
+    const currentActiveStep = activeSteps.find(step => step.id === currentStep);
+    
+    if (!currentActiveStep) return false;
+    
     switch (currentStep) {
       case 1:
         return influencerData.sex !== '';
@@ -4298,13 +4331,18 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
             {/* Title - Center (hidden on mobile) */}
             <div className="hidden md:block">
               <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300">
-                Step {currentStep} of {steps.length}
+                {
+                  influencerData.sex !== 'Female' && currentStep > 17 ?
+                    `Step ${currentStep - 1} of ${getActiveSteps(influencerData).length}`
+                  :
+                    `Step ${currentStep} of ${getActiveSteps(influencerData).length}`
+                }
               </h3>
             </div>
 
             {/* Next/Create Button - Right */}
             <div className="w-full md:w-auto">
-              {currentStep < steps.length ? (
+              {currentStep <= 19 ? (
                 <Button
                   onClick={handleNext}
                   disabled={!canProceed()}
@@ -4365,7 +4403,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
               Back
             </Button>
 
-            {currentStep < steps.length ? (
+            {currentStep < getActiveSteps(influencerData).length ? (
               <Button
                 onClick={handleNext}
                 disabled={!canProceed()}

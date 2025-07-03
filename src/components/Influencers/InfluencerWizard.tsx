@@ -330,6 +330,42 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
   const [isLoadingNameWizard, setIsLoadingNameWizard] = useState(false);
 
   console.log(influencerData);
+
+  // Show toast when entering a step with existing value
+  useEffect(() => {
+    const getStepValue = () => {
+      switch (currentStep) {
+        case 1: return influencerData.sex;
+        case 2: return influencerData.facial_features;
+        case 3: return influencerData.age;
+        case 4: return influencerData.lifestyle;
+        case 5: return influencerData.cultural_background;
+        case 6: return influencerData.hair_length;
+        case 7: return influencerData.hair_style;
+        case 8: return influencerData.hair_color;
+        case 9: return influencerData.face_shape;
+        case 10: return influencerData.eye_color;
+        case 11: return influencerData.eye_shape;
+        case 12: return influencerData.lip_style;
+        case 13: return influencerData.nose_style;
+        case 14: return influencerData.eyebrow_style;
+        case 15: return influencerData.skin_tone;
+        case 16: return influencerData.body_type;
+        case 17: return influencerData.bust_size;
+        default: return '';
+      }
+    };
+
+    const stepValue = getStepValue();
+    if (stepValue && stepValue !== '') {
+      const stepName = steps[currentStep - 1]?.title || 'this step';
+      toast.success(`${stepValue} selected for ${stepName}.`, {
+        position: 'bottom-center',
+        duration: 4000
+      });
+    }
+  }, [currentStep, influencerData]);
+
   // Fetch sex options from API
   useEffect(() => {
     const fetchSexOptions = async () => {
@@ -1005,10 +1041,12 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
   const handleOptionSelect = (field: string, value: string | boolean) => {
     setInfluencerData(prev => ({ ...prev, [field]: value }));
 
-    // Show success toast for selection
-    if (typeof value === 'string' && value !== '' && field !== 'origin_birth' && field !== 'origin_residence') {
-      toast.success(`${value} selected`, {
-        position: 'bottom-center'
+    // Show success toast for selection (excluding origin and name fields)
+    if (typeof value === 'string' && value !== '' && field !== 'origin_birth' && field !== 'origin_residence' && field !== 'name_first' && field !== 'name_last') {
+      const stepName = steps[currentStep - 1]?.title || 'this step';
+      toast.success(`${value} selected for ${stepName}.`, {
+        position: 'bottom-center',
+        duration: 3000
       });
     }
   };
@@ -1035,15 +1073,87 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer WeInfl3nc3withAI'
         },
-        body: JSON.stringify(influencerData)
+        body: JSON.stringify({ ...influencerData, new: true })
       });
 
+      const responseId = await fetch(`https://db.nymia.ai/rest/v1/influencer?user_id=eq.${userData.id}&new=eq.true`, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        }
+      });
+
+      const data = await responseId.json();
+
+      await fetch('https://api.nymia.ai/v1/createfolder', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          user: userData.id,
+          parentfolder: `models/${data[0].id}/`,
+          folder: "lora"
+        })
+      });
+
+      await fetch('https://api.nymia.ai/v1/createfolder', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          user: userData.id,
+          parentfolder: `models/${data[0].id}/`,
+          folder: "loratraining"
+        })
+      });
+
+      await fetch('https://api.nymia.ai/v1/createfolder', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          user: userData.id,
+          parentfolder: `models/${data[0].id}/`,
+          folder: "profilepic"
+        })
+      });
+
+      await fetch('https://api.nymia.ai/v1/createfolder', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          user: userData.id,
+          parentfolder: `models/${data[0].id}/`,
+          folder: "reference"
+        })
+      });
+
+      await fetch(`https://db.nymia.ai/rest/v1/influencer?id=eq.${data[0].id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          new: false
+        })
+      });
+
+
       if (response.ok) {
-        const newInfluencer = await response.json();
         toast.success('Influencer created successfully!', {
           position: 'bottom-center'
         });
-        navigate('/influencers/edit', { state: { influencerData: newInfluencer[0] } });
+        navigate('/influencers/edit');
         onComplete();
       } else {
         throw new Error('Failed to create influencer');
@@ -1083,7 +1193,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                   </div>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-2xl mx-auto">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-2xl mx-auto">
                   {sexOptions.map((option) => (
                     <Card
                       key={option.label}
@@ -1215,7 +1325,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                               <img
                                 src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
                                 alt={option.label === "Default" ? "Start from Scratch" : option.label}
-                                className="w-full h-48 object-cover rounded-lg shadow-md group-hover:scale-105 transition-transform duration-300"
+                                className="w-full h-full object-cover rounded-lg shadow-md group-hover:scale-105 transition-transform duration-300"
                               />
                               {(option.label === "Default" && influencerData.facial_features === 'Default') || influencerData.facial_features === option.label ? (
                                 <div className="absolute top-2 right-2 w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center shadow-lg">
@@ -1285,8 +1395,8 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                                 variant={currentPage === pageNum ? "default" : "outline"}
                                 onClick={() => handlePageChange(pageNum)}
                                 className={`px-3 py-1 text-sm font-medium transition-all duration-300 ${currentPage === pageNum
-                                    ? "bg-purple-600 text-white border-purple-600"
-                                    : "border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
+                                  ? "bg-purple-600 text-white border-purple-600"
+                                  : "border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
                                   }`}
                               >
                                 {pageNum}
@@ -1392,7 +1502,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                               <img
                                 src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
                                 alt={option.label}
-                                className="w-full h-48 object-cover rounded-lg shadow-md group-hover:scale-105 transition-transform duration-300"
+                                className="w-full h-full object-cover rounded-lg shadow-md group-hover:scale-105 transition-transform duration-300"
                               />
                               {influencerData.age === option.label && (
                                 <div className="absolute top-2 right-2 w-8 h-8 bg-green-500 rounded-full flex items-center justify-center shadow-lg">
@@ -1460,8 +1570,8 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                                 variant={currentPage === pageNum ? "default" : "outline"}
                                 onClick={() => handlePageChange(pageNum)}
                                 className={`px-3 py-1 text-sm font-medium transition-all duration-300 ${currentPage === pageNum
-                                    ? "bg-green-600 text-white border-green-600"
-                                    : "border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
+                                  ? "bg-green-600 text-white border-green-600"
+                                  : "border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
                                   }`}
                               >
                                 {pageNum}
@@ -1566,7 +1676,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                               <img
                                 src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
                                 alt={option.label}
-                                className="w-full h-48 object-cover rounded-lg shadow-md group-hover:scale-105 transition-transform duration-300"
+                                className="w-full h-full object-cover rounded-lg shadow-md group-hover:scale-105 transition-transform duration-300"
                               />
                               {influencerData.lifestyle === option.label && (
                                 <div className="absolute top-2 right-2 w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center shadow-lg">
@@ -1634,8 +1744,8 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                                 variant={currentPage === pageNum ? "default" : "outline"}
                                 onClick={() => handlePageChange(pageNum)}
                                 className={`px-3 py-1 text-sm font-medium transition-all duration-300 ${currentPage === pageNum
-                                    ? "bg-orange-600 text-white border-orange-600"
-                                    : "border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
+                                  ? "bg-orange-600 text-white border-orange-600"
+                                  : "border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
                                   }`}
                               >
                                 {pageNum}
@@ -1740,7 +1850,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                               <img
                                 src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
                                 alt={option.label}
-                                className="w-full h-48 object-cover rounded-lg shadow-md group-hover:scale-105 transition-transform duration-300"
+                                className="w-full h-full object-cover rounded-lg shadow-md group-hover:scale-105 transition-transform duration-300"
                               />
                               {influencerData.cultural_background === option.label && (
                                 <div className="absolute top-2 right-2 w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center shadow-lg">
@@ -1808,8 +1918,8 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                                 variant={currentPage === pageNum ? "default" : "outline"}
                                 onClick={() => handlePageChange(pageNum)}
                                 className={`px-3 py-1 text-sm font-medium transition-all duration-300 ${currentPage === pageNum
-                                    ? "bg-orange-600 text-white border-orange-600"
-                                    : "border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
+                                  ? "bg-orange-600 text-white border-orange-600"
+                                  : "border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
                                   }`}
                               >
                                 {pageNum}
@@ -1914,7 +2024,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                               <img
                                 src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
                                 alt={option.label}
-                                className="w-full h-48 object-cover rounded-lg shadow-md group-hover:scale-105 transition-transform duration-300"
+                                className="w-full h-full object-cover rounded-lg shadow-md group-hover:scale-105 transition-transform duration-300"
                               />
                               {influencerData.hair_length === option.label && (
                                 <div className="absolute top-2 right-2 w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center shadow-lg">
@@ -1982,8 +2092,8 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                                 variant={currentPage === pageNum ? "default" : "outline"}
                                 onClick={() => handlePageChange(pageNum)}
                                 className={`px-3 py-1 text-sm font-medium transition-all duration-300 ${currentPage === pageNum
-                                    ? "bg-orange-600 text-white border-orange-600"
-                                    : "border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
+                                  ? "bg-orange-600 text-white border-orange-600"
+                                  : "border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
                                   }`}
                               >
                                 {pageNum}
@@ -2088,7 +2198,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                               <img
                                 src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
                                 alt={option.label}
-                                className="w-full h-48 object-cover rounded-lg shadow-md group-hover:scale-105 transition-transform duration-300"
+                                className="w-full h-full object-cover rounded-lg shadow-md group-hover:scale-105 transition-transform duration-300"
                               />
                               {influencerData.hair_style === option.label && (
                                 <div className="absolute top-2 right-2 w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center shadow-lg">
@@ -2156,8 +2266,8 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                                 variant={currentPage === pageNum ? "default" : "outline"}
                                 onClick={() => handlePageChange(pageNum)}
                                 className={`px-3 py-1 text-sm font-medium transition-all duration-300 ${currentPage === pageNum
-                                    ? "bg-orange-600 text-white border-orange-600"
-                                    : "border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
+                                  ? "bg-orange-600 text-white border-orange-600"
+                                  : "border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
                                   }`}
                               >
                                 {pageNum}
@@ -2262,7 +2372,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                               <img
                                 src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
                                 alt={option.label}
-                                className="w-full h-48 object-cover rounded-lg shadow-md group-hover:scale-105 transition-transform duration-300"
+                                className="w-full h-full object-cover rounded-lg shadow-md group-hover:scale-105 transition-transform duration-300"
                               />
                               {influencerData.hair_color === option.label && (
                                 <div className="absolute top-2 right-2 w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center shadow-lg">
@@ -2330,8 +2440,8 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                                 variant={currentPage === pageNum ? "default" : "outline"}
                                 onClick={() => handlePageChange(pageNum)}
                                 className={`px-3 py-1 text-sm font-medium transition-all duration-300 ${currentPage === pageNum
-                                    ? "bg-orange-600 text-white border-orange-600"
-                                    : "border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
+                                  ? "bg-orange-600 text-white border-orange-600"
+                                  : "border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
                                   }`}
                               >
                                 {pageNum}
@@ -2436,7 +2546,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                               <img
                                 src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
                                 alt={option.label}
-                                className="w-full h-48 object-cover rounded-lg shadow-md group-hover:scale-105 transition-transform duration-300"
+                                className="w-full h-full object-cover rounded-lg shadow-md group-hover:scale-105 transition-transform duration-300"
                               />
                               {influencerData.face_shape === option.label && (
                                 <div className="absolute top-2 right-2 w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center shadow-lg">
@@ -2504,8 +2614,8 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                                 variant={currentPage === pageNum ? "default" : "outline"}
                                 onClick={() => handlePageChange(pageNum)}
                                 className={`px-3 py-1 text-sm font-medium transition-all duration-300 ${currentPage === pageNum
-                                    ? "bg-orange-600 text-white border-orange-600"
-                                    : "border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
+                                  ? "bg-orange-600 text-white border-orange-600"
+                                  : "border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
                                   }`}
                               >
                                 {pageNum}
@@ -2610,7 +2720,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                               <img
                                 src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
                                 alt={option.label}
-                                className="w-full h-48 object-cover rounded-lg shadow-md group-hover:scale-105 transition-transform duration-300"
+                                className="w-full h-full object-cover rounded-lg shadow-md group-hover:scale-105 transition-transform duration-300"
                               />
                               {influencerData.eye_color === option.label && (
                                 <div className="absolute top-2 right-2 w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center shadow-lg">
@@ -2678,8 +2788,8 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                                 variant={currentPage === pageNum ? "default" : "outline"}
                                 onClick={() => handlePageChange(pageNum)}
                                 className={`px-3 py-1 text-sm font-medium transition-all duration-300 ${currentPage === pageNum
-                                    ? "bg-orange-600 text-white border-orange-600"
-                                    : "border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
+                                  ? "bg-orange-600 text-white border-orange-600"
+                                  : "border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
                                   }`}
                               >
                                 {pageNum}
@@ -2784,7 +2894,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                               <img
                                 src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
                                 alt={option.label}
-                                className="w-full h-48 object-cover rounded-lg shadow-md group-hover:scale-105 transition-transform duration-300"
+                                className="w-full h-full object-cover rounded-lg shadow-md group-hover:scale-105 transition-transform duration-300"
                               />
                               {influencerData.eye_shape === option.label && (
                                 <div className="absolute top-2 right-2 w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center shadow-lg">
@@ -2852,8 +2962,8 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                                 variant={currentPage === pageNum ? "default" : "outline"}
                                 onClick={() => handlePageChange(pageNum)}
                                 className={`px-3 py-1 text-sm font-medium transition-all duration-300 ${currentPage === pageNum
-                                    ? "bg-orange-600 text-white border-orange-600"
-                                    : "border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
+                                  ? "bg-orange-600 text-white border-orange-600"
+                                  : "border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
                                   }`}
                               >
                                 {pageNum}
@@ -2958,7 +3068,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                               <img
                                 src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
                                 alt={option.label}
-                                className="w-full h-48 object-cover rounded-lg shadow-md group-hover:scale-105 transition-transform duration-300"
+                                className="w-full h-full object-cover rounded-lg shadow-md group-hover:scale-105 transition-transform duration-300"
                               />
                               {influencerData.lip_style === option.label && (
                                 <div className="absolute top-2 right-2 w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center shadow-lg">
@@ -3026,8 +3136,8 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                                 variant={currentPage === pageNum ? "default" : "outline"}
                                 onClick={() => handlePageChange(pageNum)}
                                 className={`px-3 py-1 text-sm font-medium transition-all duration-300 ${currentPage === pageNum
-                                    ? "bg-orange-600 text-white border-orange-600"
-                                    : "border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
+                                  ? "bg-orange-600 text-white border-orange-600"
+                                  : "border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
                                   }`}
                               >
                                 {pageNum}
@@ -3132,7 +3242,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                               <img
                                 src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
                                 alt={option.label}
-                                className="w-full h-48 object-cover rounded-lg shadow-md group-hover:scale-105 transition-transform duration-300"
+                                className="w-full h-full object-cover rounded-lg shadow-md group-hover:scale-105 transition-transform duration-300"
                               />
                               {influencerData.nose_style === option.label && (
                                 <div className="absolute top-2 right-2 w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center shadow-lg">
@@ -3200,8 +3310,8 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                                 variant={currentPage === pageNum ? "default" : "outline"}
                                 onClick={() => handlePageChange(pageNum)}
                                 className={`px-3 py-1 text-sm font-medium transition-all duration-300 ${currentPage === pageNum
-                                    ? "bg-orange-600 text-white border-orange-600"
-                                    : "border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
+                                  ? "bg-orange-600 text-white border-orange-600"
+                                  : "border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
                                   }`}
                               >
                                 {pageNum}
@@ -3306,7 +3416,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                               <img
                                 src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
                                 alt={option.label}
-                                className="w-full h-48 object-cover rounded-lg shadow-md group-hover:scale-105 transition-transform duration-300"
+                                className="w-full h-full object-cover rounded-lg shadow-md group-hover:scale-105 transition-transform duration-300"
                               />
                               {influencerData.eyebrow_style === option.label && (
                                 <div className="absolute top-2 right-2 w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center shadow-lg">
@@ -3374,8 +3484,8 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                                 variant={currentPage === pageNum ? "default" : "outline"}
                                 onClick={() => handlePageChange(pageNum)}
                                 className={`px-3 py-1 text-sm font-medium transition-all duration-300 ${currentPage === pageNum
-                                    ? "bg-orange-600 text-white border-orange-600"
-                                    : "border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
+                                  ? "bg-orange-600 text-white border-orange-600"
+                                  : "border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
                                   }`}
                               >
                                 {pageNum}
@@ -3480,7 +3590,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                               <img
                                 src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
                                 alt={option.label}
-                                className="w-full h-48 object-cover rounded-lg shadow-md group-hover:scale-105 transition-transform duration-300"
+                                className="w-full h-full object-cover rounded-lg shadow-md group-hover:scale-105 transition-transform duration-300"
                               />
                               {influencerData.skin_tone === option.label && (
                                 <div className="absolute top-2 right-2 w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center shadow-lg">
@@ -3548,8 +3658,8 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                                 variant={currentPage === pageNum ? "default" : "outline"}
                                 onClick={() => handlePageChange(pageNum)}
                                 className={`px-3 py-1 text-sm font-medium transition-all duration-300 ${currentPage === pageNum
-                                    ? "bg-orange-600 text-white border-orange-600"
-                                    : "border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
+                                  ? "bg-orange-600 text-white border-orange-600"
+                                  : "border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
                                   }`}
                               >
                                 {pageNum}
@@ -3654,7 +3764,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                               <img
                                 src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
                                 alt={option.label}
-                                className="w-full h-48 object-cover rounded-lg shadow-md group-hover:scale-105 transition-transform duration-300"
+                                className="w-full h-full object-cover rounded-lg shadow-md group-hover:scale-105 transition-transform duration-300"
                               />
                               {influencerData.body_type === option.label && (
                                 <div className="absolute top-2 right-2 w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center shadow-lg">
@@ -3722,8 +3832,8 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                                 variant={currentPage === pageNum ? "default" : "outline"}
                                 onClick={() => handlePageChange(pageNum)}
                                 className={`px-3 py-1 text-sm font-medium transition-all duration-300 ${currentPage === pageNum
-                                    ? "bg-orange-600 text-white border-orange-600"
-                                    : "border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
+                                  ? "bg-orange-600 text-white border-orange-600"
+                                  : "border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
                                   }`}
                               >
                                 {pageNum}
@@ -3828,7 +3938,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                               <img
                                 src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
                                 alt={option.label}
-                                className="w-full h-48 object-cover rounded-lg shadow-md group-hover:scale-105 transition-transform duration-300"
+                                className="w-full h-full object-cover rounded-lg shadow-md group-hover:scale-105 transition-transform duration-300"
                               />
                               {influencerData.bust_size === option.label && (
                                 <div className="absolute top-2 right-2 w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center shadow-lg">
@@ -3896,8 +4006,8 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                                 variant={currentPage === pageNum ? "default" : "outline"}
                                 onClick={() => handlePageChange(pageNum)}
                                 className={`px-3 py-1 text-sm font-medium transition-all duration-300 ${currentPage === pageNum
-                                    ? "bg-orange-600 text-white border-orange-600"
-                                    : "border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
+                                  ? "bg-orange-600 text-white border-orange-600"
+                                  : "border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
                                   }`}
                               >
                                 {pageNum}
@@ -4108,99 +4218,6 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                 </p>
               </div>
             </div>
-
-            <div className="max-w-3xl mx-auto">
-              <Card className="border-2 border-gray-200 dark:border-gray-700 shadow-xl bg-gradient-to-br from-gray-50 to-white dark:from-gray-900 dark:to-gray-800">
-                <CardContent className="p-8">
-                  <div className="space-y-6">
-                    {/* Name Input Fields */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-3">
-                        <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-                          First Name
-                        </label>
-                        <input
-                          type="text"
-                          value={influencerData.name_first}
-                          onChange={(e) => handleOptionSelect('name_first', e.target.value)}
-                          placeholder="Enter first name"
-                          className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 transition-all duration-300 hover:border-orange-300 dark:hover:border-orange-600"
-                        />
-                      </div>
-
-                      <div className="space-y-3">
-                        <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-                          Last Name
-                        </label>
-                        <input
-                          type="text"
-                          value={influencerData.name_last}
-                          onChange={(e) => handleOptionSelect('name_last', e.target.value)}
-                          placeholder="Enter last name"
-                          className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 transition-all duration-300 hover:border-orange-300 dark:hover:border-orange-600"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Review Summary */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-4">
-                        <div className="flex items-center justify-between p-3 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-lg">
-                          <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Sex:</span>
-                          <Badge variant="secondary" className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 px-3 py-1">
-                            {influencerData.sex}
-                          </Badge>
-                        </div>
-                        <div className="flex items-center justify-between p-3 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950/20 dark:to-pink-950/20 rounded-lg">
-                          <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Facial Features:</span>
-                          <Badge variant="secondary" className="bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200 px-3 py-1">
-                            {influencerData.facial_features || 'Not selected'}
-                          </Badge>
-                        </div>
-                        <div className="flex items-center justify-between p-3 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 rounded-lg">
-                          <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Age:</span>
-                          <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 px-3 py-1">
-                            {influencerData.age || 'Not selected'}
-                          </Badge>
-                        </div>
-                        <div className="flex items-center justify-between p-3 bg-gradient-to-r from-orange-50 to-red-50 dark:from-orange-950/20 dark:to-red-950/20 rounded-lg">
-                          <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Lifestyle:</span>
-                          <Badge variant="secondary" className="bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200 px-3 py-1">
-                            {influencerData.lifestyle || 'Not selected'}
-                          </Badge>
-                        </div>
-                      </div>
-                      <div className="space-y-4">
-                        <div className="flex items-center justify-between p-3 bg-gradient-to-r from-indigo-50 to-blue-50 dark:from-indigo-950/20 dark:to-blue-950/20 rounded-lg">
-                          <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Cultural Background:</span>
-                          <Badge variant="secondary" className="bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200 px-3 py-1">
-                            {influencerData.cultural_background || 'Not selected'}
-                          </Badge>
-                        </div>
-                        <div className="flex items-center justify-between p-3 bg-gradient-to-r from-pink-50 to-rose-50 dark:from-pink-950/20 dark:to-rose-950/20 rounded-lg">
-                          <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Hair Style:</span>
-                          <Badge variant="secondary" className="bg-pink-100 text-pink-800 dark:bg-pink-900 dark:text-pink-200 px-3 py-1">
-                            {influencerData.hair_style || 'Not selected'}
-                          </Badge>
-                        </div>
-                        <div className="flex items-center justify-between p-3 bg-gradient-to-r from-yellow-50 to-amber-50 dark:from-yellow-950/20 dark:to-amber-950/20 rounded-lg">
-                          <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Eye Color:</span>
-                          <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 px-3 py-1">
-                            {influencerData.eye_color || 'Not selected'}
-                          </Badge>
-                        </div>
-                        <div className="flex items-center justify-between p-3 bg-gradient-to-r from-teal-50 to-cyan-50 dark:from-teal-950/20 dark:to-cyan-950/20 rounded-lg">
-                          <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Skin Tone:</span>
-                          <Badge variant="secondary" className="bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-200 px-3 py-1">
-                            {influencerData.skin_tone || 'Not selected'}
-                          </Badge>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
           </div>
         );
 
@@ -4263,40 +4280,35 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
           <CardTitle className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent mb-4">
             Create Your Influencer
           </CardTitle>
-          {
-            currentStep === 1 && (
-              <p className="text-gray-600 dark:text-gray-400 text-lg leading-relaxed max-w-3xl mx-auto">
-                This wizard will guide you step by step through the creation of a basic influencer with your desired details.
-                <br />
-                <span className="font-medium text-gray-700 dark:text-gray-300">You can modify everything later in the influencer dataset.</span>
-              </p>
-            )
-          }
-        </CardHeader>
-
-        <CardContent className="space-y-2">
-
-          {/* Step Content */}
-          {renderStepContent()}
-
           {/* Navigation Buttons */}
-          <div className="flex justify-between items-center">
-            <Button
-              variant="outline"
-              onClick={handleBack}
-              disabled={currentStep === 1}
-              className="flex items-center gap-2 px-6 py-3 text-base font-medium border-2 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300"
-            >
-              <ChevronLeft className="w-5 h-5" />
-              Back
-            </Button>
+          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+            {/* Back Button - Left */}
+            <div className="w-full md:w-auto">
+              <Button
+                variant="outline"
+                onClick={handleBack}
+                disabled={currentStep === 1}
+                className="flex items-center gap-2 px-6 py-3 text-base font-medium border-2 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300 w-full md:w-auto"
+              >
+                <ChevronLeft className="w-5 h-5" />
+                Back
+              </Button>
+            </div>
 
-            <div className="flex items-center gap-3">
+            {/* Title - Center (hidden on mobile) */}
+            <div className="hidden md:block">
+              <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300">
+                Step {currentStep} of {steps.length}
+              </h3>
+            </div>
+
+            {/* Next/Create Button - Right */}
+            <div className="w-full md:w-auto">
               {currentStep < steps.length ? (
                 <Button
                   onClick={handleNext}
                   disabled={!canProceed()}
-                  className="flex items-center gap-2 px-8 py-3 text-base font-medium bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+                  className="flex items-center gap-2 px-8 py-3 text-base font-medium bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 w-full md:w-auto"
                 >
                   Next
                   <ChevronRight className="w-5 h-5" />
@@ -4305,7 +4317,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                 <Button
                   onClick={handleSubmit}
                   disabled={!canProceed() || isLoading}
-                  className="flex items-center gap-2 px-8 py-3 text-base font-medium bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+                  className="flex items-center gap-2 px-8 py-3 text-base font-medium bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 w-full md:w-auto"
                 >
                   {isLoading ? (
                     <>
@@ -4321,6 +4333,66 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                 </Button>
               )}
             </div>
+          </div>
+        </CardHeader>
+
+        <div className="flex justify-center items-center text-center my-8">
+          {
+            currentStep === 1 && (
+              <p className="text-gray-600 dark:text-gray-400 text-lg leading-relaxed max-w-3xl mx-auto">
+                This wizard will guide you step by step through the creation of a basic influencer with your desired details.
+                <br />
+                <span className="font-medium text-gray-700 dark:text-gray-300">You can modify everything later in the influencer dataset.</span>
+              </p>
+            )
+          }
+        </div>
+
+        <CardContent className="space-y-2">
+
+          {/* Step Content */}
+          {renderStepContent()}
+
+          {/* Mobile: Back and Next buttons under Create Influencer */}
+          <div className="md:hidden flex justify-between items-center gap-4 mt-4">
+            <Button
+              variant="outline"
+              onClick={handleBack}
+              disabled={currentStep === 1}
+              className="flex items-center gap-2 px-6 py-3 text-base font-medium border-2 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300"
+            >
+              <ChevronLeft className="w-5 h-5" />
+              Back
+            </Button>
+
+            {currentStep < steps.length ? (
+              <Button
+                onClick={handleNext}
+                disabled={!canProceed()}
+                className="flex items-center gap-2 px-8 py-3 text-base font-medium bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+              >
+                Next
+                <ChevronRight className="w-5 h-5" />
+              </Button>
+            ) : (
+              <Button
+                onClick={handleSubmit}
+                disabled={!canProceed() || isLoading}
+                className="flex items-center gap-2 px-8 py-3 text-base font-medium bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  <>
+                    Create Influencer
+                    <ArrowRight className="w-5 h-5" />
+                  </>
+                )}
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>

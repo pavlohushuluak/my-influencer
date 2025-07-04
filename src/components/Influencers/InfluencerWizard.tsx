@@ -105,6 +105,35 @@ interface FacialTemplateDetail {
   prompt_mapping_ref_id: number;
 }
 
+interface NameSuggestion {
+  rank: number;
+  full_name: string;
+  social_handle: string;
+  reasoning: string;
+  cultural_authenticity: number;
+  social_media_appeal: number;
+  brand_potential: number;
+  personality_match: number;
+}
+
+interface NameWizardResponse {
+  influencer_profile_summary: {
+    cultural_background: string;
+    age_lifestyle: string;
+    personality_archetype: string;
+    content_focus: string;
+    key_traits: string[];
+  };
+  name_suggestions: NameSuggestion[];
+  generation_metadata: {
+    version: string;
+    cultural_research_applied: boolean;
+    social_media_optimization: boolean;
+    personality_integration: boolean;
+    dynamic_name_generation: boolean;
+  };
+}
+
 interface Step {
   id: number;
   title: string;
@@ -358,9 +387,11 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
     notes: ''
   });
 
-  const [nameWizardResponse, setNameWizardResponse] = useState<any>(null);
+  const [nameWizardResponse, setNameWizardResponse] = useState<NameWizardResponse | null>(null);
   const [isLoadingNameWizard, setIsLoadingNameWizard] = useState(false);
   const [shouldReorderOptions, setShouldReorderOptions] = useState(false);
+  const [showNameSelectionModal, setShowNameSelectionModal] = useState(false);
+  const [selectedNameSuggestion, setSelectedNameSuggestion] = useState<NameSuggestion | null>(null);
 
 
   console.log(influencerData);
@@ -951,18 +982,56 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
 
       if (response.ok) {
         const data = await response.json();
-        setNameWizardResponse(data);
+        console.log(data);
+        if (Array.isArray(data) && data.length > 0) {
+          const output = data[0].output;
+          if (typeof output === 'string') {
+            try {
+              const parsedResponse = JSON.parse(output);
+              if (
+                parsedResponse &&
+                parsedResponse.name_suggestions &&
+                Array.isArray(parsedResponse.name_suggestions)
+              ) {
+                setNameWizardResponse(parsedResponse);
+              } else {
+                toast.error('API response missing name suggestions.', {
+                  position: 'bottom-center'
+                });
+                setNameWizardResponse(null);
+              }
+            } catch (parseError) {
+              console.error('Error parsing name wizard response:', parseError);
+              toast.error('Error parsing name suggestions (invalid JSON in output).', {
+                position: 'bottom-center'
+              });
+              setNameWizardResponse(null);
+            }
+          } else {
+            toast.error('API response missing output string.', {
+              position: 'bottom-center'
+            });
+            setNameWizardResponse(null);
+          }
+        } else {
+          toast.error('API response is not a valid array.', {
+            position: 'bottom-center'
+          });
+          setNameWizardResponse(null);
+        }
       } else {
         console.error('Failed to fetch name suggestions');
         toast.error('Failed to get name suggestions', {
           position: 'bottom-center'
         });
+        setNameWizardResponse(null);
       }
     } catch (error) {
       console.error('Error fetching name suggestions:', error);
       toast.error('Error getting name suggestions', {
         position: 'bottom-center'
       });
+      setNameWizardResponse(null);
     } finally {
       setIsLoadingNameWizard(false);
     }
@@ -1063,6 +1132,79 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
     } finally {
       setIsApplyingTemplate(false);
     }
+  };
+
+  // Function to handle name selection from suggestion
+  const handleNameSuggestionSelect = (suggestion: NameSuggestion) => {
+    setSelectedNameSuggestion(suggestion);
+    setShowNameSelectionModal(true);
+  };
+
+  // Function to handle final name selection from modal
+  const handleFinalNameSelect = (fullName: string) => {
+    // Parse the full name to extract first and last name
+    const nameParts = fullName.split(' ');
+    if (nameParts.length >= 2) {
+      const firstName = nameParts[0];
+      const lastName = nameParts.slice(1).join(' '); // Handle multi-word last names
+      
+      setInfluencerData(prev => ({
+        ...prev,
+        name_first: firstName,
+        name_last: lastName
+      }));
+
+      toast.success(`Name set to ${fullName}`, {
+        position: 'bottom-center'
+      });
+    } else {
+      // If it's a single name, treat it as first name
+      setInfluencerData(prev => ({
+        ...prev,
+        name_first: fullName,
+        name_last: ''
+      }));
+
+      toast.success(`Name set to ${fullName}`, {
+        position: 'bottom-center'
+      });
+    }
+    
+    setShowNameSelectionModal(false);
+    setSelectedNameSuggestion(null);
+  };
+
+  // Function to parse name with nickname and extract options
+  const parseNameWithNickname = (fullName: string) => {
+    // Handle names like "Isabella 'Bella' Cruz" or "Sofia 'Sofi' Vargas"
+    const nicknameMatch = fullName.match(/^(\w+)\s+'([^']+)'\s+(.+)$/);
+    
+    if (nicknameMatch) {
+      const [, firstName, nickname, lastName] = nicknameMatch;
+      return {
+        fullNameWithNickname: fullName,
+        fullNameWithoutNickname: `${firstName} ${lastName}`,
+        nicknameOnly: `${nickname} ${lastName}`
+      };
+    }
+    
+    // Handle names without nickname
+    const nameParts = fullName.split(' ');
+    if (nameParts.length >= 2) {
+      const firstName = nameParts[0];
+      const lastName = nameParts.slice(1).join(' ');
+      return {
+        fullNameWithNickname: fullName,
+        fullNameWithoutNickname: `${firstName} ${lastName}`,
+        nicknameOnly: null
+      };
+    }
+    
+    return {
+      fullNameWithNickname: fullName,
+      fullNameWithoutNickname: fullName,
+      nicknameOnly: null
+    };
   };
 
   // Pagination helper functions
@@ -4243,14 +4385,79 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                         </p>
                       </div>
 
-                      <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-green-200 dark:border-green-700">
-                        <pre className="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap overflow-auto max-h-96">
-                          {JSON.stringify(nameWizardResponse, null, 2)}
-                        </pre>
+                      {/* Name Suggestion Cards */}
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        {nameWizardResponse.name_suggestions.map((suggestion, index) => (
+                          <Card
+                            key={suggestion.rank}
+                            className="border-2 border-green-200 dark:border-green-700 hover:border-green-400 dark:hover:border-green-500 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer bg-white dark:bg-gray-800"
+                            onClick={() => handleNameSuggestionSelect(suggestion)}
+                          >
+                            <CardContent className="p-6">
+                              <div className="space-y-4">
+                                {/* Rank Badge */}
+                                <div className="flex justify-between items-start">
+                                  <Badge className="bg-gradient-to-r from-green-500 to-emerald-600 text-white">
+                                    #{suggestion.rank}
+                                  </Badge>
+                                  <div className="text-xs text-gray-500">
+                                    {suggestion.cultural_authenticity}/10
+                                  </div>
+                                </div>
+
+                                {/* Full Name */}
+                                <div className="text-center">
+                                  <h4 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+                                    {suggestion.full_name}
+                                  </h4>
+                                  <p className="text-sm text-green-600 dark:text-green-400 font-medium">
+                                    {suggestion.social_handle}
+                                  </p>
+                                </div>
+
+                                {/* Reasoning */}
+                                <div className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                                  {suggestion.reasoning}
+                                </div>
+
+                                {/* Metrics */}
+                                <div className="grid grid-cols-2 gap-3 text-xs">
+                                  <div className="text-center">
+                                    <div className="font-semibold text-gray-700 dark:text-gray-300">Cultural</div>
+                                    <div className="text-green-600 dark:text-green-400">{suggestion.cultural_authenticity}/10</div>
+                                  </div>
+                                  <div className="text-center">
+                                    <div className="font-semibold text-gray-700 dark:text-gray-300">Social</div>
+                                    <div className="text-green-600 dark:text-green-400">{suggestion.social_media_appeal}/10</div>
+                                  </div>
+                                  <div className="text-center">
+                                    <div className="font-semibold text-gray-700 dark:text-gray-300">Brand</div>
+                                    <div className="text-green-600 dark:text-green-400">{suggestion.brand_potential}/10</div>
+                                  </div>
+                                  <div className="text-center">
+                                    <div className="font-semibold text-gray-700 dark:text-gray-300">Personality</div>
+                                    <div className="text-green-600 dark:text-green-400">{suggestion.personality_match}/10</div>
+                                  </div>
+                                </div>
+
+                                {/* Select Button */}
+                                <Button
+                                  className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleNameSuggestionSelect(suggestion);
+                                  }}
+                                >
+                                  Select This Name
+                                </Button>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
                       </div>
 
                       <div className="text-center text-sm text-green-600 dark:text-green-300">
-                        💡 You can use these suggestions as inspiration or continue with your own names above.
+                        💡 Click on any suggestion to choose between the full name and nickname.
                       </div>
                     </div>
                   </CardContent>
@@ -4465,6 +4672,89 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
           </div>
         </CardContent>
       </Card>
+
+      {/* Name Selection Modal */}
+      <Dialog open={showNameSelectionModal} onOpenChange={setShowNameSelectionModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-gray-900 dark:text-gray-100">
+              Choose Your Name
+            </DialogTitle>
+            <DialogDescription className="text-gray-600 dark:text-gray-400">
+              Select which version of the name you'd like to use:
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedNameSuggestion && (() => {
+            const nameOptions = parseNameWithNickname(selectedNameSuggestion.full_name);
+            return (
+              <div className="space-y-4">
+                {/* Full Name with Nickname Option */}
+                <Card
+                  className="border-2 border-green-200 dark:border-green-700 hover:border-green-400 dark:hover:border-green-500 cursor-pointer transition-all duration-300"
+                  onClick={() => handleFinalNameSelect(nameOptions.fullNameWithNickname)}
+                >
+                  <CardContent className="p-4">
+                    <div className="text-center">
+                      <h4 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-2">
+                        {nameOptions.fullNameWithNickname}
+                      </h4>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        Full name with nickname
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Full Name without Nickname Option */}
+                <Card
+                  className="border-2 border-blue-200 dark:border-blue-700 hover:border-blue-400 dark:hover:border-blue-500 cursor-pointer transition-all duration-300"
+                  onClick={() => handleFinalNameSelect(nameOptions.fullNameWithoutNickname)}
+                >
+                  <CardContent className="p-4">
+                    <div className="text-center">
+                      <h4 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-2">
+                        {nameOptions.fullNameWithoutNickname}
+                      </h4>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        Full name without nickname
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Nickname Only Option (if available) */}
+                {nameOptions.nicknameOnly && (
+                  <Card
+                    className="border-2 border-purple-200 dark:border-purple-700 hover:border-purple-400 dark:hover:border-purple-500 cursor-pointer transition-all duration-300"
+                    onClick={() => handleFinalNameSelect(nameOptions.nicknameOnly)}
+                  >
+                    <CardContent className="p-4">
+                      <div className="text-center">
+                        <h4 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-2">
+                          {nameOptions.nicknameOnly}
+                        </h4>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                          Nickname with last name
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            );
+          })()}
+
+          <div className="flex justify-end gap-2 pt-4">
+            <Button
+              variant="outline"
+              onClick={() => setShowNameSelectionModal(false)}
+            >
+              Cancel
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 } 

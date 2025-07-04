@@ -781,7 +781,7 @@ export default function InfluencerEdit() {
 
       // Poll for the generated images
       let attempts = 0;
-      const maxAttempts = 30; // 30 seconds max
+      const maxAttempts = 120; // 120 seconds max
 
       const pollForImages = async () => {
         try {

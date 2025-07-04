@@ -108,7 +108,9 @@ export default function ContentCreate() {
     sex: '',
     eyebrowStyle: '',
     faceShape: '',
-    colorPalette: ''
+    colorPalette: '',
+    age: '',
+    lifestyle: '',
   });
 
   // Makeup options and modal state
@@ -156,14 +158,14 @@ export default function ContentCreate() {
     switch (selectedSearchField.id) {
       case 'name':
         return `${influencer.name_first} ${influencer.name_last}`.toLowerCase().includes(searchLower);
-      case 'age_lifestyle':
-        return influencer.age_lifestyle.toLowerCase().includes(searchLower);
+      case 'age':
+        return influencer.age.toLowerCase().includes(searchLower);
       case 'influencer_type':
         return influencer.influencer_type.toLowerCase().includes(searchLower);
       default:
         return (
           `${influencer.name_first} ${influencer.name_last}`.toLowerCase().includes(searchLower) ||
-          influencer.age_lifestyle.toLowerCase().includes(searchLower) ||
+          influencer.age.toLowerCase().includes(searchLower) ||
           influencer.influencer_type.toLowerCase().includes(searchLower)
         );
     }
@@ -219,7 +221,9 @@ export default function ContentCreate() {
         bust: influencerData.bust_size || '', // No bust property in Influencer interface
         eyebrowStyle: '', // No eyebrow_style property in Influencer interface
         faceShape: influencerData.face_shape || '',
-        colorPalette: influencerData.color_palette ? influencerData.color_palette.join(', ') : ''
+        colorPalette: influencerData.color_palette ? influencerData.color_palette.join(', ') : '',
+        age: influencerData.age || '',
+        lifestyle: influencerData.lifestyle || ''
       });
 
       // Generate the model description automatically
@@ -514,7 +518,7 @@ export default function ContentCreate() {
 
     // Populate model description from selected influencer
     setModelDescription({
-      appearance: `${influencer.name_first} ${influencer.name_last}, ${influencer.age_lifestyle || ''}`,
+      appearance: `${influencer.name_first} ${influencer.name_last}, ${influencer.age || ''}`,
       culturalBackground: influencer.cultural_background || '',
       bodyType: influencer.body_type || '',
       facialFeatures: influencer.facial_features || '',
@@ -531,7 +535,9 @@ export default function ContentCreate() {
       bust: influencer.bust_size || '', // No bust property in Influencer interface
       eyebrowStyle: '', // No eyebrow_style property in Influencer interface
       faceShape: influencer.face_shape || '',
-      colorPalette: influencer.color_palette ? influencer.color_palette.join(', ') : ''
+      colorPalette: influencer.color_palette ? influencer.color_palette.join(', ') : '',
+      age: influencer.age || '',
+      lifestyle: influencer.lifestyle || ''
     });
 
     // Generate the model description automatically
@@ -540,7 +546,8 @@ export default function ContentCreate() {
     if (influencer.name_first && influencer.name_last) {
       parts.push(`${influencer.name_first} ${influencer.name_last}`);
     }
-    if (influencer.age_lifestyle) parts.push(influencer.age_lifestyle);
+    if (influencer.age) parts.push(influencer.age);
+    if (influencer.lifestyle) parts.push(influencer.lifestyle);
     if (influencer.cultural_background) parts.push(`Cultural background: ${influencer.cultural_background}`);
     if (influencer.body_type) parts.push(`Body type: ${influencer.body_type}`);
     if (influencer.facial_features) parts.push(`Facial features: ${influencer.facial_features}`);
@@ -629,7 +636,8 @@ export default function ContentCreate() {
           name_first: data[0].name_first,
           name_last: data[0].name_last,
           visual_only: data[0].visual_only,
-          age_lifestyle: data[0].age_lifestyle
+          age: data[0].age,
+          lifestyle: data[0].lifestyle
         } : null,
         scene: {
           framing: sceneSpecs.framing,
@@ -651,6 +659,7 @@ export default function ContentCreate() {
       const useridData = await useridResponse.json();
 
       // Send the request to localhost:2000
+      console.log(requestData);
       const response = await fetch(`https://api.nymia.ai/v1/createtask?userid=${useridData[0].userid}&type=createimage`, {
         method: 'POST',
         headers: {

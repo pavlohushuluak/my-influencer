@@ -242,6 +242,24 @@ const getActiveSteps = (influencerData: InfluencerData) => {
   return steps.filter(step => !step.condition || step.condition(influencerData));
 };
 
+// Helper function to reorder options to show selected item first
+const reorderOptions = (options: any[], selectedValue: string, valueField: string = 'label', shouldReorder: boolean = false) => {
+  // Only reorder if explicitly requested AND there's a selected value
+  if (!shouldReorder || !selectedValue || selectedValue === '') {
+    return options;
+  }
+  
+  const selectedIndex = options.findIndex(option => 
+    option[valueField] === selectedValue || option.value === selectedValue
+  );
+  
+  if (selectedIndex === -1) return options;
+  
+  const reordered = [...options];
+  const selected = reordered.splice(selectedIndex, 1)[0];
+  return [selected, ...reordered];
+};
+
 export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -342,11 +360,16 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
 
   const [nameWizardResponse, setNameWizardResponse] = useState<any>(null);
   const [isLoadingNameWizard, setIsLoadingNameWizard] = useState(false);
+  const [shouldReorderOptions, setShouldReorderOptions] = useState(false);
+
 
   console.log(influencerData);
 
   // Show toast when entering a step with existing value
   useEffect(() => {
+    // Reset page to 1 when entering a new step
+    setCurrentPage(1);
+    
     const getStepValue = () => {
       switch (currentStep) {
         case 1: return influencerData.sex;
@@ -377,6 +400,11 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
         position: 'bottom-center',
         duration: 4000
       });
+      // Set reorder flag when entering a step with existing value
+      setShouldReorderOptions(true);
+    } else {
+      // Reset reorder flag when entering a step without existing value
+      setShouldReorderOptions(false);
     }
   }, [currentStep, influencerData]);
 
@@ -1053,6 +1081,9 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
   };
 
   const handleOptionSelect = (field: string, value: string | boolean) => {
+    // Immediately set reorder flag to false to prevent moving the selected card
+    setShouldReorderOptions(false);
+    
     setInfluencerData(prev => ({ ...prev, [field]: value }));
 
     // Show success toast for selection (excluding origin and name fields)
@@ -1222,7 +1253,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-2xl mx-auto">
-                  {sexOptions.map((option) => (
+                  {reorderOptions(sexOptions, influencerData.sex, 'value', shouldReorderOptions).map((option) => (
                     <Card
                       key={option.label}
                       className={cn(
@@ -1312,7 +1343,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
 
                   {/* Facial Features Grid */}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-                    {currentItems.map((option) => (
+                    {reorderOptions(facialFeaturesOptions, influencerData.facial_features, 'label', shouldReorderOptions).slice(startIndex, endIndex).map((option) => (
                       <Card
                         key={option.label}
                         className={cn(
@@ -1507,7 +1538,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
 
                   {/* Age Options Grid */}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-                    {ageOptions.slice(startIndex, endIndex).map((option) => (
+                    {reorderOptions(ageOptions, influencerData.age, 'label', shouldReorderOptions).slice(startIndex, endIndex).map((option) => (
                       <Card
                         key={option.label}
                         className={cn(
@@ -1681,7 +1712,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
 
                   {/* Lifestyle Options Grid */}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-                    {lifestyleOptions.slice(startIndex, endIndex).map((option) => (
+                    {reorderOptions(lifestyleOptions, influencerData.lifestyle, 'label', shouldReorderOptions).slice(startIndex, endIndex).map((option) => (
                       <Card
                         key={option.label}
                         className={cn(
@@ -1855,7 +1886,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
 
                   {/* Cultural Background Options Grid */}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-                    {culturalBackgroundOptions.slice(startIndex, endIndex).map((option) => (
+                    {reorderOptions(culturalBackgroundOptions, influencerData.cultural_background, 'label', shouldReorderOptions).slice(startIndex, endIndex).map((option) => (
                       <Card
                         key={option.label}
                         className={cn(
@@ -2029,7 +2060,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
 
                   {/* Hair Length Options Grid */}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-                    {hairLengthOptions.slice(startIndex, endIndex).map((option) => (
+                    {reorderOptions(hairLengthOptions, influencerData.hair_length, 'label', shouldReorderOptions).slice(startIndex, endIndex).map((option) => (
                       <Card
                         key={option.label}
                         className={cn(
@@ -2203,7 +2234,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
 
                   {/* Hair Style Options Grid */}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-                    {hairStyleOptions.slice(startIndex, endIndex).map((option) => (
+                    {reorderOptions(hairStyleOptions, influencerData.hair_style, 'label', shouldReorderOptions).slice(startIndex, endIndex).map((option) => (
                       <Card
                         key={option.label}
                         className={cn(
@@ -2377,7 +2408,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
 
                   {/* Hair Color Options Grid */}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-                    {hairColorOptions.slice(startIndex, endIndex).map((option) => (
+                    {reorderOptions(hairColorOptions, influencerData.hair_color, 'label', shouldReorderOptions).slice(startIndex, endIndex).map((option) => (
                       <Card
                         key={option.label}
                         className={cn(
@@ -2551,7 +2582,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
 
                   {/* Face Shape Options Grid */}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-                    {faceShapeOptions.slice(startIndex, endIndex).map((option) => (
+                    {reorderOptions(faceShapeOptions, influencerData.face_shape, 'label', shouldReorderOptions).slice(startIndex, endIndex).map((option) => (
                       <Card
                         key={option.label}
                         className={cn(
@@ -2725,7 +2756,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
 
                   {/* Eye Color Options Grid */}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-                    {eyeColorOptions.slice(startIndex, endIndex).map((option) => (
+                    {reorderOptions(eyeColorOptions, influencerData.eye_color, 'label', shouldReorderOptions).slice(startIndex, endIndex).map((option) => (
                       <Card
                         key={option.label}
                         className={cn(
@@ -2899,7 +2930,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
 
                   {/* Eye Shape Options Grid */}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-                    {eyeShapeOptions.slice(startIndex, endIndex).map((option) => (
+                    {reorderOptions(eyeShapeOptions, influencerData.eye_shape, 'label', shouldReorderOptions).slice(startIndex, endIndex).map((option) => (
                       <Card
                         key={option.label}
                         className={cn(
@@ -3073,7 +3104,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
 
                   {/* Lip Style Options Grid */}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-                    {lipStyleOptions.slice(startIndex, endIndex).map((option) => (
+                    {reorderOptions(lipStyleOptions, influencerData.lip_style, 'label', shouldReorderOptions).slice(startIndex, endIndex).map((option) => (
                       <Card
                         key={option.label}
                         className={cn(
@@ -3247,7 +3278,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
 
                   {/* Nose Style Options Grid */}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-                    {noseStyleOptions.slice(startIndex, endIndex).map((option) => (
+                    {reorderOptions(noseStyleOptions, influencerData.nose_style, 'label', shouldReorderOptions).slice(startIndex, endIndex).map((option) => (
                       <Card
                         key={option.label}
                         className={cn(
@@ -3421,7 +3452,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
 
                   {/* Eyebrow Style Options Grid */}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-                    {eyebrowStyleOptions.slice(startIndex, endIndex).map((option) => (
+                    {reorderOptions(eyebrowStyleOptions, influencerData.eyebrow_style, 'label', shouldReorderOptions).slice(startIndex, endIndex).map((option) => (
                       <Card
                         key={option.label}
                         className={cn(
@@ -3595,7 +3626,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
 
                   {/* Skin Tone Options Grid */}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-                    {skinToneOptions.slice(startIndex, endIndex).map((option) => (
+                    {reorderOptions(skinToneOptions, influencerData.skin_tone, 'label', shouldReorderOptions).slice(startIndex, endIndex).map((option) => (
                       <Card
                         key={option.label}
                         className={cn(
@@ -3769,7 +3800,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
 
                   {/* Body Type Options Grid */}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-                    {bodyTypeOptions.slice(startIndex, endIndex).map((option) => (
+                    {reorderOptions(bodyTypeOptions, influencerData.body_type, 'label', shouldReorderOptions).slice(startIndex, endIndex).map((option) => (
                       <Card
                         key={option.label}
                         className={cn(
@@ -3943,7 +3974,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
 
                   {/* Bust Size Options Grid */}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-                    {bustSizeOptions.slice(startIndex, endIndex).map((option) => (
+                    {reorderOptions(bustSizeOptions, influencerData.bust_size, 'label', shouldReorderOptions).slice(startIndex, endIndex).map((option) => (
                       <Card
                         key={option.label}
                         className={cn(

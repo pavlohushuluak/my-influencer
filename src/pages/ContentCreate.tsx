@@ -632,7 +632,7 @@ export default function ContentCreate() {
           color_palette: data[0].color_palette || [],
           clothing_style_everyday: data[0].clothing_style_everyday,
           eyebrow_style: data[0].eyebrow_style, // Default value since not in Influencer type
-          makeup_style: data[0].makeup, // Use from modelDescription or default
+          makeup_style: modelDescription.makeup, // Use from modelDescription or default
           name_first: data[0].name_first,
           name_last: data[0].name_last,
           visual_only: data[0].visual_only,

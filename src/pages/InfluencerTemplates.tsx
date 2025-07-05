@@ -140,6 +140,8 @@ export default function InfluencerTemplates() {
         })
       });
 
+
+
       await fetch('https://api.nymia.ai/v1/createfolder', {
         method: 'POST',
         headers: {
@@ -213,8 +215,8 @@ export default function InfluencerTemplates() {
                     <div className="flex text-sm text-muted-foreground flex-col">
                       {template.notes ? (
                         <span className="text-sm text-muted-foreground">
-                          {template.notes.length > 100 
-                            ? `${template.notes.substring(0, 100)}...` 
+                          {template.notes.length > 50 
+                            ? `${template.notes.substring(0, 50)}...` 
                             : template.notes
                           }
                         </span>

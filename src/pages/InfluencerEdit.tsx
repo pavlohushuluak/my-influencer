@@ -1546,8 +1546,8 @@ export default function InfluencerEdit() {
                       <div className="flex text-sm text-muted-foreground flex-col">
                         {influencer.notes ? (
                           <span className="text-sm text-muted-foreground">
-                            {influencer.notes.length > 100 
-                              ? `${influencer.notes.substring(0, 100)}...` 
+                            {influencer.notes.length > 50 
+                              ? `${influencer.notes.substring(0, 50)}...` 
                               : influencer.notes
                             }
                           </span>

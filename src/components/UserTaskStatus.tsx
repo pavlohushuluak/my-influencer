@@ -27,7 +27,7 @@ interface TaskStatusProps {
 export function UserTaskStatus({ className, isCollapsed = false }: TaskStatusProps) {
   const [taskStatus, setTaskStatus] = useState<TaskStatusData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isExpanded, setIsExpanded] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(false);
   const user = useSelector((state: RootState) => state.user);
 
   useEffect(() => {

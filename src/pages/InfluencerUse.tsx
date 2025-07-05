@@ -463,12 +463,18 @@ export default function InfluencerUse() {
 
                   <div className="flex flex-col gap-1 mb-3">
                     <div className="flex text-sm text-muted-foreground flex-col">
-                      <span className="font-medium mr-2">Age/Lifestyle:</span>
-                      {influencer.age_lifestyle || 'No age/lifestyle selected'}
-                    </div>
-                    <div className="flex items-center text-sm text-muted-foreground">
-                      <span className="font-medium mr-2">Type:</span>
-                      {influencer.influencer_type || 'No type selected'}
+                      {influencer.notes ? (
+                        <span className="text-sm text-muted-foreground">
+                          {influencer.notes.length > 100 
+                            ? `${influencer.notes.substring(0, 100)}...` 
+                            : influencer.notes
+                          }
+                        </span>
+                      ) : (
+                        <span className="text-sm text-muted-foreground">
+                          {influencer.lifestyle || 'No lifestyle'} • {influencer.origin_residence || 'No residence'}
+                        </span>
+                      )}
                     </div>
                   </div>
 

@@ -68,7 +68,8 @@ export default function InfluencerTemplates() {
           clothing_style_sports: template.clothing_style_sports,
           clothing_style_sexy_dress: template.clothing_style_sexy_dress,
           home_environment: template.home_environment,
-          age_lifestyle: template.age_lifestyle,
+          age: template.age,
+          lifestyle: template.lifestyle,
           origin_birth: template.origin_birth,
           origin_residence: template.origin_residence,
           content_focus: template.content_focus,
@@ -210,12 +211,18 @@ export default function InfluencerTemplates() {
 
                   <div className="flex flex-col gap-1 mb-3">
                     <div className="flex text-sm text-muted-foreground flex-col">
-                      <span className="font-medium mr-2">Age/Lifestyle:</span>
-                      {template.age_lifestyle}
-                    </div>
-                    <div className="flex items-center text-sm text-muted-foreground">
-                      <span className="font-medium mr-2">Type:</span>
-                      {template.influencer_type}
+                      {template.notes ? (
+                        <span className="text-sm text-muted-foreground">
+                          {template.notes.length > 100 
+                            ? `${template.notes.substring(0, 100)}...` 
+                            : template.notes
+                          }
+                        </span>
+                      ) : (
+                        <span className="text-sm text-muted-foreground">
+                          {template.lifestyle || 'No lifestyle'} • {template.origin_residence || 'No residence'}
+                        </span>
+                      )}
                     </div>
                   </div>
 

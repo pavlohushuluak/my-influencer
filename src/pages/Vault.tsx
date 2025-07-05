@@ -4854,12 +4854,23 @@ export default function Vault() {
 
                           <div className="flex flex-col gap-1 mb-3">
                             <div className="flex text-xs text-muted-foreground flex-col">
-                              <span className="font-medium mr-2">Age/Lifestyle:</span>
-                              {influencer.age_lifestyle || 'Not set'}
-                            </div>
-                            <div className="flex items-center text-xs text-muted-foreground">
-                              <span className="font-medium mr-2">Type:</span>
-                              {influencer.influencer_type || 'Not set'}
+                              {influencer.notes ? (
+                                <span className="font-medium mr-2">Notes:</span>
+                              ) : (
+                                <span className="font-medium mr-2">Details:</span>
+                              )}
+                              {influencer.notes ? (
+                                <span className="text-xs text-muted-foreground">
+                                  {influencer.notes.length > 80 
+                                    ? `${influencer.notes.substring(0, 80)}...` 
+                                    : influencer.notes
+                                  }
+                                </span>
+                              ) : (
+                                <span className="text-xs text-muted-foreground">
+                                  {influencer.lifestyle || 'No lifestyle'} • {influencer.origin_residence || 'No residence'}
+                                </span>
+                              )}
                             </div>
                           </div>
 

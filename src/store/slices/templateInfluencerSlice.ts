@@ -29,7 +29,8 @@ export interface TemplateInfluencer {
     clothing_style_sports: string;
     clothing_style_sexy_dress: string;
     home_environment: string;
-    age_lifestyle: string;
+    age: string;
+    lifestyle: string;
     origin_birth: string;
     origin_residence: string;
     content_focus: string[];

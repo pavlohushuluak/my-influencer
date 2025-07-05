@@ -336,6 +336,18 @@ export default function InfluencerUse() {
         throw new Error('Failed to delete influencer');
       }
 
+      await fetch('https://api.nymia.ai/v1/deletefolder', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          user: userData.id,
+          folder: `models/${influencerToDelete.id}`
+        })
+      });
+
       // Remove from local state
       const updatedInfluencers = influencers.filter(inf => inf.id !== influencerToDelete.id);
       dispatch(setInfluencers(updatedInfluencers));

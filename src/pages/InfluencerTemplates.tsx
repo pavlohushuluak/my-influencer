@@ -88,7 +88,8 @@ export default function InfluencerTemplates() {
           background_elements: template.background_elements,
           prompt: template.prompt || '', // Include the prompt field from template
           notes: template.notes || '', // Include the notes field from template
-          new: true
+          new: true,
+          image_url: template.image_url
         })
       });
 
@@ -155,6 +156,28 @@ export default function InfluencerTemplates() {
         })
       });
 
+      console.log(template);
+
+      const copyResponse = await fetch('https://api.nymia.ai/v1/copyrootfile', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          user: userData.id,
+          sourcefilename: `${template.user_id}/models/${template.id}/profilepic/profilepic${template.image_num - 1}.png`,
+          destinationfilename: `${userData.id}/models/${data[0].id}/profilepic/profilepic${data[0].image_num}.png`
+        })
+      });
+
+      console.log(`${template.user_id}/models/${template.id}/profilepic/profilepic${template.image_num - 1}.png`);
+      console.log(`${userData.id}/models/${data[0].id}/profilepic/profilepic${data[0].image_num}.png`);
+
+      if (!copyResponse.ok) {
+        throw new Error('Failed to copy image to profile picture');
+      }
+
       const responseUpdate = await fetch(`https://db.nymia.ai/rest/v1/influencer?id=eq.${data[0].id}`, {
         method: 'PATCH',
         headers: {
@@ -162,7 +185,9 @@ export default function InfluencerTemplates() {
           'Authorization': 'Bearer WeInfl3nc3withAI'
         },
         body: JSON.stringify({
-          new: false
+          new: false,
+          image_url: `https://images.nymia.ai/cdn-cgi/image/w=400/${userData.id}/models/${data[0].id}/profilepic/profilepic${data[0].image_num}.png`,
+          image_num: data[0].image_num + 1
         })
       });
 

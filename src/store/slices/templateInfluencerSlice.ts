@@ -49,6 +49,7 @@ export interface TemplateInfluencer {
     background_elements: string[];
     prompt: string;
     notes: string;
+    image_num: number;
 }
 
 interface TemplateInfluencerState {

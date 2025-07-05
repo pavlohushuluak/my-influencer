@@ -256,7 +256,8 @@ export default function InfluencerEdit() {
     age: '',
     lifestyle: '',
     eye_shape: '',
-    bust_size: ''
+    bust_size: '',
+    image_url: ''
   });
 
   const [activeTab, setActiveTab] = useState('basic');
@@ -967,7 +968,8 @@ export default function InfluencerEdit() {
         current_goals: influencer.current_goals.length === 0 ? ['Default'] : influencer.current_goals,
         background_elements: influencer.background_elements.length === 0 ? ['Default'] : influencer.background_elements,
         prompt: influencer.prompt || '',
-        notes: influencer.notes || ''
+        notes: influencer.notes || '',
+        image_url: influencer.image_url || ''
       });
       setShowEditView(true);
     }
@@ -1728,30 +1730,62 @@ export default function InfluencerEdit() {
                           className='flex items-center justify-center cursor-pointer w-full'
                         >
                           {influencerData.image_url ? (
-                            <Card className="relative w-full max-w-[250px]">
+                            <Card className="relative w-full max-w-[250px] group hover:shadow-lg transition-all duration-200">
                               <CardContent className="p-4">
-                                <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
+                                <div className="relative w-full text-center" style={{ paddingBottom: '100%' }}>
                                   <img
                                     src={influencerData.image_url}
-                                    alt="Profile"
-                                    className="absolute inset-0 w-full h-full object-cover rounded-md"
+                                    alt={`${influencerData.name_first} ${influencerData.name_last} Profile`}
+                                    className="absolute inset-0 w-full h-full object-cover rounded-md transition-transform duration-200 group-hover:scale-105"
+                                    onError={(e) => {
+                                      // Fallback to placeholder if image fails to load
+                                      const target = e.target as HTMLImageElement;
+                                      target.style.display = 'none';
+                                      const parent = target.parentElement;
+                                      if (parent) {
+                                        const fallback = document.createElement('div');
+                                        fallback.className = 'absolute inset-0 flex items-center justify-center bg-gray-100 dark:bg-gray-800 rounded-md';
+                                        fallback.innerHTML = `
+                                          <div class="text-center">
+                                            <svg class="w-8 h-8 mx-auto text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                            </svg>
+                                            <p class="text-sm text-gray-500">Image not available</p>
+                                          </div>
+                                        `;
+                                        parent.appendChild(fallback);
+                                      }
+                                    }}
+                                    onLoad={(e) => {
+                                      // Add success indicator
+                                      const target = e.target as HTMLImageElement;
+                                      target.style.border = '2px solid #10b981';
+                                    }}
                                   />
-                                </div>
-                                <p className="text-sm text-center font-medium mt-2">Profile Image</p>
-                              </CardContent>
-                            </Card>
-                          ) : (
-                            <Card className="relative w-full border max-w-[250px]">
-                              <CardContent className="p-4">
-                                <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
-                                  <div className="absolute inset-0 flex items-center justify-center bg-gray-100 dark:bg-gray-800 rounded-md">
-                                    <div className="text-center">
-                                      <Image className="w-8 h-8 mx-auto text-gray-400 mb-2" />
-                                      <p className="text-sm text-gray-500">Select option</p>
+                                  {/* Overlay on hover */}
+                                  <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200 rounded-md flex items-center justify-center">
+                                    <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                                      <div className="bg-white bg-opacity-90 rounded-full p-2">
+                                        <Image className="w-4 h-4 text-gray-700" />
+                                      </div>
                                     </div>
                                   </div>
                                 </div>
-                                <p className="text-sm text-center font-medium mt-2">Select Image</p>
+                                <p className="text-sm text-center font-medium mt-2 text-gray-700">Profile Image</p>
+                              </CardContent>
+                            </Card>
+                          ) : (
+                            <Card className="relative w-full border max-w-[250px] group hover:shadow-lg transition-all duration-200 hover:border-ai-purple-300">
+                              <CardContent className="p-4">
+                                <div className="relative w-full text-center" style={{ paddingBottom: '100%' }}>
+                                  <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 rounded-md border-2 border-dashed border-gray-300 dark:border-gray-600 group-hover:border-ai-purple-400 transition-all duration-200">
+                                    <div className="text-center">
+                                      <Image className="w-8 h-8 mx-auto text-gray-400 mb-2 group-hover:text-ai-purple-500 transition-colors duration-200" />
+                                      <p className="text-sm text-gray-500 group-hover:text-ai-purple-600 transition-colors duration-200">Select image</p>
+                                    </div>
+                                  </div>
+                                </div>
+                                <p className="text-sm text-center font-medium mt-2 text-gray-600">Select Image</p>
                               </CardContent>
                             </Card>
                           )}
@@ -1903,30 +1937,62 @@ export default function InfluencerEdit() {
                           className='flex items-center justify-center cursor-pointer w-full'
                         >
                           {influencerData.image_url ? (
-                            <Card className="relative w-full max-w-[250px]">
+                            <Card className="relative w-full max-w-[250px] group hover:shadow-lg transition-all duration-200">
                               <CardContent className="p-4">
-                                <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
+                                <div className="relative w-full text-center" style={{ paddingBottom: '100%' }}>
                                   <img
                                     src={influencerData.image_url}
-                                    alt="Profile"
-                                    className="absolute inset-0 w-full h-full object-cover rounded-md"
+                                    alt={`${influencerData.name_first} ${influencerData.name_last} Profile`}
+                                    className="absolute inset-0 w-full h-full object-cover rounded-md transition-transform duration-200 group-hover:scale-105"
+                                    onError={(e) => {
+                                      // Fallback to placeholder if image fails to load
+                                      const target = e.target as HTMLImageElement;
+                                      target.style.display = 'none';
+                                      const parent = target.parentElement;
+                                      if (parent) {
+                                        const fallback = document.createElement('div');
+                                        fallback.className = 'absolute inset-0 flex items-center justify-center bg-gray-100 dark:bg-gray-800 rounded-md';
+                                        fallback.innerHTML = `
+                                          <div class="text-center">
+                                            <svg class="w-8 h-8 mx-auto text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                            </svg>
+                                            <p class="text-sm text-gray-500">Image not available</p>
+                                          </div>
+                                        `;
+                                        parent.appendChild(fallback);
+                                      }
+                                    }}
+                                    onLoad={(e) => {
+                                      // Add success indicator
+                                      const target = e.target as HTMLImageElement;
+                                      target.style.border = '2px solid #10b981';
+                                    }}
                                   />
-                                </div>
-                                <p className="text-sm text-center font-medium mt-2">Profile Image</p>
-                              </CardContent>
-                            </Card>
-                          ) : (
-                            <Card className="relative w-full border max-w-[250px]">
-                              <CardContent className="p-4">
-                                <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
-                                  <div className="absolute inset-0 flex items-center justify-center bg-gray-100 dark:bg-gray-800 rounded-md">
-                                    <div className="text-center">
-                                      <Image className="w-8 h-8 mx-auto text-gray-400 mb-2" />
-                                      <p className="text-sm text-gray-500">Select option</p>
+                                  {/* Overlay on hover */}
+                                  <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200 rounded-md flex items-center justify-center">
+                                    <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                                      <div className="bg-white bg-opacity-90 rounded-full p-2">
+                                        <Image className="w-4 h-4 text-gray-700" />
+                                      </div>
                                     </div>
                                   </div>
                                 </div>
-                                <p className="text-sm text-center font-medium mt-2">Select Image</p>
+                                <p className="text-sm text-center font-medium mt-2 text-gray-700">Profile Image</p>
+                              </CardContent>
+                            </Card>
+                          ) : (
+                            <Card className="relative w-full border max-w-[250px] group hover:shadow-lg transition-all duration-200 hover:border-ai-purple-300">
+                              <CardContent className="p-4">
+                                <div className="relative w-full text-center" style={{ paddingBottom: '100%' }}>
+                                  <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 rounded-md border-2 border-dashed border-gray-300 dark:border-gray-600 group-hover:border-ai-purple-400 transition-all duration-200">
+                                    <div className="text-center">
+                                      <Image className="w-8 h-8 mx-auto text-gray-400 mb-2 group-hover:text-ai-purple-500 transition-colors duration-200" />
+                                      <p className="text-sm text-gray-500 group-hover:text-ai-purple-600 transition-colors duration-200">Select image</p>
+                                    </div>
+                                  </div>
+                                </div>
+                                <p className="text-sm text-center font-medium mt-2 text-gray-600">Select Image</p>
                               </CardContent>
                             </Card>
                           )}

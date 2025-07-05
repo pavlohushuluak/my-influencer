@@ -13,6 +13,7 @@ import { useNavigate } from 'react-router-dom';
 import { Influencer } from '@/store/slices/influencersSlice';
 import { setInfluencers, setLoading, setError } from '@/store/slices/influencersSlice';
 import { toast } from 'sonner';
+import { LoraStatusIndicator } from '@/components/Influencers/LoraStatusIndicator';
 
 const PLATFORMS = [
   {
@@ -456,9 +457,15 @@ export default function InfluencerUse() {
 
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <h3 className="font-semibold text-lg group-hover:text-ai-purple-500 transition-colors">
-                      {influencer.name_first} {influencer.name_last}
-                    </h3>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-semibold text-lg group-hover:text-ai-purple-500 transition-colors">
+                        {influencer.name_first} {influencer.name_last}
+                      </h3>
+                      <LoraStatusIndicator 
+                        status={influencer.lorastatus || 0} 
+                        className="flex-shrink-0"
+                      />
+                    </div>
                   </div>
 
                   <div className="flex flex-col gap-1 mb-3">

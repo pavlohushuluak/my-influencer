@@ -1403,7 +1403,8 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
           notes: influencerData.notes || '',
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
-          image_num: 0
+          image_num: 0,
+          lorastatus: 0 // Default to 0 (none) when creating new influencer
         };
 
         // Navigate to edit page with the created influencer data

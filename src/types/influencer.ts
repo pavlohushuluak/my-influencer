@@ -46,4 +46,5 @@ export interface Influencer {
   background_elements: string[];
   prompt: string;
   notes: string;
+  lorastatus: number; // 0 = none, 1 = creating, 2 = successful, 9 = needs re-creation
 } 

@@ -379,8 +379,8 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
 
   // Show toast when entering a step with existing value
   useEffect(() => {
-    // Reset page to 1 when entering a new step
-    setCurrentPage(1);
+    // Remove the automatic page reset - let users stay on their current page
+    // setCurrentPage(1);
     
     const getStepValue = () => {
       switch (currentStep) {
@@ -1231,6 +1231,8 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
       }
       
       setCurrentStep(nextStep);
+      // Reset pagination to first page when moving to next step
+      setCurrentPage(1);
     }
   };
 
@@ -1342,12 +1344,74 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
         })
       });
 
-
       if (response.ok) {
         toast.success('Influencer created successfully!', {
           position: 'bottom-right'
         });
-        navigate('/influencers/edit');
+        
+        // Create the influencer data object to pass to edit page
+        const createdInfluencerData = {
+          id: data[0].id,
+          user_id: userData.id,
+          image_url: influencerData.image_url || '',
+          visual_only: influencerData.visual_only,
+          eyebrow_style: influencerData.eyebrow_style || 'Default',
+          influencer_type: influencerData.influencer_type || 'Lifestyle',
+          name_first: influencerData.name_first || '',
+          name_last: influencerData.name_last || '',
+          sex: influencerData.sex || 'Female',
+          age: influencerData.age || '',
+          lifestyle: influencerData.lifestyle || '',
+          age_lifestyle: `${influencerData.age || ''} ${influencerData.lifestyle || ''}`.trim() || 'Default',
+          eye_shape: influencerData.eye_shape || 'Default',
+          bust_size: influencerData.bust_size || 'Default',
+          origin_birth: influencerData.origin_birth || '',
+          origin_residence: influencerData.origin_residence || '',
+          cultural_background: influencerData.cultural_background || 'Default',
+          hair_length: influencerData.hair_length || 'Default',
+          hair_color: influencerData.hair_color || 'Default',
+          hair_style: influencerData.hair_style || 'Default',
+          eye_color: influencerData.eye_color || 'Default',
+          lip_style: influencerData.lip_style || 'Default',
+          nose_style: influencerData.nose_style || 'Default',
+          face_shape: influencerData.face_shape || 'Default',
+          facial_features: influencerData.facial_features || 'Default',
+          skin_tone: influencerData.skin_tone || 'Default',
+          body_type: influencerData.body_type || 'Default',
+          color_palette: influencerData.color_palette || [],
+          clothing_style_everyday: influencerData.clothing_style_everyday || 'Default',
+          clothing_style_occasional: influencerData.clothing_style_occasional || 'Default',
+          clothing_style_home: influencerData.clothing_style_home || 'Default',
+          clothing_style_sports: influencerData.clothing_style_sports || 'Default',
+          clothing_style_sexy_dress: influencerData.clothing_style_sexy_dress || 'Default',
+          home_environment: influencerData.home_environment || 'Default',
+          content_focus: influencerData.content_focus.length === 0 ? ['Default'] : influencerData.content_focus,
+          content_focus_areas: influencerData.content_focus_areas.length === 0 ? ['Default'] : influencerData.content_focus_areas,
+          job_area: influencerData.job_area || 'Default',
+          job_title: influencerData.job_title || '',
+          job_vibe: influencerData.job_vibe || '',
+          hobbies: influencerData.hobbies.length === 0 ? ['Default'] : influencerData.hobbies,
+          social_circle: influencerData.social_circle || '',
+          strengths: influencerData.strengths.length === 0 ? ['Default'] : influencerData.strengths,
+          weaknesses: influencerData.weaknesses.length === 0 ? ['Default'] : influencerData.weaknesses,
+          speech_style: influencerData.speech_style.length === 0 ? ['Default'] : influencerData.speech_style,
+          humor: influencerData.humor.length === 0 ? ['Default'] : influencerData.humor,
+          core_values: influencerData.core_values.length === 0 ? ['Default'] : influencerData.core_values,
+          current_goals: influencerData.current_goals.length === 0 ? ['Default'] : influencerData.current_goals,
+          background_elements: influencerData.background_elements.length === 0 ? ['Default'] : influencerData.background_elements,
+          prompt: influencerData.prompt || '',
+          notes: influencerData.notes || '',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          image_num: 0
+        };
+
+        // Navigate to edit page with the created influencer data
+        navigate('/influencers/edit', { 
+          state: { 
+            influencerData: createdInfluencerData
+          } 
+        });
         onComplete();
       } else {
         throw new Error('Failed to create influencer');

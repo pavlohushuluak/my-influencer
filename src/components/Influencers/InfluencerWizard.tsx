@@ -151,21 +151,21 @@ const steps: Step[] = [
   },
   { 
     id: 2, 
-    title: 'Facial Features', 
-    description: 'Select facial features template',
-    icon: Sparkles
-  },
-  { 
-    id: 3, 
     title: 'Age Selection', 
     description: 'Choose age range',
     icon: Palette
   },
   { 
-    id: 4, 
+    id: 3, 
     title: 'Lifestyle Selection', 
     description: 'Choose lifestyle',
     icon: Settings
+  },
+  { 
+    id: 4, 
+    title: 'Facial Features', 
+    description: 'Select facial features template',
+    icon: Sparkles
   },
   { 
     id: 5, 
@@ -271,24 +271,6 @@ const getActiveSteps = (influencerData: InfluencerData) => {
   return steps.filter(step => !step.condition || step.condition(influencerData));
 };
 
-// Helper function to reorder options to show selected item first
-const reorderOptions = (options: any[], selectedValue: string, valueField: string = 'label', shouldReorder: boolean = false) => {
-  // Only reorder if explicitly requested AND there's a selected value
-  if (!shouldReorder || !selectedValue || selectedValue === '') {
-    return options;
-  }
-  
-  const selectedIndex = options.findIndex(option => 
-    option[valueField] === selectedValue || option.value === selectedValue
-  );
-  
-  if (selectedIndex === -1) return options;
-  
-  const reordered = [...options];
-  const selected = reordered.splice(selectedIndex, 1)[0];
-  return [selected, ...reordered];
-};
-
 export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -389,7 +371,6 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
 
   const [nameWizardResponse, setNameWizardResponse] = useState<NameWizardResponse | null>(null);
   const [isLoadingNameWizard, setIsLoadingNameWizard] = useState(false);
-  const [shouldReorderOptions, setShouldReorderOptions] = useState(false);
   const [showNameSelectionModal, setShowNameSelectionModal] = useState(false);
   const [selectedNameSuggestion, setSelectedNameSuggestion] = useState<NameSuggestion | null>(null);
 
@@ -404,9 +385,9 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
     const getStepValue = () => {
       switch (currentStep) {
         case 1: return influencerData.sex;
-        case 2: return influencerData.facial_features;
-        case 3: return influencerData.age;
-        case 4: return influencerData.lifestyle;
+        case 2: return influencerData.age;
+        case 3: return influencerData.lifestyle;
+        case 4: return influencerData.facial_features;
         case 5: return influencerData.cultural_background;
         case 6: return influencerData.hair_length;
         case 7: return influencerData.hair_style;
@@ -431,11 +412,6 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
         position: 'bottom-center',
         duration: 4000
       });
-      // Set reorder flag when entering a step with existing value
-      setShouldReorderOptions(true);
-    } else {
-      // Reset reorder flag when entering a step without existing value
-      setShouldReorderOptions(false);
     }
   }, [currentStep, influencerData]);
 
@@ -1223,9 +1199,6 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
   };
 
   const handleOptionSelect = (field: string, value: string | boolean) => {
-    // Immediately set reorder flag to false to prevent moving the selected card
-    setShouldReorderOptions(false);
-    
     setInfluencerData(prev => ({ ...prev, [field]: value }));
 
     // Show success toast for selection (excluding origin and name fields)
@@ -1242,8 +1215,18 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
     if (currentStep < steps.length) {
       let nextStep = currentStep + 1;
       
+      // Special navigation logic for step 4 (Facial Features)
+      if (currentStep === 4) {
+        if (influencerData.facial_features === 'Default') {
+          // If "Default" is selected, go to next step (step 5)
+          nextStep = 5;
+        } else {
+          // If a template is selected, skip to step 16 (Body Type)
+          nextStep = 16;
+        }
+      }
       // Skip step 17 (Bust Size) if sex is not Female
-      if (nextStep === 17 && influencerData.sex !== 'Female') {
+      else if (nextStep === 17 && influencerData.sex !== 'Female') {
         nextStep = 18;
       }
       
@@ -1255,8 +1238,18 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
     if (currentStep > 1) {
       let prevStep = currentStep - 1;
       
+      // Special navigation logic for step 16 (Body Type)
+      if (currentStep === 16) {
+        if (influencerData.facial_features === 'Default') {
+          // If "Default" was selected on step 4, go to step 15 (Skin Tone)
+          prevStep = 15;
+        } else {
+          // If a template was selected on step 4, go back to step 4 (Facial Features)
+          prevStep = 4;
+        }
+      }
       // Skip step 17 (Bust Size) if sex is not Female when going back
-      if (prevStep === 17 && influencerData.sex !== 'Female') {
+      else if (prevStep === 17 && influencerData.sex !== 'Female') {
         prevStep = 16;
       }
       
@@ -1395,7 +1388,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-2xl mx-auto">
-                  {reorderOptions(sexOptions, influencerData.sex, 'value', shouldReorderOptions).map((option) => (
+                  {sexOptions.map((option) => (
                     <Card
                       key={option.label}
                       className={cn(
@@ -1444,13 +1437,367 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
             <div className="text-center space-y-6">
               <div className="space-y-3">
                 <h2 className="text-2xl font-bold">
-                  Facial Features Selection
+                  Age Selection
+                </h2>
+                <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto text-lg leading-relaxed">
+                  Choose the age range that best represents your influencer. This will help define their personality, interests, and content style.
+                </p>
+              </div>
+            </div>
+
+            <div className="mx-auto">
+              {isLoadingAge ? (
+                <div className="flex justify-center items-center py-12">
+                  <div className="text-center space-y-4">
+                    <Loader2 className="w-8 h-8 animate-spin text-green-600 mx-auto" />
+                    <p className="text-gray-600 dark:text-gray-400">Loading age options...</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {/* Items per page control */}
+                  <div className="flex justify-between items-center">
+                    {/* Items per page selector */}
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">Show:</span>
+                      <select
+                        value={itemsPerPage}
+                        onChange={(e) => handleItemsPerPageChange(Number(e.target.value))}
+                        className="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      >
+                        <option value={5}>5</option>
+                        <option value={10}>10</option>
+                        <option value={15}>15</option>
+                        <option value={-1}>All</option>
+                      </select>
+                      <span className="text-sm text-gray-600 dark:text-gray-400">per page</span>
+                    </div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400">
+                      Showing {startIndex + 1}-{Math.min(endIndex, ageOptions.length)} of {ageOptions.length} age options
+                    </div>
+                  </div>
+
+                  {/* Age Options Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+                    {ageOptions.slice(startIndex, endIndex).map((option) => (
+                      <Card
+                        key={option.label}
+                        className={cn(
+                          "group cursor-pointer transition-all duration-300 hover:shadow-xl border-2 transform hover:scale-105",
+                          influencerData.age === option.label
+                            ? "border-green-500 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 shadow-xl scale-105"
+                            : "border-gray-200 dark:border-gray-700 hover:border-green-300 dark:hover:border-green-600"
+                        )}
+                        onClick={() => {
+                          handleOptionSelect('age', option.label);
+                          toast.success(`${option.label} selected`, {
+                            id: 'age-selection',
+                            position: 'bottom-center'
+                          });
+                        }}
+                      >
+                        <CardContent className="p-6">
+                          <div className="space-y-4">
+                            <div className="relative">
+                              <img
+                                src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
+                                alt={option.label}
+                                className="w-full h-full object-cover rounded-lg shadow-md group-hover:scale-105 transition-transform duration-300"
+                              />
+                              {influencerData.age === option.label && (
+                                <div className="absolute top-2 right-2 w-8 h-8 bg-green-500 rounded-full flex items-center justify-center shadow-lg">
+                                  <Check className="w-5 h-5 text-white" />
+                                </div>
+                              )}
+                            </div>
+                            <div className="text-center space-y-2">
+                              <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                                {option.label}
+                              </h3>
+                              <p className="text-gray-600 dark:text-gray-400 text-sm">
+                                {option.description}
+                              </p>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+
+                  {/* Pagination */}
+                  {Math.ceil(ageOptions.length / (itemsPerPage === -1 ? ageOptions.length : itemsPerPage)) > 1 && (
+                    <div className="flex flex-col sm:flex-row justify-between items-center gap-4 py-6 border-t border-gray-200 dark:border-gray-700">
+                      <div className="text-sm text-gray-600 dark:text-gray-400">
+                        Showing {startIndex + 1}-{Math.min(endIndex, ageOptions.length)} of {ageOptions.length} age options
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          onClick={() => handlePageChange(1)}
+                          disabled={currentPage === 1}
+                          className="px-3 py-1 text-sm font-medium border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300"
+                        >
+                          First
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={() => handlePageChange(currentPage - 1)}
+                          disabled={currentPage === 1}
+                          className="px-3 py-1 text-sm font-medium border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300"
+                        >
+                          Previous
+                        </Button>
+
+                        {/* Page numbers */}
+                        <div className="flex items-center gap-1">
+                          {Array.from({ length: Math.min(5, Math.ceil(ageOptions.length / (itemsPerPage === -1 ? ageOptions.length : itemsPerPage))) }, (_, i) => {
+                            let pageNum;
+                            const totalPages = Math.ceil(ageOptions.length / (itemsPerPage === -1 ? ageOptions.length : itemsPerPage));
+                            if (totalPages <= 5) {
+                              pageNum = i + 1;
+                            } else if (currentPage <= 3) {
+                              pageNum = i + 1;
+                            } else if (currentPage >= totalPages - 2) {
+                              pageNum = totalPages - 4 + i;
+                            } else {
+                              pageNum = currentPage - 2 + i;
+                            }
+
+                            return (
+                              <Button
+                                key={pageNum}
+                                variant={currentPage === pageNum ? "default" : "outline"}
+                                onClick={() => handlePageChange(pageNum)}
+                                className={`px-3 py-1 text-sm font-medium transition-all duration-300 ${currentPage === pageNum
+                                  ? "bg-green-600 text-white border-green-600"
+                                  : "border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
+                                  }`}
+                              >
+                                {pageNum}
+                              </Button>
+                            );
+                          })}
+                        </div>
+
+                        <Button
+                          variant="outline"
+                          onClick={() => handlePageChange(currentPage + 1)}
+                          disabled={currentPage === Math.ceil(ageOptions.length / (itemsPerPage === -1 ? ageOptions.length : itemsPerPage))}
+                          className="px-3 py-1 text-sm font-medium border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300"
+                        >
+                          Next
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={() => handlePageChange(Math.ceil(ageOptions.length / (itemsPerPage === -1 ? ageOptions.length : itemsPerPage)))}
+                          disabled={currentPage === Math.ceil(ageOptions.length / (itemsPerPage === -1 ? ageOptions.length : itemsPerPage))}
+                          className="px-3 py-1 text-sm font-medium border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300"
+                        >
+                          Last
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        );
+
+      case 3:
+        return (
+          <div className="space-y-8">
+            <div className="text-center space-y-6">
+              <div className="space-y-3">
+                <h2 className="text-2xl font-bold">
+                  Lifestyle Selection
+                </h2>
+                <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto text-lg leading-relaxed">
+                  Choose the lifestyle that best represents your influencer's daily routine, interests, and way of living.
+                </p>
+              </div>
+            </div>
+
+            <div className="mx-auto">
+              {isLoadingLifestyle ? (
+                <div className="flex justify-center items-center py-12">
+                  <div className="text-center space-y-4">
+                    <Loader2 className="w-8 h-8 animate-spin text-orange-600 mx-auto" />
+                    <p className="text-gray-600 dark:text-gray-400">Loading lifestyle options...</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {/* Items per page control */}
+                  <div className="flex justify-between items-center">
+                    {/* Items per page selector */}
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">Show:</span>
+                      <select
+                        value={itemsPerPage}
+                        onChange={(e) => handleItemsPerPageChange(Number(e.target.value))}
+                        className="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      >
+                        <option value={5}>5</option>
+                        <option value={10}>10</option>
+                        <option value={15}>15</option>
+                        <option value={-1}>All</option>
+                      </select>
+                      <span className="text-sm text-gray-600 dark:text-gray-400">per page</span>
+                    </div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400">
+                      Showing {startIndex + 1}-{Math.min(endIndex, lifestyleOptions.length)} of {lifestyleOptions.length} lifestyle options
+                    </div>
+                  </div>
+
+                  {/* Lifestyle Options Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+                    {lifestyleOptions.slice(startIndex, endIndex).map((option) => (
+                      <Card
+                        key={option.label}
+                        className={cn(
+                          "group cursor-pointer transition-all duration-300 hover:shadow-xl border-2 transform hover:scale-105",
+                          influencerData.lifestyle === option.label
+                            ? "border-orange-500 bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-950/20 dark:to-red-950/20 shadow-xl scale-105"
+                            : "border-gray-200 dark:border-gray-700 hover:border-orange-300 dark:hover:border-orange-600"
+                        )}
+                        onClick={() => {
+                          handleOptionSelect('lifestyle', option.label);
+                          toast.success(`${option.label} selected`, {
+                            id: 'lifestyle-selection',
+                            position: 'bottom-center'
+                          });
+                        }}
+                      >
+                        <CardContent className="p-6">
+                          <div className="space-y-4">
+                            <div className="relative">
+                              <img
+                                src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
+                                alt={option.label}
+                                className="w-full h-full object-cover rounded-lg shadow-md group-hover:scale-105 transition-transform duration-300"
+                              />
+                              {influencerData.lifestyle === option.label && (
+                                <div className="absolute top-2 right-2 w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center shadow-lg">
+                                  <Check className="w-5 h-5 text-white" />
+                                </div>
+                              )}
+                            </div>
+                            <div className="text-center space-y-2">
+                              <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                                {option.label}
+                              </h3>
+                              <p className="text-gray-600 dark:text-gray-400 text-sm">
+                                {option.description}
+                              </p>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+
+                  {/* Pagination */}
+                  {Math.ceil(lifestyleOptions.length / (itemsPerPage === -1 ? lifestyleOptions.length : itemsPerPage)) > 1 && (
+                    <div className="flex flex-col sm:flex-row justify-between items-center gap-4 py-6 border-t border-gray-200 dark:border-gray-700">
+                      <div className="text-sm text-gray-600 dark:text-gray-400">
+                        Showing {startIndex + 1}-{Math.min(endIndex, lifestyleOptions.length)} of {lifestyleOptions.length} lifestyle options
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          onClick={() => handlePageChange(1)}
+                          disabled={currentPage === 1}
+                          className="px-3 py-1 text-sm font-medium border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300"
+                        >
+                          First
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={() => handlePageChange(currentPage - 1)}
+                          disabled={currentPage === 1}
+                          className="px-3 py-1 text-sm font-medium border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300"
+                        >
+                          Previous
+                        </Button>
+
+                        {/* Page numbers */}
+                        <div className="flex items-center gap-1">
+                          {Array.from({ length: Math.min(5, Math.ceil(lifestyleOptions.length / (itemsPerPage === -1 ? lifestyleOptions.length : itemsPerPage))) }, (_, i) => {
+                            let pageNum;
+                            const totalPages = Math.ceil(lifestyleOptions.length / (itemsPerPage === -1 ? lifestyleOptions.length : itemsPerPage));
+                            if (totalPages <= 5) {
+                              pageNum = i + 1;
+                            } else if (currentPage <= 3) {
+                              pageNum = i + 1;
+                            } else if (currentPage >= totalPages - 2) {
+                              pageNum = totalPages - 4 + i;
+                            } else {
+                              pageNum = currentPage - 2 + i;
+                            }
+
+                            return (
+                              <Button
+                                key={pageNum}
+                                variant={currentPage === pageNum ? "default" : "outline"}
+                                onClick={() => handlePageChange(pageNum)}
+                                className={`px-3 py-1 text-sm font-medium transition-all duration-300 ${currentPage === pageNum
+                                  ? "bg-orange-600 text-white border-orange-600"
+                                  : "border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
+                                  }`}
+                              >
+                                {pageNum}
+                              </Button>
+                            );
+                          })}
+                        </div>
+
+                        <Button
+                          variant="outline"
+                          onClick={() => handlePageChange(currentPage + 1)}
+                          disabled={currentPage === Math.ceil(lifestyleOptions.length / (itemsPerPage === -1 ? lifestyleOptions.length : itemsPerPage))}
+                          className="px-3 py-1 text-sm font-medium border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300"
+                        >
+                          Next
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={() => handlePageChange(Math.ceil(lifestyleOptions.length / (itemsPerPage === -1 ? lifestyleOptions.length : itemsPerPage)))}
+                          disabled={currentPage === Math.ceil(lifestyleOptions.length / (itemsPerPage === -1 ? lifestyleOptions.length : itemsPerPage))}
+                          className="px-3 py-1 text-sm font-medium border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300"
+                        >
+                          Last
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        );
+
+      case 4:
+        return (
+          <div className="space-y-8">
+            <div className="text-center space-y-6">
+              <div className="space-y-3">
+                <h2 className="text-2xl font-bold">
+                  Facial Features
                 </h2>
                 <p className="text-gray-600 dark:text-gray-400 max-w-3xl mx-auto text-lg leading-relaxed">
                   To ease your start, we provide you with a list of well curated Facial templates, that help you to get started.
                   You can select out of the portfolio or start from Scratch.
                   All setting can be modified.
                 </p>
+                <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 max-w-3xl mx-auto">
+                  <p className="text-blue-800 dark:text-blue-200 text-sm">
+                    <strong>Navigation Tip:</strong> If you select "Start from Scratch", you'll continue through all steps. 
+                    If you select a template, you'll skip to Body Type (step 16) to complete the basic setup faster.
+                  </p>
+                </div>
               </div>
             </div>
 
@@ -1485,7 +1832,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
 
                   {/* Facial Features Grid */}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-                    {reorderOptions(facialFeaturesOptions, influencerData.facial_features, 'label', shouldReorderOptions).slice(startIndex, endIndex).map((option) => (
+                    {facialFeaturesOptions.slice(startIndex, endIndex).map((option) => (
                       <Card
                         key={option.label}
                         className={cn(
@@ -1632,354 +1979,6 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
           </div>
         );
 
-      case 3:
-        return (
-          <div className="space-y-8">
-            <div className="text-center space-y-6">
-              <div className="space-y-3">
-                <h2 className="text-2xl font-bold">
-                  Age Selection
-                </h2>
-                <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto text-lg leading-relaxed">
-                  Choose the age range that best represents your influencer. This will help define their personality, interests, and content style.
-                </p>
-              </div>
-            </div>
-
-            <div className="mx-auto">
-              {isLoadingAge ? (
-                <div className="flex justify-center items-center py-12">
-                  <div className="text-center space-y-4">
-                    <Loader2 className="w-8 h-8 animate-spin text-green-600 mx-auto" />
-                    <p className="text-gray-600 dark:text-gray-400">Loading age options...</p>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-6">
-                  {/* Items per page control */}
-                  <div className="flex justify-between items-center">
-                    {/* Items per page selector */}
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-gray-600 dark:text-gray-400">Show:</span>
-                      <select
-                        value={itemsPerPage}
-                        onChange={(e) => handleItemsPerPageChange(Number(e.target.value))}
-                        className="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                      >
-                        <option value={5}>5</option>
-                        <option value={10}>10</option>
-                        <option value={15}>15</option>
-                        <option value={-1}>All</option>
-                      </select>
-                      <span className="text-sm text-gray-600 dark:text-gray-400">per page</span>
-                    </div>
-                    <div className="text-sm text-gray-600 dark:text-gray-400">
-                      Showing {startIndex + 1}-{Math.min(endIndex, ageOptions.length)} of {ageOptions.length} age options
-                    </div>
-                  </div>
-
-                  {/* Age Options Grid */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-                    {reorderOptions(ageOptions, influencerData.age, 'label', shouldReorderOptions).slice(startIndex, endIndex).map((option) => (
-                      <Card
-                        key={option.label}
-                        className={cn(
-                          "group cursor-pointer transition-all duration-300 hover:shadow-xl border-2 transform hover:scale-105",
-                          influencerData.age === option.label
-                            ? "border-green-500 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 shadow-xl scale-105"
-                            : "border-gray-200 dark:border-gray-700 hover:border-green-300 dark:hover:border-green-600"
-                        )}
-                        onClick={() => {
-                          handleOptionSelect('age', option.label);
-                          toast.success(`${option.label} selected`, {
-                            id: 'age-selection',
-                            position: 'bottom-center'
-                          });
-                        }}
-                      >
-                        <CardContent className="p-6">
-                          <div className="space-y-4">
-                            <div className="relative">
-                              <img
-                                src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
-                                alt={option.label}
-                                className="w-full h-full object-cover rounded-lg shadow-md group-hover:scale-105 transition-transform duration-300"
-                              />
-                              {influencerData.age === option.label && (
-                                <div className="absolute top-2 right-2 w-8 h-8 bg-green-500 rounded-full flex items-center justify-center shadow-lg">
-                                  <Check className="w-5 h-5 text-white" />
-                                </div>
-                              )}
-                            </div>
-                            <div className="text-center space-y-2">
-                              <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-                                {option.label}
-                              </h3>
-                              <p className="text-gray-600 dark:text-gray-400 text-sm">
-                                {option.description}
-                              </p>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-
-                  {/* Pagination */}
-                  {Math.ceil(ageOptions.length / (itemsPerPage === -1 ? ageOptions.length : itemsPerPage)) > 1 && (
-                    <div className="flex flex-col sm:flex-row justify-between items-center gap-4 py-6 border-t border-gray-200 dark:border-gray-700">
-                      <div className="text-sm text-gray-600 dark:text-gray-400">
-                        Showing {startIndex + 1}-{Math.min(endIndex, ageOptions.length)} of {ageOptions.length} age options
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="outline"
-                          onClick={() => handlePageChange(1)}
-                          disabled={currentPage === 1}
-                          className="px-3 py-1 text-sm font-medium border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300"
-                        >
-                          First
-                        </Button>
-                        <Button
-                          variant="outline"
-                          onClick={() => handlePageChange(currentPage - 1)}
-                          disabled={currentPage === 1}
-                          className="px-3 py-1 text-sm font-medium border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300"
-                        >
-                          Previous
-                        </Button>
-
-                        {/* Page numbers */}
-                        <div className="flex items-center gap-1">
-                          {Array.from({ length: Math.min(5, Math.ceil(ageOptions.length / (itemsPerPage === -1 ? ageOptions.length : itemsPerPage))) }, (_, i) => {
-                            let pageNum;
-                            const totalPages = Math.ceil(ageOptions.length / (itemsPerPage === -1 ? ageOptions.length : itemsPerPage));
-                            if (totalPages <= 5) {
-                              pageNum = i + 1;
-                            } else if (currentPage <= 3) {
-                              pageNum = i + 1;
-                            } else if (currentPage >= totalPages - 2) {
-                              pageNum = totalPages - 4 + i;
-                            } else {
-                              pageNum = currentPage - 2 + i;
-                            }
-
-                            return (
-                              <Button
-                                key={pageNum}
-                                variant={currentPage === pageNum ? "default" : "outline"}
-                                onClick={() => handlePageChange(pageNum)}
-                                className={`px-3 py-1 text-sm font-medium transition-all duration-300 ${currentPage === pageNum
-                                  ? "bg-green-600 text-white border-green-600"
-                                  : "border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
-                                  }`}
-                              >
-                                {pageNum}
-                              </Button>
-                            );
-                          })}
-                        </div>
-
-                        <Button
-                          variant="outline"
-                          onClick={() => handlePageChange(currentPage + 1)}
-                          disabled={currentPage === Math.ceil(ageOptions.length / (itemsPerPage === -1 ? ageOptions.length : itemsPerPage))}
-                          className="px-3 py-1 text-sm font-medium border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300"
-                        >
-                          Next
-                        </Button>
-                        <Button
-                          variant="outline"
-                          onClick={() => handlePageChange(Math.ceil(ageOptions.length / (itemsPerPage === -1 ? ageOptions.length : itemsPerPage)))}
-                          disabled={currentPage === Math.ceil(ageOptions.length / (itemsPerPage === -1 ? ageOptions.length : itemsPerPage))}
-                          className="px-3 py-1 text-sm font-medium border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300"
-                        >
-                          Last
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        );
-
-      case 4:
-        return (
-          <div className="space-y-8">
-            <div className="text-center space-y-6">
-              <div className="space-y-3">
-                <h2 className="text-2xl font-bold">
-                  Lifestyle Selection
-                </h2>
-                <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto text-lg leading-relaxed">
-                  Choose the lifestyle that best represents your influencer's daily routine, interests, and way of living.
-                </p>
-              </div>
-            </div>
-
-            <div className="mx-auto">
-              {isLoadingLifestyle ? (
-                <div className="flex justify-center items-center py-12">
-                  <div className="text-center space-y-4">
-                    <Loader2 className="w-8 h-8 animate-spin text-orange-600 mx-auto" />
-                    <p className="text-gray-600 dark:text-gray-400">Loading lifestyle options...</p>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-6">
-                  {/* Items per page control */}
-                  <div className="flex justify-between items-center">
-                    {/* Items per page selector */}
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-gray-600 dark:text-gray-400">Show:</span>
-                      <select
-                        value={itemsPerPage}
-                        onChange={(e) => handleItemsPerPageChange(Number(e.target.value))}
-                        className="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                      >
-                        <option value={5}>5</option>
-                        <option value={10}>10</option>
-                        <option value={15}>15</option>
-                        <option value={-1}>All</option>
-                      </select>
-                      <span className="text-sm text-gray-600 dark:text-gray-400">per page</span>
-                    </div>
-                    <div className="text-sm text-gray-600 dark:text-gray-400">
-                      Showing {startIndex + 1}-{Math.min(endIndex, lifestyleOptions.length)} of {lifestyleOptions.length} lifestyle options
-                    </div>
-                  </div>
-
-                  {/* Lifestyle Options Grid */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-                    {reorderOptions(lifestyleOptions, influencerData.lifestyle, 'label', shouldReorderOptions).slice(startIndex, endIndex).map((option) => (
-                      <Card
-                        key={option.label}
-                        className={cn(
-                          "group cursor-pointer transition-all duration-300 hover:shadow-xl border-2 transform hover:scale-105",
-                          influencerData.lifestyle === option.label
-                            ? "border-orange-500 bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-950/20 dark:to-red-950/20 shadow-xl scale-105"
-                            : "border-gray-200 dark:border-gray-700 hover:border-orange-300 dark:hover:border-orange-600"
-                        )}
-                        onClick={() => {
-                          handleOptionSelect('lifestyle', option.label);
-                          toast.success(`${option.label} selected`, {
-                            id: 'lifestyle-selection',
-                            position: 'bottom-center'
-                          });
-                        }}
-                      >
-                        <CardContent className="p-6">
-                          <div className="space-y-4">
-                            <div className="relative">
-                              <img
-                                src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
-                                alt={option.label}
-                                className="w-full h-full object-cover rounded-lg shadow-md group-hover:scale-105 transition-transform duration-300"
-                              />
-                              {influencerData.lifestyle === option.label && (
-                                <div className="absolute top-2 right-2 w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center shadow-lg">
-                                  <Check className="w-5 h-5 text-white" />
-                                </div>
-                              )}
-                            </div>
-                            <div className="text-center space-y-2">
-                              <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-                                {option.label}
-                              </h3>
-                              <p className="text-gray-600 dark:text-gray-400 text-sm">
-                                {option.description}
-                              </p>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-
-                  {/* Pagination */}
-                  {Math.ceil(lifestyleOptions.length / (itemsPerPage === -1 ? lifestyleOptions.length : itemsPerPage)) > 1 && (
-                    <div className="flex flex-col sm:flex-row justify-between items-center gap-4 py-6 border-t border-gray-200 dark:border-gray-700">
-                      <div className="text-sm text-gray-600 dark:text-gray-400">
-                        Showing {startIndex + 1}-{Math.min(endIndex, lifestyleOptions.length)} of {lifestyleOptions.length} lifestyle options
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="outline"
-                          onClick={() => handlePageChange(1)}
-                          disabled={currentPage === 1}
-                          className="px-3 py-1 text-sm font-medium border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300"
-                        >
-                          First
-                        </Button>
-                        <Button
-                          variant="outline"
-                          onClick={() => handlePageChange(currentPage - 1)}
-                          disabled={currentPage === 1}
-                          className="px-3 py-1 text-sm font-medium border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300"
-                        >
-                          Previous
-                        </Button>
-
-                        {/* Page numbers */}
-                        <div className="flex items-center gap-1">
-                          {Array.from({ length: Math.min(5, Math.ceil(lifestyleOptions.length / (itemsPerPage === -1 ? lifestyleOptions.length : itemsPerPage))) }, (_, i) => {
-                            let pageNum;
-                            const totalPages = Math.ceil(lifestyleOptions.length / (itemsPerPage === -1 ? lifestyleOptions.length : itemsPerPage));
-                            if (totalPages <= 5) {
-                              pageNum = i + 1;
-                            } else if (currentPage <= 3) {
-                              pageNum = i + 1;
-                            } else if (currentPage >= totalPages - 2) {
-                              pageNum = totalPages - 4 + i;
-                            } else {
-                              pageNum = currentPage - 2 + i;
-                            }
-
-                            return (
-                              <Button
-                                key={pageNum}
-                                variant={currentPage === pageNum ? "default" : "outline"}
-                                onClick={() => handlePageChange(pageNum)}
-                                className={`px-3 py-1 text-sm font-medium transition-all duration-300 ${currentPage === pageNum
-                                  ? "bg-orange-600 text-white border-orange-600"
-                                  : "border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
-                                  }`}
-                              >
-                                {pageNum}
-                              </Button>
-                            );
-                          })}
-                        </div>
-
-                        <Button
-                          variant="outline"
-                          onClick={() => handlePageChange(currentPage + 1)}
-                          disabled={currentPage === Math.ceil(lifestyleOptions.length / (itemsPerPage === -1 ? lifestyleOptions.length : itemsPerPage))}
-                          className="px-3 py-1 text-sm font-medium border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300"
-                        >
-                          Next
-                        </Button>
-                        <Button
-                          variant="outline"
-                          onClick={() => handlePageChange(Math.ceil(lifestyleOptions.length / (itemsPerPage === -1 ? lifestyleOptions.length : itemsPerPage)))}
-                          disabled={currentPage === Math.ceil(lifestyleOptions.length / (itemsPerPage === -1 ? lifestyleOptions.length : itemsPerPage))}
-                          className="px-3 py-1 text-sm font-medium border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300"
-                        >
-                          Last
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        );
-
       case 5:
         return (
           <div className="space-y-8">
@@ -2028,7 +2027,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
 
                   {/* Cultural Background Options Grid */}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-                    {reorderOptions(culturalBackgroundOptions, influencerData.cultural_background, 'label', shouldReorderOptions).slice(startIndex, endIndex).map((option) => (
+                    {culturalBackgroundOptions.slice(startIndex, endIndex).map((option) => (
                       <Card
                         key={option.label}
                         className={cn(
@@ -2202,7 +2201,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
 
                   {/* Hair Length Options Grid */}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-                    {reorderOptions(hairLengthOptions, influencerData.hair_length, 'label', shouldReorderOptions).slice(startIndex, endIndex).map((option) => (
+                    {hairLengthOptions.slice(startIndex, endIndex).map((option) => (
                       <Card
                         key={option.label}
                         className={cn(
@@ -2376,7 +2375,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
 
                   {/* Hair Style Options Grid */}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-                    {reorderOptions(hairStyleOptions, influencerData.hair_style, 'label', shouldReorderOptions).slice(startIndex, endIndex).map((option) => (
+                    {hairStyleOptions.slice(startIndex, endIndex).map((option) => (
                       <Card
                         key={option.label}
                         className={cn(
@@ -2550,7 +2549,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
 
                   {/* Hair Color Options Grid */}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-                    {reorderOptions(hairColorOptions, influencerData.hair_color, 'label', shouldReorderOptions).slice(startIndex, endIndex).map((option) => (
+                    {hairColorOptions.slice(startIndex, endIndex).map((option) => (
                       <Card
                         key={option.label}
                         className={cn(
@@ -2724,7 +2723,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
 
                   {/* Face Shape Options Grid */}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-                    {reorderOptions(faceShapeOptions, influencerData.face_shape, 'label', shouldReorderOptions).slice(startIndex, endIndex).map((option) => (
+                    {faceShapeOptions.slice(startIndex, endIndex).map((option) => (
                       <Card
                         key={option.label}
                         className={cn(
@@ -2898,7 +2897,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
 
                   {/* Eye Color Options Grid */}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-                    {reorderOptions(eyeColorOptions, influencerData.eye_color, 'label', shouldReorderOptions).slice(startIndex, endIndex).map((option) => (
+                    {eyeColorOptions.slice(startIndex, endIndex).map((option) => (
                       <Card
                         key={option.label}
                         className={cn(
@@ -3072,7 +3071,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
 
                   {/* Eye Shape Options Grid */}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-                    {reorderOptions(eyeShapeOptions, influencerData.eye_shape, 'label', shouldReorderOptions).slice(startIndex, endIndex).map((option) => (
+                    {eyeShapeOptions.slice(startIndex, endIndex).map((option) => (
                       <Card
                         key={option.label}
                         className={cn(
@@ -3246,7 +3245,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
 
                   {/* Lip Style Options Grid */}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-                    {reorderOptions(lipStyleOptions, influencerData.lip_style, 'label', shouldReorderOptions).slice(startIndex, endIndex).map((option) => (
+                    {lipStyleOptions.slice(startIndex, endIndex).map((option) => (
                       <Card
                         key={option.label}
                         className={cn(
@@ -3420,7 +3419,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
 
                   {/* Nose Style Options Grid */}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-                    {reorderOptions(noseStyleOptions, influencerData.nose_style, 'label', shouldReorderOptions).slice(startIndex, endIndex).map((option) => (
+                    {noseStyleOptions.slice(startIndex, endIndex).map((option) => (
                       <Card
                         key={option.label}
                         className={cn(
@@ -3594,7 +3593,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
 
                   {/* Eyebrow Style Options Grid */}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-                    {reorderOptions(eyebrowStyleOptions, influencerData.eyebrow_style, 'label', shouldReorderOptions).slice(startIndex, endIndex).map((option) => (
+                    {eyebrowStyleOptions.slice(startIndex, endIndex).map((option) => (
                       <Card
                         key={option.label}
                         className={cn(
@@ -3768,7 +3767,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
 
                   {/* Skin Tone Options Grid */}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-                    {reorderOptions(skinToneOptions, influencerData.skin_tone, 'label', shouldReorderOptions).slice(startIndex, endIndex).map((option) => (
+                    {skinToneOptions.slice(startIndex, endIndex).map((option) => (
                       <Card
                         key={option.label}
                         className={cn(
@@ -3942,7 +3941,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
 
                   {/* Body Type Options Grid */}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-                    {reorderOptions(bodyTypeOptions, influencerData.body_type, 'label', shouldReorderOptions).slice(startIndex, endIndex).map((option) => (
+                    {bodyTypeOptions.slice(startIndex, endIndex).map((option) => (
                       <Card
                         key={option.label}
                         className={cn(
@@ -4116,7 +4115,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
 
                   {/* Bust Size Options Grid */}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-                    {reorderOptions(bustSizeOptions, influencerData.bust_size, 'label', shouldReorderOptions).slice(startIndex, endIndex).map((option) => (
+                    {bustSizeOptions.slice(startIndex, endIndex).map((option) => (
                       <Card
                         key={option.label}
                         className={cn(
@@ -4502,11 +4501,11 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
       case 1:
         return influencerData.sex !== '';
       case 2:
-        return influencerData.facial_features !== '';
-      case 3:
         return influencerData.age !== '';
-      case 4:
+      case 3:
         return influencerData.lifestyle !== '';
+      case 4:
+        return influencerData.facial_features !== '';
       case 5:
         return influencerData.cultural_background !== '';
       case 6:

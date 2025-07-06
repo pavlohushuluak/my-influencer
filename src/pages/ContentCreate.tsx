@@ -658,7 +658,6 @@ export default function ContentCreate() {
 
       const useridData = await useridResponse.json();
 
-      // Send the request to localhost:2000
       console.log(requestData);
       const response = await fetch(`https://api.nymia.ai/v1/createtask?userid=${useridData[0].userid}&type=createimage`, {
         method: 'POST',

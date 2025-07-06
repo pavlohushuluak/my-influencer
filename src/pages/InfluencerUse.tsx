@@ -191,7 +191,16 @@ export default function InfluencerUse() {
           throw new Error('Failed to upload image to LoRA folder');
         }
 
-        await fetch(`https://api.nymia.ai/v1/createtask?userid=${userData.id}&type=createlora`, {
+        const useridResponse = await fetch(`https://db.nymia.ai/rest/v1/user?uuid=eq.${userData.id}`, {
+          method: 'GET',
+          headers: {
+            'Authorization': 'Bearer WeInfl3nc3withAI'
+          }
+        });
+  
+        const useridData = await useridResponse.json();
+
+        await fetch(`https://api.nymia.ai/v1/createtask?userid=${useridData[0].userid}&type=createlora`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -210,7 +219,16 @@ export default function InfluencerUse() {
         // Copy existing profile picture to LoRA folder
         const latestImageNum = selectedInfluencerData.image_num - 1;
 
-        await fetch(`https://api.nymia.ai/v1/createtask?userid=${userData.id}&type=createlora`, {
+        const useridResponse = await fetch(`https://db.nymia.ai/rest/v1/user?uuid=eq.${userData.id}`, {
+          method: 'GET',
+          headers: {
+            'Authorization': 'Bearer WeInfl3nc3withAI'
+          }
+        });
+  
+        const useridData = await useridResponse.json();
+
+        await fetch(`https://api.nymia.ai/v1/createtask?userid=${useridData[0].userid}&type=createlora`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

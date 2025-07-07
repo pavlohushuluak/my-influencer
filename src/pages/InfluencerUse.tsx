@@ -467,9 +467,9 @@ export default function InfluencerUse() {
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
-                      <h3 className="font-semibold text-lg group-hover:text-ai-purple-500 transition-colors">
-                        {influencer.name_first} {influencer.name_last}
-                      </h3>
+                    <h3 className="font-semibold text-lg group-hover:text-ai-purple-500 transition-colors">
+                      {influencer.name_first} {influencer.name_last}
+                    </h3>
                       <LoraStatusIndicator 
                         status={influencer.lorastatus || 0} 
                         className="flex-shrink-0"

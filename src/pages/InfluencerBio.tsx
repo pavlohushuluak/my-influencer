@@ -9,6 +9,9 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useState } from 'react';
 import { Check, Copy as CopyIcon, ChevronDown, ChevronUp, Instagram, Twitter, MessageCircle, Heart, Star, ArrowLeft, FileText, Download, Share2, AlertTriangle, RefreshCw, Plus } from 'lucide-react';
 import { toast } from 'sonner';
+import React from 'react';
+import { useDispatch } from 'react-redux';
+import { setBio } from '@/store/slices/bioSlice';
 
 // PDF Generation
 const generatePDF = async (influencer: any, bio: any, platforms: any) => {
@@ -315,24 +318,12 @@ const generateExcel = async (influencer: any, bio: any, platforms: any) => {
 // Share functionality
 const shareProfile = async (influencer: any, bio: any) => {
   try {
-    const shareData = {
-      title: `${influencer.name_first} ${influencer.name_last} - Bio Profile`,
-      text: `Check out ${influencer.name_first}'s professional bio profile with platform-specific content and optimization scores.`,
-      url: window.location.href,
-    };
-    
-    if (navigator.share) {
-      await navigator.share(shareData);
-      return true;
-    } else {
-      // Fallback: copy to clipboard
-      const shareText = `${shareData.title}\n\n${shareData.text}\n\n${shareData.url}`;
-      await navigator.clipboard.writeText(shareText);
-      return 'clipboard';
-    }
+    const currentUrl = window.location.href;
+    await navigator.clipboard.writeText(currentUrl);
+    return 'clipboard';
   } catch (error) {
-    console.error('Share error:', error);
-    throw new Error('Failed to share profile');
+    console.error('Copy link error:', error);
+    throw new Error('Failed to copy link');
   }
 };
 
@@ -482,7 +473,19 @@ function ExportButton({ onClick, icon, label, variant = "outline" }: {
 }
 
 function ComparisonView({ platforms, platformConfig }: { platforms: any; platformConfig: any }) {
-  const [selectedPlatforms, setSelectedPlatforms] = useState(['instagram', 'tiktok', 'fanvue']);
+  const [selectedPlatforms, setSelectedPlatforms] = useState(['instagram', 'fanvue', 'tiktok']);
+  
+  const availablePlatforms = Object.keys(platforms).filter(platform => 
+    platforms[platform] && Object.keys(platforms[platform]).length > 0
+  );
+  
+  const togglePlatform = (platformKey: string) => {
+    setSelectedPlatforms(prev => 
+      prev.includes(platformKey) 
+        ? prev.filter(p => p !== platformKey)
+        : [...prev, platformKey]
+    );
+  };
   
   return (
     <Card className="shadow-lg border-0 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
@@ -495,14 +498,41 @@ function ComparisonView({ platforms, platformConfig }: { platforms: any; platfor
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Platform Selector */}
+        <div className="mb-6">
+          <h4 className="text-sm font-semibold mb-3 text-muted-foreground">Select Platforms to Compare:</h4>
+          <div className="flex flex-wrap gap-2">
+            {availablePlatforms.map((platformKey) => {
+              const config = platformConfig[platformKey];
+              const Icon = config?.icon || MessageCircle;
+              const isSelected = selectedPlatforms.includes(platformKey);
+              
+              return (
+                <Button
+                  key={platformKey}
+                  variant={isSelected ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => togglePlatform(platformKey)}
+                  className="flex items-center gap-2"
+                >
+                  <Icon className="w-3 h-3" />
+                  {config?.name || platformKey}
+                  {isSelected && <Check className="w-3 h-3" />}
+                </Button>
+              );
+            })}
+          </div>
+        </div>
+        
+        {/* Comparison Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {selectedPlatforms.map((platformKey) => {
             const platform = platforms[platformKey];
             const config = platformConfig[platformKey];
             if (!platform || !config) return null;
             
             return (
-              <div key={platformKey} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+              <div key={platformKey} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:shadow-md transition-shadow">
                 <div className="flex items-center gap-2 mb-3">
                   <div className={`w-8 h-8 ${config.bgColor} rounded-lg flex items-center justify-center`}>
                     <config.icon className="w-4 h-4 text-white" />
@@ -513,23 +543,36 @@ function ComparisonView({ platforms, platformConfig }: { platforms: any; platfor
                 <div className="space-y-3">
                   <div>
                     <div className="text-xs text-muted-foreground mb-1">Headline</div>
-                    <div className="text-sm font-medium line-clamp-2">{platform.headline}</div>
+                    <div className="text-sm font-medium line-clamp-2 bg-gray-50 dark:bg-gray-900 rounded p-2">
+                      {platform.headline}
+                    </div>
                   </div>
                   
                   <div>
                     <div className="text-xs text-muted-foreground mb-1">Bio</div>
-                    <div className="text-sm line-clamp-3">{platform.bio}</div>
+                    <div className="text-sm line-clamp-3 bg-gray-50 dark:bg-gray-900 rounded p-2">
+                      {platform.bio}
+                    </div>
                   </div>
                   
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-muted-foreground">Score</span>
-                    <Badge variant="secondary">{platform.optimization_score}/10</Badge>
+                    <Badge variant="secondary" className="text-xs">
+                      {platform.optimization_score}/10
+                    </Badge>
                   </div>
                 </div>
               </div>
             );
           })}
         </div>
+        
+        {selectedPlatforms.length === 0 && (
+          <div className="text-center py-8 text-muted-foreground">
+            <div className="text-4xl mb-2">📊</div>
+            <p>Select platforms above to compare their profiles</p>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
@@ -569,7 +612,8 @@ function ErrorDisplay({ missingFields, onComplete, onRetry }: {
 export default function InfluencerBio() {
   const location = useLocation();
   const navigate = useNavigate();
-  const influencerId = location.state?.influencerId;
+  const searchParams = new URLSearchParams(location.search);
+  const influencerId = searchParams.get('id');
   const influencer = useSelector((state: RootState) =>
     state.influencers.influencers.find((inf) => inf.id === influencerId)
   );
@@ -578,15 +622,95 @@ export default function InfluencerBio() {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [showComparison, setShowComparison] = useState(false);
   const [copyAllFeedback, setCopyAllFeedback] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [localInfluencer, setLocalInfluencer] = useState<any>(null);
+  const [localBio, setLocalBio] = useState<any>(null);
+  const dispatch = useDispatch();
 
-  if (!influencer || !bio) {
+  // Fetch influencer and bio data from database if not in Redux store
+  React.useEffect(() => {
+    const fetchData = async () => {
+      if (!influencerId) return;
+      
+      setLoading(true);
+      try {
+        console.log('Fetching data for influencer:', influencerId);
+        console.log('Current influencer from Redux:', influencer);
+        console.log('Current bio from Redux:', bio);
+        
+        // If influencer not in Redux, fetch from database
+        if (!influencer) {
+          console.log('Influencer not in Redux, fetching from database...');
+          const response = await fetch(`https://db.nymia.ai/rest/v1/influencer?id=eq.${influencerId}`, {
+            headers: {
+              'Authorization': 'Bearer WeInfl3nc3withAI',
+            },
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            console.log('Database response:', data);
+            if (data && data.length > 0) {
+              const fetchedInfluencer = data[0];
+              console.log('Fetched influencer:', fetchedInfluencer);
+              setLocalInfluencer(fetchedInfluencer);
+              
+              // If bio exists in database, set it
+              if (fetchedInfluencer.bio && Object.keys(fetchedInfluencer.bio).length > 0) {
+                console.log('Bio found in database:', fetchedInfluencer.bio);
+                setLocalBio(fetchedInfluencer.bio);
+                dispatch(setBio({ influencerId, bio: fetchedInfluencer.bio }));
+              } else {
+                console.log('No bio found in database');
+              }
+            }
+          } else {
+            console.error('Failed to fetch influencer from database');
+          }
+        } else {
+          console.log('Influencer found in Redux, checking for bio...');
+          // Influencer exists in Redux, check for bio
+          if (influencer.bio && Object.keys(influencer.bio).length > 0 && !bio) {
+            console.log('Bio found in influencer data:', influencer.bio);
+            setLocalBio(influencer.bio);
+            dispatch(setBio({ influencerId, bio: influencer.bio }));
+          } else {
+            console.log('No bio found in influencer data');
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching influencer data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [influencerId, influencer, bio, dispatch]);
+
+  // Use local state if Redux data is not available
+  const currentInfluencer = influencer || localInfluencer;
+  const currentBio = bio || localBio;
+
+  console.log('Rendering with:', {
+    influencerId,
+    influencer,
+    localInfluencer,
+    currentInfluencer,
+    bio,
+    localBio,
+    currentBio,
+    loading
+  });
+
+  if (!influencerId) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 dark:from-gray-900 dark:to-gray-800">
         <div className="max-w-4xl mx-auto p-6">
           <div className="text-center py-12">
-            <div className="text-6xl mb-4">📄</div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Bio Not Found</h1>
-            <p className="text-gray-600 dark:text-gray-400 mb-6">No bio data found for this influencer.</p>
+            <div className="text-6xl mb-4">❌</div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Invalid URL</h1>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">No influencer ID provided.</p>
             <Button onClick={() => navigate(-1)} className="bg-blue-600 hover:bg-blue-700">
               <ArrowLeft className="w-4 h-4 mr-2" />
               Go Back
@@ -597,16 +721,44 @@ export default function InfluencerBio() {
     );
   }
 
-  const summary = bio.influencer_profile_summary;
+  if (!currentInfluencer || !currentBio) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 dark:from-gray-900 dark:to-gray-800">
+        <div className="max-w-4xl mx-auto p-6">
+          <div className="text-center py-12">
+            {loading ? (
+              <>
+                <div className="text-6xl mb-4">⏳</div>
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Loading Bio...</h1>
+                <p className="text-gray-600 dark:text-gray-400 mb-6">Please wait while we load the bio data.</p>
+              </>
+            ) : (
+              <>
+                <div className="text-6xl mb-4">📄</div>
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Bio Not Found</h1>
+                <p className="text-gray-600 dark:text-gray-400 mb-6">No bio data found for this influencer.</p>
+                <Button onClick={() => navigate(-1)} className="bg-blue-600 hover:bg-blue-700">
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Go Back
+                </Button>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const summary = currentBio.influencer_profile_summary;
   const platforms = {
-    instagram: bio.platform_profiles.instagram,
-    fanvue: bio.platform_profiles.fanvue,
-    tiktok: bio.platform_profiles.tiktok,
-    x: bio.platform_profiles.x,
-    threads: bio.platform_profiles.threads,
+    instagram: currentBio.platform_profiles.instagram,
+    fanvue: currentBio.platform_profiles.fanvue,
+    tiktok: currentBio.platform_profiles.tiktok,
+    x: currentBio.platform_profiles.x,
+    threads: currentBio.platform_profiles.threads,
   };
-  const background = bio.background_story || {};
-  const chatter = bio.chatter_guidance || {};
+  const background = currentBio.background_story || {};
+  const chatter = currentBio.chatter_guidance || {};
 
   // Check for missing data
   const missingFields = [];
@@ -627,7 +779,7 @@ export default function InfluencerBio() {
 
   const handleExportPDF = async () => {
     try {
-      await generatePDF(influencer, bio, platforms);
+      await generatePDF(currentInfluencer, currentBio, platforms);
       toast.success('PDF report generated successfully!');
     } catch (error) {
       toast.error('Failed to generate PDF report.');
@@ -637,7 +789,7 @@ export default function InfluencerBio() {
 
   const handleExportExcel = async () => {
     try {
-      await generateExcel(influencer, bio, platforms);
+      await generateExcel(currentInfluencer, currentBio, platforms);
       toast.success('Excel report generated successfully!');
     } catch (error) {
       toast.error('Failed to generate Excel report.');
@@ -647,10 +799,8 @@ export default function InfluencerBio() {
 
   const handleShareLink = async () => {
     try {
-      const result = await shareProfile(influencer, bio);
-      if (result === true) {
-        toast.success('Profile shared successfully!');
-      } else if (result === 'clipboard') {
+      const result = await shareProfile(currentInfluencer, currentBio);
+      if (result === 'clipboard') {
         toast.success('Profile link copied to clipboard!');
       } else {
         toast.error('Failed to share profile.');
@@ -677,8 +827,8 @@ export default function InfluencerBio() {
           <div className="flex items-center gap-4 mb-6">
             <div className="relative w-20 h-20 rounded-full overflow-hidden border-4 border-white dark:border-gray-800 shadow-xl bg-gradient-to-br from-blue-100 to-purple-100 dark:from-gray-700 dark:to-gray-800">
               <img
-                src={influencer.image_url}
-                alt={influencer.name_first}
+                src={currentInfluencer.image_url}
+                alt={currentInfluencer.name_first}
                 className="w-full h-full object-cover transition-transform duration-300 hover:scale-110"
                 onError={(e) => {
                   const target = e.target as HTMLImageElement;
@@ -688,7 +838,7 @@ export default function InfluencerBio() {
                 }}
               />
               <div className="fallback absolute inset-0 hidden items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600 text-white text-2xl font-bold">
-                {influencer.name_first.charAt(0).toUpperCase()}
+                {currentInfluencer.name_first.charAt(0).toUpperCase()}
               </div>
             </div>
             <div className="flex-1">
@@ -729,7 +879,7 @@ export default function InfluencerBio() {
             <ExportButton 
               onClick={handleShareLink}
               icon={<Share2 className="w-4 h-4" />}
-              label="Share Link"
+              label="Copy Link"
             />
             <Button 
               variant="outline" 

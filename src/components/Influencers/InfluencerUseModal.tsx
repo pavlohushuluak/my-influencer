@@ -80,7 +80,7 @@ export const InfluencerUseModal: React.FC<InfluencerUseModalProps> = ({
         throw new Error('Failed to save bio to database');
       }
       setShowBioModal(false);
-      navigate('/influencers/bio', { state: { influencerId: influencer.id } });
+      navigate(`/influencers/bio?id=${influencer.id}`);
     } catch (err: any) {
       setBioError(err.message || 'Failed to generate or save bio');
     } finally {
@@ -89,8 +89,10 @@ export const InfluencerUseModal: React.FC<InfluencerUseModalProps> = ({
   };
 
   const handleViewBio = () => {
-    dispatch(setBio({ influencerId: influencer.id, bio: influencer.bio }));
-    navigate('/influencers/bio', { state: { influencerId: influencer?.id } });
+    if (influencer?.bio) {
+      dispatch(setBio({ influencerId: influencer.id, bio: influencer.bio }));
+    }
+    navigate(`/influencers/bio?id=${influencer?.id}`);
   };
 
   return (

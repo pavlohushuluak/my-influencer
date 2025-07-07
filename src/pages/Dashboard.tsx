@@ -17,30 +17,6 @@ import { toast } from 'sonner';
 import { LoraStatusIndicator } from '@/components/Influencers/LoraStatusIndicator';
 import { InfluencerUseModal } from '@/components/Influencers/InfluencerUseModal';
 
-const PLATFORMS = [
-  {
-    id: 'instagram',
-    name: 'Instagram',
-    icon: Instagram,
-    color: 'from-pink-500 to-purple-600',
-    description: 'Create posts for Instagram'
-  },
-  {
-    id: 'whatsapp',
-    name: 'WhatsApp',
-    icon: MessageCircle,
-    color: 'from-green-500 to-green-600',
-    description: 'Generate WhatsApp messages'
-  },
-  {
-    id: 'telegram',
-    name: 'Telegram',
-    icon: Send,
-    color: 'from-blue-500 to-blue-600',
-    description: 'Create Telegram content'
-  }
-];
-
 export default function Dashboard() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -208,22 +184,6 @@ export default function Dashboard() {
       setSelectedInfluencer(id);
       setSelectedInfluencerData(selectedInfluencer);
       setShowPlatformModal(true);
-    }
-  };
-
-  const handlePlatformSelect = (platformId: string) => {
-    const influencer = influencers.find(inf => inf.id === selectedInfluencer);
-    const platform = PLATFORMS.find(p => p.id === platformId);
-
-    if (influencer && platform) {
-      navigate('/content/create', {
-        state: {
-          influencerData: influencer,
-          platform: platform,
-          mode: 'create'
-        }
-      });
-      setShowPlatformModal(false);
     }
   };
 
@@ -596,8 +556,6 @@ export default function Dashboard() {
         open={showPlatformModal}
         onOpenChange={setShowPlatformModal}
         influencer={selectedInfluencerData}
-        platforms={PLATFORMS}
-        onPlatformSelect={handlePlatformSelect}
         onContentCreate={handleContentCreate}
         onCharacterConsistency={handleCharacterConsistency}
       />

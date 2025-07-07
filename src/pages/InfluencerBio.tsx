@@ -8,6 +8,245 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useState } from 'react';
 import { Check, Copy as CopyIcon, ChevronDown, ChevronUp, Instagram, Twitter, MessageCircle, Heart, Star, ArrowLeft, FileText, Download, Share2, AlertTriangle, RefreshCw, Plus } from 'lucide-react';
+import { toast } from 'sonner';
+
+// PDF Generation
+const generatePDF = async (influencer: any, bio: any, platforms: any) => {
+  try {
+    // Dynamic import for PDF library
+    const { jsPDF } = await import('jspdf');
+    const doc = new jsPDF();
+    
+    // Set up fonts and styling
+    doc.setFontSize(20);
+    doc.setTextColor(44, 62, 80);
+    doc.text(`${influencer.name_first} ${influencer.name_last} - Bio Profile`, 20, 30);
+    
+    doc.setFontSize(12);
+    doc.setTextColor(52, 73, 94);
+    
+    let yPosition = 50;
+    
+    // Summary section
+    doc.setFontSize(16);
+    doc.text('Profile Summary', 20, yPosition);
+    yPosition += 10;
+    
+    doc.setFontSize(10);
+    doc.text(`Name: ${bio.influencer_profile_summary.name}`, 20, yPosition);
+    yPosition += 7;
+    doc.text(`Age & Lifestyle: ${bio.influencer_profile_summary.age_lifestyle}`, 20, yPosition);
+    yPosition += 7;
+    doc.text(`Cultural Background: ${bio.influencer_profile_summary.cultural_background}`, 20, yPosition);
+    yPosition += 7;
+    doc.text(`Personality: ${bio.influencer_profile_summary.personality_archetype}`, 20, yPosition);
+    yPosition += 7;
+    doc.text(`Primary Niche: ${bio.influencer_profile_summary.primary_niche}`, 20, yPosition);
+    yPosition += 7;
+    doc.text(`Target Audience: ${bio.influencer_profile_summary.target_audience}`, 20, yPosition);
+    yPosition += 15;
+    
+    // Platform profiles
+    doc.setFontSize(16);
+    doc.text('Platform Profiles', 20, yPosition);
+    yPosition += 10;
+    
+    Object.entries(platforms).forEach(([platformKey, platform]: [string, any]) => {
+      const config = platformConfig[platformKey as keyof typeof platformConfig];
+      
+      if (yPosition > 250) {
+        doc.addPage();
+        yPosition = 20;
+      }
+      
+      doc.setFontSize(12);
+      doc.setTextColor(41, 128, 185);
+      doc.text(`${config?.name} Profile`, 20, yPosition);
+      yPosition += 7;
+      
+      doc.setFontSize(10);
+      doc.setTextColor(52, 73, 94);
+      doc.text(`Headline: ${platform.headline}`, 20, yPosition);
+      yPosition += 7;
+      doc.text(`Bio: ${platform.bio}`, 20, yPosition);
+      yPosition += 7;
+      doc.text(`Optimization Score: ${platform.optimization_score}/10`, 20, yPosition);
+      yPosition += 7;
+      doc.text(`Reasoning: ${platform.reasoning}`, 20, yPosition);
+      yPosition += 10;
+    });
+    
+    // Background story
+    if (yPosition > 250) {
+      doc.addPage();
+      yPosition = 20;
+    }
+    
+    doc.setFontSize(16);
+    doc.text('Character Background', 20, yPosition);
+    yPosition += 10;
+    
+    Object.entries(bio.background_story || {}).forEach(([key, value]: [string, any]) => {
+      if (yPosition > 250) {
+        doc.addPage();
+        yPosition = 20;
+      }
+      
+      doc.setFontSize(12);
+      doc.setTextColor(41, 128, 185);
+      doc.text(key.replace(/_/g, ' ').toUpperCase(), 20, yPosition);
+      yPosition += 7;
+      
+      doc.setFontSize(10);
+      doc.setTextColor(52, 73, 94);
+      const text = typeof value === 'string' ? value : Array.isArray(value) ? value.join(', ') : JSON.stringify(value);
+      const lines = doc.splitTextToSize(text, 170);
+      lines.forEach((line: string) => {
+        if (yPosition > 250) {
+          doc.addPage();
+          yPosition = 20;
+        }
+        doc.text(line, 20, yPosition);
+        yPosition += 7;
+      });
+      yPosition += 5;
+    });
+    
+    // Chat guidance
+    if (yPosition > 250) {
+      doc.addPage();
+      yPosition = 20;
+    }
+    
+    doc.setFontSize(16);
+    doc.text('Chat Guidance', 20, yPosition);
+    yPosition += 10;
+    
+    const chatter = bio.chatter_guidance || {};
+    doc.setFontSize(10);
+    doc.text(`Communication Style: ${chatter.communication_style}`, 20, yPosition);
+    yPosition += 7;
+    doc.text(`Engagement Hooks: ${chatter.engagement_hooks}`, 20, yPosition);
+    yPosition += 7;
+    doc.text(`Intimacy Building: ${chatter.intimacy_building}`, 20, yPosition);
+    yPosition += 7;
+    doc.text(`Boundaries: ${chatter.boundaries}`, 20, yPosition);
+    
+    // Save the PDF
+    const fileName = `${influencer.name_first}_${influencer.name_last}_Bio_Profile.pdf`;
+    doc.save(fileName);
+    
+    return true;
+  } catch (error) {
+    console.error('PDF generation error:', error);
+    throw new Error('Failed to generate PDF');
+  }
+};
+
+// Excel Generation
+const generateExcel = async (influencer: any, bio: any, platforms: any) => {
+  try {
+    // Dynamic import for Excel library
+    const XLSX = await import('xlsx');
+    
+    // Create workbook
+    const wb = XLSX.utils.book_new();
+    
+    // Summary sheet
+    const summaryData = [
+      ['Profile Summary'],
+      ['Name', bio.influencer_profile_summary.name],
+      ['Age & Lifestyle', bio.influencer_profile_summary.age_lifestyle],
+      ['Cultural Background', bio.influencer_profile_summary.cultural_background],
+      ['Personality Archetype', bio.influencer_profile_summary.personality_archetype],
+      ['Primary Niche', bio.influencer_profile_summary.primary_niche],
+      ['Target Audience', bio.influencer_profile_summary.target_audience],
+    ];
+    
+    const summarySheet = XLSX.utils.aoa_to_sheet(summaryData);
+    XLSX.utils.book_append_sheet(wb, summarySheet, 'Summary');
+    
+    // Platform profiles sheet
+    const platformData = [
+      ['Platform', 'Headline', 'Bio', 'Optimization Score', 'Reasoning']
+    ];
+    
+    Object.entries(platforms).forEach(([platformKey, platform]: [string, any]) => {
+      const config = platformConfig[platformKey as keyof typeof platformConfig];
+      platformData.push([
+        config?.name || platformKey,
+        platform.headline,
+        platform.bio,
+        `${platform.optimization_score}/10`,
+        platform.reasoning
+      ]);
+    });
+    
+    const platformSheet = XLSX.utils.aoa_to_sheet(platformData);
+    XLSX.utils.book_append_sheet(wb, platformSheet, 'Platform Profiles');
+    
+    // Background story sheet
+    const backgroundData = [
+      ['Background Story']
+    ];
+    
+    Object.entries(bio.background_story || {}).forEach(([key, value]: [string, any]) => {
+      backgroundData.push([key.replace(/_/g, ' ').toUpperCase()]);
+      const text = typeof value === 'string' ? value : Array.isArray(value) ? value.join(', ') : JSON.stringify(value);
+      backgroundData.push([text]);
+      backgroundData.push([]); // Empty row for spacing
+    });
+    
+    const backgroundSheet = XLSX.utils.aoa_to_sheet(backgroundData);
+    XLSX.utils.book_append_sheet(wb, backgroundSheet, 'Background Story');
+    
+    // Chat guidance sheet
+    const chatter = bio.chatter_guidance || {};
+    const chatterData = [
+      ['Chat Guidance'],
+      ['Communication Style', chatter.communication_style],
+      ['Engagement Hooks', chatter.engagement_hooks],
+      ['Intimacy Building', chatter.intimacy_building],
+      ['Boundaries', chatter.boundaries],
+    ];
+    
+    const chatterSheet = XLSX.utils.aoa_to_sheet(chatterData);
+    XLSX.utils.book_append_sheet(wb, chatterSheet, 'Chat Guidance');
+    
+    // Save the Excel file
+    const fileName = `${influencer.name_first}_${influencer.name_last}_Bio_Profile.xlsx`;
+    XLSX.writeFile(wb, fileName);
+    
+    return true;
+  } catch (error) {
+    console.error('Excel generation error:', error);
+    throw new Error('Failed to generate Excel file');
+  }
+};
+
+// Share functionality
+const shareProfile = async (influencer: any, bio: any) => {
+  try {
+    const shareData = {
+      title: `${influencer.name_first} ${influencer.name_last} - Bio Profile`,
+      text: `Check out ${influencer.name_first}'s professional bio profile with platform-specific content and optimization scores.`,
+      url: window.location.href,
+    };
+    
+    if (navigator.share) {
+      await navigator.share(shareData);
+      return true;
+    } else {
+      // Fallback: copy to clipboard
+      const shareText = `${shareData.title}\n\n${shareData.text}\n\n${shareData.url}`;
+      await navigator.clipboard.writeText(shareText);
+      return 'clipboard';
+    }
+  } catch (error) {
+    console.error('Share error:', error);
+    throw new Error('Failed to share profile');
+  }
+};
 
 const limit = [
   {
@@ -298,26 +537,44 @@ export default function InfluencerBio() {
     setTimeout(() => setCopyAllFeedback(false), 3000);
   };
 
-  const handleExportPDF = () => {
-    // PDF export logic would go here
-    console.log('Exporting PDF...');
+  const handleExportPDF = async () => {
+    try {
+      await generatePDF(influencer, bio, platforms);
+      toast.success('PDF report generated successfully!');
+    } catch (error) {
+      toast.error('Failed to generate PDF report.');
+      console.error(error);
+    }
   };
 
-  const handleExportExcel = () => {
-    // Excel export logic would go here
-    console.log('Exporting Excel...');
+  const handleExportExcel = async () => {
+    try {
+      await generateExcel(influencer, bio, platforms);
+      toast.success('Excel report generated successfully!');
+    } catch (error) {
+      toast.error('Failed to generate Excel report.');
+      console.error(error);
+    }
   };
 
-  const handleShareLink = () => {
-    // Share link logic would go here
-    navigator.share?.({
-      title: `${summary.name} - Bio Profile`,
-      url: window.location.href,
-    });
+  const handleShareLink = async () => {
+    try {
+      const result = await shareProfile(influencer, bio);
+      if (result === true) {
+        toast.success('Profile shared successfully!');
+      } else if (result === 'clipboard') {
+        toast.success('Profile link copied to clipboard!');
+      } else {
+        toast.error('Failed to share profile.');
+      }
+    } catch (error) {
+      toast.error('Failed to share profile.');
+      console.error(error);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 dark:from-gray-900 dark:to-gray-800">
+    <div className="min-h-screen">
       <div className="max-w-7xl mx-auto p-4 lg:p-8">
         {/* Header */}
         <div className="mb-8">

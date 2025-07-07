@@ -17,6 +17,20 @@ const generatePDF = async (influencer: any, bio: any, platforms: any) => {
     const { jsPDF } = await import('jspdf');
     const doc = new jsPDF();
     
+    // Helper function to clean text of emojis and special characters
+    const cleanText = (text: string) => {
+      return text
+        .replace(/[\u{1F600}-\u{1F64F}]/gu, '') // Emojis
+        .replace(/[\u{1F300}-\u{1F5FF}]/gu, '') // Misc symbols
+        .replace(/[\u{1F680}-\u{1F6FF}]/gu, '') // Transport symbols
+        .replace(/[\u{1F1E0}-\u{1F1FF}]/gu, '') // Flags
+        .replace(/[\u{2600}-\u{26FF}]/gu, '') // Misc symbols
+        .replace(/[\u{2700}-\u{27BF}]/gu, '') // Dingbats
+        .replace(/[^\x00-\x7F]/g, '') // Non-ASCII characters
+        .replace(/\s+/g, ' ') // Multiple spaces to single
+        .trim();
+    };
+    
     // Set up fonts and styling
     doc.setFontSize(20);
     doc.setTextColor(44, 62, 80);
@@ -33,17 +47,17 @@ const generatePDF = async (influencer: any, bio: any, platforms: any) => {
     yPosition += 10;
     
     doc.setFontSize(10);
-    doc.text(`Name: ${bio.influencer_profile_summary.name}`, 20, yPosition);
+    doc.text(`Name: ${cleanText(bio.influencer_profile_summary.name)}`, 20, yPosition);
     yPosition += 7;
-    doc.text(`Age & Lifestyle: ${bio.influencer_profile_summary.age_lifestyle}`, 20, yPosition);
+    doc.text(`Age & Lifestyle: ${cleanText(bio.influencer_profile_summary.age_lifestyle)}`, 20, yPosition);
     yPosition += 7;
-    doc.text(`Cultural Background: ${bio.influencer_profile_summary.cultural_background}`, 20, yPosition);
+    doc.text(`Cultural Background: ${cleanText(bio.influencer_profile_summary.cultural_background)}`, 20, yPosition);
     yPosition += 7;
-    doc.text(`Personality: ${bio.influencer_profile_summary.personality_archetype}`, 20, yPosition);
+    doc.text(`Personality: ${cleanText(bio.influencer_profile_summary.personality_archetype)}`, 20, yPosition);
     yPosition += 7;
-    doc.text(`Primary Niche: ${bio.influencer_profile_summary.primary_niche}`, 20, yPosition);
+    doc.text(`Primary Niche: ${cleanText(bio.influencer_profile_summary.primary_niche)}`, 20, yPosition);
     yPosition += 7;
-    doc.text(`Target Audience: ${bio.influencer_profile_summary.target_audience}`, 20, yPosition);
+    doc.text(`Target Audience: ${cleanText(bio.influencer_profile_summary.target_audience)}`, 20, yPosition);
     yPosition += 15;
     
     // Platform profiles
@@ -66,14 +80,48 @@ const generatePDF = async (influencer: any, bio: any, platforms: any) => {
       
       doc.setFontSize(10);
       doc.setTextColor(52, 73, 94);
-      doc.text(`Headline: ${platform.headline}`, 20, yPosition);
-      yPosition += 7;
-      doc.text(`Bio: ${platform.bio}`, 20, yPosition);
-      yPosition += 7;
+      
+      // Headline with proper text wrapping
+      const headlineText = `Headline: ${cleanText(platform.headline)}`;
+      const headlineLines = doc.splitTextToSize(headlineText, 170);
+      headlineLines.forEach((line: string) => {
+        if (yPosition > 250) {
+          doc.addPage();
+          yPosition = 20;
+        }
+        doc.text(line, 20, yPosition);
+        yPosition += 6;
+      });
+      yPosition += 2;
+      
+      // Bio with proper text wrapping
+      const bioText = `Bio: ${cleanText(platform.bio)}`;
+      const bioLines = doc.splitTextToSize(bioText, 170);
+      bioLines.forEach((line: string) => {
+        if (yPosition > 250) {
+          doc.addPage();
+          yPosition = 20;
+        }
+        doc.text(line, 20, yPosition);
+        yPosition += 6;
+      });
+      yPosition += 2;
+      
+      // Score and reasoning
       doc.text(`Optimization Score: ${platform.optimization_score}/10`, 20, yPosition);
-      yPosition += 7;
-      doc.text(`Reasoning: ${platform.reasoning}`, 20, yPosition);
-      yPosition += 10;
+      yPosition += 6;
+      
+      const reasoningText = `Reasoning: ${cleanText(platform.reasoning)}`;
+      const reasoningLines = doc.splitTextToSize(reasoningText, 170);
+      reasoningLines.forEach((line: string) => {
+        if (yPosition > 250) {
+          doc.addPage();
+          yPosition = 20;
+        }
+        doc.text(line, 20, yPosition);
+        yPosition += 6;
+      });
+      yPosition += 8;
     });
     
     // Background story
@@ -99,7 +147,7 @@ const generatePDF = async (influencer: any, bio: any, platforms: any) => {
       
       doc.setFontSize(10);
       doc.setTextColor(52, 73, 94);
-      const text = typeof value === 'string' ? value : Array.isArray(value) ? value.join(', ') : JSON.stringify(value);
+      const text = typeof value === 'string' ? cleanText(value) : Array.isArray(value) ? cleanText(value.join(', ')) : cleanText(JSON.stringify(value));
       const lines = doc.splitTextToSize(text, 170);
       lines.forEach((line: string) => {
         if (yPosition > 250) {
@@ -124,13 +172,53 @@ const generatePDF = async (influencer: any, bio: any, platforms: any) => {
     
     const chatter = bio.chatter_guidance || {};
     doc.setFontSize(10);
-    doc.text(`Communication Style: ${chatter.communication_style}`, 20, yPosition);
-    yPosition += 7;
-    doc.text(`Engagement Hooks: ${chatter.engagement_hooks}`, 20, yPosition);
-    yPosition += 7;
-    doc.text(`Intimacy Building: ${chatter.intimacy_building}`, 20, yPosition);
-    yPosition += 7;
-    doc.text(`Boundaries: ${chatter.boundaries}`, 20, yPosition);
+    
+    const communicationText = `Communication Style: ${cleanText(chatter.communication_style)}`;
+    const communicationLines = doc.splitTextToSize(communicationText, 170);
+    communicationLines.forEach((line: string) => {
+      if (yPosition > 250) {
+        doc.addPage();
+        yPosition = 20;
+      }
+      doc.text(line, 20, yPosition);
+      yPosition += 6;
+    });
+    yPosition += 2;
+    
+    const engagementText = `Engagement Hooks: ${cleanText(chatter.engagement_hooks)}`;
+    const engagementLines = doc.splitTextToSize(engagementText, 170);
+    engagementLines.forEach((line: string) => {
+      if (yPosition > 250) {
+        doc.addPage();
+        yPosition = 20;
+      }
+      doc.text(line, 20, yPosition);
+      yPosition += 6;
+    });
+    yPosition += 2;
+    
+    const intimacyText = `Intimacy Building: ${cleanText(chatter.intimacy_building)}`;
+    const intimacyLines = doc.splitTextToSize(intimacyText, 170);
+    intimacyLines.forEach((line: string) => {
+      if (yPosition > 250) {
+        doc.addPage();
+        yPosition = 20;
+      }
+      doc.text(line, 20, yPosition);
+      yPosition += 6;
+    });
+    yPosition += 2;
+    
+    const boundariesText = `Boundaries: ${cleanText(chatter.boundaries)}`;
+    const boundariesLines = doc.splitTextToSize(boundariesText, 170);
+    boundariesLines.forEach((line: string) => {
+      if (yPosition > 250) {
+        doc.addPage();
+        yPosition = 20;
+      }
+      doc.text(line, 20, yPosition);
+      yPosition += 6;
+    });
     
     // Save the PDF
     const fileName = `${influencer.name_first}_${influencer.name_last}_Bio_Profile.pdf`;

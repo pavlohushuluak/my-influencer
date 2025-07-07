@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useState } from 'react';
-import { Check, Copy as CopyIcon, ChevronDown, ChevronUp, Instagram, Twitter, MessageCircle, Heart, Star, ArrowLeft, FileText, Download, Share2, AlertTriangle, RefreshCw, Plus } from 'lucide-react';
+import { Check, Copy as CopyIcon, ChevronDown, ChevronUp, Instagram, Twitter, MessageCircle, Heart, Star, ArrowLeft, FileText, Download, Share2, AlertTriangle, RefreshCw, Plus, BarChart3, Settings, Type, Smartphone, BookOpen, Mic, MessageSquare, Shield, Zap } from 'lucide-react';
 import { toast } from 'sonner';
 import React from 'react';
 import { useDispatch } from 'react-redux';
@@ -491,8 +491,8 @@ function ComparisonView({ platforms, platformConfig }: { platforms: any; platfor
     <Card className="shadow-lg border-0 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
       <CardHeader>
         <CardTitle className="text-xl flex items-center gap-3">
-          <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg flex items-center justify-center">
-            <span className="text-white text-sm font-bold">📊</span>
+          <div className="w-10 h-10 bg-gradient-to-br from-purple-600 to-pink-600 rounded-xl flex items-center justify-center shadow-lg">
+            <BarChart3 className="w-5 h-5 text-white" />
           </div>
           Platform Comparison
         </CardTitle>
@@ -500,7 +500,10 @@ function ComparisonView({ platforms, platformConfig }: { platforms: any; platfor
       <CardContent>
         {/* Platform Selector */}
         <div className="mb-6">
-          <h4 className="text-sm font-semibold mb-3 text-muted-foreground">Select Platforms to Compare:</h4>
+          <h4 className="text-sm font-semibold mb-3 text-muted-foreground flex items-center gap-2">
+            <Settings className="w-4 h-4" />
+            Select Platforms to Compare:
+          </h4>
           <div className="flex flex-wrap gap-2">
             {availablePlatforms.map((platformKey) => {
               const config = platformConfig[platformKey];
@@ -532,32 +535,44 @@ function ComparisonView({ platforms, platformConfig }: { platforms: any; platfor
             if (!platform || !config) return null;
             
             return (
-              <div key={platformKey} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:shadow-md transition-shadow">
-                <div className="flex items-center gap-2 mb-3">
-                  <div className={`w-8 h-8 ${config.bgColor} rounded-lg flex items-center justify-center`}>
-                    <config.icon className="w-4 h-4 text-white" />
+              <div key={platformKey} className="border border-gray-200 dark:border-gray-700 rounded-xl p-4 hover:shadow-lg transition-all duration-300 bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className={`w-10 h-10 ${config.bgColor} rounded-xl flex items-center justify-center shadow-lg`}>
+                    <config.icon className="w-5 h-5 text-white" />
                   </div>
-                  <span className="font-semibold">{config.name}</span>
+                  <div>
+                    <span className="font-semibold text-base">{config.name}</span>
+                    <div className="text-xs text-muted-foreground">{config.description}</div>
+                  </div>
                 </div>
                 
-                <div className="space-y-3">
+                <div className="space-y-4">
                   <div>
-                    <div className="text-xs text-muted-foreground mb-1">Headline</div>
-                    <div className="text-sm font-medium line-clamp-2 bg-gray-50 dark:bg-gray-900 rounded p-2">
+                    <div className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1">
+                      <Type className="w-3 h-3" />
+                      Headline
+                    </div>
+                    <div className="text-sm font-medium line-clamp-2 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg p-3 border border-blue-100 dark:border-blue-800">
                       {platform.headline}
                     </div>
                   </div>
                   
                   <div>
-                    <div className="text-xs text-muted-foreground mb-1">Bio</div>
-                    <div className="text-sm line-clamp-3 bg-gray-50 dark:bg-gray-900 rounded p-2">
+                    <div className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1">
+                      <FileText className="w-3 h-3" />
+                      Bio
+                    </div>
+                    <div className="text-sm line-clamp-3 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg p-3 border border-green-100 dark:border-green-800">
                       {platform.bio}
                     </div>
                   </div>
                   
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">Score</span>
-                    <Badge variant="secondary" className="text-xs">
+                    <span className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                      <Star className="w-3 h-3" />
+                      Score
+                    </span>
+                    <Badge variant="secondary" className="text-xs bg-gradient-to-r from-yellow-500 to-orange-500 text-white">
                       {platform.optimization_score}/10
                     </Badge>
                   </div>
@@ -568,9 +583,12 @@ function ComparisonView({ platforms, platformConfig }: { platforms: any; platfor
         </div>
         
         {selectedPlatforms.length === 0 && (
-          <div className="text-center py-8 text-muted-foreground">
-            <div className="text-4xl mb-2">📊</div>
-            <p>Select platforms above to compare their profiles</p>
+          <div className="text-center py-12 text-muted-foreground">
+            <div className="w-16 h-16 bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/20 dark:to-pink-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
+              <BarChart3 className="w-8 h-8 text-purple-600 dark:text-purple-400" />
+            </div>
+            <p className="font-medium">Select platforms above to compare their profiles</p>
+            <p className="text-sm mt-1">Compare headlines, bios, and optimization scores</p>
           </div>
         )}
       </CardContent>
@@ -976,8 +994,8 @@ export default function InfluencerBio() {
               <Card className="shadow-lg border-0 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
                 <CardHeader>
                   <CardTitle className="text-2xl flex items-center gap-3">
-                    <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                      <span className="text-white text-sm font-bold">📱</span>
+                    <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+                      <Smartphone className="w-5 h-5 text-white" />
                     </div>
                     Platform Profiles
                   </CardTitle>
@@ -1019,11 +1037,12 @@ export default function InfluencerBio() {
                             <div className="space-y-3">
                               <div className="flex items-center justify-between">
                                 <h4 className="font-semibold flex items-center gap-2">
-                                  📝 Headline
+                                  <Type className="w-4 h-4" />
+                                  Headline
                                 </h4>
                                 <CopyButton text={profile.headline} label="Copy" />
                               </div>
-                              <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 border">
+                              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg p-4 border border-blue-100 dark:border-blue-800">
                                 <p className="text-base font-medium leading-relaxed">{profile.headline}</p>
                               </div>
                               <ProgressBar value={profile.character_count?.headline || 0} max={limit.find(l => l.name === config?.name)?.limit.headline || 0} color={config?.color || '#000'} />
@@ -1033,11 +1052,12 @@ export default function InfluencerBio() {
                             <div className="space-y-3">
                               <div className="flex items-center justify-between">
                                 <h4 className="font-semibold flex items-center gap-2">
-                                  📄 Bio
+                                  <FileText className="w-4 h-4" />
+                                  Bio
                                 </h4>
                                 <CopyButton text={profile.bio} label="Copy" />
                               </div>
-                              <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 border max-h-32 overflow-y-auto">
+                              <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg p-4 border border-green-100 dark:border-green-800 max-h-32 overflow-y-auto">
                                 <p className="text-sm leading-relaxed whitespace-pre-line">{profile.bio}</p>
                               </div>
                               <ProgressBar value={profile.character_count?.bio || 0} max={limit.find(l => l.name === config?.name)?.limit.bio || 0} color={config?.color || '#000'} />
@@ -1074,8 +1094,8 @@ export default function InfluencerBio() {
               <Card className="shadow-lg border-0 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
                 <CardHeader>
                   <CardTitle className="text-2xl flex items-center gap-3">
-                    <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg flex items-center justify-center">
-                      <span className="text-white text-sm font-bold">📖</span>
+                    <div className="w-10 h-10 bg-gradient-to-br from-purple-600 to-pink-600 rounded-xl flex items-center justify-center shadow-lg">
+                      <BookOpen className="w-5 h-5 text-white" />
                     </div>
                     Character Background
                   </CardTitle>
@@ -1083,12 +1103,14 @@ export default function InfluencerBio() {
                 <CardContent>
                   <div className="space-y-4">
                     {Object.entries(background).map(([key, value]: any) => (
-                      <div key={key} className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                      <div key={key} className="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden hover:shadow-md transition-shadow">
                         <div 
-                          className="flex items-center gap-3 p-4 cursor-pointer select-none hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                          className="flex items-center gap-3 p-4 cursor-pointer select-none hover:bg-gradient-to-r hover:from-gray-50 hover:to-gray-100 dark:hover:from-gray-700/50 dark:hover:to-gray-800/50 transition-colors"
                           onClick={() => setExpanded((prev) => ({ ...prev, [key]: !prev[key] }))}
                         >
-                          <span className="text-2xl">{backgroundIcons[key] || '📖'}</span>
+                          <div className="w-8 h-8 bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg flex items-center justify-center">
+                            <span className="text-lg">{backgroundIcons[key] || '📖'}</span>
+                          </div>
                           <span className="font-semibold text-base capitalize flex-1">
                             {key.replace(/_/g, ' ')}
                           </span>
@@ -1099,12 +1121,12 @@ export default function InfluencerBio() {
                           )}
                         </div>
                         {typeof value === 'string' && expanded[key] && (
-                          <div className="px-4 pb-4 text-base text-muted-foreground leading-relaxed whitespace-pre-line">
+                          <div className="px-4 pb-4 text-base text-muted-foreground leading-relaxed whitespace-pre-line bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800/50 dark:to-gray-900/50">
                             {value}
                           </div>
                         )}
                         {Array.isArray(value) && (
-                          <div className="px-4 pb-4">
+                          <div className="px-4 pb-4 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800/50 dark:to-gray-900/50">
                             <ul className="list-disc list-inside text-base text-muted-foreground space-y-1">
                               {value.map((item, idx) => <li key={idx}>{item}</li>)}
                             </ul>
@@ -1122,8 +1144,8 @@ export default function InfluencerBio() {
               <Card className="shadow-lg border-0 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
                 <CardHeader>
                   <CardTitle className="text-2xl flex items-center gap-3">
-                    <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex items-center justify-center">
-                      <span className="text-white text-sm font-bold">💬</span>
+                    <div className="w-10 h-10 bg-gradient-to-br from-green-600 to-emerald-600 rounded-xl flex items-center justify-center shadow-lg">
+                      <MessageSquare className="w-5 h-5 text-white" />
                     </div>
                     Chat Guidance
                   </CardTitle>
@@ -1133,14 +1155,16 @@ export default function InfluencerBio() {
                     <div className="space-y-4">
                       <div className="bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
                         <h4 className="font-semibold flex items-center gap-2 mb-2">
-                          🗣️ Communication Style
+                          <Mic className="w-4 h-4 text-blue-600" />
+                          Communication Style
                         </h4>
                         <p className="text-sm text-muted-foreground leading-relaxed">{chatter.communication_style}</p>
                       </div>
                       
                       <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg p-4 border border-green-200 dark:border-green-800">
                         <h4 className="font-semibold flex items-center gap-2 mb-2">
-                          💝 Building Intimacy
+                          <Heart className="w-4 h-4 text-green-600" />
+                          Building Intimacy
                         </h4>
                         <p className="text-sm text-muted-foreground leading-relaxed">{chatter.intimacy_building}</p>
                       </div>
@@ -1149,7 +1173,8 @@ export default function InfluencerBio() {
                     <div className="space-y-4">
                       <div className="bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 rounded-lg p-4 border border-yellow-200 dark:border-yellow-800">
                         <h4 className="font-semibold flex items-center gap-2 mb-2">
-                          🎣 Engagement Hooks
+                          <Zap className="w-4 h-4 text-yellow-600" />
+                          Engagement Hooks
                         </h4>
                         <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
                           {(chatter.engagement_hooks || '').split(/\n|•/).filter(Boolean).map((item: string, idx: number) => (
@@ -1160,7 +1185,8 @@ export default function InfluencerBio() {
                       
                       <div className="bg-gradient-to-r from-red-50 to-pink-50 dark:from-red-900/20 dark:to-pink-900/20 rounded-lg p-4 border border-red-200 dark:border-red-800">
                         <h4 className="font-semibold flex items-center gap-2 mb-2">
-                          🚫 Boundaries
+                          <Shield className="w-4 h-4 text-red-600" />
+                          Boundaries
                         </h4>
                         <p className="text-sm text-muted-foreground leading-relaxed">{chatter.boundaries}</p>
                       </div>

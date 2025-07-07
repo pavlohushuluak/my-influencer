@@ -45,7 +45,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { UserTaskStatus } from "@/components/UserTaskStatus";
 
 const menuItems = [
   {
@@ -233,7 +232,6 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="border-t border-border/30 bg-gradient-to-r from-purple-50/30 to-blue-50/30 dark:from-purple-950/20 dark:to-blue-950/20 p-2 px-4">
-        <UserTaskStatus isCollapsed={isCollapsed} />
         <div
           onClick={() => navigate('/account')}
           className={`${isCollapsed ? "flex items-center gap-2 cursor-pointer hover:bg-gradient-to-r hover:from-purple-50 hover:to-blue-50 dark:hover:from-purple-950/40 dark:hover:to-blue-950/40 transition-all duration-300 rounded-lg py-3" : "flex items-center gap-2 cursor-pointer hover:bg-gradient-to-r hover:from-purple-50 hover:to-blue-50 dark:hover:from-purple-950/40 dark:hover:to-blue-950/40 transition-all duration-300 rounded-lg py-3 px-3"}`}

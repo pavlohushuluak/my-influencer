@@ -5,8 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useState } from 'react';
-import { Check, Copy as CopyIcon, ChevronDown, ChevronUp, Instagram, Twitter, MessageCircle, Heart, Star, ArrowLeft } from 'lucide-react';
+import { Check, Copy as CopyIcon, ChevronDown, ChevronUp, Instagram, Twitter, MessageCircle, Heart, Star, ArrowLeft, FileText, Download, Share2, AlertTriangle, RefreshCw, Plus } from 'lucide-react';
 
 const limit = [
   {
@@ -100,7 +101,7 @@ function ProgressBar({ value, max, color }: { value: number; max: number; color:
   let bgColor = 'bg-green-500';
   if (percent > 95) bgColor = 'bg-red-500';
   else if (percent > 80) bgColor = 'bg-yellow-500';
-
+  
   return (
     <div className="w-full">
       <div className="flex justify-between text-xs text-muted-foreground mb-1">
@@ -108,34 +109,133 @@ function ProgressBar({ value, max, color }: { value: number; max: number; color:
         <span>{Math.round(percent)}%</span>
       </div>
       <div className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-        <div
-          className={`h-2 ${bgColor} transition-all duration-300`}
-          style={{ width: `${percent}%` }}
+        <div 
+          className={`h-2 ${bgColor} transition-all duration-300`} 
+          style={{ width: `${percent}%` }} 
         />
       </div>
     </div>
   );
 }
 
-function CopyButton({ text, label }: { text: string; label: string }) {
+function CopyButton({ text, label, variant = "ghost" }: { text: string; label: string; variant?: "ghost" | "outline" | "default" }) {
   const [copied, setCopied] = useState(false);
-
+  
   const handleCopy = async () => {
     await navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
-
+  
   return (
     <Button
       size="sm"
-      variant="ghost"
+      variant={variant}
       onClick={handleCopy}
-      className="h-8 px-2 text-xs"
+      className="h-8 px-3 text-xs"
     >
       {copied ? <Check className="w-3 h-3" /> : <CopyIcon className="w-3 h-3" />}
       {copied ? 'Copied!' : label}
     </Button>
+  );
+}
+
+function ExportButton({ onClick, icon, label, variant = "outline" }: { 
+  onClick: () => void; 
+  icon: React.ReactNode; 
+  label: string; 
+  variant?: "outline" | "default" 
+}) {
+  return (
+    <Button variant={variant} onClick={onClick} className="flex items-center gap-2">
+      {icon}
+      {label}
+    </Button>
+  );
+}
+
+function ComparisonView({ platforms, platformConfig }: { platforms: any; platformConfig: any }) {
+  const [selectedPlatforms, setSelectedPlatforms] = useState(['instagram', 'tiktok', 'fanvue']);
+  
+  return (
+    <Card className="shadow-lg border-0 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
+      <CardHeader>
+        <CardTitle className="text-xl flex items-center gap-3">
+          <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg flex items-center justify-center">
+            <span className="text-white text-sm font-bold">📊</span>
+          </div>
+          Platform Comparison
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {selectedPlatforms.map((platformKey) => {
+            const platform = platforms[platformKey];
+            const config = platformConfig[platformKey];
+            if (!platform || !config) return null;
+            
+            return (
+              <div key={platformKey} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className={`w-8 h-8 ${config.bgColor} rounded-lg flex items-center justify-center`}>
+                    <config.icon className="w-4 h-4 text-white" />
+                  </div>
+                  <span className="font-semibold">{config.name}</span>
+                </div>
+                
+                <div className="space-y-3">
+                  <div>
+                    <div className="text-xs text-muted-foreground mb-1">Headline</div>
+                    <div className="text-sm font-medium line-clamp-2">{platform.headline}</div>
+                  </div>
+                  
+                  <div>
+                    <div className="text-xs text-muted-foreground mb-1">Bio</div>
+                    <div className="text-sm line-clamp-3">{platform.bio}</div>
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">Score</span>
+                    <Badge variant="secondary">{platform.optimization_score}/10</Badge>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function ErrorDisplay({ missingFields, onComplete, onRetry }: { 
+  missingFields: string[]; 
+  onComplete: () => void; 
+  onRetry: () => void; 
+}) {
+  return (
+    <Alert className="border-red-200 bg-red-50 dark:bg-red-900/20 dark:border-red-800">
+      <AlertTriangle className="h-4 w-4 text-red-600" />
+      <AlertDescription className="text-red-800 dark:text-red-200">
+        <div className="font-semibold mb-2">⚠️ Cannot Generate Complete Profile</div>
+        <div className="text-sm mb-3">Missing required information:</div>
+        <ul className="list-disc list-inside text-sm space-y-1 mb-4">
+          {missingFields.map((field, index) => (
+            <li key={index}>• {field}</li>
+          ))}
+        </ul>
+        <div className="flex gap-2">
+          <Button size="sm" onClick={onComplete} className="bg-red-600 hover:bg-red-700">
+            <Plus className="w-3 h-3 mr-1" />
+            Complete Profile
+          </Button>
+          <Button size="sm" variant="outline" onClick={onRetry}>
+            <RefreshCw className="w-3 h-3 mr-1" />
+            Retry
+          </Button>
+        </div>
+      </AlertDescription>
+    </Alert>
   );
 }
 
@@ -149,6 +249,8 @@ export default function InfluencerBio() {
   const bio = useSelector((state: RootState) => state.bio[influencerId]);
   const [platformTab, setPlatformTab] = useState('instagram');
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [showComparison, setShowComparison] = useState(false);
+  const [copyAllFeedback, setCopyAllFeedback] = useState(false);
 
   if (!influencer || !bio) {
     return (
@@ -179,13 +281,48 @@ export default function InfluencerBio() {
   const background = bio.background_story || {};
   const chatter = bio.chatter_guidance || {};
 
+  // Check for missing data
+  const missingFields = [];
+  if (!summary.cultural_background) missingFields.push('Cultural background');
+  if (!summary.personality_archetype) missingFields.push('Personality traits');
+  if (!summary.primary_niche) missingFields.push('Content focus areas');
+
+  const handleCopyAllPlatforms = async () => {
+    const allData = Object.entries(platforms).map(([key, platform]) => {
+      const config = platformConfig[key as keyof typeof platformConfig];
+      return `${config?.name}:\nHeadline: ${platform.headline}\nBio: ${platform.bio}\nScore: ${platform.optimization_score}/10\n`;
+    }).join('\n');
+    
+    await navigator.clipboard.writeText(allData);
+    setCopyAllFeedback(true);
+    setTimeout(() => setCopyAllFeedback(false), 3000);
+  };
+
+  const handleExportPDF = () => {
+    // PDF export logic would go here
+    console.log('Exporting PDF...');
+  };
+
+  const handleExportExcel = () => {
+    // Excel export logic would go here
+    console.log('Exporting Excel...');
+  };
+
+  const handleShareLink = () => {
+    // Share link logic would go here
+    navigator.share?.({
+      title: `${summary.name} - Bio Profile`,
+      url: window.location.href,
+    });
+  };
+
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 dark:from-gray-900 dark:to-gray-800">
       <div className="max-w-7xl mx-auto p-4 lg:p-8">
         {/* Header */}
         <div className="mb-8">
-          <Button
-            variant="ghost"
+          <Button 
+            variant="ghost" 
             onClick={() => navigate(-1)}
             className="mb-4 text-muted-foreground hover:text-foreground"
           >
@@ -193,21 +330,89 @@ export default function InfluencerBio() {
             Back
           </Button>
           <div className="flex items-center gap-4 mb-6">
-            <div className="w-16 h-16 rounded-full overflow-hidden border-4 border-white dark:border-gray-800 shadow-lg">
+            <div className="relative w-20 h-20 rounded-full overflow-hidden border-4 border-white dark:border-gray-800 shadow-xl bg-gradient-to-br from-blue-100 to-purple-100 dark:from-gray-700 dark:to-gray-800">
               <img
                 src={influencer.image_url}
                 alt={influencer.name_first}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover transition-transform duration-300 hover:scale-110"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.style.display = 'none';
+                  const fallback = target.parentElement?.querySelector('.fallback') as HTMLElement;
+                  if (fallback) fallback.style.display = 'flex';
+                }}
               />
+              <div className="fallback absolute inset-0 hidden items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600 text-white text-2xl font-bold">
+                {influencer.name_first.charAt(0).toUpperCase()}
+              </div>
             </div>
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+            <div className="flex-1">
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
                 {summary.name}
               </h1>
-              <p className="text-lg text-muted-foreground">{summary.age_lifestyle}</p>
+              <p className="text-lg text-muted-foreground mb-2">{summary.age_lifestyle}</p>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300">
+                  {summary.cultural_background}
+                </Badge>
+                <Badge variant="outline" className="bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300">
+                  {summary.personality_archetype}
+                </Badge>
+              </div>
             </div>
           </div>
+
+          {/* Export Options */}
+          <div className="flex flex-wrap gap-3 mb-6">
+            <CopyButton 
+              text={Object.entries(platforms).map(([key, platform]) => 
+                `${platformConfig[key as keyof typeof platformConfig]?.name}:\nHeadline: ${platform.headline}\nBio: ${platform.bio}\nScore: ${platform.optimization_score}/10`
+              ).join('\n\n')}
+              label="Copy All Platform Data"
+              variant="default"
+            />
+            <ExportButton 
+              onClick={handleExportPDF}
+              icon={<FileText className="w-4 h-4" />}
+              label="Export PDF Report"
+            />
+            <ExportButton 
+              onClick={handleExportExcel}
+              icon={<Download className="w-4 h-4" />}
+              label="Export Excel"
+            />
+            <ExportButton 
+              onClick={handleShareLink}
+              icon={<Share2 className="w-4 h-4" />}
+              label="Share Link"
+            />
+            <Button 
+              variant="outline" 
+              onClick={() => setShowComparison(!showComparison)}
+              className="flex items-center gap-2"
+            >
+              📊 Comparison View
+            </Button>
+          </div>
+
+          {/* Error Display */}
+          {missingFields.length > 0 && (
+            <div className="mb-6">
+              <ErrorDisplay 
+                missingFields={missingFields}
+                onComplete={() => console.log('Complete profile')}
+                onRetry={() => console.log('Retry generation')}
+              />
+            </div>
+          )}
         </div>
+
+        {/* Comparison View */}
+        {showComparison && (
+          <div className="mb-8">
+            <ComparisonView platforms={platforms} platformConfig={platformConfig} />
+          </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left Sidebar - Desktop Only */}
@@ -243,22 +448,22 @@ export default function InfluencerBio() {
                   <CardTitle className="text-lg">Navigation</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
-                  <Button
-                    variant="ghost"
+                  <Button 
+                    variant="ghost" 
                     className="w-full justify-start"
                     onClick={() => document.getElementById('platforms')?.scrollIntoView({ behavior: 'smooth' })}
                   >
                     📱 Platform Profiles
                   </Button>
-                  <Button
-                    variant="ghost"
+                  <Button 
+                    variant="ghost" 
                     className="w-full justify-start"
                     onClick={() => document.getElementById('background')?.scrollIntoView({ behavior: 'smooth' })}
                   >
                     📖 Character Background
                   </Button>
-                  <Button
-                    variant="ghost"
+                  <Button 
+                    variant="ghost" 
                     className="w-full justify-start"
                     onClick={() => document.getElementById('guidance')?.scrollIntoView({ behavior: 'smooth' })}
                   >
@@ -289,9 +494,9 @@ export default function InfluencerBio() {
                         const config = platformConfig[platform as keyof typeof platformConfig];
                         const Icon = config?.icon || MessageCircle;
                         return (
-                          <TabsTrigger
-                            key={platform}
-                            value={platform}
+                          <TabsTrigger 
+                            key={platform} 
+                            value={platform} 
                             className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-600 data-[state=active]:text-white"
                           >
                             <Icon className="w-4 h-4" />
@@ -313,7 +518,7 @@ export default function InfluencerBio() {
                               <p className="text-sm text-muted-foreground">{config?.description}</p>
                             </div>
                           </div>
-
+                          
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             {/* Headline */}
                             <div className="space-y-3">
@@ -384,7 +589,7 @@ export default function InfluencerBio() {
                   <div className="space-y-4">
                     {Object.entries(background).map(([key, value]: any) => (
                       <div key={key} className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
-                        <div
+                        <div 
                           className="flex items-center gap-3 p-4 cursor-pointer select-none hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
                           onClick={() => setExpanded((prev) => ({ ...prev, [key]: !prev[key] }))}
                         >
@@ -393,8 +598,8 @@ export default function InfluencerBio() {
                             {key.replace(/_/g, ' ')}
                           </span>
                           {typeof value === 'string' && (
-                            expanded[key] ?
-                              <ChevronUp className="w-5 h-5 text-muted-foreground" /> :
+                            expanded[key] ? 
+                              <ChevronUp className="w-5 h-5 text-muted-foreground" /> : 
                               <ChevronDown className="w-5 h-5 text-muted-foreground" />
                           )}
                         </div>
@@ -437,7 +642,7 @@ export default function InfluencerBio() {
                         </h4>
                         <p className="text-sm text-muted-foreground leading-relaxed">{chatter.communication_style}</p>
                       </div>
-
+                      
                       <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg p-4 border border-green-200 dark:border-green-800">
                         <h4 className="font-semibold flex items-center gap-2 mb-2">
                           💝 Building Intimacy
@@ -445,7 +650,7 @@ export default function InfluencerBio() {
                         <p className="text-sm text-muted-foreground leading-relaxed">{chatter.intimacy_building}</p>
                       </div>
                     </div>
-
+                    
                     <div className="space-y-4">
                       <div className="bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 rounded-lg p-4 border border-yellow-200 dark:border-yellow-800">
                         <h4 className="font-semibold flex items-center gap-2 mb-2">
@@ -457,7 +662,7 @@ export default function InfluencerBio() {
                           ))}
                         </ul>
                       </div>
-
+                      
                       <div className="bg-gradient-to-r from-red-50 to-pink-50 dark:from-red-900/20 dark:to-pink-900/20 rounded-lg p-4 border border-red-200 dark:border-red-800">
                         <h4 className="font-semibold flex items-center gap-2 mb-2">
                           🚫 Boundaries

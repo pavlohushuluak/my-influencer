@@ -19,7 +19,7 @@ const generatePDF = async (influencer: any, bio: any, platforms: any) => {
     // Dynamic import for PDF library
     const { jsPDF } = await import('jspdf');
     const doc = new jsPDF();
-    
+
     // Helper function to clean text of emojis and special characters
     const cleanText = (text: string) => {
       return text
@@ -33,22 +33,22 @@ const generatePDF = async (influencer: any, bio: any, platforms: any) => {
         .replace(/\s+/g, ' ') // Multiple spaces to single
         .trim();
     };
-    
+
     // Set up fonts and styling
     doc.setFontSize(20);
     doc.setTextColor(44, 62, 80);
     doc.text(`${influencer.name_first} ${influencer.name_last} - Bio Profile`, 20, 30);
-    
+
     doc.setFontSize(12);
     doc.setTextColor(52, 73, 94);
-    
+
     let yPosition = 50;
-    
+
     // Summary section
     doc.setFontSize(16);
     doc.text('Profile Summary', 20, yPosition);
     yPosition += 10;
-    
+
     doc.setFontSize(10);
     doc.text(`Name: ${cleanText(bio.influencer_profile_summary.name)}`, 20, yPosition);
     yPosition += 7;
@@ -62,28 +62,28 @@ const generatePDF = async (influencer: any, bio: any, platforms: any) => {
     yPosition += 7;
     doc.text(`Target Audience: ${cleanText(bio.influencer_profile_summary.target_audience)}`, 20, yPosition);
     yPosition += 15;
-    
+
     // Platform profiles
     doc.setFontSize(16);
     doc.text('Platform Profiles', 20, yPosition);
     yPosition += 10;
-    
+
     Object.entries(platforms).forEach(([platformKey, platform]: [string, any]) => {
       const config = platformConfig[platformKey as keyof typeof platformConfig];
-      
+
       if (yPosition > 250) {
         doc.addPage();
         yPosition = 20;
       }
-      
+
       doc.setFontSize(12);
       doc.setTextColor(41, 128, 185);
       doc.text(`${config?.name} Profile`, 20, yPosition);
       yPosition += 7;
-      
+
       doc.setFontSize(10);
       doc.setTextColor(52, 73, 94);
-      
+
       // Headline with proper text wrapping
       const headlineText = `Headline: ${cleanText(platform.headline)}`;
       const headlineLines = doc.splitTextToSize(headlineText, 170);
@@ -96,7 +96,7 @@ const generatePDF = async (influencer: any, bio: any, platforms: any) => {
         yPosition += 6;
       });
       yPosition += 2;
-      
+
       // Bio with proper text wrapping
       const bioText = `Bio: ${cleanText(platform.bio)}`;
       const bioLines = doc.splitTextToSize(bioText, 170);
@@ -109,11 +109,11 @@ const generatePDF = async (influencer: any, bio: any, platforms: any) => {
         yPosition += 6;
       });
       yPosition += 2;
-      
+
       // Score and reasoning
       doc.text(`Optimization Score: ${platform.optimization_score}/10`, 20, yPosition);
       yPosition += 6;
-      
+
       const reasoningText = `Reasoning: ${cleanText(platform.reasoning)}`;
       const reasoningLines = doc.splitTextToSize(reasoningText, 170);
       reasoningLines.forEach((line: string) => {
@@ -126,28 +126,28 @@ const generatePDF = async (influencer: any, bio: any, platforms: any) => {
       });
       yPosition += 8;
     });
-    
+
     // Background story
     if (yPosition > 250) {
       doc.addPage();
       yPosition = 20;
     }
-    
+
     doc.setFontSize(16);
     doc.text('Character Background', 20, yPosition);
     yPosition += 10;
-    
+
     Object.entries(bio.background_story || {}).forEach(([key, value]: [string, any]) => {
       if (yPosition > 250) {
         doc.addPage();
         yPosition = 20;
       }
-      
+
       doc.setFontSize(12);
       doc.setTextColor(41, 128, 185);
       doc.text(key.replace(/_/g, ' ').toUpperCase(), 20, yPosition);
       yPosition += 7;
-      
+
       doc.setFontSize(10);
       doc.setTextColor(52, 73, 94);
       const text = typeof value === 'string' ? cleanText(value) : Array.isArray(value) ? cleanText(value.join(', ')) : cleanText(JSON.stringify(value));
@@ -162,20 +162,20 @@ const generatePDF = async (influencer: any, bio: any, platforms: any) => {
       });
       yPosition += 5;
     });
-    
+
     // Chat guidance
     if (yPosition > 250) {
       doc.addPage();
       yPosition = 20;
     }
-    
+
     doc.setFontSize(16);
     doc.text('Chat Guidance', 20, yPosition);
     yPosition += 10;
-    
+
     const chatter = bio.chatter_guidance || {};
     doc.setFontSize(10);
-    
+
     const communicationText = `Communication Style: ${cleanText(chatter.communication_style)}`;
     const communicationLines = doc.splitTextToSize(communicationText, 170);
     communicationLines.forEach((line: string) => {
@@ -187,7 +187,7 @@ const generatePDF = async (influencer: any, bio: any, platforms: any) => {
       yPosition += 6;
     });
     yPosition += 2;
-    
+
     const engagementText = `Engagement Hooks: ${cleanText(chatter.engagement_hooks)}`;
     const engagementLines = doc.splitTextToSize(engagementText, 170);
     engagementLines.forEach((line: string) => {
@@ -199,7 +199,7 @@ const generatePDF = async (influencer: any, bio: any, platforms: any) => {
       yPosition += 6;
     });
     yPosition += 2;
-    
+
     const intimacyText = `Intimacy Building: ${cleanText(chatter.intimacy_building)}`;
     const intimacyLines = doc.splitTextToSize(intimacyText, 170);
     intimacyLines.forEach((line: string) => {
@@ -211,7 +211,7 @@ const generatePDF = async (influencer: any, bio: any, platforms: any) => {
       yPosition += 6;
     });
     yPosition += 2;
-    
+
     const boundariesText = `Boundaries: ${cleanText(chatter.boundaries)}`;
     const boundariesLines = doc.splitTextToSize(boundariesText, 170);
     boundariesLines.forEach((line: string) => {
@@ -222,11 +222,11 @@ const generatePDF = async (influencer: any, bio: any, platforms: any) => {
       doc.text(line, 20, yPosition);
       yPosition += 6;
     });
-    
+
     // Save the PDF
     const fileName = `${influencer.name_first}_${influencer.name_last}_Bio_Profile.pdf`;
     doc.save(fileName);
-    
+
     return true;
   } catch (error) {
     console.error('PDF generation error:', error);
@@ -239,10 +239,10 @@ const generateExcel = async (influencer: any, bio: any, platforms: any) => {
   try {
     // Dynamic import for Excel library
     const XLSX = await import('xlsx');
-    
+
     // Create workbook
     const wb = XLSX.utils.book_new();
-    
+
     // Summary sheet
     const summaryData = [
       ['Profile Summary'],
@@ -253,15 +253,15 @@ const generateExcel = async (influencer: any, bio: any, platforms: any) => {
       ['Primary Niche', bio.influencer_profile_summary.primary_niche],
       ['Target Audience', bio.influencer_profile_summary.target_audience],
     ];
-    
+
     const summarySheet = XLSX.utils.aoa_to_sheet(summaryData);
     XLSX.utils.book_append_sheet(wb, summarySheet, 'Summary');
-    
+
     // Platform profiles sheet
     const platformData = [
       ['Platform', 'Headline', 'Bio', 'Optimization Score', 'Reasoning']
     ];
-    
+
     Object.entries(platforms).forEach(([platformKey, platform]: [string, any]) => {
       const config = platformConfig[platformKey as keyof typeof platformConfig];
       platformData.push([
@@ -272,25 +272,25 @@ const generateExcel = async (influencer: any, bio: any, platforms: any) => {
         platform.reasoning
       ]);
     });
-    
+
     const platformSheet = XLSX.utils.aoa_to_sheet(platformData);
     XLSX.utils.book_append_sheet(wb, platformSheet, 'Platform Profiles');
-    
+
     // Background story sheet
     const backgroundData = [
       ['Background Story']
     ];
-    
+
     Object.entries(bio.background_story || {}).forEach(([key, value]: [string, any]) => {
       backgroundData.push([key.replace(/_/g, ' ').toUpperCase()]);
       const text = typeof value === 'string' ? value : Array.isArray(value) ? value.join(', ') : JSON.stringify(value);
       backgroundData.push([text]);
       backgroundData.push([]); // Empty row for spacing
     });
-    
+
     const backgroundSheet = XLSX.utils.aoa_to_sheet(backgroundData);
     XLSX.utils.book_append_sheet(wb, backgroundSheet, 'Background Story');
-    
+
     // Chat guidance sheet
     const chatter = bio.chatter_guidance || {};
     const chatterData = [
@@ -300,14 +300,14 @@ const generateExcel = async (influencer: any, bio: any, platforms: any) => {
       ['Intimacy Building', chatter.intimacy_building],
       ['Boundaries', chatter.boundaries],
     ];
-    
+
     const chatterSheet = XLSX.utils.aoa_to_sheet(chatterData);
     XLSX.utils.book_append_sheet(wb, chatterSheet, 'Chat Guidance');
-    
+
     // Save the Excel file
     const fileName = `${influencer.name_first}_${influencer.name_last}_Bio_Profile.xlsx`;
     XLSX.writeFile(wb, fileName);
-    
+
     return true;
   } catch (error) {
     console.error('Excel generation error:', error);
@@ -392,7 +392,7 @@ const platformConfig = {
     name: 'Threads',
     color: '#000000',
     bgColor: 'bg-gradient-to-br from-gray-800 to-gray-900',
-    icon: MessageCircle,
+    icon: MessageSquare,
     description: 'Text-based social platform'
   },
   fanvue: {
@@ -419,7 +419,7 @@ function ProgressBar({ value, max, color }: { value: number; max: number; color:
   let bgColor = 'bg-green-500';
   if (percent > 95) bgColor = 'bg-red-500';
   else if (percent > 80) bgColor = 'bg-yellow-500';
-  
+
   return (
     <div className="w-full">
       <div className="flex justify-between text-xs text-muted-foreground mb-1">
@@ -427,9 +427,9 @@ function ProgressBar({ value, max, color }: { value: number; max: number; color:
         <span>{Math.round(percent)}%</span>
       </div>
       <div className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-        <div 
-          className={`h-2 ${bgColor} transition-all duration-300`} 
-          style={{ width: `${percent}%` }} 
+        <div
+          className={`h-2 ${bgColor} transition-all duration-300`}
+          style={{ width: `${percent}%` }}
         />
       </div>
     </div>
@@ -438,31 +438,30 @@ function ProgressBar({ value, max, color }: { value: number; max: number; color:
 
 function CopyButton({ text, label, variant = "ghost" }: { text: string; label: string; variant?: "ghost" | "outline" | "default" }) {
   const [copied, setCopied] = useState(false);
-  
+
   const handleCopy = async () => {
     await navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
-  
+
   return (
     <Button
-      size="sm"
       variant={variant}
       onClick={handleCopy}
-      className="h-8 px-3 text-xs"
+      className="gap-2"
     >
-      {copied ? <Check className="w-3 h-3" /> : <CopyIcon className="w-3 h-3" />}
+      {copied ? <Check className="w-4 h-4" /> : <CopyIcon className="w-4 h-4" />}
       {copied ? 'Copied!' : label}
     </Button>
   );
 }
 
-function ExportButton({ onClick, icon, label, variant = "outline" }: { 
-  onClick: () => void; 
-  icon: React.ReactNode; 
-  label: string; 
-  variant?: "outline" | "default" 
+function ExportButton({ onClick, icon, label, variant = "outline" }: {
+  onClick: () => void;
+  icon: React.ReactNode;
+  label: string;
+  variant?: "outline" | "default"
 }) {
   return (
     <Button variant={variant} onClick={onClick} className="flex items-center gap-2">
@@ -474,19 +473,19 @@ function ExportButton({ onClick, icon, label, variant = "outline" }: {
 
 function ComparisonView({ platforms, platformConfig }: { platforms: any; platformConfig: any }) {
   const [selectedPlatforms, setSelectedPlatforms] = useState(['instagram', 'fanvue', 'tiktok']);
-  
-  const availablePlatforms = Object.keys(platforms).filter(platform => 
+
+  const availablePlatforms = Object.keys(platforms).filter(platform =>
     platforms[platform] && Object.keys(platforms[platform]).length > 0
   );
-  
+
   const togglePlatform = (platformKey: string) => {
-    setSelectedPlatforms(prev => 
-      prev.includes(platformKey) 
+    setSelectedPlatforms(prev =>
+      prev.includes(platformKey)
         ? prev.filter(p => p !== platformKey)
         : [...prev, platformKey]
     );
   };
-  
+
   return (
     <Card className="shadow-lg border-0 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
       <CardHeader>
@@ -509,7 +508,7 @@ function ComparisonView({ platforms, platformConfig }: { platforms: any; platfor
               const config = platformConfig[platformKey];
               const Icon = config?.icon || MessageCircle;
               const isSelected = selectedPlatforms.includes(platformKey);
-              
+
               return (
                 <Button
                   key={platformKey}
@@ -526,14 +525,14 @@ function ComparisonView({ platforms, platformConfig }: { platforms: any; platfor
             })}
           </div>
         </div>
-        
+
         {/* Comparison Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {selectedPlatforms.map((platformKey) => {
             const platform = platforms[platformKey];
             const config = platformConfig[platformKey];
             if (!platform || !config) return null;
-            
+
             return (
               <div key={platformKey} className="border border-gray-200 dark:border-gray-700 rounded-xl p-4 hover:shadow-lg transition-all duration-300 bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900">
                 <div className="flex items-center gap-3 mb-4">
@@ -545,7 +544,7 @@ function ComparisonView({ platforms, platformConfig }: { platforms: any; platfor
                     <div className="text-xs text-muted-foreground">{config.description}</div>
                   </div>
                 </div>
-                
+
                 <div className="space-y-4">
                   <div>
                     <div className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1">
@@ -556,7 +555,7 @@ function ComparisonView({ platforms, platformConfig }: { platforms: any; platfor
                       {platform.headline}
                     </div>
                   </div>
-                  
+
                   <div>
                     <div className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1">
                       <FileText className="w-3 h-3" />
@@ -566,7 +565,7 @@ function ComparisonView({ platforms, platformConfig }: { platforms: any; platfor
                       {platform.bio}
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-medium text-muted-foreground flex items-center gap-1">
                       <Star className="w-3 h-3" />
@@ -581,7 +580,7 @@ function ComparisonView({ platforms, platformConfig }: { platforms: any; platfor
             );
           })}
         </div>
-        
+
         {selectedPlatforms.length === 0 && (
           <div className="text-center py-12 text-muted-foreground">
             <div className="w-16 h-16 bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/20 dark:to-pink-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -596,10 +595,10 @@ function ComparisonView({ platforms, platformConfig }: { platforms: any; platfor
   );
 }
 
-function ErrorDisplay({ missingFields, onComplete, onRetry }: { 
-  missingFields: string[]; 
-  onComplete: () => void; 
-  onRetry: () => void; 
+function ErrorDisplay({ missingFields, onComplete, onRetry }: {
+  missingFields: string[];
+  onComplete: () => void;
+  onRetry: () => void;
 }) {
   return (
     <Alert className="border-red-200 bg-red-50 dark:bg-red-900/20 dark:border-red-800">
@@ -649,13 +648,13 @@ export default function InfluencerBio() {
   React.useEffect(() => {
     const fetchData = async () => {
       if (!influencerId) return;
-      
+
       setLoading(true);
       try {
         console.log('Fetching data for influencer:', influencerId);
         console.log('Current influencer from Redux:', influencer);
         console.log('Current bio from Redux:', bio);
-        
+
         // If influencer not in Redux, fetch from database
         if (!influencer) {
           console.log('Influencer not in Redux, fetching from database...');
@@ -664,7 +663,7 @@ export default function InfluencerBio() {
               'Authorization': 'Bearer WeInfl3nc3withAI',
             },
           });
-          
+
           if (response.ok) {
             const data = await response.json();
             console.log('Database response:', data);
@@ -672,7 +671,7 @@ export default function InfluencerBio() {
               const fetchedInfluencer = data[0];
               console.log('Fetched influencer:', fetchedInfluencer);
               setLocalInfluencer(fetchedInfluencer);
-              
+
               // If bio exists in database, set it
               if (fetchedInfluencer.bio && Object.keys(fetchedInfluencer.bio).length > 0) {
                 console.log('Bio found in database:', fetchedInfluencer.bio);
@@ -741,7 +740,7 @@ export default function InfluencerBio() {
 
   if (!currentInfluencer || !currentBio) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 dark:from-gray-900 dark:to-gray-800">
+      <div className="min-h-screen">
         <div className="max-w-4xl mx-auto p-6">
           <div className="text-center py-12">
             {loading ? (
@@ -789,7 +788,7 @@ export default function InfluencerBio() {
       const config = platformConfig[key as keyof typeof platformConfig];
       return `${config?.name}:\nHeadline: ${platform.headline}\nBio: ${platform.bio}\nScore: ${platform.optimization_score}/10\n`;
     }).join('\n');
-    
+
     await navigator.clipboard.writeText(allData);
     setCopyAllFeedback(true);
     setTimeout(() => setCopyAllFeedback(false), 3000);
@@ -831,18 +830,18 @@ export default function InfluencerBio() {
 
   return (
     <div className="min-h-screen">
-      <div className="max-w-7xl mx-auto p-4 lg:p-8">
+      <div className="mx-auto p-4 lg:p-8">
         {/* Header */}
-        <div className="mb-8">
-          <Button 
-            variant="ghost" 
+        <div className="mb-4">
+          <Button
+            variant="ghost"
             onClick={() => navigate(-1)}
             className="mb-4 text-muted-foreground hover:text-foreground"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back
           </Button>
-          <div className="flex items-center gap-4 mb-6">
+          <div className="flex items-center gap-2 mb-4">
             <div className="relative w-20 h-20 rounded-full overflow-hidden border-4 border-white dark:border-gray-800 shadow-xl bg-gradient-to-br from-blue-100 to-purple-100 dark:from-gray-700 dark:to-gray-800">
               <img
                 src={currentInfluencer.image_url}
@@ -864,7 +863,7 @@ export default function InfluencerBio() {
                 {summary.name}
               </h1>
               <p className="text-lg text-muted-foreground mb-2">{summary.age_lifestyle}</p>
-              <div className="flex items-center gap-2">
+              <div className="hidden md:flex items-center gap-2">
                 <Badge variant="outline" className="bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300">
                   {summary.cultural_background}
                 </Badge>
@@ -874,44 +873,88 @@ export default function InfluencerBio() {
               </div>
             </div>
           </div>
+          <div className="flex items-center mb-2 gap-2 md:hidden">
+            <Badge variant="outline" className="bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300">
+              {summary.cultural_background}
+            </Badge>
+            <Badge variant="outline" className="bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300">
+              {summary.personality_archetype}
+            </Badge>
+          </div>
 
           {/* Export Options */}
-          <div className="flex flex-wrap gap-3 mb-6">
-            <CopyButton 
-              text={Object.entries(platforms).map(([key, platform]) => 
+          <div className="flex flex-wrap gap-2 mb-2 h-full">
+            <CopyButton
+              text={Object.entries(platforms).map(([key, platform]) =>
                 `${platformConfig[key as keyof typeof platformConfig]?.name}:\nHeadline: ${platform.headline}\nBio: ${platform.bio}\nScore: ${platform.optimization_score}/10`
               ).join('\n\n')}
               label="Copy All Platform Data"
               variant="default"
             />
-            <ExportButton 
+            <ExportButton
               onClick={handleExportPDF}
               icon={<FileText className="w-4 h-4" />}
               label="Export PDF Report"
             />
-            <ExportButton 
+            <ExportButton
               onClick={handleExportExcel}
               icon={<Download className="w-4 h-4" />}
               label="Export Excel"
             />
-            <ExportButton 
+            <ExportButton
               onClick={handleShareLink}
               icon={<Share2 className="w-4 h-4" />}
               label="Copy Link"
             />
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={() => setShowComparison(!showComparison)}
               className="flex items-center gap-2"
             >
-              📊 Comparison View
+              <BarChart3 className="w-4 h-4" />
+              Comparison View
             </Button>
+          </div>
+
+          {/* Navigation */}
+          <div className="sticky top-0 z-40 mb-6 -mx-4 lg:-mx-8 px-4 lg:px-8 pt-4">
+            <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg p-1">
+              <div className="flex flex-wrap gap-2 justify-center">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => document.getElementById('platforms')?.scrollIntoView({ behavior: 'smooth' })}
+                  className="flex items-center gap-2 text-sm hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                >
+                  <Smartphone className="w-4 h-4" />
+                  Platform Profiles
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => document.getElementById('background')?.scrollIntoView({ behavior: 'smooth' })}
+                  className="flex items-center gap-2 text-sm hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
+                >
+                  <BookOpen className="w-4 h-4" />
+                  Character Background
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => document.getElementById('guidance')?.scrollIntoView({ behavior: 'smooth' })}
+                  className="flex items-center gap-2 text-sm hover:bg-green-50 dark:hover:bg-green-900/20 hover:text-green-600 dark:hover:text-green-400 transition-colors"
+                >
+                  <MessageSquare className="w-4 h-4" />
+                  Chat Guidance
+                </Button>
+              </div>
+            </div>
           </div>
 
           {/* Error Display */}
           {missingFields.length > 0 && (
             <div className="mb-6">
-              <ErrorDisplay 
+              <ErrorDisplay
                 missingFields={missingFields}
                 onComplete={() => console.log('Complete profile')}
                 onRetry={() => console.log('Retry generation')}
@@ -927,274 +970,239 @@ export default function InfluencerBio() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left Sidebar - Desktop Only */}
-          <div className="hidden lg:block">
-            <div className="sticky top-8 space-y-6">
-              {/* Quick Stats */}
-              <Card className="shadow-lg border-0 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <Star className="w-5 h-5 text-yellow-500" />
-                    Quick Stats
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">Personality</span>
-                    <Badge variant="secondary">{summary.personality_archetype}</Badge>
+        {/* Main Content */}
+        <div className="lg:col-span-2 space-y-8">
+          {/* Platform Profiles Section */}
+          <div id="platforms">
+            <Card className="shadow-lg border-0 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
+              <CardHeader>
+                <CardTitle className="text-2xl flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+                    <Smartphone className="w-5 h-5 text-white" />
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">Niche</span>
-                    <Badge variant="outline">{summary.primary_niche}</Badge>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">Target</span>
-                    <Badge variant="outline">{summary.target_audience}</Badge>
-                  </div>
-                </CardContent>
-              </Card>
+                  Platform Profiles
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {/* Quick Stats */}
+                <div className="mb-6">
+                  <Card className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 border border-blue-200 dark:border-blue-800">
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Star className="w-4 h-4 text-blue-600" />
+                        <span className="font-semibold text-sm">Quick Stats</span>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="text-center">
+                          <div className="text-xs text-muted-foreground mb-1">Personality</div>
+                          <Badge variant="secondary" className="text-xs">{summary.personality_archetype}</Badge>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-xs text-muted-foreground mb-1">Niche</div>
+                          <Badge variant="outline" className="text-xs">{summary.primary_niche}</Badge>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-xs text-muted-foreground mb-1">Target</div>
+                          <Badge variant="outline" className="text-xs">{summary.target_audience}</Badge>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
 
-              {/* Navigation */}
-              <Card className="shadow-lg border-0 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-lg">Navigation</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <Button 
-                    variant="ghost" 
-                    className="w-full justify-start"
-                    onClick={() => document.getElementById('platforms')?.scrollIntoView({ behavior: 'smooth' })}
-                  >
-                    📱 Platform Profiles
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    className="w-full justify-start"
-                    onClick={() => document.getElementById('background')?.scrollIntoView({ behavior: 'smooth' })}
-                  >
-                    📖 Character Background
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    className="w-full justify-start"
-                    onClick={() => document.getElementById('guidance')?.scrollIntoView({ behavior: 'smooth' })}
-                  >
-                    💬 Chat Guidance
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-
-          {/* Main Content */}
-          <div className="lg:col-span-2 space-y-8">
-            {/* Platform Profiles Section */}
-            <div id="platforms">
-              <Card className="shadow-lg border-0 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
-                <CardHeader>
-                  <CardTitle className="text-2xl flex items-center gap-3">
-                    <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
-                      <Smartphone className="w-5 h-5 text-white" />
-                    </div>
-                    Platform Profiles
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <Tabs value={platformTab} onValueChange={setPlatformTab} className="w-full">
-                    <TabsList className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 w-full mb-6">
-                      {Object.keys(platforms).map((platform) => {
-                        const config = platformConfig[platform as keyof typeof platformConfig];
-                        const Icon = config?.icon || MessageCircle;
-                        return (
-                          <TabsTrigger 
-                            key={platform} 
-                            value={platform} 
-                            className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-600 data-[state=active]:text-white"
-                          >
-                            <Icon className="w-4 h-4" />
-                            <span className="hidden sm:inline">{config?.name || platform}</span>
-                          </TabsTrigger>
-                        );
-                      })}
-                    </TabsList>
-                    {Object.entries(platforms).map(([platform, profile]: any) => {
+                <Tabs value={platformTab} onValueChange={setPlatformTab} className="w-full">
+                  <TabsList className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 w-full mb-6 h-full">
+                    {Object.keys(platforms).map((platform) => {
                       const config = platformConfig[platform as keyof typeof platformConfig];
+                      const Icon = config?.icon || MessageCircle;
                       return (
-                        <TabsContent key={platform} value={platform} className="space-y-6">
-                          <div className="flex items-center gap-3 mb-6">
-                            <div className={`w-12 h-12 ${config?.bgColor} rounded-xl flex items-center justify-center shadow-lg`}>
-                              <config.icon className="w-6 h-6 text-white" />
-                            </div>
-                            <div>
-                              <h3 className="text-xl font-bold">{config?.name} Profile</h3>
-                              <p className="text-sm text-muted-foreground">{config?.description}</p>
-                            </div>
-                          </div>
-                          
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {/* Headline */}
-                            <div className="space-y-3">
-                              <div className="flex items-center justify-between">
-                                <h4 className="font-semibold flex items-center gap-2">
-                                  <Type className="w-4 h-4" />
-                                  Headline
-                                </h4>
-                                <CopyButton text={profile.headline} label="Copy" />
-                              </div>
-                              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg p-4 border border-blue-100 dark:border-blue-800">
-                                <p className="text-base font-medium leading-relaxed">{profile.headline}</p>
-                              </div>
-                              <ProgressBar value={profile.character_count?.headline || 0} max={limit.find(l => l.name === config?.name)?.limit.headline || 0} color={config?.color || '#000'} />
-                            </div>
-
-                            {/* Bio */}
-                            <div className="space-y-3">
-                              <div className="flex items-center justify-between">
-                                <h4 className="font-semibold flex items-center gap-2">
-                                  <FileText className="w-4 h-4" />
-                                  Bio
-                                </h4>
-                                <CopyButton text={profile.bio} label="Copy" />
-                              </div>
-                              <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg p-4 border border-green-100 dark:border-green-800 max-h-32 overflow-y-auto">
-                                <p className="text-sm leading-relaxed whitespace-pre-line">{profile.bio}</p>
-                              </div>
-                              <ProgressBar value={profile.character_count?.bio || 0} max={limit.find(l => l.name === config?.name)?.limit.bio || 0} color={config?.color || '#000'} />
-                            </div>
-                          </div>
-
-                          {/* Score and Reasoning */}
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg p-4 border border-green-200 dark:border-green-800">
-                              <div className="flex items-center gap-2 mb-2">
-                                <Star className="w-5 h-5 text-green-600" />
-                                <span className="font-semibold">Optimization Score</span>
-                              </div>
-                              <div className="text-2xl font-bold text-green-600">{profile.optimization_score}/10</div>
-                            </div>
-                            <div className="bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
-                              <div className="flex items-center gap-2 mb-2">
-                                <MessageCircle className="w-5 h-5 text-blue-600" />
-                                <span className="font-semibold">Reasoning</span>
-                              </div>
-                              <p className="text-sm text-muted-foreground">{profile.reasoning}</p>
-                            </div>
-                          </div>
-                        </TabsContent>
+                        <TabsTrigger
+                          key={platform}
+                          value={platform}
+                          className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-600 data-[state=active]:text-white"
+                        >
+                          <Icon className="w-4 h-4" />
+                          <span className="hidden sm:inline">{config?.name || platform}</span>
+                        </TabsTrigger>
                       );
                     })}
-                  </Tabs>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Character Background Section */}
-            <div id="background">
-              <Card className="shadow-lg border-0 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
-                <CardHeader>
-                  <CardTitle className="text-2xl flex items-center gap-3">
-                    <div className="w-10 h-10 bg-gradient-to-br from-purple-600 to-pink-600 rounded-xl flex items-center justify-center shadow-lg">
-                      <BookOpen className="w-5 h-5 text-white" />
-                    </div>
-                    Character Background
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {Object.entries(background).map(([key, value]: any) => (
-                      <div key={key} className="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden hover:shadow-md transition-shadow">
-                        <div 
-                          className="flex items-center gap-3 p-4 cursor-pointer select-none hover:bg-gradient-to-r hover:from-gray-50 hover:to-gray-100 dark:hover:from-gray-700/50 dark:hover:to-gray-800/50 transition-colors"
-                          onClick={() => setExpanded((prev) => ({ ...prev, [key]: !prev[key] }))}
-                        >
-                          <div className="w-8 h-8 bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg flex items-center justify-center">
-                            <span className="text-lg">{backgroundIcons[key] || '📖'}</span>
+                  </TabsList>
+                  {Object.entries(platforms).map(([platform, profile]: any) => {
+                    const config = platformConfig[platform as keyof typeof platformConfig];
+                    return (
+                      <TabsContent key={platform} value={platform} className="space-y-6">
+                        <div className="flex items-center gap-3 mb-6">
+                          <div className={`w-12 h-12 ${config?.bgColor} rounded-xl flex items-center justify-center shadow-lg`}>
+                            <config.icon className="w-6 h-6 text-white" />
                           </div>
-                          <span className="font-semibold text-base capitalize flex-1">
-                            {key.replace(/_/g, ' ')}
-                          </span>
-                          {typeof value === 'string' && (
-                            expanded[key] ? 
-                              <ChevronUp className="w-5 h-5 text-muted-foreground" /> : 
-                              <ChevronDown className="w-5 h-5 text-muted-foreground" />
-                          )}
+                          <div>
+                            <h3 className="text-xl font-bold">{config?.name} Profile</h3>
+                            <p className="text-sm text-muted-foreground">{config?.description}</p>
+                          </div>
                         </div>
-                        {typeof value === 'string' && expanded[key] && (
-                          <div className="px-4 pb-4 text-base text-muted-foreground leading-relaxed whitespace-pre-line bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800/50 dark:to-gray-900/50">
-                            {value}
-                          </div>
-                        )}
-                        {Array.isArray(value) && (
-                          <div className="px-4 pb-4 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800/50 dark:to-gray-900/50">
-                            <ul className="list-disc list-inside text-base text-muted-foreground space-y-1">
-                              {value.map((item, idx) => <li key={idx}>{item}</li>)}
-                            </ul>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
 
-            {/* Chat Guidance Section */}
-            <div id="guidance">
-              <Card className="shadow-lg border-0 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
-                <CardHeader>
-                  <CardTitle className="text-2xl flex items-center gap-3">
-                    <div className="w-10 h-10 bg-gradient-to-br from-green-600 to-emerald-600 rounded-xl flex items-center justify-center shadow-lg">
-                      <MessageSquare className="w-5 h-5 text-white" />
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          {/* Headline */}
+                          <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                              <h4 className="font-semibold flex items-center gap-2">
+                                <Type className="w-4 h-4" />
+                                Headline
+                              </h4>
+                              <CopyButton text={profile.headline} label="Copy" />
+                            </div>
+                            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg p-4 border border-blue-100 dark:border-blue-800">
+                              <p className="text-base font-medium leading-relaxed">{profile.headline}</p>
+                            </div>
+                            <ProgressBar value={profile.character_count?.headline || 0} max={limit.find(l => l.name === config?.name)?.limit.headline || 0} color={config?.color || '#000'} />
+                          </div>
+
+                          {/* Bio */}
+                          <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                              <h4 className="font-semibold flex items-center gap-2">
+                                <FileText className="w-4 h-4" />
+                                Bio
+                              </h4>
+                              <CopyButton text={profile.bio} label="Copy" />
+                            </div>
+                            <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg p-4 border border-green-100 dark:border-green-800 max-h-32 overflow-y-auto">
+                              <p className="text-sm leading-relaxed whitespace-pre-line">{profile.bio}</p>
+                            </div>
+                            <ProgressBar value={profile.character_count?.bio || 0} max={limit.find(l => l.name === config?.name)?.limit.bio || 0} color={config?.color || '#000'} />
+                          </div>
+                        </div>
+
+                        {/* Score and Reasoning */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg p-4 border border-green-200 dark:border-green-800">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Star className="w-5 h-5 text-green-600" />
+                              <span className="font-semibold">Optimization Score</span>
+                            </div>
+                            <div className="text-2xl font-bold text-green-600">{profile.optimization_score}/10</div>
+                          </div>
+                          <div className="bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+                            <div className="flex items-center gap-2 mb-2">
+                              <MessageCircle className="w-5 h-5 text-blue-600" />
+                              <span className="font-semibold">Reasoning</span>
+                            </div>
+                            <p className="text-sm text-muted-foreground">{profile.reasoning}</p>
+                          </div>
+                        </div>
+                      </TabsContent>
+                    );
+                  })}
+                </Tabs>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Character Background Section */}
+          <div id="background">
+            <Card className="shadow-lg border-0 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
+              <CardHeader>
+                <CardTitle className="text-2xl flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gradient-to-br from-purple-600 to-pink-600 rounded-xl flex items-center justify-center shadow-lg">
+                    <BookOpen className="w-5 h-5 text-white" />
+                  </div>
+                  Character Background
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {Object.entries(background).map(([key, value]: any) => (
+                    <div key={key} className="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden hover:shadow-md transition-shadow">
+                      <div
+                        className="flex items-center gap-3 p-4 cursor-pointer select-none hover:bg-gradient-to-r hover:from-gray-50 hover:to-gray-100 dark:hover:from-gray-700/50 dark:hover:to-gray-800/50 transition-colors"
+                        onClick={() => setExpanded((prev) => ({ ...prev, [key]: !prev[key] }))}
+                      >
+                        <div className="w-8 h-8 bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg flex items-center justify-center">
+                          <span className="text-lg">{backgroundIcons[key] || '📖'}</span>
+                        </div>
+                        <span className="font-semibold text-base capitalize flex-1">
+                          {key.replace(/_/g, ' ')}
+                        </span>
+                        {typeof value === 'string' && (
+                          expanded[key] ?
+                            <ChevronUp className="w-5 h-5 text-muted-foreground" /> :
+                            <ChevronDown className="w-5 h-5 text-muted-foreground" />
+                        )}
+                      </div>
+                      {typeof value === 'string' && expanded[key] && (
+                        <div className="px-4 pb-4 text-base text-muted-foreground leading-relaxed whitespace-pre-line bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800/50 dark:to-gray-900/50">
+                          {value}
+                        </div>
+                      )}
+                      {Array.isArray(value) && (
+                        <div className="px-4 pb-4 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800/50 dark:to-gray-900/50">
+                          <ul className="list-disc list-inside text-base text-muted-foreground space-y-1">
+                            {value.map((item, idx) => <li key={idx}>{item}</li>)}
+                          </ul>
+                        </div>
+                      )}
                     </div>
-                    Chat Guidance
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-4">
-                      <div className="bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
-                        <h4 className="font-semibold flex items-center gap-2 mb-2">
-                          <Mic className="w-4 h-4 text-blue-600" />
-                          Communication Style
-                        </h4>
-                        <p className="text-sm text-muted-foreground leading-relaxed">{chatter.communication_style}</p>
-                      </div>
-                      
-                      <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg p-4 border border-green-200 dark:border-green-800">
-                        <h4 className="font-semibold flex items-center gap-2 mb-2">
-                          <Heart className="w-4 h-4 text-green-600" />
-                          Building Intimacy
-                        </h4>
-                        <p className="text-sm text-muted-foreground leading-relaxed">{chatter.intimacy_building}</p>
-                      </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Chat Guidance Section */}
+          <div id="guidance">
+            <Card className="shadow-lg border-0 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
+              <CardHeader>
+                <CardTitle className="text-2xl flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gradient-to-br from-green-600 to-emerald-600 rounded-xl flex items-center justify-center shadow-lg">
+                    <MessageSquare className="w-5 h-5 text-white" />
+                  </div>
+                  Chat Guidance
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <div className="bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+                      <h4 className="font-semibold flex items-center gap-2 mb-2">
+                        <Mic className="w-4 h-4 text-blue-600" />
+                        Communication Style
+                      </h4>
+                      <p className="text-sm text-muted-foreground leading-relaxed">{chatter.communication_style}</p>
                     </div>
-                    
-                    <div className="space-y-4">
-                      <div className="bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 rounded-lg p-4 border border-yellow-200 dark:border-yellow-800">
-                        <h4 className="font-semibold flex items-center gap-2 mb-2">
-                          <Zap className="w-4 h-4 text-yellow-600" />
-                          Engagement Hooks
-                        </h4>
-                        <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
-                          {(chatter.engagement_hooks || '').split(/\n|•/).filter(Boolean).map((item: string, idx: number) => (
-                            <li key={idx}>{item.trim()}</li>
-                          ))}
-                        </ul>
-                      </div>
-                      
-                      <div className="bg-gradient-to-r from-red-50 to-pink-50 dark:from-red-900/20 dark:to-pink-900/20 rounded-lg p-4 border border-red-200 dark:border-red-800">
-                        <h4 className="font-semibold flex items-center gap-2 mb-2">
-                          <Shield className="w-4 h-4 text-red-600" />
-                          Boundaries
-                        </h4>
-                        <p className="text-sm text-muted-foreground leading-relaxed">{chatter.boundaries}</p>
-                      </div>
+
+                    <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg p-4 border border-green-200 dark:border-green-800">
+                      <h4 className="font-semibold flex items-center gap-2 mb-2">
+                        <Heart className="w-4 h-4 text-green-600" />
+                        Building Intimacy
+                      </h4>
+                      <p className="text-sm text-muted-foreground leading-relaxed">{chatter.intimacy_building}</p>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
-            </div>
+
+                  <div className="space-y-4">
+                    <div className="bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 rounded-lg p-4 border border-yellow-200 dark:border-yellow-800">
+                      <h4 className="font-semibold flex items-center gap-2 mb-2">
+                        <Zap className="w-4 h-4 text-yellow-600" />
+                        Engagement Hooks
+                      </h4>
+                      <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
+                        {(chatter.engagement_hooks || '').split(/\n|•/).filter(Boolean).map((item: string, idx: number) => (
+                          <li key={idx}>{item.trim()}</li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    <div className="bg-gradient-to-r from-red-50 to-pink-50 dark:from-red-900/20 dark:to-pink-900/20 rounded-lg p-4 border border-red-200 dark:border-red-800">
+                      <h4 className="font-semibold flex items-center gap-2 mb-2">
+                        <Shield className="w-4 h-4 text-red-600" />
+                        Boundaries
+                      </h4>
+                      <p className="text-sm text-muted-foreground leading-relaxed">{chatter.boundaries}</p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </div>

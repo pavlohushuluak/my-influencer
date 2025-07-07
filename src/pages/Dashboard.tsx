@@ -15,6 +15,7 @@ import { Influencer } from '@/store/slices/influencersSlice';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { LoraStatusIndicator } from '@/components/Influencers/LoraStatusIndicator';
+import { InfluencerUseModal } from '@/components/Influencers/InfluencerUseModal';
 
 const PLATFORMS = [
   {
@@ -591,90 +592,15 @@ export default function Dashboard() {
       <ScheduleCard />
 
       {/* Platform Selection Modal */}
-      <Dialog
+      <InfluencerUseModal
         open={showPlatformModal}
-        onOpenChange={(open) => setShowPlatformModal(open)}
-      >
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Select Platform</DialogTitle>
-          </DialogHeader>
-
-          {selectedInfluencerData && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
-                <img
-                  src={selectedInfluencerData.image_url}
-                  alt={selectedInfluencerData.name_first}
-                  className="w-12 h-12 rounded-full object-cover"
-                />
-                <div>
-                  <h4 className="font-medium">{selectedInfluencerData.name_first} {selectedInfluencerData.name_last}</h4>
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <p className="text-sm font-medium">Select a platform to create content:</p>
-
-                {/* Content Create Option */}
-                <Button
-                  variant="outline"
-                  className="w-full justify-start h-auto p-4 border-2 border-ai-purple-500/20 hover:border-ai-purple-500/40 bg-gradient-to-r from-ai-purple-50 to-blue-50 dark:from-ai-purple-900/10 dark:to-blue-900/10"
-                  onClick={handleContentCreate}
-                >
-                  <div className="w-10 h-10 rounded-lg bg-gradient-to-r from-ai-purple-500 to-blue-500 flex items-center justify-center mr-3">
-                    <Sparkles className="w-5 h-5 text-white" />
-                  </div>
-                  <div className="text-left">
-                    <div className="font-medium">Content Create</div>
-                    <div className="text-sm text-muted-foreground">Advanced content generation</div>
-                  </div>
-                </Button>
-
-                {/* Character Consistency Option */}
-                <Button
-                  variant="outline"
-                  className="w-full justify-start h-auto p-4 border-2 border-green-500/20 hover:border-green-500/40 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/10 dark:to-emerald-900/10"
-                  onClick={handleCharacterConsistency}
-                >
-                  <div className="w-10 h-10 rounded-lg bg-gradient-to-r from-green-500 to-emerald-500 flex items-center justify-center mr-3">
-                    <Copy className="w-5 h-5 text-white" />
-                  </div>
-                  <div className="text-left">
-                    <div className="font-medium">Character Consistency</div>
-                    <div className="text-sm text-muted-foreground">Select profile picture for LORA training.</div>
-                  </div>
-                </Button>
-
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t" />
-                  </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-background px-2 text-muted-foreground">Or select platform</span>
-                  </div>
-                </div>
-                {PLATFORMS.map((platform) => (
-                  <Button
-                    key={platform.id}
-                    variant="outline"
-                    className="w-full justify-start h-auto p-4"
-                    onClick={() => handlePlatformSelect(platform.id)}
-                  >
-                    <div className={`w-10 h-10 rounded-lg bg-gradient-to-r ${platform.color} flex items-center justify-center mr-3`}>
-                      <platform.icon className="w-5 h-5 text-white" />
-                    </div>
-                    <div className="text-left">
-                      <div className="font-medium">{platform.name}</div>
-                      <div className="text-sm text-muted-foreground">{platform.description}</div>
-                    </div>
-                  </Button>
-                ))}
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+        onOpenChange={setShowPlatformModal}
+        influencer={selectedInfluencerData}
+        platforms={PLATFORMS}
+        onPlatformSelect={handlePlatformSelect}
+        onContentCreate={handleContentCreate}
+        onCharacterConsistency={handleCharacterConsistency}
+      />
 
       {/* Character Consistency Modal */}
       <Dialog

@@ -101,6 +101,11 @@ export const InfluencerUseModal: React.FC<InfluencerUseModalProps> = ({
     }
   };
 
+  const handleViewBio = () => {
+    dispatch(setBio({ influencerId: influencer.id, bio: influencer.bio }));
+    navigate('/influencers/bio', { state: { influencerId: influencer?.id } });
+  };
+
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
@@ -210,9 +215,7 @@ export const InfluencerUseModal: React.FC<InfluencerUseModalProps> = ({
           )}
           {bioMode === 'view' && influencer?.bio && (
             <div className="space-y-4">
-              <pre className="bg-gray-100 dark:bg-gray-900 rounded p-4 text-sm overflow-x-auto max-h-96">
-                {JSON.stringify(influencer.bio, null, 2)}
-              </pre>
+              <Button onClick={handleViewBio} className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 text-white">View</Button>
             </div>
           )}
         </DialogContent>

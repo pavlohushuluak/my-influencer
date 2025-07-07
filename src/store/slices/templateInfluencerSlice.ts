@@ -50,6 +50,7 @@ export interface TemplateInfluencer {
     prompt: string;
     notes: string;
     image_num: number;
+    bio?: any; // jsonb bio field from API
 }
 
 interface TemplateInfluencerState {

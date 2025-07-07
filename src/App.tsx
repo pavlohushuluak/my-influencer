@@ -15,6 +15,7 @@ import InfluencerTemplates from '@/pages/InfluencerTemplates';
 import InfluencerEdit from '@/pages/InfluencerEdit';
 import InfluencerUse from '@/pages/InfluencerUse';
 import InfluencerWizardPage from '@/pages/InfluencerWizardPage';
+import InfluencerBio from '@/pages/InfluencerBio';
 import Clothing from '@/pages/Clothing';
 import Location from '@/pages/Location';
 import Poses from '@/pages/Poses';
@@ -61,6 +62,7 @@ const App = () => {
                   <Route path='/influencers/edit' element={<InfluencerEdit />} />
                   <Route path='/influencers' element={<InfluencerUse />} />
                   <Route path='/influencers/wizard' element={<InfluencerWizardPage />} />
+                  <Route path='/influencers/bio' element={<InfluencerBio />} />
                   <Route path='/catalog/clothing' element={<Clothing />} />
                   <Route path='/catalog/location' element={<Location />} />
                   <Route path='/catalog/poses' element={<Poses />} />

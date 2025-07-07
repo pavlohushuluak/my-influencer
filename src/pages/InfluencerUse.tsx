@@ -102,25 +102,7 @@ export default function InfluencerUse() {
 
     setSelectedInfluencer(influencerId);
     setSelectedInfluencerData(influencer);
-    setShowPlatformModal(true);
   };
-
-  const handlePlatformSelect = (platformId: string) => {
-    const influencer = influencers.find(inf => inf.id === selectedInfluencer);
-    const platform = PLATFORMS.find(p => p.id === platformId);
-
-    if (influencer && platform) {
-      navigate('/content/create', {
-        state: {
-          influencerData: influencer,
-          platform: platform,
-          mode: 'create'
-        }
-      });
-      setShowPlatformModal(false);
-    }
-  };
-
   const handleContentCreate = () => {
     const influencer = influencers.find(inf => inf.id === selectedInfluencer);
 
@@ -131,7 +113,6 @@ export default function InfluencerUse() {
           mode: 'create'
         }
       });
-      setShowPlatformModal(false);
     }
   };
 
@@ -528,8 +509,6 @@ export default function InfluencerUse() {
         open={showPlatformModal}
         onOpenChange={setShowPlatformModal}
         influencer={selectedInfluencerData}
-        platforms={PLATFORMS}
-        onPlatformSelect={handlePlatformSelect}
         onContentCreate={handleContentCreate}
         onCharacterConsistency={handleCharacterConsistency}
       />

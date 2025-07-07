@@ -93,7 +93,7 @@ export function LoraStatusIndicator({ status, className, showText = false }: Lor
             <img 
               src={statusInfo.image} 
               alt={statusInfo.text}
-              className="w-14 h-14 transition-all duration-200 group-hover:scale-110 drop-shadow-lg"
+              className="w-18 h-12 transition-all duration-200 group-hover:scale-110"
             />
             
             {/* Animated pulse effect for creating status */}

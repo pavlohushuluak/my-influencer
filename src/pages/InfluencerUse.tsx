@@ -102,7 +102,9 @@ export default function InfluencerUse() {
 
     setSelectedInfluencer(influencerId);
     setSelectedInfluencerData(influencer);
+    setShowPlatformModal(true);
   };
+
   const handleContentCreate = () => {
     const influencer = influencers.find(inf => inf.id === selectedInfluencer);
 
@@ -113,6 +115,7 @@ export default function InfluencerUse() {
           mode: 'create'
         }
       });
+      setShowPlatformModal(false);
     }
   };
 

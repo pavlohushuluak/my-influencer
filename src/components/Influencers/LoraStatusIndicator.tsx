@@ -25,7 +25,8 @@ export function LoraStatusIndicator({ status, className, showText = false }: Lor
           shadowColor: 'shadow-gray-200',
           text: 'No LoRA',
           description: 'LoRA model has not been created yet. This influencer is ready for LoRA generation.',
-          detailedDescription: 'The LoRA (Low-Rank Adaptation) model for this influencer has not been generated. This is the initial state for new influencers.'
+          detailedDescription: 'The LoRA (Low-Rank Adaptation) model for this influencer has not been generated. This is the initial state for new influencers.',
+          image: '/ccnok.png'
         };
       case 1:
         return {
@@ -36,7 +37,8 @@ export function LoraStatusIndicator({ status, className, showText = false }: Lor
           shadowColor: 'shadow-blue-200',
           text: 'Creating',
           description: 'LoRA model is currently being generated. Please wait for completion.',
-          detailedDescription: 'The AI is currently training a personalized LoRA model for this influencer. This process typically takes 5-15 minutes depending on complexity.'
+          detailedDescription: 'The AI is currently training a personalized LoRA model for this influencer. This process typically takes 5-15 minutes depending on complexity.',
+          image: '/ccnok.png'
         };
       case 2:
         return {
@@ -47,7 +49,8 @@ export function LoraStatusIndicator({ status, className, showText = false }: Lor
           shadowColor: 'shadow-green-200',
           text: 'Ready',
           description: 'LoRA model has been successfully created and is ready for use.',
-          detailedDescription: 'The personalized LoRA model has been successfully generated and optimized. This influencer can now be used for high-quality AI image generation.'
+          detailedDescription: 'The personalized LoRA model has been successfully generated and optimized. This influencer can now be used for high-quality AI image generation.',
+          image: '/ccok.png'
         };
       case 9:
         return {
@@ -58,7 +61,8 @@ export function LoraStatusIndicator({ status, className, showText = false }: Lor
           shadowColor: 'shadow-red-200',
           text: 'Error',
           description: 'LoRA generation failed. Click to retry the generation process.',
-          detailedDescription: 'The LoRA model generation encountered an error during processing. This may be due to insufficient data quality or system issues. Retry recommended.'
+          detailedDescription: 'The LoRA model generation encountered an error during processing. This may be due to insufficient data quality or system issues. Retry recommended.',
+          image: '/ccnok.png'
         };
       default:
         return {
@@ -69,7 +73,8 @@ export function LoraStatusIndicator({ status, className, showText = false }: Lor
           shadowColor: 'shadow-gray-200',
           text: 'Unknown',
           description: 'Unknown LoRA status. Please refresh or contact support.',
-          detailedDescription: 'The LoRA status could not be determined. This may indicate a system error or data corruption.'
+          detailedDescription: 'The LoRA status could not be determined. This may indicate a system error or data corruption.',
+          image: '/ccnok.png'
         };
     }
   };
@@ -82,18 +87,14 @@ export function LoraStatusIndicator({ status, className, showText = false }: Lor
       <Tooltip>
         <TooltipTrigger asChild>
           <div className={cn(
-            'relative inline-flex items-center justify-center w-8 h-8 rounded-full border-2 transition-all duration-200 hover:scale-110 hover:shadow-lg',
-            statusInfo.bgColor,
-            statusInfo.borderColor,
-            statusInfo.shadowColor,
-            'cursor-pointer group',
+            'relative inline-flex items-center justify-center w-16 h-16 transition-all duration-200 hover:scale-110 cursor-pointer group',
             className
           )}>
-            <IconComponent className={cn(
-              'w-4 h-4 transition-all duration-200',
-              statusInfo.color,
-              'group-hover:scale-110'
-            )} />
+            <img 
+              src={statusInfo.image} 
+              alt={statusInfo.text}
+              className="w-14 h-14 transition-all duration-200 group-hover:scale-110 drop-shadow-lg"
+            />
             
             {/* Animated pulse effect for creating status */}
             {status === 1 && (

@@ -18,7 +18,6 @@ import { HexColorPicker } from 'react-colorful';
 import { toast } from 'sonner';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
-import { LoraStatusIndicator } from '@/components/Influencers/LoraStatusIndicator';
 
 interface GeneratedImageData {
   id: string;
@@ -1544,10 +1543,6 @@ export default function InfluencerEdit() {
                         <h3 className="font-semibold text-lg group-hover:text-ai-purple-500 transition-colors">
                           {influencer.name_first} {influencer.name_last}
                         </h3>
-                        <LoraStatusIndicator 
-                          status={influencer.lorastatus || 0} 
-                          className="flex-shrink-0"
-                        />
                       </div>
                     </div>
 

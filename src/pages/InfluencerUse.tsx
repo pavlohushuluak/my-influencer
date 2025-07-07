@@ -447,7 +447,14 @@ export default function InfluencerUse() {
           <Card key={influencer.id} className="group hover:shadow-lg transition-all duration-300 border-border/50 hover:border-ai-purple-500/20">
             <CardContent className="p-6 h-full">
               <div className="space-y-4 flex flex-col justify-between h-full">
-                <div className="w-full h-full bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg overflow-hidden">
+                <div className="relative w-full h-full bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg overflow-hidden">
+                  {/* LoraStatusIndicator positioned at top right */}
+                  <div className="absolute right-[-15px] top-[-15px] z-10">
+                    <LoraStatusIndicator 
+                      status={influencer.lorastatus || 0} 
+                      className="flex-shrink-0"
+                    />
+                  </div>
                   {
                     influencer.image_url ? (
                       <img
@@ -466,15 +473,9 @@ export default function InfluencerUse() {
 
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
                     <h3 className="font-semibold text-lg group-hover:text-ai-purple-500 transition-colors">
                       {influencer.name_first} {influencer.name_last}
                     </h3>
-                      <LoraStatusIndicator 
-                        status={influencer.lorastatus || 0} 
-                        className="flex-shrink-0"
-                      />
-                    </div>
                   </div>
 
                   <div className="flex flex-col gap-1 mb-3">

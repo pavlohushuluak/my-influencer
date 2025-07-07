@@ -8,6 +8,44 @@ import { Badge } from '@/components/ui/badge';
 import { useState } from 'react';
 import { Check, Copy as CopyIcon, ChevronDown, ChevronUp, Instagram, Twitter, MessageCircle, Heart, Star, ArrowLeft } from 'lucide-react';
 
+const limit = [
+  {
+    name: 'Instagram',
+    limit: {
+      headline: 30,
+      bio: 150,
+    }
+  },
+  {
+    name: 'Fanvue',
+    limit: {
+      headline: 50,
+      bio: 1000,
+    }
+  },
+  {
+    name: 'TikTok',
+    limit: {
+      headline: 30,
+      bio: 80,
+    }
+  },
+  {
+    name: 'X (Twitter)',
+    limit: {
+      headline: 50,
+      bio: 160,
+    }
+  },
+  {
+    name: 'Threads',
+    limit: {
+      headline: 30,
+      bio: 500,
+    }
+  }
+];
+
 // Platform configuration with official colors and icons
 const platformConfig = {
   instagram: {
@@ -62,7 +100,7 @@ function ProgressBar({ value, max, color }: { value: number; max: number; color:
   let bgColor = 'bg-green-500';
   if (percent > 95) bgColor = 'bg-red-500';
   else if (percent > 80) bgColor = 'bg-yellow-500';
-  
+
   return (
     <div className="w-full">
       <div className="flex justify-between text-xs text-muted-foreground mb-1">
@@ -70,9 +108,9 @@ function ProgressBar({ value, max, color }: { value: number; max: number; color:
         <span>{Math.round(percent)}%</span>
       </div>
       <div className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-        <div 
-          className={`h-2 ${bgColor} transition-all duration-300`} 
-          style={{ width: `${percent}%` }} 
+        <div
+          className={`h-2 ${bgColor} transition-all duration-300`}
+          style={{ width: `${percent}%` }}
         />
       </div>
     </div>
@@ -81,13 +119,13 @@ function ProgressBar({ value, max, color }: { value: number; max: number; color:
 
 function CopyButton({ text, label }: { text: string; label: string }) {
   const [copied, setCopied] = useState(false);
-  
+
   const handleCopy = async () => {
     await navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
-  
+
   return (
     <Button
       size="sm"
@@ -131,7 +169,13 @@ export default function InfluencerBio() {
   }
 
   const summary = bio.influencer_profile_summary;
-  const platforms = bio.platform_profiles || {};
+  const platforms = {
+    instagram: bio.platform_profiles.instagram,
+    fanvue: bio.platform_profiles.fanvue,
+    tiktok: bio.platform_profiles.tiktok,
+    x: bio.platform_profiles.x,
+    threads: bio.platform_profiles.threads,
+  };
   const background = bio.background_story || {};
   const chatter = bio.chatter_guidance || {};
 
@@ -140,8 +184,8 @@ export default function InfluencerBio() {
       <div className="max-w-7xl mx-auto p-4 lg:p-8">
         {/* Header */}
         <div className="mb-8">
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="ghost"
             onClick={() => navigate(-1)}
             className="mb-4 text-muted-foreground hover:text-foreground"
           >
@@ -199,22 +243,22 @@ export default function InfluencerBio() {
                   <CardTitle className="text-lg">Navigation</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
-                  <Button 
-                    variant="ghost" 
+                  <Button
+                    variant="ghost"
                     className="w-full justify-start"
                     onClick={() => document.getElementById('platforms')?.scrollIntoView({ behavior: 'smooth' })}
                   >
                     📱 Platform Profiles
                   </Button>
-                  <Button 
-                    variant="ghost" 
+                  <Button
+                    variant="ghost"
                     className="w-full justify-start"
                     onClick={() => document.getElementById('background')?.scrollIntoView({ behavior: 'smooth' })}
                   >
                     📖 Character Background
                   </Button>
-                  <Button 
-                    variant="ghost" 
+                  <Button
+                    variant="ghost"
                     className="w-full justify-start"
                     onClick={() => document.getElementById('guidance')?.scrollIntoView({ behavior: 'smooth' })}
                   >
@@ -245,9 +289,9 @@ export default function InfluencerBio() {
                         const config = platformConfig[platform as keyof typeof platformConfig];
                         const Icon = config?.icon || MessageCircle;
                         return (
-                          <TabsTrigger 
-                            key={platform} 
-                            value={platform} 
+                          <TabsTrigger
+                            key={platform}
+                            value={platform}
                             className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-600 data-[state=active]:text-white"
                           >
                             <Icon className="w-4 h-4" />
@@ -269,7 +313,7 @@ export default function InfluencerBio() {
                               <p className="text-sm text-muted-foreground">{config?.description}</p>
                             </div>
                           </div>
-                          
+
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             {/* Headline */}
                             <div className="space-y-3">
@@ -282,7 +326,7 @@ export default function InfluencerBio() {
                               <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 border">
                                 <p className="text-base font-medium leading-relaxed">{profile.headline}</p>
                               </div>
-                              <ProgressBar value={profile.character_count?.headline || 0} max={30} color={config?.color || '#000'} />
+                              <ProgressBar value={profile.character_count?.headline || 0} max={limit.find(l => l.name === config?.name)?.limit.headline || 0} color={config?.color || '#000'} />
                             </div>
 
                             {/* Bio */}
@@ -296,7 +340,7 @@ export default function InfluencerBio() {
                               <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 border max-h-32 overflow-y-auto">
                                 <p className="text-sm leading-relaxed whitespace-pre-line">{profile.bio}</p>
                               </div>
-                              <ProgressBar value={profile.character_count?.bio || 0} max={150} color={config?.color || '#000'} />
+                              <ProgressBar value={profile.character_count?.bio || 0} max={limit.find(l => l.name === config?.name)?.limit.bio || 0} color={config?.color || '#000'} />
                             </div>
                           </div>
 
@@ -340,7 +384,7 @@ export default function InfluencerBio() {
                   <div className="space-y-4">
                     {Object.entries(background).map(([key, value]: any) => (
                       <div key={key} className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
-                        <div 
+                        <div
                           className="flex items-center gap-3 p-4 cursor-pointer select-none hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
                           onClick={() => setExpanded((prev) => ({ ...prev, [key]: !prev[key] }))}
                         >
@@ -349,8 +393,8 @@ export default function InfluencerBio() {
                             {key.replace(/_/g, ' ')}
                           </span>
                           {typeof value === 'string' && (
-                            expanded[key] ? 
-                              <ChevronUp className="w-5 h-5 text-muted-foreground" /> : 
+                            expanded[key] ?
+                              <ChevronUp className="w-5 h-5 text-muted-foreground" /> :
                               <ChevronDown className="w-5 h-5 text-muted-foreground" />
                           )}
                         </div>
@@ -393,7 +437,7 @@ export default function InfluencerBio() {
                         </h4>
                         <p className="text-sm text-muted-foreground leading-relaxed">{chatter.communication_style}</p>
                       </div>
-                      
+
                       <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg p-4 border border-green-200 dark:border-green-800">
                         <h4 className="font-semibold flex items-center gap-2 mb-2">
                           💝 Building Intimacy
@@ -401,7 +445,7 @@ export default function InfluencerBio() {
                         <p className="text-sm text-muted-foreground leading-relaxed">{chatter.intimacy_building}</p>
                       </div>
                     </div>
-                    
+
                     <div className="space-y-4">
                       <div className="bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 rounded-lg p-4 border border-yellow-200 dark:border-yellow-800">
                         <h4 className="font-semibold flex items-center gap-2 mb-2">
@@ -413,7 +457,7 @@ export default function InfluencerBio() {
                           ))}
                         </ul>
                       </div>
-                      
+
                       <div className="bg-gradient-to-r from-red-50 to-pink-50 dark:from-red-900/20 dark:to-pink-900/20 rounded-lg p-4 border border-red-200 dark:border-red-800">
                         <h4 className="font-semibold flex items-center gap-2 mb-2">
                           🚫 Boundaries

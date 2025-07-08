@@ -13,7 +13,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { DialogZoom, DialogContentZoom } from '@/components/ui/zoomdialog';
 import { updateInfluencer, setInfluencers, setLoading, setError, addInfluencer } from '@/store/slices/influencersSlice';
-import { X, Plus, Save, Crown, RefreshCcw, Image, Settings, User, ChevronRight, MoreHorizontal, Loader2, ZoomIn, Pencil } from 'lucide-react';
+import { X, Plus, Save, Crown, Image, Settings, User, ChevronRight, MoreHorizontal, Loader2, ZoomIn, Pencil, Trash2 } from 'lucide-react';
 import { HexColorPicker } from 'react-colorful';
 import { toast } from 'sonner';
 import { Textarea } from '@/components/ui/textarea';
@@ -3023,10 +3023,10 @@ export default function InfluencerEdit() {
                                     className="absolute bottom-2 right-2 w-8 h-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      handleInputChange('job_area', 'Default');
+                                      handleInputChange('job_area', '');
                                     }}
                                   >
-                                    <RefreshCcw className="w-4 h-4 text-white" />
+                                    <Trash2 className="w-4 h-4 text-white" />
                                   </Button>
                                 </div>
                                 <p className="text-sm text-center font-medium mt-2">{influencerData.job_area}</p>
@@ -4924,7 +4924,7 @@ const renderOptionCard = (option: Option | undefined, placeholder: string = "Sel
               handleInputChange(item, refreshData);
             }}
           >
-            <RefreshCcw className="w-4 h-4 text-white" />
+            <Trash2 className="w-4 h-4 text-white" />
           </Button>
         </div>
         <p className="text-sm text-center font-medium mt-2">{option.label}</p>

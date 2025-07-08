@@ -1035,10 +1035,15 @@ export default function InfluencerBio() {
                           <div className={`w-12 h-12 ${config?.bgColor} rounded-xl flex items-center justify-center shadow-lg`}>
                             <config.icon className="w-6 h-6 text-white" />
                           </div>
-                          <div>
+                          <div className="flex-1">
                             <h3 className="text-xl font-bold">{config?.name} Profile</h3>
                             <p className="text-sm text-muted-foreground">{config?.description}</p>
                           </div>
+                          <CopyButton 
+                            text={`${config?.name} Profile\n\nHeadline: ${profile.headline}\n\nBio: ${profile.bio}\n\nOptimization Score: ${profile.optimization_score}/10\n\nReasoning: ${profile.reasoning}`}
+                            label="Copy All"
+                            variant="default"
+                          />
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

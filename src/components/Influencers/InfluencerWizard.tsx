@@ -558,34 +558,56 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
   }, []);
 
   // Fetch cultural background options from API
-  useEffect(() => {
-    const fetchCulturalBackgroundOptions = async () => {
-      try {
-        setIsLoadingCulturalBackground(true);
-        const response = await fetch('https://api.nymia.ai/v1/fieldoptions?fieldtype=cultural_background', {
-          headers: {
-            'Authorization': 'Bearer WeInfl3nc3withAI'
-          }
-        });
-        if (response.ok) {
-          const responseData = await response.json();
-          if (responseData && responseData.fieldoptions && Array.isArray(responseData.fieldoptions)) {
-            setCulturalBackgroundOptions(responseData.fieldoptions.map((item: any) => ({
-              label: item.label,
-              image: item.image,
-              description: item.description
-            })));
-          }
+  const fetchCulturalBackgroundOptions = async (ethnic: string) => {
+    try {
+      setIsLoadingCulturalBackground(true);
+      const templatesResponse = await fetch(`https://db.nymia.ai/rest/v1/prompt_mappings?category=eq.cultural_background&ethnics_stereotype=eq.${ethnic}`, {
+        headers: {
+          'Authorization': 'Bearer WeInfl3nc3withAI'
         }
-      } catch (error) {
-        console.error('Error fetching cultural background options:', error);
-      } finally {
-        setIsLoadingCulturalBackground(false);
-      }
-    };
+      });
+      
+      const imageResponse = await fetch('https://api.nymia.ai/v1/fieldoptions?fieldtype=cultural_background', {
+        headers: {
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        }
+      });
+      if (imageResponse.ok && templatesResponse.ok) {
+        const templatesData = await templatesResponse.json();
+        const imagesData = await imageResponse.json();
 
-    fetchCulturalBackgroundOptions();
-  }, []);
+        console.log(templatesData);
+        console.log(imagesData);
+        
+        if (Array.isArray(templatesData) && imagesData && imagesData.fieldoptions && Array.isArray(imagesData.fieldoptions)) {
+          // Match templates with images by label === template_name
+          const matchedOptions = templatesData.map((template: any) => {
+            const matchingImage = imagesData.fieldoptions.find((imageItem: any) => 
+              imageItem.label === template.property
+            );
+            
+            return {
+              label: template.property || template.label,
+              image: matchingImage ? matchingImage.image : template.image || template.template_image,
+              description: template.description || template.base_prompt
+            };
+          });
+
+          console.log(matchedOptions);
+          
+          setCulturalBackgroundOptions(matchedOptions);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching cultural background options:', error);
+    } finally {
+      setIsLoadingCulturalBackground(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCulturalBackgroundOptions(influencerData.cultural_background || 'Default');
+  }, [influencerData.cultural_background]);
 
   // Fetch hair length options from API
   useEffect(() => {
@@ -3969,7 +3991,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                     <Button
                       onClick={handlePreview}
                       disabled={isPreviewLoading}
-                      className="flex items-center gap-2 px-8 py-4 text-lg font-medium bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+                      className="flex items-center gap-2 px-8 py-4 text-lg font-medium bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 mx-auto"
                     >
                       {isPreviewLoading ? (
                         <>

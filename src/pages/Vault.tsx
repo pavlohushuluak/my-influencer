@@ -198,6 +198,7 @@ export default function Vault() {
   const [folderFileCounts, setFolderFileCounts] = useState<{ [key: string]: number }>({});
   const [loadingFileCounts, setLoadingFileCounts] = useState<{ [key: string]: boolean }>({});
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+  const [regeneratingImages, setRegeneratingImages] = useState<Set<string>>(new Set());
 
   // Load copy state from localStorage on component mount
   useEffect(() => {
@@ -2620,45 +2621,121 @@ export default function Vault() {
   // Comprehensive refresh function
   const handleRefresh = async () => {
     setIsRefreshing(true);
+    try {
+      await fetchHomeFiles();
+      // Refresh file counts for current path folders
+      const currentFolders = getCurrentPathFolders();
+      const refreshPromises = currentFolders.map(folder => fetchFolderFileCount(folder.path));
+      await Promise.all(refreshPromises);
+      toast.success('Vault refreshed successfully');
+    } catch (error) {
+      console.error('Error refreshing vault:', error);
+      toast.error('Failed to refresh vault');
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  const handleRegenerate = async (image: GeneratedImageData) => {
+    // Only allow regeneration for non-uploaded images
+    if (image.task_id?.startsWith('upload_')) {
+      toast.error('Cannot regenerate uploaded images');
+      return;
+    }
+
+    setRegeneratingImages(prev => new Set(prev).add(image.system_filename));
 
     try {
+      toast.info('Regenerating image...', {
+        description: 'Fetching original task data and creating new generation'
+      });
 
-      // Refresh folder structure
-      const folderResponse = await fetch('https://api.nymia.ai/v1/getfoldernames', {
+      // Step 1: Get the task_id from the generated image
+      const imageResponse = await fetch(`https://db.nymia.ai/rest/v1/generated_images?file_path=eq.${image.file_path}`, {
+        headers: {
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        }
+      });
+
+      if (!imageResponse.ok) {
+        throw new Error('Failed to fetch image data');
+      }
+
+      const imageData = await imageResponse.json();
+      if (!imageData || imageData.length === 0) {
+        throw new Error('Image data not found');
+      }
+
+      const taskId = imageData[0].task_id;
+
+      // Step 2: Get the original task data
+      const taskResponse = await fetch(`https://db.nymia.ai/rest/v1/tasks?id=eq.${taskId}`, {
+        headers: {
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        }
+      });
+
+      if (!taskResponse.ok) {
+        throw new Error('Failed to fetch task data');
+      }
+
+      const taskData = await taskResponse.json();
+      if (!taskData || taskData.length === 0) {
+        throw new Error('Task data not found');
+      }
+
+      const originalTask = taskData[0];
+      console.log("OriginalTask:", originalTask.jsonjob);
+
+      // Step 3: Get user ID
+      const useridResponse = await fetch(`https://db.nymia.ai/rest/v1/user?uuid=eq.${userData.id}`, {
+        headers: {
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        }
+      });
+
+      const useridData = await useridResponse.json();
+      if (!useridData || useridData.length === 0) {
+        throw new Error('User data not found');
+      }
+
+      // Step 4: Create new task using the original task data (excluding id)
+      const requestData = originalTask.jsonjob;
+
+      // Step 5: Create new task
+      const createTaskResponse = await fetch(`https://api.nymia.ai/v1/createtask?userid=${useridData[0].userid}&type=createimage`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer WeInfl3nc3withAI'
         },
-        body: JSON.stringify({
-          user: userData.id,
-          folder: "vault"
-        })
+        body: requestData
       });
 
-      if (folderResponse.ok) {
-        const folderData = await folderResponse.json();
-        setFolders(folderData);
-        const structure = buildFolderStructure(folderData);
-        setFolderStructure(structure);
+      if (!createTaskResponse.ok) {
+        throw new Error(`Failed to create new task: ${createTaskResponse.status}`);
       }
 
-      // Refresh files for current path
+      const newTaskResult = await createTaskResponse.json();
+      
+      toast.success('Image regeneration started successfully', {
+        description: 'Your new image is being generated with the same settings'
+      });
+
+      // Refresh the vault to show the new generation
       await fetchHomeFiles();
 
-      // Refresh file counts for current path folders
-      const currentFolders = getCurrentPathFolders();
-      const refreshPromises = currentFolders.map(folder => fetchFolderFileCount(folder.path));
-      await Promise.all(refreshPromises);
-
     } catch (error) {
-      console.error('Error refreshing data:', error);
-      toast.error('Failed to refresh data. Please try again.', {
-        description: 'An error occurred while refreshing the folder and file data',
-        duration: 5000
+      console.error('Regeneration error:', error);
+      toast.error('Failed to regenerate image', {
+        description: error instanceof Error ? error.message : 'Unknown error occurred'
       });
     } finally {
-      setIsRefreshing(false);
+      setRegeneratingImages(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(image.system_filename);
+        return newSet;
+      });
     }
   };
 
@@ -3845,6 +3922,31 @@ export default function Vault() {
                       <Trash2 className="w-3 h-3" />
                     </Button>
                   </div>
+
+                  {/* Regenerate Button - Only for non-uploaded images */}
+                  {!image.task_id?.startsWith('upload_') && (
+                    <div className="mt-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="w-full h-8 text-xs font-medium bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white border-0 shadow-md hover:shadow-lg transition-all duration-300"
+                        onClick={() => handleRegenerate(image)}
+                        disabled={regeneratingImages.has(image.system_filename)}
+                      >
+                        {regeneratingImages.has(image.system_filename) ? (
+                          <div className="flex items-center gap-2">
+                            <RefreshCcw className="w-3 h-3 animate-spin" />
+                            <span>Regenerating...</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <RefreshCcw className="w-3 h-3" />
+                            <span>Regenerate</span>
+                          </div>
+                        )}
+                      </Button>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             ))}

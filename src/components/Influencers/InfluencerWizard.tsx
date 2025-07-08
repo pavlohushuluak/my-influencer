@@ -360,7 +360,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [generatedImageData, setGeneratedImageData] = useState<{ image_id: string; system_filename: string } | null>(null);
 
-  console.log(influencerData);
+  // console.log(influencerData);
 
   // Show toast when entering a step with existing value
   useEffect(() => {
@@ -481,7 +481,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
             };
           });
 
-          console.log(matchedOptions);
+          // console.log(matchedOptions);
           
           setFacialFeaturesOptions(matchedOptions);
         }
@@ -576,8 +576,8 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
         const templatesData = await templatesResponse.json();
         const imagesData = await imageResponse.json();
 
-        console.log(templatesData);
-        console.log(imagesData);
+        // console.log(templatesData);
+        // console.log(imagesData);
         
         if (Array.isArray(templatesData) && imagesData && imagesData.fieldoptions && Array.isArray(imagesData.fieldoptions)) {
           // Match templates with images by label === template_name
@@ -593,7 +593,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
             };
           });
 
-          console.log(matchedOptions);
+          // console.log(matchedOptions);
           
           setCulturalBackgroundOptions(matchedOptions);
         }
@@ -981,6 +981,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
         });
         if (response.ok) {
           const responseData = await response.json();
+          console.log(responseData);
 
           if (responseData && responseData.fieldoptions && Array.isArray(responseData.fieldoptions)) {
             setEthnicsOptions(responseData.fieldoptions.map((item: any) => ({
@@ -1015,7 +1016,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
 
       if (response.ok) {
         const data = await response.json();
-        console.log(data);
+        // console.log(data);
         if (Array.isArray(data) && data.length > 0) {
           const output = data[0].output;
           if (typeof output === 'string') {
@@ -1941,7 +1942,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
               </div>
             </div>
 
-            <div className="max-w-4xl mx-auto">
+            <div className="mx-auto">
               {isLoadingEthnics ? (
                 <div className="flex justify-center items-center py-12">
                   <div className="text-center space-y-4">
@@ -1950,7 +1951,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                   </div>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 max-w-2xl mx-auto">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
                   {ethnicsOptions.map((option) => (
                     <Card
                       key={option.label}
@@ -1972,7 +1973,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                         <div className="space-y-4">
                           <div className="relative">
                             <img
-                              src={`https://images.nymia.ai/cdn-cgi/image/w=400/${option.image}`}
+                              src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
                               alt={option.label}
                               className="w-full h-full object-cover rounded-lg shadow-md group-hover:scale-105 transition-transform duration-300"
                             />

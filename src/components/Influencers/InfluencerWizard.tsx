@@ -157,8 +157,8 @@ const steps: Step[] = [
   },
   { 
     id: 3, 
-    title: 'Lifestyle Selection', 
-    description: 'Choose lifestyle',
+    title: 'Ethnics Selection', 
+    description: 'Choose the ethnic background',
     icon: Settings
   },
   { 
@@ -310,10 +310,13 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
   const [isLoadingBodyType, setIsLoadingBodyType] = useState(true);
   const [bustSizeOptions, setBustSizeOptions] = useState<Option[]>([]);
   const [isLoadingBustSize, setIsLoadingBustSize] = useState(true);
+  const [ethnicsOptions, setEthnicsOptions] = useState<Option[]>([]);
+  const [isLoadingEthnics, setIsLoadingEthnics] = useState(true);
   const [selectedFacialTemplate, setSelectedFacialTemplate] = useState<FacialTemplateDetail | null>(null);
   const [showFacialTemplateDetails, setShowFacialTemplateDetails] = useState(false);
   const [showFacialTemplateConfirm, setShowFacialTemplateConfirm] = useState(false);
   const [isApplyingTemplate, setIsApplyingTemplate] = useState(false);
+  const [showStep3Modal, setShowStep3Modal] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(5);
   const userData = useSelector((state: RootState) => state.user);
@@ -386,7 +389,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
       switch (currentStep) {
         case 1: return influencerData.sex;
         case 2: return influencerData.age;
-        case 3: return influencerData.lifestyle;
+        case 3: return influencerData.cultural_background;
         case 4: return influencerData.facial_features;
         case 5: return influencerData.cultural_background;
         case 6: return influencerData.hair_length;
@@ -943,6 +946,36 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
     fetchBustSizeOptions();
   }, []);
 
+  // Fetch ethnics options from API
+  useEffect(() => {
+    const fetchEthnicsOptions = async () => {
+      try {
+        setIsLoadingEthnics(true);
+        const response = await fetch('https://api.nymia.ai/v1/fieldoptions?fieldtype=ethnics_stereotype', {
+          headers: {
+            'Authorization': 'Bearer WeInfl3nc3withAI'
+          }
+        });
+        if (response.ok) {
+          const responseData = await response.json();
+          if (responseData && responseData.fieldoptions && Array.isArray(responseData.fieldoptions)) {
+            setEthnicsOptions(responseData.fieldoptions.map((item: any) => ({
+              label: item.label,
+              image: item.image,
+              description: item.description
+            })));
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching ethnics options:', error);
+      } finally {
+        setIsLoadingEthnics(false);
+      }
+    };
+
+    fetchEthnicsOptions();
+  }, []);
+
   // Function to call name wizard API
   const fetchNameSuggestions = async () => {
     try {
@@ -1213,6 +1246,12 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
 
   const handleNext = () => {
     if (currentStep < steps.length) {
+      // Special handling for step 3 - show modal instead of proceeding
+      if (currentStep === 3) {
+        setShowStep3Modal(true);
+        return;
+      }
+      
       let nextStep = currentStep + 1;
       
       // Special navigation logic for step 4 (Facial Features)
@@ -1257,6 +1296,21 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
       
       setCurrentStep(prevStep);
     }
+  };
+
+  const handleStep3ModalOption = (option: 'templates' | 'step-by-step') => {
+    setShowStep3Modal(false);
+    
+    if (option === 'templates') {
+      // Go to step 4 (Facial Features) for template selection
+      setCurrentStep(4);
+    } else {
+      // Go to step 5 (Cultural Background) for step-by-step creation
+      setCurrentStep(5);
+    }
+    
+    // Reset pagination to first page when moving to next step
+    setCurrentPage(1);
   };
 
   const handleSubmit = async () => {
@@ -1676,168 +1730,67 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
             <div className="text-center space-y-6">
               <div className="space-y-3">
                 <h2 className="text-2xl font-bold">
-                  Lifestyle Selection
+                  Ethnics Selection
                 </h2>
                 <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto text-lg leading-relaxed">
-                  Choose the lifestyle that best represents your influencer's daily routine, interests, and way of living.
+                  Choose the ethnic background that best represents your influencer's cultural heritage and appearance.
                 </p>
               </div>
             </div>
 
-            <div className="mx-auto">
-              {isLoadingLifestyle ? (
+            <div className="max-w-4xl mx-auto">
+              {isLoadingEthnics ? (
                 <div className="flex justify-center items-center py-12">
                   <div className="text-center space-y-4">
                     <Loader2 className="w-8 h-8 animate-spin text-orange-600 mx-auto" />
-                    <p className="text-gray-600 dark:text-gray-400">Loading lifestyle options...</p>
+                    <p className="text-gray-600 dark:text-gray-400">Loading ethnics options...</p>
                   </div>
                 </div>
               ) : (
-                <div className="space-y-6">
-                  {/* Items per page control */}
-                  <div className="flex justify-between items-center">
-                    {/* Items per page selector */}
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-gray-600 dark:text-gray-400">Show:</span>
-                      <select
-                        value={itemsPerPage}
-                        onChange={(e) => handleItemsPerPageChange(Number(e.target.value))}
-                        className="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                      >
-                        <option value={5}>5</option>
-                        <option value={10}>10</option>
-                        <option value={15}>15</option>
-                        <option value={-1}>All</option>
-                      </select>
-                      <span className="text-sm text-gray-600 dark:text-gray-400">per page</span>
-                    </div>
-                    <div className="text-sm text-gray-600 dark:text-gray-400">
-                      Showing {startIndex + 1}-{Math.min(endIndex, lifestyleOptions.length)} of {lifestyleOptions.length} lifestyle options
-                    </div>
-                  </div>
-
-                  {/* Lifestyle Options Grid */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-                    {lifestyleOptions.slice(startIndex, endIndex).map((option) => (
-                      <Card
-                        key={option.label}
-                        className={cn(
-                          "group cursor-pointer transition-all duration-300 hover:shadow-xl border-2 transform hover:scale-105",
-                          influencerData.lifestyle === option.label
-                            ? "border-orange-500 bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-950/20 dark:to-red-950/20 shadow-xl scale-105"
-                            : "border-gray-200 dark:border-gray-700 hover:border-orange-300 dark:hover:border-orange-600"
-                        )}
-                        onClick={() => {
-                          handleOptionSelect('lifestyle', option.label);
-                          toast.success(`${option.label} selected`, {
-                            id: 'lifestyle-selection',
-                            position: 'bottom-center'
-                          });
-                        }}
-                      >
-                        <CardContent className="p-6">
-                          <div className="space-y-4">
-                            <div className="relative">
-                              <img
-                                src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
-                                alt={option.label}
-                                className="w-full h-full object-cover rounded-lg shadow-md group-hover:scale-105 transition-transform duration-300"
-                              />
-                              {influencerData.lifestyle === option.label && (
-                                <div className="absolute top-2 right-2 w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center shadow-lg">
-                                  <Check className="w-5 h-5 text-white" />
-                                </div>
-                              )}
-                            </div>
-                            <div className="text-center space-y-2">
-                              <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-                                {option.label}
-                              </h3>
-                              <p className="text-gray-600 dark:text-gray-400 text-sm">
-                                {option.description}
-                              </p>
-                            </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 max-w-2xl mx-auto">
+                  {ethnicsOptions.map((option) => (
+                    <Card
+                      key={option.label}
+                      className={cn(
+                        "group cursor-pointer transition-all duration-300 hover:shadow-xl border-2 transform hover:scale-105",
+                        influencerData.cultural_background === option.label
+                          ? "border-orange-500 bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-950/20 dark:to-red-950/20 shadow-xl scale-105"
+                          : "border-gray-200 dark:border-gray-700 hover:border-orange-300 dark:hover:border-orange-600"
+                      )}
+                      onClick={() => {
+                        handleOptionSelect('cultural_background', option.label);
+                        toast.success(`${option.label} selected`, {
+                          id: 'ethnics-selection',
+                          position: 'bottom-center'
+                        });
+                      }}
+                    >
+                      <CardContent className="p-6">
+                        <div className="space-y-4">
+                          <div className="relative">
+                            <img
+                              src={`https://images.nymia.ai/cdn-cgi/image/w=400/${option.image}`}
+                              alt={option.label}
+                              className="w-full h-full object-cover rounded-lg shadow-md group-hover:scale-105 transition-transform duration-300"
+                            />
+                            {influencerData.cultural_background === option.label && (
+                              <div className="absolute top-2 right-2 w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center shadow-lg">
+                                <Check className="w-5 h-5 text-white" />
+                              </div>
+                            )}
                           </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-
-                  {/* Pagination */}
-                  {Math.ceil(lifestyleOptions.length / (itemsPerPage === -1 ? lifestyleOptions.length : itemsPerPage)) > 1 && (
-                    <div className="flex flex-col sm:flex-row justify-between items-center gap-4 py-6 border-t border-gray-200 dark:border-gray-700">
-                      <div className="text-sm text-gray-600 dark:text-gray-400">
-                        Showing {startIndex + 1}-{Math.min(endIndex, lifestyleOptions.length)} of {lifestyleOptions.length} lifestyle options
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="outline"
-                          onClick={() => handlePageChange(1)}
-                          disabled={currentPage === 1}
-                          className="px-3 py-1 text-sm font-medium border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300"
-                        >
-                          First
-                        </Button>
-                        <Button
-                          variant="outline"
-                          onClick={() => handlePageChange(currentPage - 1)}
-                          disabled={currentPage === 1}
-                          className="px-3 py-1 text-sm font-medium border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300"
-                        >
-                          Previous
-                        </Button>
-
-                        {/* Page numbers */}
-                        <div className="flex items-center gap-1">
-                          {Array.from({ length: Math.min(5, Math.ceil(lifestyleOptions.length / (itemsPerPage === -1 ? lifestyleOptions.length : itemsPerPage))) }, (_, i) => {
-                            let pageNum;
-                            const totalPages = Math.ceil(lifestyleOptions.length / (itemsPerPage === -1 ? lifestyleOptions.length : itemsPerPage));
-                            if (totalPages <= 5) {
-                              pageNum = i + 1;
-                            } else if (currentPage <= 3) {
-                              pageNum = i + 1;
-                            } else if (currentPage >= totalPages - 2) {
-                              pageNum = totalPages - 4 + i;
-                            } else {
-                              pageNum = currentPage - 2 + i;
-                            }
-
-                            return (
-                              <Button
-                                key={pageNum}
-                                variant={currentPage === pageNum ? "default" : "outline"}
-                                onClick={() => handlePageChange(pageNum)}
-                                className={`px-3 py-1 text-sm font-medium transition-all duration-300 ${currentPage === pageNum
-                                  ? "bg-orange-600 text-white border-orange-600"
-                                  : "border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
-                                  }`}
-                              >
-                                {pageNum}
-                              </Button>
-                            );
-                          })}
+                          <div className="text-center space-y-2">
+                            <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                              {option.label}
+                            </h3>
+                            <p className="text-gray-600 dark:text-gray-400 text-sm">
+                              {option.description}
+                            </p>
+                          </div>
                         </div>
-
-                        <Button
-                          variant="outline"
-                          onClick={() => handlePageChange(currentPage + 1)}
-                          disabled={currentPage === Math.ceil(lifestyleOptions.length / (itemsPerPage === -1 ? lifestyleOptions.length : itemsPerPage))}
-                          className="px-3 py-1 text-sm font-medium border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300"
-                        >
-                          Next
-                        </Button>
-                        <Button
-                          variant="outline"
-                          onClick={() => handlePageChange(Math.ceil(lifestyleOptions.length / (itemsPerPage === -1 ? lifestyleOptions.length : itemsPerPage)))}
-                          disabled={currentPage === Math.ceil(lifestyleOptions.length / (itemsPerPage === -1 ? lifestyleOptions.length : itemsPerPage))}
-                          className="px-3 py-1 text-sm font-medium border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300"
-                        >
-                          Last
-                        </Button>
-                      </div>
-                    </div>
-                  )}
+                      </CardContent>
+                    </Card>
+                  ))}
                 </div>
               )}
             </div>
@@ -4568,7 +4521,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
       case 2:
         return influencerData.age !== '';
       case 3:
-        return influencerData.lifestyle !== '';
+        return influencerData.cultural_background !== '';
       case 4:
         return influencerData.facial_features !== '';
       case 5:
@@ -4813,6 +4766,84 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
             <Button
               variant="outline"
               onClick={() => setShowNameSelectionModal(false)}
+            >
+              Cancel
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Step 3 Modal - Choose Creation Method */}
+      <Dialog open={showStep3Modal} onOpenChange={setShowStep3Modal}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+              Choose Your Creation Method
+            </DialogTitle>
+            <DialogDescription className="text-gray-600 dark:text-gray-400 text-lg">
+              How would you like to proceed with creating your influencer's facial features?
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-6 py-4">
+            {/* Template Option */}
+            <Card
+              className="border-2 border-blue-200 dark:border-blue-700 hover:border-blue-400 dark:hover:border-blue-500 cursor-pointer transition-all duration-300 group"
+              onClick={() => handleStep3ModalOption('templates')}
+            >
+              <CardContent className="p-6">
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+                    <Sparkles className="w-6 h-6 text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+                      Select from Facial Feature Templates
+                    </h3>
+                    <p className="text-gray-600 dark:text-gray-400 mb-3">
+                      Choose from our curated collection of facial feature templates. These templates provide pre-configured combinations of facial characteristics that work well together.
+                    </p>
+                    <div className="flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400">
+                      <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                      Quick setup • Professional results • Customizable
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Step-by-Step Option */}
+            <Card
+              className="border-2 border-green-200 dark:border-green-700 hover:border-green-400 dark:hover:border-green-500 cursor-pointer transition-all duration-300 group"
+              onClick={() => handleStep3ModalOption('step-by-step')}
+            >
+              <CardContent className="p-6">
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+                    <Settings className="w-6 h-6 text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+                      Create Step by Step
+                    </h3>
+                    <p className="text-gray-600 dark:text-gray-400 mb-3">
+                      Build your influencer's facial features from scratch by selecting each characteristic individually. This gives you complete control over every aspect.
+                    </p>
+                    <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
+                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                      Full control • Detailed customization • Complete freedom
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-4 border-t border-gray-200 dark:border-gray-700">
+            <Button
+              variant="outline"
+              onClick={() => setShowStep3Modal(false)}
+              className="px-6 py-2"
             >
               Cancel
             </Button>

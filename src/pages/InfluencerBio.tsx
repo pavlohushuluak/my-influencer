@@ -883,7 +883,7 @@ export default function InfluencerBio() {
           </div>
 
           {/* Export Options */}
-          <div className="flex flex-wrap gap-2 mb-2 h-full">
+          {/* <div className="flex flex-wrap gap-2 mb-2 h-full">
             <CopyButton
               text={Object.entries(platforms).map(([key, platform]) =>
                 `${platformConfig[key as keyof typeof platformConfig]?.name}:\nHeadline: ${platform.headline}\nBio: ${platform.bio}\nScore: ${platform.optimization_score}/10`
@@ -914,10 +914,10 @@ export default function InfluencerBio() {
               <BarChart3 className="w-4 h-4" />
               Comparison View
             </Button>
-          </div>
+          </div> */}
 
           {/* Navigation */}
-          <div className="sticky top-0 z-40 mb-6 -mx-4 lg:-mx-8 px-4 lg:px-8 pt-4">
+          {/* <div className="sticky top-0 z-40 mb-6 -mx-4 lg:-mx-8 px-4 lg:px-8 pt-4">
             <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg p-1">
               <div className="flex flex-wrap gap-2 justify-center">
                 <Button
@@ -949,7 +949,7 @@ export default function InfluencerBio() {
                 </Button>
               </div>
             </div>
-          </div>
+          </div> */}
 
           {/* Error Display */}
           {missingFields.length > 0 && (
@@ -1066,7 +1066,7 @@ export default function InfluencerBio() {
                               </h4>
                               <CopyButton text={profile.bio} label="Copy" />
                             </div>
-                            <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg p-4 border border-green-100 dark:border-green-800 max-h-32 overflow-y-auto">
+                            <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg p-4 border border-green-100 dark:border-green-800">
                               <p className="text-sm leading-relaxed whitespace-pre-line">{profile.bio}</p>
                             </div>
                             <ProgressBar value={profile.character_count?.bio || 0} max={limit.find(l => l.name === config?.name)?.limit.bio || 0} color={config?.color || '#000'} />
@@ -1099,7 +1099,7 @@ export default function InfluencerBio() {
           </div>
 
           {/* Character Background Section */}
-          <div id="background">
+          {/* <div id="background">
             <Card className="shadow-lg border-0 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
               <CardHeader>
                 <CardTitle className="text-2xl flex items-center gap-3">
@@ -1146,10 +1146,10 @@ export default function InfluencerBio() {
                 </div>
               </CardContent>
             </Card>
-          </div>
+          </div> */}
 
           {/* Chat Guidance Section */}
-          <div id="guidance">
+          {/* <div id="guidance">
             <Card className="shadow-lg border-0 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
               <CardHeader>
                 <CardTitle className="text-2xl flex items-center gap-3">
@@ -1203,7 +1203,7 @@ export default function InfluencerBio() {
                 </div>
               </CardContent>
             </Card>
-          </div>
+          </div> */}
         </div>
       </div>
     </div>

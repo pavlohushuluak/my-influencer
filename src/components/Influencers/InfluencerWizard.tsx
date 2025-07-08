@@ -143,124 +143,124 @@ interface Step {
 }
 
 const steps: Step[] = [
-  { 
-    id: 1, 
-    title: 'Sex Selection', 
+  {
+    id: 1,
+    title: 'Sex Selection',
     description: 'Choose the sex of your influencer',
     icon: User
   },
-  { 
-    id: 2, 
-    title: 'Age Selection', 
+  {
+    id: 2,
+    title: 'Age Selection',
     description: 'Choose age range',
     icon: Palette
   },
-  { 
-    id: 3, 
-    title: 'Ethnics Selection', 
+  {
+    id: 3,
+    title: 'Ethnics Selection',
     description: 'Choose the ethnic background',
     icon: Settings
   },
-  { 
-    id: 4, 
-    title: 'Facial Features', 
+  {
+    id: 4,
+    title: 'Facial Features',
     description: 'Select facial features template',
     icon: Sparkles
   },
-  { 
-    id: 5, 
-    title: 'Cultural Background', 
+  {
+    id: 5,
+    title: 'Cultural Background',
     description: 'Select cultural background',
     icon: Settings
   },
-  { 
-    id: 6, 
-    title: 'Hair Length', 
+  {
+    id: 6,
+    title: 'Hair Length',
     description: 'Choose hair length',
     icon: Settings
   },
-  { 
-    id: 7, 
-    title: 'Hair Style', 
+  {
+    id: 7,
+    title: 'Hair Style',
     description: 'Select hair style',
     icon: Settings
   },
-  { 
-    id: 8, 
-    title: 'Hair Color', 
+  {
+    id: 8,
+    title: 'Hair Color',
     description: 'Choose hair color',
     icon: Settings
   },
-  { 
-    id: 9, 
-    title: 'Face Shape', 
+  {
+    id: 9,
+    title: 'Face Shape',
     description: 'Select face shape',
     icon: Settings
   },
-  { 
-    id: 10, 
-    title: 'Eye Color', 
+  {
+    id: 10,
+    title: 'Eye Color',
     description: 'Choose eye color',
     icon: Settings
   },
-  { 
-    id: 11, 
-    title: 'Eye Shape', 
+  {
+    id: 11,
+    title: 'Eye Shape',
     description: 'Select eye shape',
     icon: Settings
   },
-  { 
-    id: 12, 
-    title: 'Lip Style', 
+  {
+    id: 12,
+    title: 'Lip Style',
     description: 'Choose lip style',
     icon: Settings
   },
-  { 
-    id: 13, 
-    title: 'Nose Style', 
+  {
+    id: 13,
+    title: 'Nose Style',
     description: 'Select nose style',
     icon: Settings
   },
-  { 
-    id: 14, 
-    title: 'Eyebrow Style', 
+  {
+    id: 14,
+    title: 'Eyebrow Style',
     description: 'Choose eyebrow style',
     icon: Settings
   },
-  { 
-    id: 15, 
-    title: 'Skin Tone', 
+  {
+    id: 15,
+    title: 'Skin Tone',
     description: 'Select skin tone',
     icon: Settings
   },
-  { 
-    id: 16, 
-    title: 'Body Type', 
+  {
+    id: 16,
+    title: 'Body Type',
     description: 'Choose body type',
     icon: Settings
   },
-  { 
-    id: 17, 
-    title: 'Bust Size', 
+  {
+    id: 17,
+    title: 'Bust Size',
     description: 'Select bust size (Female only)',
     icon: Settings,
     condition: (influencerData: InfluencerData) => influencerData.sex === 'Female'
   },
-  { 
-    id: 18, 
-    title: 'Origin & Residence', 
+  {
+    id: 18,
+    title: 'Origin & Residence',
     description: 'Set birth origin and current residence',
     icon: Globe
   },
-  { 
-    id: 19, 
-    title: 'Name', 
+  {
+    id: 19,
+    title: 'Name',
     description: 'Enter first and last name',
     icon: User
   },
-  { 
-    id: 20, 
-    title: 'Review & Create', 
+  {
+    id: 20,
+    title: 'Review & Create',
     description: 'Review all selections and create influencer',
     icon: Settings
   }
@@ -384,7 +384,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
   useEffect(() => {
     // Remove the automatic page reset - let users stay on their current page
     // setCurrentPage(1);
-    
+
     const getStepValue = () => {
       switch (currentStep) {
         case 1: return influencerData.sex;
@@ -467,32 +467,55 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
   }, []);
 
   // Fetch facial features options from API
-  useEffect(() => {
-    const fetchFacialFeaturesOptions = async () => {
-      try {
-        setIsLoadingFacialFeatures(true);
-        const response = await fetch('https://api.nymia.ai/v1/fieldoptions?fieldtype=facial_features', {
-          headers: {
-            'Authorization': 'Bearer WeInfl3nc3withAI'
-          }
-        });
-        if (response.ok) {
-          const responseData = await response.json();
-          if (responseData && responseData.fieldoptions && Array.isArray(responseData.fieldoptions)) {
-            setFacialFeaturesOptions(responseData.fieldoptions.map((item: any) => ({
-              label: item.label,
-              image: item.image,
-              description: item.description
-            })));
-          }
+  const fetchFacialFeaturesOptions = async (ethnic?: string) => {
+    try {
+      setIsLoadingFacialFeatures(true);
+      
+      // Fetch templates from ethnic-specific API
+      const templatesResponse = await fetch(`https://db.nymia.ai/rest/v1/facial_templates_global?ethnics_stereotype=eq.${ethnic}`, {
+        headers: {
+          'Authorization': 'Bearer WeInfl3nc3withAI'
         }
-      } catch (error) {
-        console.error('Error fetching facial features options:', error);
-      } finally {
-        setIsLoadingFacialFeatures(false);
-      }
-    };
+      });
+      
+      // Fetch images from original API
+      const imagesResponse = await fetch('https://api.nymia.ai/v1/fieldoptions?fieldtype=facial_features', {
+        headers: {
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        }
+      });
+      
+      if (templatesResponse.ok && imagesResponse.ok) {
+        const templatesData = await templatesResponse.json();
+        const imagesData = await imagesResponse.json();
+        
+        if (Array.isArray(templatesData) && imagesData && imagesData.fieldoptions && Array.isArray(imagesData.fieldoptions)) {
+          // Match templates with images by label === template_name
+          const matchedOptions = templatesData.map((template: any) => {
+            const matchingImage = imagesData.fieldoptions.find((imageItem: any) => 
+              imageItem.label === template.template_name
+            );
+            
+            return {
+              label: template.template_name || template.label,
+              image: matchingImage ? matchingImage.image : template.image || template.template_image,
+              description: template.description || template.base_prompt
+            };
+          });
 
+          console.log(matchedOptions);
+          
+          setFacialFeaturesOptions(matchedOptions);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching facial features options:', error);
+    } finally {
+      setIsLoadingFacialFeatures(false);
+    }
+  };
+
+  useEffect(() => {
     fetchFacialFeaturesOptions();
   }, []);
 
@@ -1156,7 +1179,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
     if (nameParts.length >= 2) {
       const firstName = nameParts[0];
       const lastName = nameParts.slice(1).join(' '); // Handle multi-word last names
-      
+
       setInfluencerData(prev => ({
         ...prev,
         name_first: firstName,
@@ -1178,7 +1201,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
         position: 'bottom-center'
       });
     }
-    
+
     setShowNameSelectionModal(false);
     setSelectedNameSuggestion(null);
   };
@@ -1187,7 +1210,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
   const parseNameWithNickname = (fullName: string) => {
     // Handle names like "Isabella 'Bella' Cruz" or "Sofia 'Sofi' Vargas"
     const nicknameMatch = fullName.match(/^(\w+)\s+'([^']+)'\s+(.+)$/);
-    
+
     if (nicknameMatch) {
       const [, firstName, nickname, lastName] = nicknameMatch;
       return {
@@ -1196,7 +1219,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
         nicknameOnly: `${nickname} ${lastName}`
       };
     }
-    
+
     // Handle names without nickname
     const nameParts = fullName.split(' ');
     if (nameParts.length >= 2) {
@@ -1208,7 +1231,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
         nicknameOnly: null
       };
     }
-    
+
     return {
       fullNameWithNickname: fullName,
       fullNameWithoutNickname: fullName,
@@ -1251,24 +1274,18 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
         setShowStep3Modal(true);
         return;
       }
-      
+
       let nextStep = currentStep + 1;
-      
+
       // Special navigation logic for step 4 (Facial Features)
       if (currentStep === 4) {
-        if (influencerData.facial_features === 'Default') {
-          // If "Default" is selected, go to next step (step 5)
-          nextStep = 5;
-        } else {
-          // If a template is selected, skip to step 16 (Body Type)
-          nextStep = 16;
-        }
+        nextStep = 16;
       }
       // Skip step 17 (Bust Size) if sex is not Female
       else if (nextStep === 17 && influencerData.sex !== 'Female') {
         nextStep = 18;
       }
-      
+
       setCurrentStep(nextStep);
       // Reset pagination to first page when moving to next step
       setCurrentPage(1);
@@ -1278,10 +1295,10 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
   const handleBack = () => {
     if (currentStep > 1) {
       let prevStep = currentStep - 1;
-      
+
       // Special navigation logic for step 16 (Body Type)
       if (currentStep === 16) {
-        if (influencerData.facial_features === 'Default') {
+        if (influencerData.facial_features === '') {
           // If "Default" was selected on step 4, go to step 15 (Skin Tone)
           prevStep = 15;
         } else {
@@ -1293,22 +1310,30 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
       else if (prevStep === 17 && influencerData.sex !== 'Female') {
         prevStep = 16;
       }
-      
+
       setCurrentStep(prevStep);
     }
   };
 
   const handleStep3ModalOption = (option: 'templates' | 'step-by-step') => {
     setShowStep3Modal(false);
-    
+
     if (option === 'templates') {
+      // Fetch facial features data based on selected ethnic background
+      const selectedEthnic = influencerData.cultural_background;
+      if (selectedEthnic && selectedEthnic !== 'Default') {
+        fetchFacialFeaturesOptions(selectedEthnic);
+      } else {
+        // If no ethnic selected, use default fetch
+        fetchFacialFeaturesOptions();
+      }
       // Go to step 4 (Facial Features) for template selection
       setCurrentStep(4);
     } else {
       // Go to step 5 (Cultural Background) for step-by-step creation
       setCurrentStep(5);
     }
-    
+
     // Reset pagination to first page when moving to next step
     setCurrentPage(1);
   };
@@ -1402,7 +1427,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
         toast.success('Influencer created successfully!', {
           position: 'bottom-right'
         });
-        
+
         // Create the influencer data object to pass to edit page
         const createdInfluencerData = {
           id: data[0].id,
@@ -1462,10 +1487,10 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
         };
 
         // Navigate to edit page with the created influencer data
-        navigate('/influencers/edit', { 
-          state: { 
+        navigate('/influencers/edit', {
+          state: {
             influencerData: createdInfluencerData
-          } 
+          }
         });
         onComplete();
       } else {
@@ -1803,17 +1828,17 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
             <div className="text-center space-y-6">
               <div className="space-y-3">
                 <h2 className="text-2xl font-bold">
-                  Facial Features
+                  Facial Features Templates
                 </h2>
                 <p className="text-gray-600 dark:text-gray-400 max-w-3xl mx-auto text-lg leading-relaxed">
-                  To ease your start, we provide you with a list of well curated Facial templates, that help you to get started.
-                  You can select out of the portfolio or start from Scratch.
-                  All setting can be modified.
+                  {influencerData.cultural_background && influencerData.cultural_background !== 'Default'
+                    ? `Curated facial templates specifically designed for ${influencerData.cultural_background} ethnic background. Choose a template that best matches your vision.`
+                    : 'Curated facial templates to help you get started quickly. Choose a template that best matches your vision.'
+                  }
                 </p>
                 <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 max-w-3xl mx-auto">
                   <p className="text-blue-800 dark:text-blue-200 text-sm">
-                    <strong>Navigation Tip:</strong> If you select "Start from Scratch", you'll continue through all steps. 
-                    If you select a template, you'll skip to Body Type (step 16) to complete the basic setup faster.
+                    <strong>Navigation Tip:</strong> After selecting a template, you'll skip to Body Type (step 16) to complete the basic setup faster.
                   </p>
                 </div>
               </div>
@@ -1850,70 +1875,48 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
 
                   {/* Facial Features Grid */}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-                    {facialFeaturesOptions.slice(startIndex, endIndex).map((option) => (
-                      <Card
-                        key={option.label}
-                        className={cn(
-                          "group cursor-pointer transition-all duration-300 hover:shadow-xl border-2 transform hover:scale-105",
-                          (option.label === "Default" && influencerData.facial_features === 'Default') || influencerData.facial_features === option.label
-                            ? "border-purple-500 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/20 dark:to-pink-950/20 shadow-xl scale-105"
-                            : "border-gray-200 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-600"
-                        )}
-                        onClick={() => {
-                          if (option.label === "Default") {
-                            // Set all facial feature fields to "Default"
-                            setInfluencerData(prev => ({
-                              ...prev,
-                              facial_features: 'Default',
-                              face_shape: 'Default',
-                              hair_style: 'Default',
-                              hair_color: 'Default',
-                              hair_length: 'Default',
-                              eye_color: 'Default',
-                              nose_style: 'Default',
-                              lip_style: 'Default',
-                              eye_shape: 'Default',
-                              eyebrow_style: 'Default',
-                              cultural_background: 'Default'
-                            }));
-                            toast.success('Start from Scratch selected', {
-                              id: 'start-from-scratch',
-                              position: 'bottom-center'
-                            });
-                          } else {
+                    {facialFeaturesOptions
+                      .filter(option => option.label !== "Default")
+                      .slice(startIndex, endIndex)
+                      .map((option) => (
+                        <Card
+                          key={option.label}
+                          className={cn(
+                            "group cursor-pointer transition-all duration-300 hover:shadow-xl border-2 transform hover:scale-105",
+                            influencerData.facial_features === option.label
+                              ? "border-purple-500 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/20 dark:to-pink-950/20 shadow-xl scale-105"
+                              : "border-gray-200 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-600"
+                          )}
+                          onClick={() => {
                             applyFacialTemplate(option.label);
-                          }
-                        }}
-                      >
-                        <CardContent className="p-6">
-                          <div className="space-y-4">
-                            <div className="relative">
-                              <img
-                                src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
-                                alt={option.label === "Default" ? "Start from Scratch" : option.label}
-                                className="w-full h-full object-cover rounded-lg shadow-md group-hover:scale-105 transition-transform duration-300"
-                              />
-                              {(option.label === "Default" && influencerData.facial_features === 'Default') || influencerData.facial_features === option.label ? (
-                                <div className="absolute top-2 right-2 w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center shadow-lg">
-                                  <Check className="w-5 h-5 text-white" />
-                                </div>
-                              ) : null}
+                          }}
+                        >
+                          <CardContent className="p-6">
+                            <div className="space-y-4">
+                              <div className="relative">
+                                <img
+                                  src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
+                                  alt={option.label}
+                                  className="w-full h-full object-cover rounded-lg shadow-md group-hover:scale-105 transition-transform duration-300"
+                                />
+                                {influencerData.facial_features === option.label ? (
+                                  <div className="absolute top-2 right-2 w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center shadow-lg">
+                                    <Check className="w-5 h-5 text-white" />
+                                  </div>
+                                ) : null}
+                              </div>
+                              <div className="text-center space-y-2">
+                                <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                                  {option.label}
+                                </h3>
+                                <p className="text-gray-600 dark:text-gray-400 text-sm">
+                                  {option.description}
+                                </p>
+                              </div>
                             </div>
-                            <div className="text-center space-y-2">
-                              <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-                                {option.label === "Default" ? "Start from Scratch" : option.label}
-                              </h3>
-                              <p className="text-gray-600 dark:text-gray-400 text-sm">
-                                {option.label === "Default"
-                                  ? "Create a completely custom facial template with your own specifications and preferences"
-                                  : option.description
-                                }
-                              </p>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
+                          </CardContent>
+                        </Card>
+                      ))}
                   </div>
 
                   {/* Pagination */}
@@ -4512,9 +4515,9 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
   const canProceed = () => {
     const activeSteps = getActiveSteps(influencerData);
     const currentActiveStep = activeSteps.find(step => step.id === currentStep);
-    
+
     if (!currentActiveStep) return false;
-    
+
     switch (currentStep) {
       case 1:
         return influencerData.sex !== '';
@@ -4589,7 +4592,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                 {
                   influencerData.sex !== 'Female' && currentStep > 17 ?
                     `Step ${currentStep - 1} of ${getActiveSteps(influencerData).length}`
-                  :
+                    :
                     `Step ${currentStep} of ${getActiveSteps(influencerData).length}`
                 }
               </h3>

@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { ChevronRight, ChevronLeft, Loader2, User, Sparkles, Palette, Settings, ArrowRight, Check, ZoomIn, RefreshCcw, Globe } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Loader2, User, Sparkles, Palette, Settings, ArrowRight, Check, ZoomIn, RefreshCcw, Globe, Image } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { RootState } from '@/store/store';
 import { toast } from 'sonner';
@@ -205,61 +205,37 @@ const steps: Step[] = [
   },
   {
     id: 11,
-    title: 'Eye Shape',
-    description: 'Select eye shape',
-    icon: Settings
-  },
-  {
-    id: 12,
-    title: 'Lip Style',
-    description: 'Choose lip style',
-    icon: Settings
-  },
-  {
-    id: 13,
-    title: 'Nose Style',
-    description: 'Select nose style',
-    icon: Settings
-  },
-  {
-    id: 14,
-    title: 'Eyebrow Style',
-    description: 'Choose eyebrow style',
-    icon: Settings
-  },
-  {
-    id: 15,
     title: 'Skin Tone',
     description: 'Select skin tone',
     icon: Settings
   },
   {
-    id: 16,
+    id: 12,
     title: 'Body Type',
     description: 'Choose body type',
     icon: Settings
   },
   {
-    id: 17,
+    id: 13,
     title: 'Bust Size',
     description: 'Select bust size (Female only)',
     icon: Settings,
     condition: (influencerData: InfluencerData) => influencerData.sex === 'Female'
   },
   {
-    id: 18,
+    id: 14,
     title: 'Origin & Residence',
     description: 'Set birth origin and current residence',
     icon: Globe
   },
   {
-    id: 19,
+    id: 15,
     title: 'Name',
     description: 'Enter first and last name',
     icon: User
   },
   {
-    id: 20,
+    id: 16,
     title: 'Review & Create',
     description: 'Review all selections and create influencer',
     icon: Settings
@@ -377,6 +353,12 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
   const [showNameSelectionModal, setShowNameSelectionModal] = useState(false);
   const [selectedNameSuggestion, setSelectedNameSuggestion] = useState<NameSuggestion | null>(null);
 
+  // Preview functionality state
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
+  const [previewInfluencerId, setPreviewInfluencerId] = useState<string | null>(null);
+  const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [generatedImageData, setGeneratedImageData] = useState<{ image_id: string; system_filename: string } | null>(null);
 
   console.log(influencerData);
 
@@ -397,13 +379,9 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
         case 8: return influencerData.hair_color;
         case 9: return influencerData.face_shape;
         case 10: return influencerData.eye_color;
-        case 11: return influencerData.eye_shape;
-        case 12: return influencerData.lip_style;
-        case 13: return influencerData.nose_style;
-        case 14: return influencerData.eyebrow_style;
-        case 15: return influencerData.skin_tone;
-        case 16: return influencerData.body_type;
-        case 17: return influencerData.bust_size;
+        case 11: return influencerData.skin_tone;
+        case 12: return influencerData.body_type;
+        case 13: return influencerData.bust_size;
         default: return '';
       }
     };
@@ -981,6 +959,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
         });
         if (response.ok) {
           const responseData = await response.json();
+
           if (responseData && responseData.fieldoptions && Array.isArray(responseData.fieldoptions)) {
             setEthnicsOptions(responseData.fieldoptions.map((item: any) => ({
               label: item.label,
@@ -1257,6 +1236,11 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
   const handleOptionSelect = (field: string, value: string | boolean) => {
     setInfluencerData(prev => ({ ...prev, [field]: value }));
 
+    // Special handling for origin_residence - automatically set origin_birth to the same value
+    if (field === 'origin_residence' && typeof value === 'string') {
+      setInfluencerData(prev => ({ ...prev, origin_birth: value }));
+    }
+
     // Show success toast for selection (excluding origin and name fields)
     if (typeof value === 'string' && value !== '' && field !== 'origin_birth' && field !== 'origin_residence' && field !== 'name_first' && field !== 'name_last') {
       const stepName = steps[currentStep - 1]?.title || 'this step';
@@ -1279,11 +1263,11 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
 
       // Special navigation logic for step 4 (Facial Features)
       if (currentStep === 4) {
-        nextStep = 16;
+        nextStep = 12; // Skip to Body Type (step 12)
       }
-      // Skip step 17 (Bust Size) if sex is not Female
-      else if (nextStep === 17 && influencerData.sex !== 'Female') {
-        nextStep = 18;
+      // Skip step 13 (Bust Size) if sex is not Female
+      else if (nextStep === 13 && influencerData.sex !== 'Female') {
+        nextStep = 14;
       }
 
       setCurrentStep(nextStep);
@@ -1306,9 +1290,18 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
           prevStep = 4;
         }
       }
-      // Skip step 17 (Bust Size) if sex is not Female when going back
-      else if (prevStep === 17 && influencerData.sex !== 'Female') {
-        prevStep = 16;
+      // Special navigation logic for step 12 (Body Type)
+      else if (prevStep === 12) {
+        // Go back to step 4 (Facial Features)
+        prevStep = 4;
+      }
+      // Special navigation logic for step 5 (Cultural Background) - go back to step 3
+      else if (currentStep === 5) {
+        prevStep = 3;
+      }
+      // Skip step 13 (Bust Size) if sex is not Female when going back
+      else if (prevStep === 13 && influencerData.sex !== 'Female') {
+        prevStep = 12;
       }
 
       setCurrentStep(prevStep);
@@ -1504,6 +1497,169 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Preview functionality
+  const handlePreview = async () => {
+    setIsPreviewLoading(true);
+
+    try {
+      // Simulate preview generation
+      toast.info('Generating preview...', {
+        description: 'Creating a preview of your influencer with current settings'
+      });
+
+      // Create the JSON data structure
+      const requestData = {
+        task: "generate_preview",
+        number_of_images: 1,
+        quality: 'Quality',
+        nsfw_strength: -1,
+        lora: "",
+        noAI: false,
+        prompt: "",
+        negative_prompt: "",
+        lora_strength: 0,
+        seed: -1,
+        guidance: 7,
+        model: {
+          id: "preview", // Temporary ID for preview
+          influencer_type: influencerData.influencer_type,
+          sex: influencerData.sex,
+          cultural_background: influencerData.cultural_background,
+          hair_length: influencerData.hair_length,
+          hair_color: influencerData.hair_color,
+          hair_style: influencerData.hair_style,
+          eye_color: influencerData.eye_color,
+          lip_style: influencerData.lip_style,
+          nose_style: influencerData.nose_style,
+          face_shape: influencerData.face_shape,
+          facial_features: influencerData.facial_features,
+          skin_tone: influencerData.skin_tone,
+          bust: influencerData.bust_size,
+          body_type: influencerData.body_type,
+          color_palette: influencerData.color_palette || [],
+          clothing_style_everyday: influencerData.clothing_style_everyday,
+          eyebrow_style: influencerData.eyebrow_style,
+          makeup_style: "Default",
+          name_first: influencerData.name_first,
+          name_last: influencerData.name_last,
+          visual_only: influencerData.visual_only,
+          age: influencerData.age,
+          lifestyle: influencerData.lifestyle
+        },
+        scene: {
+          framing: "",
+          rotation: "",
+          lighting_preset: "",
+          scene_setting: "",
+          pose: "",
+          clothes: ""
+        }
+      };
+
+      const useridResponse = await fetch(`https://db.nymia.ai/rest/v1/user?uuid=eq.${userData.id}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        }
+      });
+
+      const useridData = await useridResponse.json();
+
+      // Send the request to create task
+      const response = await fetch(`https://api.nymia.ai/v1/createtask?userid=${useridData[0].userid}&type=createimage`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify(requestData)
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      const taskId = result.id;
+
+      // Poll for the generated images
+      let attempts = 0;
+      const maxAttempts = 120; // 120 seconds max
+
+      const pollForImages = async () => {
+        try {
+          const imagesResponse = await fetch('https://api.nymia.ai/v1/get-images-by-task', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer WeInfl3nc3withAI'
+            },
+            body: JSON.stringify({ task_id: taskId })
+          });
+
+          if (!imagesResponse.ok) {
+            throw new Error('Failed to fetch images');
+          }
+
+          const imagesData = await imagesResponse.json();
+
+          if (imagesData.success && imagesData.images && imagesData.images.length > 0) {
+            // Check if any image is completed
+            const completedImage = imagesData.images.find((img: any) => img.status === 'completed');
+
+            if (completedImage) {
+              // Show the generated image
+              const imageUrl = `https://images.nymia.ai/cdn-cgi/image/w=800/${completedImage.file_path}`;
+              setPreviewImageUrl(imageUrl);
+
+              // Store the generated image data
+              setGeneratedImageData({
+                image_id: completedImage.image_id,
+                system_filename: completedImage.system_filename
+              });
+
+              setShowPreviewModal(true);
+              toast.success('Preview generated successfully!', {
+                description: 'Your influencer preview is ready to view'
+              });
+              setIsPreviewLoading(false);
+              return;
+            }
+          }
+
+          // If no completed images yet, continue polling
+          attempts++;
+          if (attempts < maxAttempts) {
+            setTimeout(pollForImages, 1000); // Poll every second
+          } else {
+            toast.error('Preview generation timeout', {
+              description: 'The preview is taking longer than expected. Please try again.'
+            });
+            setIsPreviewLoading(false);
+          }
+        } catch (error) {
+          console.error('Error polling for images:', error);
+          toast.error('Failed to fetch preview image');
+          setIsPreviewLoading(false);
+        }
+      };
+
+      // Start polling
+      pollForImages();
+
+    } catch (error) {
+      console.error('Preview error:', error);
+      toast.error('Failed to generate preview');
+      setIsPreviewLoading(false);
+    }
+  };
+
+  const handleClosePreview = async () => {
+    setShowPreviewModal(false);
+    setPreviewImageUrl(null);
+    setGeneratedImageData(null);
   };
 
   const renderStepContent = () => {
@@ -3050,702 +3206,6 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
             <div className="text-center space-y-6">
               <div className="space-y-3">
                 <h2 className="text-2xl font-bold">
-                  Eye Shape
-                </h2>
-                <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto text-lg leading-relaxed">
-                  Choose the eye shape that best represents your influencer's appearance.
-                </p>
-              </div>
-            </div>
-
-            <div className="mx-auto">
-              {isLoadingEyeShape ? (
-                <div className="flex justify-center items-center py-12">
-                  <div className="text-center space-y-4">
-                    <Loader2 className="w-8 h-8 animate-spin text-orange-600 mx-auto" />
-                    <p className="text-gray-600 dark:text-gray-400">Loading eye shape options...</p>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-6">
-                  {/* Items per page control */}
-                  <div className="flex justify-between items-center">
-                    {/* Items per page selector */}
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-gray-600 dark:text-gray-400">Show:</span>
-                      <select
-                        value={itemsPerPage}
-                        onChange={(e) => handleItemsPerPageChange(Number(e.target.value))}
-                        className="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                      >
-                        <option value={5}>5</option>
-                        <option value={10}>10</option>
-                        <option value={15}>15</option>
-                        <option value={-1}>All</option>
-                      </select>
-                      <span className="text-sm text-gray-600 dark:text-gray-400">per page</span>
-                    </div>
-                    <div className="text-sm text-gray-600 dark:text-gray-400">
-                      Showing {startIndex + 1}-{Math.min(endIndex, eyeShapeOptions.length)} of {eyeShapeOptions.length} eye shape options
-                    </div>
-                  </div>
-
-                  {/* Eye Shape Options Grid */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-                    {eyeShapeOptions.slice(startIndex, endIndex).map((option) => (
-                      <Card
-                        key={option.label}
-                        className={cn(
-                          "group cursor-pointer transition-all duration-300 hover:shadow-xl border-2 transform hover:scale-105",
-                          influencerData.eye_shape === option.label
-                            ? "border-orange-500 bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-950/20 dark:to-red-950/20 shadow-xl scale-105"
-                            : "border-gray-200 dark:border-gray-700 hover:border-orange-300 dark:hover:border-orange-600"
-                        )}
-                        onClick={() => {
-                          handleOptionSelect('eye_shape', option.label);
-                          toast.success(`${option.label} selected`, {
-                            id: 'eye-shape-selection',
-                            position: 'bottom-center'
-                          });
-                        }}
-                      >
-                        <CardContent className="p-6">
-                          <div className="space-y-4">
-                            <div className="relative">
-                              <img
-                                src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
-                                alt={option.label}
-                                className="w-full h-full object-cover rounded-lg shadow-md group-hover:scale-105 transition-transform duration-300"
-                              />
-                              {influencerData.eye_shape === option.label && (
-                                <div className="absolute top-2 right-2 w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center shadow-lg">
-                                  <Check className="w-5 h-5 text-white" />
-                                </div>
-                              )}
-                            </div>
-                            <div className="text-center space-y-2">
-                              <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-                                {option.label}
-                              </h3>
-                              <p className="text-gray-600 dark:text-gray-400 text-sm">
-                                {option.description}
-                              </p>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-
-                  {/* Pagination */}
-                  {Math.ceil(eyeShapeOptions.length / (itemsPerPage === -1 ? eyeShapeOptions.length : itemsPerPage)) > 1 && (
-                    <div className="flex flex-col sm:flex-row justify-between items-center gap-4 py-6 border-t border-gray-200 dark:border-gray-700">
-                      <div className="text-sm text-gray-600 dark:text-gray-400">
-                        Showing {startIndex + 1}-{Math.min(endIndex, eyeShapeOptions.length)} of {eyeShapeOptions.length} eye shape options
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="outline"
-                          onClick={() => handlePageChange(1)}
-                          disabled={currentPage === 1}
-                          className="px-3 py-1 text-sm font-medium border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300"
-                        >
-                          First
-                        </Button>
-                        <Button
-                          variant="outline"
-                          onClick={() => handlePageChange(currentPage - 1)}
-                          disabled={currentPage === 1}
-                          className="px-3 py-1 text-sm font-medium border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300"
-                        >
-                          Previous
-                        </Button>
-
-                        {/* Page numbers */}
-                        <div className="flex items-center gap-1">
-                          {Array.from({ length: Math.min(5, Math.ceil(eyeShapeOptions.length / (itemsPerPage === -1 ? eyeShapeOptions.length : itemsPerPage))) }, (_, i) => {
-                            let pageNum;
-                            const totalPages = Math.ceil(eyeShapeOptions.length / (itemsPerPage === -1 ? eyeShapeOptions.length : itemsPerPage));
-                            if (totalPages <= 5) {
-                              pageNum = i + 1;
-                            } else if (currentPage <= 3) {
-                              pageNum = i + 1;
-                            } else if (currentPage >= totalPages - 2) {
-                              pageNum = totalPages - 4 + i;
-                            } else {
-                              pageNum = currentPage - 2 + i;
-                            }
-
-                            return (
-                              <Button
-                                key={pageNum}
-                                variant={currentPage === pageNum ? "default" : "outline"}
-                                onClick={() => handlePageChange(pageNum)}
-                                className={`px-3 py-1 text-sm font-medium transition-all duration-300 ${currentPage === pageNum
-                                  ? "bg-orange-600 text-white border-orange-600"
-                                  : "border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
-                                  }`}
-                              >
-                                {pageNum}
-                              </Button>
-                            );
-                          })}
-                        </div>
-
-                        <Button
-                          variant="outline"
-                          onClick={() => handlePageChange(currentPage + 1)}
-                          disabled={currentPage === Math.ceil(eyeShapeOptions.length / (itemsPerPage === -1 ? eyeShapeOptions.length : itemsPerPage))}
-                          className="px-3 py-1 text-sm font-medium border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300"
-                        >
-                          Next
-                        </Button>
-                        <Button
-                          variant="outline"
-                          onClick={() => handlePageChange(Math.ceil(eyeShapeOptions.length / (itemsPerPage === -1 ? eyeShapeOptions.length : itemsPerPage)))}
-                          disabled={currentPage === Math.ceil(eyeShapeOptions.length / (itemsPerPage === -1 ? eyeShapeOptions.length : itemsPerPage))}
-                          className="px-3 py-1 text-sm font-medium border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300"
-                        >
-                          Last
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        );
-
-      case 12:
-        return (
-          <div className="space-y-8">
-            <div className="text-center space-y-6">
-              <div className="space-y-3">
-                <h2 className="text-2xl font-bold">
-                  Lip Style
-                </h2>
-                <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto text-lg leading-relaxed">
-                  Choose the lip style that best represents your influencer's appearance.
-                </p>
-              </div>
-            </div>
-
-            <div className="mx-auto">
-              {isLoadingLipStyle ? (
-                <div className="flex justify-center items-center py-12">
-                  <div className="text-center space-y-4">
-                    <Loader2 className="w-8 h-8 animate-spin text-orange-600 mx-auto" />
-                    <p className="text-gray-600 dark:text-gray-400">Loading lip style options...</p>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-6">
-                  {/* Items per page control */}
-                  <div className="flex justify-between items-center">
-                    {/* Items per page selector */}
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-gray-600 dark:text-gray-400">Show:</span>
-                      <select
-                        value={itemsPerPage}
-                        onChange={(e) => handleItemsPerPageChange(Number(e.target.value))}
-                        className="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                      >
-                        <option value={5}>5</option>
-                        <option value={10}>10</option>
-                        <option value={15}>15</option>
-                        <option value={-1}>All</option>
-                      </select>
-                      <span className="text-sm text-gray-600 dark:text-gray-400">per page</span>
-                    </div>
-                    <div className="text-sm text-gray-600 dark:text-gray-400">
-                      Showing {startIndex + 1}-{Math.min(endIndex, lipStyleOptions.length)} of {lipStyleOptions.length} lip style options
-                    </div>
-                  </div>
-
-                  {/* Lip Style Options Grid */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-                    {lipStyleOptions.slice(startIndex, endIndex).map((option) => (
-                      <Card
-                        key={option.label}
-                        className={cn(
-                          "group cursor-pointer transition-all duration-300 hover:shadow-xl border-2 transform hover:scale-105",
-                          influencerData.lip_style === option.label
-                            ? "border-orange-500 bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-950/20 dark:to-red-950/20 shadow-xl scale-105"
-                            : "border-gray-200 dark:border-gray-700 hover:border-orange-300 dark:hover:border-orange-600"
-                        )}
-                        onClick={() => {
-                          handleOptionSelect('lip_style', option.label);
-                          toast.success(`${option.label} selected`, {
-                            id: 'lip-style-selection',
-                            position: 'bottom-center'
-                          });
-                        }}
-                      >
-                        <CardContent className="p-6">
-                          <div className="space-y-4">
-                            <div className="relative">
-                              <img
-                                src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
-                                alt={option.label}
-                                className="w-full h-full object-cover rounded-lg shadow-md group-hover:scale-105 transition-transform duration-300"
-                              />
-                              {influencerData.lip_style === option.label && (
-                                <div className="absolute top-2 right-2 w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center shadow-lg">
-                                  <Check className="w-5 h-5 text-white" />
-                                </div>
-                              )}
-                            </div>
-                            <div className="text-center space-y-2">
-                              <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-                                {option.label}
-                              </h3>
-                              <p className="text-gray-600 dark:text-gray-400 text-sm">
-                                {option.description}
-                              </p>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-
-                  {/* Pagination */}
-                  {Math.ceil(lipStyleOptions.length / (itemsPerPage === -1 ? lipStyleOptions.length : itemsPerPage)) > 1 && (
-                    <div className="flex flex-col sm:flex-row justify-between items-center gap-4 py-6 border-t border-gray-200 dark:border-gray-700">
-                      <div className="text-sm text-gray-600 dark:text-gray-400">
-                        Showing {startIndex + 1}-{Math.min(endIndex, lipStyleOptions.length)} of {lipStyleOptions.length} lip style options
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="outline"
-                          onClick={() => handlePageChange(1)}
-                          disabled={currentPage === 1}
-                          className="px-3 py-1 text-sm font-medium border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300"
-                        >
-                          First
-                        </Button>
-                        <Button
-                          variant="outline"
-                          onClick={() => handlePageChange(currentPage - 1)}
-                          disabled={currentPage === 1}
-                          className="px-3 py-1 text-sm font-medium border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300"
-                        >
-                          Previous
-                        </Button>
-
-                        {/* Page numbers */}
-                        <div className="flex items-center gap-1">
-                          {Array.from({ length: Math.min(5, Math.ceil(lipStyleOptions.length / (itemsPerPage === -1 ? lipStyleOptions.length : itemsPerPage))) }, (_, i) => {
-                            let pageNum;
-                            const totalPages = Math.ceil(lipStyleOptions.length / (itemsPerPage === -1 ? lipStyleOptions.length : itemsPerPage));
-                            if (totalPages <= 5) {
-                              pageNum = i + 1;
-                            } else if (currentPage <= 3) {
-                              pageNum = i + 1;
-                            } else if (currentPage >= totalPages - 2) {
-                              pageNum = totalPages - 4 + i;
-                            } else {
-                              pageNum = currentPage - 2 + i;
-                            }
-
-                            return (
-                              <Button
-                                key={pageNum}
-                                variant={currentPage === pageNum ? "default" : "outline"}
-                                onClick={() => handlePageChange(pageNum)}
-                                className={`px-3 py-1 text-sm font-medium transition-all duration-300 ${currentPage === pageNum
-                                  ? "bg-orange-600 text-white border-orange-600"
-                                  : "border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
-                                  }`}
-                              >
-                                {pageNum}
-                              </Button>
-                            );
-                          })}
-                        </div>
-
-                        <Button
-                          variant="outline"
-                          onClick={() => handlePageChange(currentPage + 1)}
-                          disabled={currentPage === Math.ceil(lipStyleOptions.length / (itemsPerPage === -1 ? lipStyleOptions.length : itemsPerPage))}
-                          className="px-3 py-1 text-sm font-medium border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300"
-                        >
-                          Next
-                        </Button>
-                        <Button
-                          variant="outline"
-                          onClick={() => handlePageChange(Math.ceil(lipStyleOptions.length / (itemsPerPage === -1 ? lipStyleOptions.length : itemsPerPage)))}
-                          disabled={currentPage === Math.ceil(lipStyleOptions.length / (itemsPerPage === -1 ? lipStyleOptions.length : itemsPerPage))}
-                          className="px-3 py-1 text-sm font-medium border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300"
-                        >
-                          Last
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        );
-
-      case 13:
-        return (
-          <div className="space-y-8">
-            <div className="text-center space-y-6">
-              <div className="space-y-3">
-                <h2 className="text-2xl font-bold">
-                  Nose Style
-                </h2>
-                <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto text-lg leading-relaxed">
-                  Choose the nose style that best represents your influencer's appearance.
-                </p>
-              </div>
-            </div>
-
-            <div className="mx-auto">
-              {isLoadingNoseStyle ? (
-                <div className="flex justify-center items-center py-12">
-                  <div className="text-center space-y-4">
-                    <Loader2 className="w-8 h-8 animate-spin text-orange-600 mx-auto" />
-                    <p className="text-gray-600 dark:text-gray-400">Loading nose style options...</p>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-6">
-                  {/* Items per page control */}
-                  <div className="flex justify-between items-center">
-                    {/* Items per page selector */}
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-gray-600 dark:text-gray-400">Show:</span>
-                      <select
-                        value={itemsPerPage}
-                        onChange={(e) => handleItemsPerPageChange(Number(e.target.value))}
-                        className="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                      >
-                        <option value={5}>5</option>
-                        <option value={10}>10</option>
-                        <option value={15}>15</option>
-                        <option value={-1}>All</option>
-                      </select>
-                      <span className="text-sm text-gray-600 dark:text-gray-400">per page</span>
-                    </div>
-                    <div className="text-sm text-gray-600 dark:text-gray-400">
-                      Showing {startIndex + 1}-{Math.min(endIndex, noseStyleOptions.length)} of {noseStyleOptions.length} nose style options
-                    </div>
-                  </div>
-
-                  {/* Nose Style Options Grid */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-                    {noseStyleOptions.slice(startIndex, endIndex).map((option) => (
-                      <Card
-                        key={option.label}
-                        className={cn(
-                          "group cursor-pointer transition-all duration-300 hover:shadow-xl border-2 transform hover:scale-105",
-                          influencerData.nose_style === option.label
-                            ? "border-orange-500 bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-950/20 dark:to-red-950/20 shadow-xl scale-105"
-                            : "border-gray-200 dark:border-gray-700 hover:border-orange-300 dark:hover:border-orange-600"
-                        )}
-                        onClick={() => {
-                          handleOptionSelect('nose_style', option.label);
-                          toast.success(`${option.label} selected`, {
-                            id: 'nose-style-selection',
-                            position: 'bottom-center'
-                          });
-                        }}
-                      >
-                        <CardContent className="p-6">
-                          <div className="space-y-4">
-                            <div className="relative">
-                              <img
-                                src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
-                                alt={option.label}
-                                className="w-full h-full object-cover rounded-lg shadow-md group-hover:scale-105 transition-transform duration-300"
-                              />
-                              {influencerData.nose_style === option.label && (
-                                <div className="absolute top-2 right-2 w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center shadow-lg">
-                                  <Check className="w-5 h-5 text-white" />
-                                </div>
-                              )}
-                            </div>
-                            <div className="text-center space-y-2">
-                              <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-                                {option.label}
-                              </h3>
-                              <p className="text-gray-600 dark:text-gray-400 text-sm">
-                                {option.description}
-                              </p>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-
-                  {/* Pagination */}
-                  {Math.ceil(noseStyleOptions.length / (itemsPerPage === -1 ? noseStyleOptions.length : itemsPerPage)) > 1 && (
-                    <div className="flex flex-col sm:flex-row justify-between items-center gap-4 py-6 border-t border-gray-200 dark:border-gray-700">
-                      <div className="text-sm text-gray-600 dark:text-gray-400">
-                        Showing {startIndex + 1}-{Math.min(endIndex, noseStyleOptions.length)} of {noseStyleOptions.length} nose style options
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="outline"
-                          onClick={() => handlePageChange(1)}
-                          disabled={currentPage === 1}
-                          className="px-3 py-1 text-sm font-medium border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300"
-                        >
-                          First
-                        </Button>
-                        <Button
-                          variant="outline"
-                          onClick={() => handlePageChange(currentPage - 1)}
-                          disabled={currentPage === 1}
-                          className="px-3 py-1 text-sm font-medium border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300"
-                        >
-                          Previous
-                        </Button>
-
-                        {/* Page numbers */}
-                        <div className="flex items-center gap-1">
-                          {Array.from({ length: Math.min(5, Math.ceil(noseStyleOptions.length / (itemsPerPage === -1 ? noseStyleOptions.length : itemsPerPage))) }, (_, i) => {
-                            let pageNum;
-                            const totalPages = Math.ceil(noseStyleOptions.length / (itemsPerPage === -1 ? noseStyleOptions.length : itemsPerPage));
-                            if (totalPages <= 5) {
-                              pageNum = i + 1;
-                            } else if (currentPage <= 3) {
-                              pageNum = i + 1;
-                            } else if (currentPage >= totalPages - 2) {
-                              pageNum = totalPages - 4 + i;
-                            } else {
-                              pageNum = currentPage - 2 + i;
-                            }
-
-                            return (
-                              <Button
-                                key={pageNum}
-                                variant={currentPage === pageNum ? "default" : "outline"}
-                                onClick={() => handlePageChange(pageNum)}
-                                className={`px-3 py-1 text-sm font-medium transition-all duration-300 ${currentPage === pageNum
-                                  ? "bg-orange-600 text-white border-orange-600"
-                                  : "border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
-                                  }`}
-                              >
-                                {pageNum}
-                              </Button>
-                            );
-                          })}
-                        </div>
-
-                        <Button
-                          variant="outline"
-                          onClick={() => handlePageChange(currentPage + 1)}
-                          disabled={currentPage === Math.ceil(noseStyleOptions.length / (itemsPerPage === -1 ? noseStyleOptions.length : itemsPerPage))}
-                          className="px-3 py-1 text-sm font-medium border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300"
-                        >
-                          Next
-                        </Button>
-                        <Button
-                          variant="outline"
-                          onClick={() => handlePageChange(Math.ceil(noseStyleOptions.length / (itemsPerPage === -1 ? noseStyleOptions.length : itemsPerPage)))}
-                          disabled={currentPage === Math.ceil(noseStyleOptions.length / (itemsPerPage === -1 ? noseStyleOptions.length : itemsPerPage))}
-                          className="px-3 py-1 text-sm font-medium border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300"
-                        >
-                          Last
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        );
-
-      case 14:
-        return (
-          <div className="space-y-8">
-            <div className="text-center space-y-6">
-              <div className="space-y-3">
-                <h2 className="text-2xl font-bold">
-                  Eyebrow Style
-                </h2>
-                <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto text-lg leading-relaxed">
-                  Choose the eyebrow style that best represents your influencer's appearance.
-                </p>
-              </div>
-            </div>
-
-            <div className="mx-auto">
-              {isLoadingEyebrowStyle ? (
-                <div className="flex justify-center items-center py-12">
-                  <div className="text-center space-y-4">
-                    <Loader2 className="w-8 h-8 animate-spin text-orange-600 mx-auto" />
-                    <p className="text-gray-600 dark:text-gray-400">Loading eyebrow style options...</p>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-6">
-                  {/* Items per page control */}
-                  <div className="flex justify-between items-center">
-                    {/* Items per page selector */}
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-gray-600 dark:text-gray-400">Show:</span>
-                      <select
-                        value={itemsPerPage}
-                        onChange={(e) => handleItemsPerPageChange(Number(e.target.value))}
-                        className="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                      >
-                        <option value={5}>5</option>
-                        <option value={10}>10</option>
-                        <option value={15}>15</option>
-                        <option value={-1}>All</option>
-                      </select>
-                      <span className="text-sm text-gray-600 dark:text-gray-400">per page</span>
-                    </div>
-                    <div className="text-sm text-gray-600 dark:text-gray-400">
-                      Showing {startIndex + 1}-{Math.min(endIndex, eyebrowStyleOptions.length)} of {eyebrowStyleOptions.length} eyebrow style options
-                    </div>
-                  </div>
-
-                  {/* Eyebrow Style Options Grid */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-                    {eyebrowStyleOptions.slice(startIndex, endIndex).map((option) => (
-                      <Card
-                        key={option.label}
-                        className={cn(
-                          "group cursor-pointer transition-all duration-300 hover:shadow-xl border-2 transform hover:scale-105",
-                          influencerData.eyebrow_style === option.label
-                            ? "border-orange-500 bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-950/20 dark:to-red-950/20 shadow-xl scale-105"
-                            : "border-gray-200 dark:border-gray-700 hover:border-orange-300 dark:hover:border-orange-600"
-                        )}
-                        onClick={() => {
-                          handleOptionSelect('eyebrow_style', option.label);
-                          toast.success(`${option.label} selected`, {
-                            id: 'eyebrow-style-selection',
-                            position: 'bottom-center'
-                          });
-                        }}
-                      >
-                        <CardContent className="p-6">
-                          <div className="space-y-4">
-                            <div className="relative">
-                              <img
-                                src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
-                                alt={option.label}
-                                className="w-full h-full object-cover rounded-lg shadow-md group-hover:scale-105 transition-transform duration-300"
-                              />
-                              {influencerData.eyebrow_style === option.label && (
-                                <div className="absolute top-2 right-2 w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center shadow-lg">
-                                  <Check className="w-5 h-5 text-white" />
-                                </div>
-                              )}
-                            </div>
-                            <div className="text-center space-y-2">
-                              <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-                                {option.label}
-                              </h3>
-                              <p className="text-gray-600 dark:text-gray-400 text-sm">
-                                {option.description}
-                              </p>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-
-                  {/* Pagination */}
-                  {Math.ceil(eyebrowStyleOptions.length / (itemsPerPage === -1 ? eyebrowStyleOptions.length : itemsPerPage)) > 1 && (
-                    <div className="flex flex-col sm:flex-row justify-between items-center gap-4 py-6 border-t border-gray-200 dark:border-gray-700">
-                      <div className="text-sm text-gray-600 dark:text-gray-400">
-                        Showing {startIndex + 1}-{Math.min(endIndex, eyebrowStyleOptions.length)} of {eyebrowStyleOptions.length} eyebrow style options
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="outline"
-                          onClick={() => handlePageChange(1)}
-                          disabled={currentPage === 1}
-                          className="px-3 py-1 text-sm font-medium border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300"
-                        >
-                          First
-                        </Button>
-                        <Button
-                          variant="outline"
-                          onClick={() => handlePageChange(currentPage - 1)}
-                          disabled={currentPage === 1}
-                          className="px-3 py-1 text-sm font-medium border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300"
-                        >
-                          Previous
-                        </Button>
-
-                        {/* Page numbers */}
-                        <div className="flex items-center gap-1">
-                          {Array.from({ length: Math.min(5, Math.ceil(eyebrowStyleOptions.length / (itemsPerPage === -1 ? eyebrowStyleOptions.length : itemsPerPage))) }, (_, i) => {
-                            let pageNum;
-                            const totalPages = Math.ceil(eyebrowStyleOptions.length / (itemsPerPage === -1 ? eyebrowStyleOptions.length : itemsPerPage));
-                            if (totalPages <= 5) {
-                              pageNum = i + 1;
-                            } else if (currentPage <= 3) {
-                              pageNum = i + 1;
-                            } else if (currentPage >= totalPages - 2) {
-                              pageNum = totalPages - 4 + i;
-                            } else {
-                              pageNum = currentPage - 2 + i;
-                            }
-
-                            return (
-                              <Button
-                                key={pageNum}
-                                variant={currentPage === pageNum ? "default" : "outline"}
-                                onClick={() => handlePageChange(pageNum)}
-                                className={`px-3 py-1 text-sm font-medium transition-all duration-300 ${currentPage === pageNum
-                                  ? "bg-orange-600 text-white border-orange-600"
-                                  : "border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
-                                  }`}
-                              >
-                                {pageNum}
-                              </Button>
-                            );
-                          })}
-                        </div>
-
-                        <Button
-                          variant="outline"
-                          onClick={() => handlePageChange(currentPage + 1)}
-                          disabled={currentPage === Math.ceil(eyebrowStyleOptions.length / (itemsPerPage === -1 ? eyebrowStyleOptions.length : itemsPerPage))}
-                          className="px-3 py-1 text-sm font-medium border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300"
-                        >
-                          Next
-                        </Button>
-                        <Button
-                          variant="outline"
-                          onClick={() => handlePageChange(Math.ceil(eyebrowStyleOptions.length / (itemsPerPage === -1 ? eyebrowStyleOptions.length : itemsPerPage)))}
-                          disabled={currentPage === Math.ceil(eyebrowStyleOptions.length / (itemsPerPage === -1 ? eyebrowStyleOptions.length : itemsPerPage))}
-                          className="px-3 py-1 text-sm font-medium border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300"
-                        >
-                          Last
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        );
-
-      case 15:
-        return (
-          <div className="space-y-8">
-            <div className="text-center space-y-6">
-              <div className="space-y-3">
-                <h2 className="text-2xl font-bold">
                   Skin Tone
                 </h2>
                 <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto text-lg leading-relaxed">
@@ -3914,7 +3374,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
           </div>
         );
 
-      case 16:
+      case 12:
         return (
           <div className="space-y-8">
             <div className="text-center space-y-6">
@@ -4088,7 +3548,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
           </div>
         );
 
-      case 17:
+      case 13:
         return (
           <div className="space-y-8">
             <div className="text-center space-y-6">
@@ -4262,7 +3722,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
           </div>
         );
 
-      case 18:
+      case 14:
         return (
           <div className="space-y-8">
             <div className="text-center space-y-6">
@@ -4271,10 +3731,10 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
               </div>
               <div className="space-y-3">
                 <h2 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                  Origin & Residence
+                  Current Residence
                 </h2>
                 <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto text-lg leading-relaxed">
-                  Tell us about your influencer's background and current location.
+                  Tell us where your influencer currently lives. This will also be set as their birth place and can be edited later in the Influencer Dataset.
                 </p>
               </div>
             </div>
@@ -4283,32 +3743,20 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
               <Card className="border-2 border-gray-200 dark:border-gray-700 shadow-xl bg-gradient-to-br from-gray-50 to-white dark:from-gray-900 dark:to-gray-800">
                 <CardContent className="p-8">
                   <div className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-3">
-                        <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-                          Where was your influencer born?
-                        </label>
-                        <input
-                          type="text"
-                          value={influencerData.origin_birth}
-                          onChange={(e) => handleOptionSelect('origin_birth', e.target.value)}
-                          placeholder="e.g., New York, USA"
-                          className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 transition-all duration-300 hover:border-indigo-300 dark:hover:border-indigo-600"
-                        />
-                      </div>
-
-                      <div className="space-y-3">
-                        <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-                          Where is its current residence?
-                        </label>
-                        <input
-                          type="text"
-                          value={influencerData.origin_residence}
-                          onChange={(e) => handleOptionSelect('origin_residence', e.target.value)}
-                          placeholder="e.g., Los Angeles, USA"
-                          className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 transition-all duration-300 hover:border-indigo-300 dark:hover:border-indigo-600"
-                        />
-                      </div>
+                    <div className="space-y-3">
+                      <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                        Where does your influencer currently live?
+                      </label>
+                      <input
+                        type="text"
+                        value={influencerData.origin_residence}
+                        onChange={(e) => handleOptionSelect('origin_residence', e.target.value)}
+                        placeholder="e.g., Los Angeles, USA"
+                        className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 transition-all duration-300 hover:border-indigo-300 dark:hover:border-indigo-600"
+                      />
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        💡 This will also be set as their birth place. You can edit both separately later in the Influencer Dataset.
+                      </p>
                     </div>
                   </div>
                 </CardContent>
@@ -4317,7 +3765,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
           </div>
         );
 
-      case 19:
+      case 15:
         return (
           <div className="space-y-8">
             <div className="text-center space-y-6">
@@ -4487,7 +3935,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
           </div>
         );
 
-      case 20:
+      case 16:
         return (
           <div className="space-y-8">
             <div className="text-center space-y-6">
@@ -4496,13 +3944,52 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
               </div>
               <div className="space-y-3">
                 <h2 className="text-3xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
-                  That's it!
+                  Preview Your Influencer
                 </h2>
                 <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto text-lg leading-relaxed">
-                  Shall we create your influencer now?<br />
-                  You can add more details on Influencer → Edit page.
+                  See how your influencer will look before creating the final version.<br />
+                  You can add more details on Influencer → Edit page after creation.
                 </p>
               </div>
+            </div>
+
+            <div className="max-w-2xl mx-auto">
+              <Card className="border-2 border-gray-200 dark:border-gray-700 shadow-xl bg-gradient-to-br from-gray-50 to-white dark:from-gray-900 dark:to-gray-800">
+                <CardContent className="p-8">
+                  <div className="text-center space-y-6">
+                    <div className="space-y-4">
+                      <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                        Ready to see your influencer?
+                      </h3>
+                      <p className="text-gray-600 dark:text-gray-400">
+                        Click the button below to generate a preview of your influencer based on all the selections you've made.
+                      </p>
+                    </div>
+
+                    <Button
+                      onClick={handlePreview}
+                      disabled={isPreviewLoading}
+                      className="flex items-center gap-2 px-8 py-4 text-lg font-medium bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+                    >
+                      {isPreviewLoading ? (
+                        <>
+                          <Loader2 className="w-6 h-6 animate-spin" />
+                          Generating Preview...
+                        </>
+                      ) : (
+                        <>
+                          Click Here to Render a Preview
+                          <Sparkles className="w-6 h-6" />
+                        </>
+                      )}
+                    </Button>
+
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      💡 This will create a temporary preview that will be deleted after you close it.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           </div>
         );
@@ -4540,24 +4027,16 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
       case 10:
         return influencerData.eye_color !== '';
       case 11:
-        return influencerData.eye_shape !== '';
-      case 12:
-        return influencerData.lip_style !== '';
-      case 13:
-        return influencerData.nose_style !== '';
-      case 14:
-        return influencerData.eyebrow_style !== '';
-      case 15:
         return influencerData.skin_tone !== '';
-      case 16:
+      case 12:
         return influencerData.body_type !== '';
-      case 17:
-        return influencerData.sex === 'Female' ? influencerData.bust_size !== '' : true;
-      case 18:
-        return influencerData.origin_birth !== '' && influencerData.origin_residence !== '';
-      case 19:
+      case 13:
+        return influencerData.bust_size !== '';
+      case 14:
+        return influencerData.origin_residence !== '';
+      case 15:
         return influencerData.name_first !== '' && influencerData.name_last !== '';
-      case 20:
+      case 16:
         return true;
       default:
         return false;
@@ -4600,7 +4079,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
 
             {/* Next/Create Button - Right */}
             <div className="w-full md:w-auto">
-              {currentStep <= 19 ? (
+              {currentStep <= 15 ? (
                 <Button
                   onClick={handleNext}
                   disabled={!canProceed()}
@@ -4850,6 +4329,158 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
             >
               Cancel
             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Preview Modal */}
+      <Dialog open={showPreviewModal} onOpenChange={setShowPreviewModal}>
+        <DialogContent className="max-w-5xl max-h-[90vh] p-0 overflow-hidden">
+          <div className="relative h-full">
+            {previewImageUrl ? (
+              <div className="space-y-0">
+                {/* Header */}
+                <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <DialogTitle className="text-2xl font-bold">
+                        Influencer Preview
+                      </DialogTitle>
+                      <DialogDescription className="text-purple-100">
+                        Here's how your influencer will look based on your selections
+                      </DialogDescription>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
+                      <span className="text-sm font-medium">AI Generated</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Image Display */}
+                <div className="flex justify-center items-center p-8 bg-gray-50 dark:bg-gray-900">
+                  <div className="relative">
+                    <img
+                      src={previewImageUrl}
+                      alt="Influencer Preview"
+                      className="max-w-full h-auto rounded-2xl shadow-2xl border-4 border-white dark:border-gray-700"
+                    />
+                    <div className="absolute top-4 right-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white px-4 py-2 rounded-full text-sm font-medium shadow-lg">
+                      Preview Generated
+                    </div>
+                  </div>
+                </div>
+
+                {/* Influencer Details */}
+                <div className="bg-white dark:bg-gray-800 p-6 border-t border-gray-200 dark:border-gray-700">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="space-y-3">
+                      <h4 className="font-semibold text-gray-900 dark:text-gray-100 text-lg">Basic Information</h4>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-gray-500">Name:</span>
+                          <span className="font-medium">{influencerData.name_first} {influencerData.name_last}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-500">Sex:</span>
+                          <span className="font-medium">{influencerData.sex}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-500">Age:</span>
+                          <span className="font-medium">{influencerData.age}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-500">Origin:</span>
+                          <span className="font-medium">{influencerData.origin_residence}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      <h4 className="font-semibold text-gray-900 dark:text-gray-100 text-lg">Physical Features</h4>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-gray-500">Hair:</span>
+                          <span className="font-medium">{influencerData.hair_color} {influencerData.hair_length}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-500">Eyes:</span>
+                          <span className="font-medium">{influencerData.eye_color}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-500">Skin Tone:</span>
+                          <span className="font-medium">{influencerData.skin_tone}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-500">Body Type:</span>
+                          <span className="font-medium">{influencerData.body_type}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      <h4 className="font-semibold text-gray-900 dark:text-gray-100 text-lg">Background</h4>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-gray-500">Cultural:</span>
+                          <span className="font-medium">{influencerData.cultural_background}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-500">Facial Features:</span>
+                          <span className="font-medium">{influencerData.facial_features}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-500">Face Shape:</span>
+                          <span className="font-medium">{influencerData.face_shape}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-500">Type:</span>
+                          <span className="font-medium">{influencerData.influencer_type}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="bg-gray-50 dark:bg-gray-900 p-6 border-t border-gray-200 dark:border-gray-700">
+                  <div className="flex justify-between items-center">
+                    <Button
+                      variant="outline"
+                      onClick={handleClosePreview}
+                      className="px-6 py-3 text-base font-medium"
+                    >
+                      Close Preview
+                    </Button>
+                    <Button
+                      onClick={handleSubmit}
+                      disabled={isLoading}
+                      className="px-8 py-3 text-base font-medium bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
+                    >
+                      {isLoading ? (
+                        <div className="flex items-center gap-2">
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                          <span>Creating...</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <span>Create Final Influencer</span>
+                          <ArrowRight className="w-5 h-5" />
+                        </div>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="flex justify-center items-center py-16">
+                <div className="text-center space-y-4">
+                  <Loader2 className="w-12 h-12 animate-spin text-purple-600 mx-auto" />
+                  <p className="text-gray-600 dark:text-gray-400 text-lg">Generating preview...</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">This may take a few moments</p>
+                </div>
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>

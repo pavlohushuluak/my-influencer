@@ -148,6 +148,12 @@ export default function ContentCreate() {
 
   // Influencer selector dialog state
   const [showInfluencerSelector, setShowInfluencerSelector] = useState(false);
+  const [generatedTaskId, setGeneratedTaskId] = useState('');
+  const [generatedImages, setGeneratedImages] = useState<any[]>([]);
+  const [isLoadingGeneratedImages, setIsLoadingGeneratedImages] = useState(false);
+
+  // Defensive: ensure formatOptions is always an array
+  const safeFormatOptions = Array.isArray(formatOptions) ? formatOptions : [];
 
   // Filtered influencers for search
   const filteredInfluencers = influencers.filter(influencer => {
@@ -466,30 +472,48 @@ export default function ContentCreate() {
   useEffect(() => {
     const fetchFormatOptions = async () => {
       try {
-        const response = await fetch('https://api.nymia.ai/v1/promptoptions?fieldtype=format', {
+        const response = await fetch('https://api.nymia.ai/v1/fieldoptions?fieldtype=format', {
           headers: {
             'Authorization': 'Bearer WeInfl3nc3withAI'
           }
         });
-        if (response.ok) {
-          const data = await response.json();
-          if (data && data.fieldoptions && Array.isArray(data.fieldoptions)) {
-            const options = data.fieldoptions.map((item: any) => ({
-              label: item.label,
-              image: item.image,
-              description: item.description
-            }));
-            setFormatOptions(options);
-          }
-        } else {
-          console.error('Failed to fetch format options:', response.status, response.statusText);
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch format options');
         }
+
+        const data = await response.json();
+        setFormatOptions(data);
       } catch (error) {
         console.error('Error fetching format options:', error);
       }
     };
     fetchFormatOptions();
   }, []);
+
+  const fetchGeneratedImages = async (taskId: string) => {
+    if (!taskId) return;
+
+    setIsLoadingGeneratedImages(true);
+    try {
+      const response = await fetch(`https://db.nymia.ai/rest/v1/generated_images?task_id=eq.${taskId}`, {
+        headers: {
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch generated images');
+      }
+
+      const data = await response.json();
+      setGeneratedImages(data);
+    } catch (error) {
+      console.error('Error fetching generated images:', error);
+    } finally {
+      setIsLoadingGeneratedImages(false);
+    }
+  };
 
   const handleInputChange = (field: string, value: any) => {
     setFormData(prev => ({
@@ -612,7 +636,7 @@ export default function ContentCreate() {
         seed: formData.seed ? parseInt(formData.seed) : -1,
         guidance: formData.guidance,
         number_of_images: formData.numberOfImages,
-        format: formData.format,
+        format: safeFormatOptions.find(opt => opt.label === formData.format)?.label || formData.format,
         model: data[0] ? {
           id: data[0].id,
           influencer_type: data[0].influencer_type,
@@ -674,6 +698,7 @@ export default function ContentCreate() {
 
       const result = await response.json();
 
+      setGeneratedTaskId(result.id);
       toast.success('Content generation started successfully');
 
       setActiveTab('scene');
@@ -796,6 +821,20 @@ export default function ContentCreate() {
     });
   }
 
+  useEffect(() => {
+    if (generatedTaskId) {
+      fetchGeneratedImages(generatedTaskId);
+
+      // Set up polling every 100ms
+      const interval = setInterval(() => {
+        fetchGeneratedImages(generatedTaskId);
+      }, 5000);
+
+      // Clean up interval on unmount or when generatedTaskId changes
+      return () => clearInterval(interval);
+    }
+  }, [generatedTaskId]);
+
   return (
     <div className="px-6 space-y-4">
       {/* Header */}
@@ -826,7 +865,7 @@ export default function ContentCreate() {
                 Format
               </span>
               <Badge variant="secondary" className="w-fit bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300">
-                {formatOptions.find(opt => opt.label === formData.format)?.label || formData.format}
+                {safeFormatOptions.find(opt => opt.label === formData.format)?.label || formData.format}
               </Badge>
             </div>
 
@@ -922,7 +961,7 @@ export default function ContentCreate() {
               Format
             </span>
             <Badge variant="secondary" className="w-fit bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300">
-              {formatOptions.find(opt => opt.label === formData.format)?.label || formData.format}
+              {safeFormatOptions.find(opt => opt.label === formData.format)?.label || formData.format}
             </Badge>
           </div>
 
@@ -1216,7 +1255,7 @@ export default function ContentCreate() {
                           <SelectValue placeholder="Select format" />
                         </SelectTrigger>
                         <SelectContent>
-                          {formatOptions.map((option) => (
+                          {safeFormatOptions.map((option) => (
                             <SelectItem key={option.label} value={option.label}>{option.label}</SelectItem>
                           ))}
                         </SelectContent>
@@ -1225,16 +1264,16 @@ export default function ContentCreate() {
                         onClick={() => setShowFormatSelector(true)}
                         className='flex items-center justify-center cursor-pointer w-full'
                       >
-                        {formData.format && formatOptions.find(option => option.label === formData.format)?.image ? (
+                        {formData.format && safeFormatOptions.find(option => option.label === formData.format)?.image ? (
                           <Card className="relative w-full max-w-[250px]">
                             <CardContent className="p-4">
                               <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                                 <img
-                                  src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${formatOptions.find(option => option.label === formData.format)?.image}`}
+                                  src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${safeFormatOptions.find(option => option.label === formData.format)?.image}`}
                                   className="absolute inset-0 w-full h-full object-cover rounded-md"
                                 />
                               </div>
-                              <p className="text-sm text-center font-medium mt-2">{formatOptions.find(option => option.label === formData.format)?.label}</p>
+                              <p className="text-sm text-center font-medium mt-2">{safeFormatOptions.find(option => option.label === formData.format)?.label}</p>
                             </CardContent>
                           </Card>
                         ) : (
@@ -1251,7 +1290,7 @@ export default function ContentCreate() {
                       </div>
                       {showFormatSelector && (
                         <OptionSelector
-                          options={formatOptions}
+                          options={safeFormatOptions}
                           onSelect={(label) => handleInputChange('format', label)}
                           onClose={() => setShowFormatSelector(false)}
                           title="Select Format Style"
@@ -2461,6 +2500,69 @@ export default function ContentCreate() {
         </Card>
       )}
 
+      {/* Generated Image Results Card */}
+      {generatedTaskId && (
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <div className="p-2 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg">
+                  <Image className="w-5 h-5 text-white" />
+                </div>
+                Generated Images
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Your generated images will appear here once the task is completed.
+              </p>
+            </CardHeader>
+            <CardContent>
+              {
+                generatedImages.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
+                    {generatedImages
+                      .filter(image => image.file_path) // Only show images with file_path
+                      .map((image, index) => (
+                        <div key={index} className="relative group">
+                          <div className="aspect-square rounded-lg overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900">
+                            <img
+                              src={`https://images.nymia.ai/cdn-cgi/image/w=400/${image.file_path}`}
+                              alt={`Generated image ${index + 1}`}
+                              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                              }}
+                            />
+                          </div>
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300 rounded-lg flex items-center justify-center">
+                            <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                              <Button
+                                size="sm"
+                                variant="secondary"
+                                className="bg-white/90 hover:bg-white text-gray-900"
+                                onClick={() => window.open(`https://images.nymia.ai/cdn-cgi/image/w=800/${image.file_path}`, '_blank')}
+                              >
+                                <ZoomIn className="w-4 h-4 mr-1" />
+                                View Full Size
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Image className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                    <p>No generated images found yet.</p>
+                    <p className="text-sm">Images will appear here once generation is complete.</p>
+                  </div>
+                )
+              }
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       {/* Influencer Selector Dialog */}
       {showInfluencerSelector && (
         <Dialog open={true} onOpenChange={setShowInfluencerSelector}>
@@ -2560,8 +2662,8 @@ export default function ContentCreate() {
                               )}
                               {influencer.notes ? (
                                 <span className="text-sm text-muted-foreground">
-                                  {influencer.notes.length > 50 
-                                    ? `${influencer.notes.substring(0, 50)}...` 
+                                  {influencer.notes.length > 50
+                                    ? `${influencer.notes.substring(0, 50)}...`
                                     : influencer.notes
                                   }
                                 </span>

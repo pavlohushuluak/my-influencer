@@ -359,6 +359,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
   const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [generatedImageData, setGeneratedImageData] = useState<{ image_id: string; system_filename: string } | null>(null);
+  const [ethnic, setEthnic] = useState<string | null>(null);
 
   // console.log(influencerData);
 
@@ -371,7 +372,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
       switch (currentStep) {
         case 1: return influencerData.sex;
         case 2: return influencerData.age;
-        case 3: return influencerData.cultural_background;
+        case 3: return ethnic;
         case 4: return influencerData.facial_features;
         case 5: return influencerData.cultural_background;
         case 6: return influencerData.hair_length;
@@ -494,8 +495,8 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
   };
 
   useEffect(() => {
-    fetchFacialFeaturesOptions();
-  }, []);
+    fetchFacialFeaturesOptions(ethnic);
+  }, [ethnic]);
 
   // Fetch age options from API
   useEffect(() => {
@@ -606,8 +607,8 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
   };
 
   useEffect(() => {
-    fetchCulturalBackgroundOptions(influencerData.cultural_background || 'Default');
-  }, [influencerData.cultural_background]);
+    fetchCulturalBackgroundOptions(ethnic || 'Default');
+  }, [ethnic]);
 
   // Fetch hair length options from API
   useEffect(() => {
@@ -1303,20 +1304,15 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
     if (currentStep > 1) {
       let prevStep = currentStep - 1;
 
-      // Special navigation logic for step 16 (Body Type)
-      if (currentStep === 16) {
+      // Special navigation logic for step 12 (Body Type)
+      if (currentStep === 12) {
         if (influencerData.facial_features === '') {
-          // If "Default" was selected on step 4, go to step 15 (Skin Tone)
-          prevStep = 15;
+          // If "Default" was selected on step 4, go to step 11 (Skin Tone)
+          prevStep = 11;
         } else {
           // If a template was selected on step 4, go back to step 4 (Facial Features)
           prevStep = 4;
         }
-      }
-      // Special navigation logic for step 12 (Body Type)
-      else if (prevStep === 12) {
-        // Go back to step 4 (Facial Features)
-        prevStep = 4;
       }
       // Special navigation logic for step 5 (Cultural Background) - go back to step 3
       else if (currentStep === 5) {
@@ -1328,6 +1324,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
       }
 
       setCurrentStep(prevStep);
+      setCurrentPage(1);
     }
   };
 
@@ -1348,6 +1345,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
     } else {
       // Go to step 5 (Cultural Background) for step-by-step creation
       setCurrentStep(5);
+      influencerData.facial_features = '';
     }
 
     // Reset pagination to first page when moving to next step
@@ -1947,50 +1945,53 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                   </div>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-                  {ethnicsOptions.map((option) => (
-                    <Card
-                      key={option.label}
-                      className={cn(
-                        "group cursor-pointer transition-all duration-300 hover:shadow-xl border-2 transform hover:scale-105",
-                        influencerData.cultural_background === option.label
-                          ? "border-orange-500 bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-950/20 dark:to-red-950/20 shadow-xl scale-105"
-                          : "border-gray-200 dark:border-gray-700 hover:border-orange-300 dark:hover:border-orange-600"
-                      )}
-                      onClick={() => {
-                        handleOptionSelect('cultural_background', option.label);
-                        toast.success(`${option.label} selected`, {
-                          id: 'ethnics-selection',
-                          position: 'bottom-center'
-                        });
-                      }}
-                    >
-                      <CardContent className="p-6">
-                        <div className="space-y-4">
-                          <div className="relative">
-                            <img
-                              src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
-                              alt={option.label}
-                              className="w-full h-full object-cover rounded-lg shadow-md group-hover:scale-105 transition-transform duration-300"
-                            />
-                            {influencerData.cultural_background === option.label && (
-                              <div className="absolute top-2 right-2 w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center shadow-lg">
-                                <Check className="w-5 h-5 text-white" />
-                              </div>
-                            )}
+                <div className="space-y-6">
+                  {/* Ethnics Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+                    {ethnicsOptions.map((option) => (
+                      <Card
+                        key={option.label}
+                        className={cn(
+                          "group cursor-pointer transition-all duration-300 hover:shadow-xl border-2 transform hover:scale-105",
+                          ethnic === option.label
+                            ? "border-orange-500 bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-950/20 dark:to-red-950/20 shadow-xl scale-105"
+                            : "border-gray-200 dark:border-gray-700 hover:border-orange-300 dark:hover:border-orange-600"
+                        )}
+                        onClick={() => {
+                          setEthnic(option.label);
+                          toast.success(`${option.label} selected`, {
+                            id: 'ethnics-selection',
+                            position: 'bottom-center'
+                          });
+                        }}
+                      >
+                        <CardContent className="p-6">
+                          <div className="space-y-4">
+                            <div className="relative">
+                              <img
+                                src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
+                                alt={option.label}
+                                className="w-full h-full object-cover rounded-lg shadow-md group-hover:scale-105 transition-transform duration-300"
+                              />
+                              {ethnic === option.label && (
+                                <div className="absolute top-2 right-2 w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center shadow-lg">
+                                  <Check className="w-5 h-5 text-white" />
+                                </div>
+                              )}
+                            </div>
+                            <div className="text-center space-y-2">
+                              <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                                {option.label}
+                              </h3>
+                              <p className="text-gray-600 dark:text-gray-400 text-sm">
+                                {option.description}
+                              </p>
+                            </div>
                           </div>
-                          <div className="text-center space-y-2">
-                            <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-                              {option.label}
-                            </h3>
-                            <p className="text-gray-600 dark:text-gray-400 text-sm">
-                              {option.description}
-                            </p>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
@@ -2006,14 +2007,14 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                   Facial Features Templates
                 </h2>
                 <p className="text-gray-600 dark:text-gray-400 max-w-3xl mx-auto text-lg leading-relaxed">
-                  {influencerData.cultural_background && influencerData.cultural_background !== 'Default'
-                    ? `Curated facial templates specifically designed for ${influencerData.cultural_background} ethnic background. Choose a template that best matches your vision.`
+                  {ethnic && ethnic !== 'Default'
+                    ? `Curated facial templates specifically designed for ${ethnic} ethnic background. Choose a template that best matches your vision.`
                     : 'Curated facial templates to help you get started quickly. Choose a template that best matches your vision.'
                   }
                 </p>
                 <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 max-w-3xl mx-auto">
                   <p className="text-blue-800 dark:text-blue-200 text-sm">
-                    <strong>Navigation Tip:</strong> After selecting a template, you'll skip to Body Type (step 16) to complete the basic setup faster.
+                    <strong>Navigation Tip:</strong> After selecting a template, you'll skip to Body Type (step 12) to complete the basic setup faster.
                   </p>
                 </div>
               </div>
@@ -4030,7 +4031,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
       case 2:
         return influencerData.age !== '';
       case 3:
-        return influencerData.cultural_background !== '';
+        return ethnic !== null && ethnic !== '';
       case 4:
         return influencerData.facial_features !== '';
       case 5:
@@ -4325,7 +4326,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                   </div>
                   <div className="flex-1">
                     <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-                      Create Step by Step
+                      Create Facial Features from Scratch
                     </h3>
                     <p className="text-gray-600 dark:text-gray-400 mb-3">
                       Build your influencer's facial features from scratch by selecting each characteristic individually. This gives you complete control over every aspect.

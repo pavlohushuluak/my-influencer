@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 import { RootState } from '@/store/store';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -76,6 +77,7 @@ interface FolderStructure {
 export default function Vault() {
   const userData = useSelector((state: RootState) => state.user);
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const [folders, setFolders] = useState<FolderData[]>([]);
   const [foldersLoading, setFoldersLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -2687,46 +2689,20 @@ export default function Vault() {
       const originalTask = taskData[0];
       console.log("OriginalTask:", originalTask.jsonjob);
 
-      // Step 3: Get user ID
-      const useridResponse = await fetch(`https://db.nymia.ai/rest/v1/user?uuid=eq.${userData.id}`, {
-        headers: {
-          'Authorization': 'Bearer WeInfl3nc3withAI'
-        }
-      });
-
-      const useridData = await useridResponse.json();
-      if (!useridData || useridData.length === 0) {
-        throw new Error('User data not found');
-      }
-
-      // Step 4: Create new task using the original task data (excluding id)
+      // Step 3: Parse the JSON job data
       const jsonjob = JSON.parse(originalTask.jsonjob);
-      const requestData = { ...jsonjob, number_of_images: 1 };
+      console.log("Parsed JSON job:", jsonjob);
 
-      console.log("RequestData:", requestData);
-
-      // Step 5: Create new task
-      const createTaskResponse = await fetch(`https://api.nymia.ai/v1/createtask?userid=${useridData[0].userid}&type=createimage`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer WeInfl3nc3withAI'
-        },
-        body: JSON.stringify(requestData)
+      // Step 4: Navigate to ContentCreate with the JSON job data
+      navigate('/content/create', { 
+        state: { 
+          jsonjobData: jsonjob,
+          isRegeneration: true,
+          originalImage: image
+        } 
       });
 
-      if (!createTaskResponse.ok) {
-        throw new Error(`Failed to create new task: ${createTaskResponse.status}`);
-      }
-
-      const newTaskResult = await createTaskResponse.json();
-      
-      toast.success('Image regeneration started successfully', {
-        description: 'Your new image is being generated with the same settings'
-      });
-
-      // Refresh the vault to show the new generation
-      await fetchHomeFiles();
+      toast.success('Redirecting to ContentCreate for regeneration');
 
     } catch (error) {
       console.error('Regeneration error:', error);

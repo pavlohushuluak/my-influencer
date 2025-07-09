@@ -835,6 +835,268 @@ export default function ContentCreate() {
     }
   }, [generatedTaskId]);
 
+  // Handle regeneration data from Vault.tsx
+  useEffect(() => {
+    const regenerationData = location.state?.jsonjobData;
+    const isRegeneration = location.state?.isRegeneration;
+    const originalImage = location.state?.originalImage;
+
+    if (isRegeneration && regenerationData) {
+      console.log('🔄 REGENERATION PROCESS STARTED');
+      console.log('📍 Location State:', location.state);
+      console.log('📊 Regeneration Data:', regenerationData);
+      console.log('🖼️ Original Image:', originalImage);
+      
+      // Step 1: Populate form data from the JSON job
+      console.log('📝 Step 1: Populating form data from JSON job');
+      
+      if (regenerationData.task) {
+        console.log('✅ Setting task type:', regenerationData.task);
+        setFormData(prev => ({
+          ...prev,
+          task: regenerationData.task
+        }));
+      }
+
+      if (regenerationData.prompt) {
+        console.log('✅ Setting prompt:', regenerationData.prompt);
+        setFormData(prev => ({
+          ...prev,
+          prompt: regenerationData.prompt
+        }));
+      }
+
+      if (regenerationData.negative_prompt) {
+        console.log('✅ Setting negative prompt:', regenerationData.negative_prompt);
+        setFormData(prev => ({
+          ...prev,
+          negative_prompt: regenerationData.negative_prompt
+        }));
+      }
+
+      if (regenerationData.number_of_images) {
+        console.log('✅ Setting number of images:', regenerationData.number_of_images);
+        setFormData(prev => ({
+          ...prev,
+          numberOfImages: regenerationData.number_of_images
+        }));
+      }
+
+      if (regenerationData.guidance) {
+        console.log('✅ Setting guidance:', regenerationData.guidance);
+        setFormData(prev => ({
+          ...prev,
+          guidance: regenerationData.guidance
+        }));
+      }
+
+      if (regenerationData.seed) {
+        console.log('✅ Setting seed:', regenerationData.seed);
+        setFormData(prev => ({
+          ...prev,
+          seed: regenerationData.seed.toString()
+        }));
+      }
+
+      if (regenerationData.nsfw_strength) {
+        console.log('✅ Setting NSFW strength:', regenerationData.nsfw_strength);
+        setFormData(prev => ({
+          ...prev,
+          nsfw_strength: regenerationData.nsfw_strength
+        }));
+      }
+
+      if (regenerationData.lora_strength) {
+        console.log('✅ Setting LORA strength:', regenerationData.lora_strength);
+        setFormData(prev => ({
+          ...prev,
+          lora_strength: regenerationData.lora_strength
+        }));
+      }
+
+      if (regenerationData.quality) {
+        console.log('✅ Setting quality:', regenerationData.quality);
+        setFormData(prev => ({
+          ...prev,
+          quality: regenerationData.quality
+        }));
+      }
+
+      if (regenerationData.format) {
+        console.log('✅ Setting format:', regenerationData.format);
+        setFormData(prev => ({
+          ...prev,
+          format: regenerationData.format
+        }));
+      }
+
+      if (regenerationData.lora !== undefined) {
+        console.log('✅ Setting LORA:', regenerationData.lora);
+        setFormData(prev => ({
+          ...prev,
+          lora: regenerationData.lora
+        }));
+      }
+
+      if (regenerationData.noAI !== undefined) {
+        console.log('✅ Setting noAI:', regenerationData.noAI);
+        setFormData(prev => ({
+          ...prev,
+          noAI: regenerationData.noAI
+        }));
+      }
+
+      // Step 2: Populate scene specifications
+      console.log('🎬 Step 2: Populating scene specifications');
+      if (regenerationData.scene) {
+        console.log('📽️ Scene data:', regenerationData.scene);
+        const sceneData = {
+          framing: regenerationData.scene.framing || '',
+          rotation: regenerationData.scene.rotation || '',
+          lighting_preset: regenerationData.scene.lighting_preset || '',
+          scene_setting: regenerationData.scene.scene_setting || '',
+          pose: regenerationData.scene.pose || '',
+          clothes: regenerationData.scene.clothes || ''
+        };
+        console.log('✅ Setting scene specs:', sceneData);
+        setSceneSpecs(sceneData);
+      }
+
+      // Step 3: Handle model/influencer data professionally
+      console.log('👤 Step 3: Processing model/influencer data');
+      if (regenerationData.model) {
+        console.log('🎭 Model data from JSON job:', regenerationData.model);
+        
+        // Check if we have a model ID to fetch from database
+        if (regenerationData.model.id) {
+          console.log('🔍 Fetching influencer data from database with ID:', regenerationData.model.id);
+          
+          // Fetch the influencer data from the database
+          const fetchInfluencerData = async () => {
+            try {
+              const response = await fetch(`https://db.nymia.ai/rest/v1/influencer?id=eq.${regenerationData.model.id}`, {
+                headers: {
+                  'Authorization': 'Bearer WeInfl3nc3withAI'
+                }
+              });
+
+              if (!response.ok) {
+                throw new Error('Failed to fetch influencer data');
+              }
+
+              const influencerData = await response.json();
+              console.log('📊 Fetched influencer data from database:', influencerData);
+
+              if (influencerData && influencerData.length > 0) {
+                const influencer = influencerData[0];
+                console.log('✅ Found influencer in database:', influencer);
+                
+                // Set the model data with the complete influencer information
+                setModelData(influencer);
+                
+                // Populate model description with complete data
+                const modelDesc = {
+                  appearance: `${influencer.name_first || ''} ${influencer.name_last || ''}, ${influencer.age_lifestyle || ''}`,
+                  culturalBackground: influencer.cultural_background || '',
+                  bodyType: influencer.body_type || '',
+                  facialFeatures: influencer.facial_features || '',
+                  hairColor: influencer.hair_color || '',
+                  hairLength: influencer.hair_length || '',
+                  hairStyle: influencer.hair_style || '',
+                  skin: influencer.skin_tone || '',
+                  lips: influencer.lip_style || '',
+                  eyes: influencer.eye_color || '',
+                  nose: influencer.nose_style || '',
+                  makeup: 'Natural / No-Makeup Look',
+                  clothing: `${influencer.clothing_style_everyday || ''} ${influencer.clothing_style_occasional || ''}`.trim(),
+                  sex: influencer.sex || '',
+                  bust: influencer.bust_size || '',
+                  eyebrowStyle: influencer.eyebrow_style || '',
+                  faceShape: influencer.face_shape || '',
+                  colorPalette: influencer.color_palette ? influencer.color_palette.join(', ') : '',
+                  age: influencer.age || '',
+                  lifestyle: influencer.lifestyle || ''
+                };
+                
+                console.log('📝 Setting model description:', modelDesc);
+                setModelDescription(modelDesc);
+
+                // Generate the model description automatically
+                const parts = [];
+                if (influencer.name_first && influencer.name_last) {
+                  parts.push(`${influencer.name_first} ${influencer.name_last}`);
+                }
+                if (influencer.age_lifestyle) parts.push(influencer.age_lifestyle);
+                if (influencer.cultural_background) parts.push(`Cultural background: ${influencer.cultural_background}`);
+                if (influencer.body_type) parts.push(`Body type: ${influencer.body_type}`);
+                if (influencer.facial_features) parts.push(`Facial features: ${influencer.facial_features}`);
+                if (influencer.hair_color && influencer.hair_length && influencer.hair_style) {
+                  parts.push(`${influencer.hair_length} ${influencer.hair_color} hair, ${influencer.hair_style} style`);
+                }
+                if (influencer.skin_tone) parts.push(`Skin: ${influencer.skin_tone}`);
+                if (influencer.lip_style) parts.push(`Lips: ${influencer.lip_style}`);
+                if (influencer.eye_color) parts.push(`Eyes: ${influencer.eye_color}`);
+                if (influencer.nose_style) parts.push(`Nose: ${influencer.nose_style}`);
+                if (modelDesc.makeup) parts.push(`Makeup: ${modelDesc.makeup}`);
+                if (influencer.clothing_style_everyday || influencer.clothing_style_occasional) {
+                  parts.push(`Clothing: ${influencer.clothing_style_everyday || ''} ${influencer.clothing_style_occasional || ''}`.trim());
+                }
+
+                const fullDescription = parts.join(', ');
+                console.log('📄 Generated full description:', fullDescription);
+                setFormData(prev => ({
+                  ...prev,
+                  model: fullDescription
+                }));
+
+                toast.success(`Regeneration data loaded for ${influencer.name_first} ${influencer.name_last}`);
+              } else {
+                console.warn('⚠️ No influencer found in database, using JSON job data');
+                // Fallback to JSON job data
+                setModelData(regenerationData.model);
+                setModelDescription({
+                  appearance: `${regenerationData.model.name_first || ''} ${regenerationData.model.name_last || ''}, ${regenerationData.model.age || ''}`,
+                  culturalBackground: regenerationData.model.cultural_background || '',
+                  bodyType: regenerationData.model.body_type || '',
+                  facialFeatures: regenerationData.model.facial_features || '',
+                  hairColor: regenerationData.model.hair_color || '',
+                  hairLength: regenerationData.model.hair_length || '',
+                  hairStyle: regenerationData.model.hair_style || '',
+                  skin: regenerationData.model.skin_tone || '',
+                  lips: regenerationData.model.lip_style || '',
+                  eyes: regenerationData.model.eye_color || '',
+                  nose: regenerationData.model.nose_style || '',
+                  makeup: regenerationData.model.makeup_style || 'Natural / No-Makeup Look',
+                  clothing: `${regenerationData.model.clothing_style_everyday || ''} ${regenerationData.model.clothing_style_occasional || ''}`.trim(),
+                  sex: regenerationData.model.sex || '',
+                  bust: regenerationData.model.bust || '',
+                  eyebrowStyle: regenerationData.model.eyebrow_style || '',
+                  faceShape: regenerationData.model.face_shape || '',
+                  colorPalette: regenerationData.model.color_palette ? regenerationData.model.color_palette.join(', ') : '',
+                  age: regenerationData.model.age || '',
+                  lifestyle: regenerationData.model.lifestyle || ''
+                });
+              }
+            } catch (error) {
+              console.error('❌ Error fetching influencer data:', error);
+              console.warn('⚠️ Falling back to JSON job model data');
+              setModelData(regenerationData.model);
+            }
+          };
+
+          fetchInfluencerData();
+        } else {
+          console.log('⚠️ No model ID found, using JSON job model data directly');
+          setModelData(regenerationData.model);
+        }
+      } else {
+        console.log('⚠️ No model data found in regeneration data');
+      }
+
+      console.log('✅ REGENERATION PROCESS COMPLETED');
+    }
+  }, [location.state]);
+
   return (
     <div className="px-6 space-y-4">
       {/* Header */}

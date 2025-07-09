@@ -1622,9 +1622,9 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
             body: JSON.stringify({ task_id: taskId })
           });
 
-          if (!imagesResponse.ok) {
-            throw new Error('Failed to fetch images');
-          }
+          // if (!imagesResponse.ok) {
+          //   throw new Error('Failed to fetch images');
+          // }
 
           const imagesData = await imagesResponse.json();
 

@@ -2700,8 +2700,10 @@ export default function Vault() {
       }
 
       // Step 4: Create new task using the original task data (excluding id)
-      const requestData = originalTask.jsonjob;
-      requestData.number_of_images = 1;
+      const jsonjob = JSON.parse(originalTask.jsonjob);
+      const requestData = { ...jsonjob, number_of_images: 1 };
+
+      console.log("RequestData:", requestData);
 
       // Step 5: Create new task
       const createTaskResponse = await fetch(`https://api.nymia.ai/v1/createtask?userid=${useridData[0].userid}&type=createimage`, {
@@ -2710,7 +2712,7 @@ export default function Vault() {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer WeInfl3nc3withAI'
         },
-        body: requestData
+        body: JSON.stringify(requestData)
       });
 
       if (!createTaskResponse.ok) {

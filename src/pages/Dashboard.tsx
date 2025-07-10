@@ -13,6 +13,8 @@ import axios from 'axios';
 import { toast } from 'sonner';
 import { LoraStatusIndicator } from '@/components/Influencers/LoraStatusIndicator';
 import { InfluencerUseModal } from '@/components/Influencers/InfluencerUseModal';
+import InstructionVideo from '@/components/InstructionVideo';
+import { getInstructionVideoConfig } from '@/config/instructionVideos';
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -29,7 +31,7 @@ export default function Dashboard() {
   const [isCopyingImage, setIsCopyingImage] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
-  const displayedInfluencers = showAllInfluencers ? influencers : influencers.slice(0, 5);
+  const displayedInfluencers = showAllInfluencers ? influencers : influencers.slice(0, 3);
 
   const userData = useSelector((state: RootState) => state.user);
 
@@ -224,7 +226,7 @@ export default function Dashboard() {
             'Authorization': 'Bearer WeInfl3nc3withAI'
           }
         });
-  
+
         const useridData = await useridResponse.json();
 
         await fetch(`https://api.nymia.ai/v1/createtask?userid=${useridData[0].userid}&type=createlora`, {
@@ -252,7 +254,7 @@ export default function Dashboard() {
             'Authorization': 'Bearer WeInfl3nc3withAI'
           }
         });
-  
+
         const useridData = await useridResponse.json();
 
         await fetch(`https://api.nymia.ai/v1/createtask?userid=${useridData[0].userid}&type=createlora`, {
@@ -400,85 +402,98 @@ export default function Dashboard() {
             </Button>
           </div>
         </CardHeader>
+        <div className="w-full p-10 xl:hidden">
+          <InstructionVideo {...getInstructionVideoConfig('phase1')} />
+        </div>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-            {displayedInfluencers.map((influencer) => (
-              <Card key={influencer.id} className="group hover:shadow-lg transition-all duration-300 border-border/50 hover:border-ai-purple-500/20">
-                <CardContent className="p-6 h-full">
-                  <div className="flex flex-col justify-between h-full space-y-4">
-                    <div className="relative w-full h-full bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg overflow-hidden">
-                      {/* LoraStatusIndicator positioned at top right */}
-                      <div className="absolute right-[-15px] top-[-15px] z-10">
-                        <LoraStatusIndicator 
-                          status={influencer.lorastatus || 0} 
-                          className="flex-shrink-0"
-                        />
-                      </div>
-                      {
-                        influencer.image_url ? (
-                          <img
-                            src={influencer.image_url}
-                            alt={`${influencer.name_first} ${influencer.name_last}`}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="flex flex-col w-full h-full items-center justify-center max-h-48 min-h-40">
-                            <Image className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                            <h3 className="text-lg font-semibold mb-2">No image found</h3>
+          <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
+            {/* Left side - Influencer cards (3 width) */}
+            <div className="col-span-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {displayedInfluencers.map((influencer) => (
+                  <Card key={influencer.id} className="group hover:shadow-lg transition-all duration-300 border-border/50 hover:border-ai-purple-500/20">
+                    <CardContent className="p-6 h-full">
+                      <div className="flex flex-col justify-between h-full space-y-4">
+                        <div className="relative w-full h-full bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg overflow-hidden">
+                          {/* LoraStatusIndicator positioned at top right */}
+                          <div className="absolute right-[-15px] top-[-15px] z-10">
+                            <LoraStatusIndicator
+                              status={influencer.lorastatus || 0}
+                              className="flex-shrink-0"
+                            />
                           </div>
-                        )
-                      }
-                    </div>
+                          {
+                            influencer.image_url ? (
+                              <img
+                                src={influencer.image_url}
+                                alt={`${influencer.name_first} ${influencer.name_last}`}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="flex flex-col w-full h-full items-center justify-center max-h-48 min-h-40">
+                                <Image className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                                <h3 className="text-lg font-semibold mb-2">No image found</h3>
+                              </div>
+                            )
+                          }
+                        </div>
 
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <h3 className="font-semibold text-lg group-hover:text-ai-purple-500 transition-colors">
-                          {influencer.name_first} {influencer.name_last}
-                        </h3>
-                      </div>
+                        <div>
+                          <div className="flex items-center justify-between mb-2">
+                            <h3 className="font-semibold text-lg group-hover:text-ai-purple-500 transition-colors">
+                              {influencer.name_first} {influencer.name_last}
+                            </h3>
+                          </div>
 
-                      <div className="flex flex-col gap-1 mb-3">
-                        <div className="flex text-sm text-muted-foreground flex-col">
-                          {influencer.notes ? (
-                            <span className="text-sm text-muted-foreground">
-                              {influencer.notes.length > 50 
-                                ? `${influencer.notes.substring(0, 50)}...` 
-                                : influencer.notes
-                              }
-                            </span>
-                          ) : (
-                            <span className="text-sm text-muted-foreground">
-                              {influencer.lifestyle || 'No lifestyle'} • {influencer.origin_residence || 'No residence'}
-                            </span>
-                          )}
+                          <div className="flex flex-col gap-1 mb-3">
+                            <div className="flex text-sm text-muted-foreground flex-col">
+                              {influencer.notes ? (
+                                <span className="text-sm text-muted-foreground">
+                                  {influencer.notes.length > 50
+                                    ? `${influencer.notes.substring(0, 50)}...`
+                                    : influencer.notes
+                                  }
+                                </span>
+                              ) : (
+                                <span className="text-sm text-muted-foreground">
+                                  {influencer.lifestyle || 'No lifestyle'} • {influencer.origin_residence || 'No residence'}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="grid gap-2 grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleEditInfluencer(influencer.id)}
+                              className="flex-1 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                            >
+                              <Settings className="w-4 h-4 mr-2" />
+                              Edit
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleUseInfluencer(influencer.id)}
+                              className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+                            >
+                              <Plus className="w-4 h-4 mr-2" />
+                              Use
+                            </Button>
+                          </div>
                         </div>
                       </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
 
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleEditInfluencer(influencer.id)}
-                          className="flex-1 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
-                        >
-                          <Settings className="w-4 h-4 mr-2" />
-                          Edit
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleUseInfluencer(influencer.id)}
-                          className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
-                        >
-                          <Plus className="w-4 h-4 mr-2" />
-                          Use
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+            {/* Right side - Intro video (2 width) */}
+            <div className="hidden xl:block col-span-2">
+              <InstructionVideo {...getInstructionVideoConfig('phase1')} />
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -494,76 +509,89 @@ export default function Dashboard() {
             </Button>
           </div>
         </CardHeader>
+        <div className="w-full p-10 xl:hidden">
+          <InstructionVideo {...getInstructionVideoConfig('phase2')} />
+        </div>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-            {displayedInfluencers.map((influencer) => (
-              <Card key={influencer.id} className="group hover:shadow-lg transition-all duration-300 border-border/50 hover:border-ai-purple-500/20">
-                <CardContent className="p-6 h-full">
-                  <div className="flex flex-col justify-between h-full space-y-4">
-                    <div className="relative w-full h-full bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg overflow-hidden">
-                      {/* LoraStatusIndicator positioned at top right */}
-                      <div className="absolute right-[-15px] top-[-15px] z-10">
-                        <LoraStatusIndicator 
-                          status={influencer.lorastatus || 0} 
-                          className="flex-shrink-0"
-                        />
-                      </div>
-                      {
-                        influencer.image_url ? (
-                          <img
-                            src={influencer.image_url}
-                            alt={`${influencer.name_first} ${influencer.name_last}`}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="flex flex-col w-full h-full items-center justify-center max-h-48 min-h-40">
-                            <Image className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                            <h3 className="text-lg font-semibold mb-2">No image found</h3>
+          <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
+            {/* Left side - Influencer cards (3 width) */}
+            <div className="col-span-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {displayedInfluencers.map((influencer) => (
+                  <Card key={influencer.id} className="group hover:shadow-lg transition-all duration-300 border-border/50 hover:border-ai-purple-500/20">
+                    <CardContent className="p-6 h-full">
+                      <div className="flex flex-col justify-between h-full space-y-4">
+                        <div className="relative w-full h-full bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg overflow-hidden">
+                          {/* LoraStatusIndicator positioned at top right */}
+                          <div className="absolute right-[-15px] top-[-15px] z-10">
+                            <LoraStatusIndicator
+                              status={influencer.lorastatus || 0}
+                              className="flex-shrink-0"
+                            />
                           </div>
-                        )
-                      }
-                    </div>
+                          {
+                            influencer.image_url ? (
+                              <img
+                                src={influencer.image_url}
+                                alt={`${influencer.name_first} ${influencer.name_last}`}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="flex flex-col w-full h-full items-center justify-center max-h-48 min-h-40">
+                                <Image className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                                <h3 className="text-lg font-semibold mb-2">No image found</h3>
+                              </div>
+                            )
+                          }
+                        </div>
 
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <h3 className="font-semibold text-lg group-hover:text-ai-purple-500 transition-colors">
-                          {influencer.name_first} {influencer.name_last}
-                        </h3>
-                      </div>
+                        <div>
+                          <div className="flex items-center justify-between mb-2">
+                            <h3 className="font-semibold text-lg group-hover:text-ai-purple-500 transition-colors">
+                              {influencer.name_first} {influencer.name_last}
+                            </h3>
+                          </div>
 
-                      <div className="flex flex-col gap-1 mb-3">
-                        <div className="flex text-sm text-muted-foreground flex-col">
-                          {influencer.notes ? (
-                            <span className="text-sm text-muted-foreground">
-                              {influencer.notes.length > 50 
-                                ? `${influencer.notes.substring(0, 50)}...` 
-                                : influencer.notes
-                              }
-                            </span>
-                          ) : (
-                            <span className="text-sm text-muted-foreground">
-                              {influencer.lifestyle || 'No lifestyle'} • {influencer.origin_residence || 'No residence'}
-                            </span>
-                          )}
+                          <div className="flex flex-col gap-1 mb-3">
+                            <div className="flex text-sm text-muted-foreground flex-col">
+                              {influencer.notes ? (
+                                <span className="text-sm text-muted-foreground">
+                                  {influencer.notes.length > 50
+                                    ? `${influencer.notes.substring(0, 50)}...`
+                                    : influencer.notes
+                                  }
+                                </span>
+                              ) : (
+                                <span className="text-sm text-muted-foreground">
+                                  {influencer.lifestyle || 'No lifestyle'} • {influencer.origin_residence || 'No residence'}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleTrainCharacterConsistency(influencer.id)}
+                              className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+                            >
+                              <Copy className="w-4 h-4 mr-2" />
+                              Train CC
+                            </Button>
+                          </div>
                         </div>
                       </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
 
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleTrainCharacterConsistency(influencer.id)}
-                          className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
-                        >
-                          <Copy className="w-4 h-4 mr-2" />
-                          Train CC
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+            {/* Right side - Intro video (2 width) */}
+            <div className="hidden xl:block col-span-2">
+              <InstructionVideo {...getInstructionVideoConfig('phase2')} />
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -579,76 +607,89 @@ export default function Dashboard() {
             </Button>
           </div>
         </CardHeader>
+        <div className="w-full p-10 xl:hidden">
+          <InstructionVideo {...getInstructionVideoConfig('phase3')} />
+        </div>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-            {displayedInfluencers.map((influencer) => (
-              <Card key={influencer.id} className="group hover:shadow-lg transition-all duration-300 border-border/50 hover:border-ai-purple-500/20">
-                <CardContent className="p-6 h-full">
-                  <div className="flex flex-col justify-between h-full space-y-4">
-                    <div className="relative w-full h-full bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg overflow-hidden">
-                      {/* LoraStatusIndicator positioned at top right */}
-                      <div className="absolute right-[-15px] top-[-15px] z-10">
-                        <LoraStatusIndicator 
-                          status={influencer.lorastatus || 0} 
-                          className="flex-shrink-0"
-                        />
-                      </div>
-                      {
-                        influencer.image_url ? (
-                          <img
-                            src={influencer.image_url}
-                            alt={`${influencer.name_first} ${influencer.name_last}`}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="flex flex-col w-full h-full items-center justify-center max-h-48 min-h-40">
-                            <Image className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                            <h3 className="text-lg font-semibold mb-2">No image found</h3>
+          <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
+            {/* Left side - Influencer cards (3 width) */}
+            <div className="col-span-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {displayedInfluencers.map((influencer) => (
+                  <Card key={influencer.id} className="group hover:shadow-lg transition-all duration-300 border-border/50 hover:border-ai-purple-500/20">
+                    <CardContent className="p-6 h-full">
+                      <div className="flex flex-col justify-between h-full space-y-4">
+                        <div className="relative w-full h-full bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg overflow-hidden">
+                          {/* LoraStatusIndicator positioned at top right */}
+                          <div className="absolute right-[-15px] top-[-15px] z-10">
+                            <LoraStatusIndicator
+                              status={influencer.lorastatus || 0}
+                              className="flex-shrink-0"
+                            />
                           </div>
-                        )
-                      }
-                    </div>
+                          {
+                            influencer.image_url ? (
+                              <img
+                                src={influencer.image_url}
+                                alt={`${influencer.name_first} ${influencer.name_last}`}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="flex flex-col w-full h-full items-center justify-center max-h-48 min-h-40">
+                                <Image className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                                <h3 className="text-lg font-semibold mb-2">No image found</h3>
+                              </div>
+                            )
+                          }
+                        </div>
 
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <h3 className="font-semibold text-lg group-hover:text-ai-purple-500 transition-colors">
-                          {influencer.name_first} {influencer.name_last}
-                        </h3>
-                      </div>
+                        <div>
+                          <div className="flex items-center justify-between mb-2">
+                            <h3 className="font-semibold text-lg group-hover:text-ai-purple-500 transition-colors">
+                              {influencer.name_first} {influencer.name_last}
+                            </h3>
+                          </div>
 
-                      <div className="flex flex-col gap-1 mb-3">
-                        <div className="flex text-sm text-muted-foreground flex-col">
-                          {influencer.notes ? (
-                            <span className="text-sm text-muted-foreground">
-                              {influencer.notes.length > 50 
-                                ? `${influencer.notes.substring(0, 50)}...` 
-                                : influencer.notes
-                              }
-                            </span>
-                          ) : (
-                            <span className="text-sm text-muted-foreground">
-                              {influencer.lifestyle || 'No lifestyle'} • {influencer.origin_residence || 'No residence'}
-                            </span>
-                          )}
+                          <div className="flex flex-col gap-1 mb-3">
+                            <div className="flex text-sm text-muted-foreground flex-col">
+                              {influencer.notes ? (
+                                <span className="text-sm text-muted-foreground">
+                                  {influencer.notes.length > 50
+                                    ? `${influencer.notes.substring(0, 50)}...`
+                                    : influencer.notes
+                                  }
+                                </span>
+                              ) : (
+                                <span className="text-sm text-muted-foreground">
+                                  {influencer.lifestyle || 'No lifestyle'} • {influencer.origin_residence || 'No residence'}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleCreateSocialMedia(influencer.id)}
+                              className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+                            >
+                              <Image className="w-4 h-4 mr-2" />
+                              Social Media
+                            </Button>
+                          </div>
                         </div>
                       </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
 
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleCreateSocialMedia(influencer.id)}
-                          className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
-                        >
-                          <Image className="w-4 h-4 mr-2" />
-                          Create Social Media
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+            {/* Right side - Intro video (2 width) */}
+            <div className="hidden xl:block col-span-2">
+              <InstructionVideo {...getInstructionVideoConfig('phase3')} />
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -664,76 +705,89 @@ export default function Dashboard() {
             </Button>
           </div>
         </CardHeader>
+        <div className="w-full p-10 xl:hidden">
+          <InstructionVideo {...getInstructionVideoConfig('phase4')} />
+        </div>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-            {displayedInfluencers.map((influencer) => (
-              <Card key={influencer.id} className="group hover:shadow-lg transition-all duration-300 border-border/50 hover:border-ai-purple-500/20">
-                <CardContent className="p-6 h-full">
-                  <div className="flex flex-col justify-between h-full space-y-4">
-                    <div className="relative w-full h-full bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg overflow-hidden">
-                      {/* LoraStatusIndicator positioned at top right */}
-                      <div className="absolute right-[-15px] top-[-15px] z-10">
-                        <LoraStatusIndicator 
-                          status={influencer.lorastatus || 0} 
-                          className="flex-shrink-0"
-                        />
-                      </div>
-                      {
-                        influencer.image_url ? (
-                          <img
-                            src={influencer.image_url}
-                            alt={`${influencer.name_first} ${influencer.name_last}`}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="flex flex-col w-full h-full items-center justify-center max-h-48 min-h-40">
-                            <Image className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                            <h3 className="text-lg font-semibold mb-2">No image found</h3>
+          <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
+            {/* Left side - Influencer cards (3 width) */}
+            <div className="col-span-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {displayedInfluencers.map((influencer) => (
+                  <Card key={influencer.id} className="group hover:shadow-lg transition-all duration-300 border-border/50 hover:border-ai-purple-500/20">
+                    <CardContent className="p-6 h-full">
+                      <div className="flex flex-col justify-between h-full space-y-4">
+                        <div className="relative w-full h-full bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg overflow-hidden">
+                          {/* LoraStatusIndicator positioned at top right */}
+                          <div className="absolute right-[-15px] top-[-15px] z-10">
+                            <LoraStatusIndicator
+                              status={influencer.lorastatus || 0}
+                              className="flex-shrink-0"
+                            />
                           </div>
-                        )
-                      }
-                    </div>
+                          {
+                            influencer.image_url ? (
+                              <img
+                                src={influencer.image_url}
+                                alt={`${influencer.name_first} ${influencer.name_last}`}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="flex flex-col w-full h-full items-center justify-center max-h-48 min-h-40">
+                                <Image className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                                <h3 className="text-lg font-semibold mb-2">No image found</h3>
+                              </div>
+                            )
+                          }
+                        </div>
 
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <h3 className="font-semibold text-lg group-hover:text-ai-purple-500 transition-colors">
-                          {influencer.name_first} {influencer.name_last}
-                        </h3>
-                      </div>
+                        <div>
+                          <div className="flex items-center justify-between mb-2">
+                            <h3 className="font-semibold text-lg group-hover:text-ai-purple-500 transition-colors">
+                              {influencer.name_first} {influencer.name_last}
+                            </h3>
+                          </div>
 
-                      <div className="flex flex-col gap-1 mb-3">
-                        <div className="flex text-sm text-muted-foreground flex-col">
-                          {influencer.notes ? (
-                            <span className="text-sm text-muted-foreground">
-                              {influencer.notes.length > 50 
-                                ? `${influencer.notes.substring(0, 50)}...` 
-                                : influencer.notes
-                              }
-                            </span>
-                          ) : (
-                            <span className="text-sm text-muted-foreground">
-                              {influencer.lifestyle || 'No lifestyle'} • {influencer.origin_residence || 'No residence'}
-                            </span>
-                          )}
+                          <div className="flex flex-col gap-1 mb-3">
+                            <div className="flex text-sm text-muted-foreground flex-col">
+                              {influencer.notes ? (
+                                <span className="text-sm text-muted-foreground">
+                                  {influencer.notes.length > 50
+                                    ? `${influencer.notes.substring(0, 50)}...`
+                                    : influencer.notes
+                                  }
+                                </span>
+                              ) : (
+                                <span className="text-sm text-muted-foreground">
+                                  {influencer.lifestyle || 'No lifestyle'} • {influencer.origin_residence || 'No residence'}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleCreatePPVSet(influencer.id)}
+                              className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+                            >
+                              <Plus className="w-4 h-4 mr-2" />
+                              Create PPV Set
+                            </Button>
+                          </div>
                         </div>
                       </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
 
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleCreatePPVSet(influencer.id)}
-                          className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
-                        >
-                          <Plus className="w-4 h-4 mr-2" />
-                          Create PPV Set
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+            {/* Right side - Intro video (2 width) */}
+            <div className="hidden xl:block col-span-2">
+              <InstructionVideo {...getInstructionVideoConfig('phase4')} />
+            </div>
           </div>
         </CardContent>
       </Card>

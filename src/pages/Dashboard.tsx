@@ -393,16 +393,16 @@ export default function Dashboard() {
 
       {/* Phase 1 - Create your Influencer Container */}
       <Card>
-        <CardHeader>
+        <CardHeader className="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-950/30 dark:to-blue-950/30 border-b border-purple-200/50 dark:border-purple-800/50 p-3 px-10 mb-6">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-xl font-semibold">Phase 1 - Create your Influencer</CardTitle>
-            <Button variant="ghost" size="sm" className="text-purple-600 hover:text-purple-700" onClick={() => setShowAllInfluencers(!showAllInfluencers)}>
+            <CardTitle className="text-xl font-semibold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">Phase 1 - Create your Influencer</CardTitle>
+            <Button variant="ghost" size="sm" className="text-purple-600 hover:text-purple-700 hover:bg-purple-100 dark:hover:bg-purple-900/30" onClick={() => setShowAllInfluencers(!showAllInfluencers)}>
               <MoreHorizontal className="w-4 h-4 mr-2" />
               {showAllInfluencers ? 'Show Less' : 'Show More'}
             </Button>
           </div>
         </CardHeader>
-        <div className="w-full p-10 xl:hidden">
+        <div className="w-full p-6 xl:hidden">
           <InstructionVideo {...getInstructionVideoConfig('phase1')} />
         </div>
         <CardContent>
@@ -417,8 +417,8 @@ export default function Dashboard() {
                         <div className="relative w-full h-full bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg overflow-hidden">
                           {/* LoraStatusIndicator positioned at top right */}
                           <div className="absolute right-[-15px] top-[-15px] z-10">
-                            <LoraStatusIndicator
-                              status={influencer.lorastatus || 0}
+                            <LoraStatusIndicator 
+                              status={influencer.lorastatus || 0} 
                               className="flex-shrink-0"
                             />
                           </div>
@@ -449,8 +449,8 @@ export default function Dashboard() {
                             <div className="flex text-sm text-muted-foreground flex-col">
                               {influencer.notes ? (
                                 <span className="text-sm text-muted-foreground">
-                                  {influencer.notes.length > 50
-                                    ? `${influencer.notes.substring(0, 50)}...`
+                                  {influencer.notes.length > 50 
+                                    ? `${influencer.notes.substring(0, 50)}...` 
                                     : influencer.notes
                                   }
                                 </span>
@@ -491,7 +491,7 @@ export default function Dashboard() {
             </div>
 
             {/* Right side - Intro video (2 width) */}
-            <div className="hidden xl:block col-span-2">
+            <div className="hidden xl:block col-span-2 h-full my-auto">
               <InstructionVideo {...getInstructionVideoConfig('phase1')} />
             </div>
           </div>
@@ -500,16 +500,16 @@ export default function Dashboard() {
 
       {/* Phase 2 - Train Character Consistency Container */}
       <Card>
-        <CardHeader>
+        <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 border-b border-green-200/50 dark:border-green-800/50 p-3 px-10 mb-6">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-xl font-semibold">Phase 2 - Train Character Consistency</CardTitle>
-            <Button variant="ghost" size="sm" className="text-purple-600 hover:text-purple-700" onClick={() => setShowAllInfluencers(!showAllInfluencers)}>
+            <CardTitle className="text-xl font-semibold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">Phase 2 - Train Character Consistency</CardTitle>
+            <Button variant="ghost" size="sm" className="text-green-600 hover:text-green-700 hover:bg-green-100 dark:hover:bg-green-900/30" onClick={() => setShowAllInfluencers(!showAllInfluencers)}>
               <MoreHorizontal className="w-4 h-4 mr-2" />
               {showAllInfluencers ? 'Show Less' : 'Show More'}
             </Button>
           </div>
         </CardHeader>
-        <div className="w-full p-10 xl:hidden">
+        <div className="w-full p-6 xl:hidden">
           <InstructionVideo {...getInstructionVideoConfig('phase2')} />
         </div>
         <CardContent>
@@ -524,8 +524,8 @@ export default function Dashboard() {
                         <div className="relative w-full h-full bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg overflow-hidden">
                           {/* LoraStatusIndicator positioned at top right */}
                           <div className="absolute right-[-15px] top-[-15px] z-10">
-                            <LoraStatusIndicator
-                              status={influencer.lorastatus || 0}
+                            <LoraStatusIndicator 
+                              status={influencer.lorastatus || 0} 
                               className="flex-shrink-0"
                             />
                           </div>
@@ -556,8 +556,8 @@ export default function Dashboard() {
                             <div className="flex text-sm text-muted-foreground flex-col">
                               {influencer.notes ? (
                                 <span className="text-sm text-muted-foreground">
-                                  {influencer.notes.length > 50
-                                    ? `${influencer.notes.substring(0, 50)}...`
+                                  {influencer.notes.length > 50 
+                                    ? `${influencer.notes.substring(0, 50)}...` 
                                     : influencer.notes
                                   }
                                 </span>
@@ -589,7 +589,7 @@ export default function Dashboard() {
             </div>
 
             {/* Right side - Intro video (2 width) */}
-            <div className="hidden xl:block col-span-2">
+            <div className="hidden xl:block col-span-2 h-full my-auto">
               <InstructionVideo {...getInstructionVideoConfig('phase2')} />
             </div>
           </div>
@@ -598,16 +598,16 @@ export default function Dashboard() {
 
       {/* Phase 3 - Create Social Media Content Container */}
       <Card>
-        <CardHeader>
+        <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border-b border-blue-200/50 dark:border-blue-800/50 p-3 px-10 mb-6">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-xl font-semibold">Phase 3 - Create Social Media Content</CardTitle>
-            <Button variant="ghost" size="sm" className="text-purple-600 hover:text-purple-700">
+            <CardTitle className="text-xl font-semibold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">Phase 3 - Create Social Media Content</CardTitle>
+            <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-700 hover:bg-blue-100 dark:hover:bg-blue-900/30">
               <MoreHorizontal className="w-4 h-4 mr-2" />
               View All
             </Button>
           </div>
         </CardHeader>
-        <div className="w-full p-10 xl:hidden">
+        <div className="w-full p-6 xl:hidden">
           <InstructionVideo {...getInstructionVideoConfig('phase3')} />
         </div>
         <CardContent>
@@ -622,8 +622,8 @@ export default function Dashboard() {
                         <div className="relative w-full h-full bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg overflow-hidden">
                           {/* LoraStatusIndicator positioned at top right */}
                           <div className="absolute right-[-15px] top-[-15px] z-10">
-                            <LoraStatusIndicator
-                              status={influencer.lorastatus || 0}
+                            <LoraStatusIndicator 
+                              status={influencer.lorastatus || 0} 
                               className="flex-shrink-0"
                             />
                           </div>
@@ -654,8 +654,8 @@ export default function Dashboard() {
                             <div className="flex text-sm text-muted-foreground flex-col">
                               {influencer.notes ? (
                                 <span className="text-sm text-muted-foreground">
-                                  {influencer.notes.length > 50
-                                    ? `${influencer.notes.substring(0, 50)}...`
+                                  {influencer.notes.length > 50 
+                                    ? `${influencer.notes.substring(0, 50)}...` 
                                     : influencer.notes
                                   }
                                 </span>
@@ -687,7 +687,7 @@ export default function Dashboard() {
             </div>
 
             {/* Right side - Intro video (2 width) */}
-            <div className="hidden xl:block col-span-2">
+            <div className="hidden xl:block col-span-2 h-full my-auto">
               <InstructionVideo {...getInstructionVideoConfig('phase3')} />
             </div>
           </div>
@@ -696,16 +696,16 @@ export default function Dashboard() {
 
       {/* Phase 4 - Monetize Container */}
       <Card>
-        <CardHeader>
+        <CardHeader className="bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-950/30 dark:to-amber-950/30 border-b border-orange-200/50 dark:border-orange-800/50 p-3 px-10 mb-6">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-xl font-semibold">Phase 4 - Monetize</CardTitle>
-            <Button variant="ghost" size="sm" className="text-purple-600 hover:text-purple-700" onClick={() => setShowAllInfluencers(!showAllInfluencers)}>
+            <CardTitle className="text-xl font-semibold bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent">Phase 4 - Monetize</CardTitle>
+            <Button variant="ghost" size="sm" className="text-orange-600 hover:text-orange-700 hover:bg-orange-100 dark:hover:bg-orange-900/30" onClick={() => setShowAllInfluencers(!showAllInfluencers)}>
               <MoreHorizontal className="w-4 h-4 mr-2" />
               {showAllInfluencers ? 'Show Less' : 'Show More'}
             </Button>
           </div>
         </CardHeader>
-        <div className="w-full p-10 xl:hidden">
+        <div className="w-full p-6 xl:hidden">
           <InstructionVideo {...getInstructionVideoConfig('phase4')} />
         </div>
         <CardContent>
@@ -720,8 +720,8 @@ export default function Dashboard() {
                         <div className="relative w-full h-full bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg overflow-hidden">
                           {/* LoraStatusIndicator positioned at top right */}
                           <div className="absolute right-[-15px] top-[-15px] z-10">
-                            <LoraStatusIndicator
-                              status={influencer.lorastatus || 0}
+                            <LoraStatusIndicator 
+                              status={influencer.lorastatus || 0} 
                               className="flex-shrink-0"
                             />
                           </div>
@@ -752,8 +752,8 @@ export default function Dashboard() {
                             <div className="flex text-sm text-muted-foreground flex-col">
                               {influencer.notes ? (
                                 <span className="text-sm text-muted-foreground">
-                                  {influencer.notes.length > 50
-                                    ? `${influencer.notes.substring(0, 50)}...`
+                                  {influencer.notes.length > 50 
+                                    ? `${influencer.notes.substring(0, 50)}...` 
                                     : influencer.notes
                                   }
                                 </span>
@@ -785,7 +785,7 @@ export default function Dashboard() {
             </div>
 
             {/* Right side - Intro video (2 width) */}
-            <div className="hidden xl:block col-span-2">
+            <div className="hidden xl:block col-span-2 h-full my-auto">
               <InstructionVideo {...getInstructionVideoConfig('phase4')} />
             </div>
           </div>

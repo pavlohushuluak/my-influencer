@@ -491,8 +491,10 @@ export default function Dashboard() {
             </div>
 
             {/* Right side - Intro video (2 width) */}
-            <div className="hidden xl:block col-span-2 h-full my-auto">
-              <InstructionVideo {...getInstructionVideoConfig('phase1')} />
+            <div className="hidden xl:block col-span-2 flex items-center justify-center">
+              <div className="w-full h-full flex items-center justify-center">
+                <InstructionVideo {...getInstructionVideoConfig('phase1')} />
+              </div>
             </div>
           </div>
         </CardContent>
@@ -589,8 +591,10 @@ export default function Dashboard() {
             </div>
 
             {/* Right side - Intro video (2 width) */}
-            <div className="hidden xl:block col-span-2 h-full my-auto">
-              <InstructionVideo {...getInstructionVideoConfig('phase2')} />
+            <div className="hidden xl:block col-span-2 flex items-center justify-center">
+              <div className="w-full h-full flex items-center justify-center">
+                <InstructionVideo {...getInstructionVideoConfig('phase2')} />
+              </div>
             </div>
           </div>
         </CardContent>
@@ -687,8 +691,10 @@ export default function Dashboard() {
             </div>
 
             {/* Right side - Intro video (2 width) */}
-            <div className="hidden xl:block col-span-2 h-full my-auto">
-              <InstructionVideo {...getInstructionVideoConfig('phase3')} />
+            <div className="hidden xl:block col-span-2 flex items-center justify-center">
+              <div className="w-full h-full flex items-center justify-center">
+                <InstructionVideo {...getInstructionVideoConfig('phase3')} />
+              </div>
             </div>
           </div>
         </CardContent>
@@ -785,8 +791,10 @@ export default function Dashboard() {
             </div>
 
             {/* Right side - Intro video (2 width) */}
-            <div className="hidden xl:block col-span-2 h-full my-auto">
-              <InstructionVideo {...getInstructionVideoConfig('phase4')} />
+            <div className="hidden xl:block col-span-2 flex items-center justify-center">
+              <div className="w-full h-full flex items-center justify-center">
+                <InstructionVideo {...getInstructionVideoConfig('phase4')} />
+              </div>
             </div>
           </div>
         </CardContent>

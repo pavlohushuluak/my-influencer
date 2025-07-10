@@ -34,7 +34,8 @@ import {
   Layers,
   Settings,
   Play,
-  ChevronRight
+  ChevronRight,
+  Brain
 } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
@@ -60,6 +61,7 @@ const menuItems = [
     items: [
       { title: "Create", url: "/influencers/create", icon: Plus },
       { title: "Edit", url: "/influencers/edit", icon: Edit },
+      { title: "LORA", url: "/influencers/lora-training", icon: Brain },
       { title: "Use", url: "/influencers", icon: Play },
       { title: "Templates", url: "/influencers/templates", icon: BookOpen },
     ]

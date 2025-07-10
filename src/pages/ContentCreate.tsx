@@ -13,7 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
-import { Image, Wand2, Settings, Image as ImageIcon, Sparkles, Loader2, Camera, Search, X, Filter, Plus, RotateCcw } from 'lucide-react';
+import { Image, Wand2, Settings, Image as ImageIcon, Sparkles, Loader2, Camera, Search, X, Filter, Plus, RotateCcw, Download, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Command, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -151,6 +151,11 @@ export default function ContentCreate() {
   const [generatedTaskId, setGeneratedTaskId] = useState('');
   const [generatedImages, setGeneratedImages] = useState<any[]>([]);
   const [isLoadingGeneratedImages, setIsLoadingGeneratedImages] = useState(false);
+  const [fullSizeImageModal, setFullSizeImageModal] = useState<{ isOpen: boolean; imageUrl: string; imageName: string }>({
+    isOpen: false,
+    imageUrl: '',
+    imageName: ''
+  });
 
   // Defensive: ensure formatOptions is always an array
   const safeFormatOptions = Array.isArray(formatOptions) ? formatOptions : [];
@@ -515,6 +520,102 @@ export default function ContentCreate() {
     }
   };
 
+  const handleDownload = async (image: any) => {
+    try {
+      toast.info('Downloading image...', {
+        description: 'This may take a moment'
+      });
+
+      const filename = image.file_path.split('/').pop();
+      console.log(filename);
+
+      const response = await fetch('https://api.nymia.ai/v1/downloadfile', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          user: userData.id,
+          filename: 'output/' + filename
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to download file');
+      }
+
+      const blob = await response.blob();
+
+      // Create a download link
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = image.system_filename || `generated-image-${Date.now()}.png`;
+
+      // Trigger download
+      document.body.appendChild(link);
+      link.click();
+
+      // Cleanup
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      toast.success('Image downloaded successfully!');
+    } catch (error) {
+      console.error('Error downloading image:', error);
+      toast.error('Failed to download image. Please try again.');
+    }
+  };
+
+  const handleDelete = async (image: any) => {
+    try {
+      toast.info('Deleting image...', {
+        description: 'This may take a moment'
+      });
+
+      const filename = image.file_path.split('/').pop();
+
+      await fetch(`https://api.nymia.ai/v1/deletefile`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          user: userData.id,
+          filename: 'output/' + filename
+        })
+      });
+
+      await fetch(`https://db.nymia.ai/rest/v1/generated_images?id=eq.${image.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        }
+      });
+
+      // Remove from local state
+      setGeneratedImages(prev => prev.filter(img => img.file_path !== image.file_path));
+
+      toast.success(`Image "${filename}" deleted successfully`);
+    } catch (error) {
+      console.error('Error deleting image:', error);
+      toast.error('Failed to delete image. Please try again.');
+    }
+  };
+
+  const handleViewFullSize = (image: any) => {
+    const imageUrl = `https://images.nymia.ai/cdn-cgi/image/w=800/${image.file_path}`;
+    const imageName = image.system_filename || 'Generated Image';
+    setFullSizeImageModal({
+      isOpen: true,
+      imageUrl,
+      imageName
+    });
+  };
+
   const handleInputChange = (field: string, value: any) => {
     setFormData(prev => ({
       ...prev,
@@ -846,10 +947,10 @@ export default function ContentCreate() {
       console.log('📍 Location State:', location.state);
       console.log('📊 Regeneration Data:', regenerationData);
       console.log('🖼️ Original Image:', originalImage);
-      
+
       // Step 1: Populate form data from the JSON job
       console.log('📝 Step 1: Populating form data from JSON job');
-      
+
       if (regenerationData.task) {
         console.log('✅ Setting task type:', regenerationData.task);
         setFormData(prev => ({
@@ -966,11 +1067,11 @@ export default function ContentCreate() {
       console.log('👤 Step 3: Processing model/influencer data');
       if (regenerationData.model) {
         console.log('🎭 Model data from JSON job:', regenerationData.model);
-        
+
         // Check if we have a model ID to fetch from database
         if (regenerationData.model.id) {
           console.log('🔍 Fetching influencer data from database with ID:', regenerationData.model.id);
-          
+
           // Fetch the influencer data from the database
           const fetchInfluencerData = async () => {
             try {
@@ -990,10 +1091,10 @@ export default function ContentCreate() {
               if (influencerData && influencerData.length > 0) {
                 const influencer = influencerData[0];
                 console.log('✅ Found influencer in database:', influencer);
-                
+
                 // Set the model data with the complete influencer information
                 setModelData(influencer);
-                
+
                 // Populate model description with complete data
                 const modelDesc = {
                   appearance: `${influencer.name_first || ''} ${influencer.name_last || ''}, ${influencer.age_lifestyle || ''}`,
@@ -1017,7 +1118,7 @@ export default function ContentCreate() {
                   age: influencer.age || '',
                   lifestyle: influencer.lifestyle || ''
                 };
-                
+
                 console.log('📝 Setting model description:', modelDesc);
                 setModelDescription(modelDesc);
 
@@ -2782,7 +2883,7 @@ export default function ContentCreate() {
                 generatedImages.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
                     {generatedImages
-                      .filter(image => image.file_path) // Only show images with file_path
+                      .filter(image => image.file_path && image.system_filename === image.file_path.split('/').pop()) // Only show images with file_path
                       .map((image, index) => (
                         <div key={index} className="relative group">
                           <div className="aspect-square rounded-lg overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900">
@@ -2796,17 +2897,50 @@ export default function ContentCreate() {
                               }}
                             />
                           </div>
-                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300 rounded-lg flex items-center justify-center">
-                            <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+
+                          {/* Overlay with action buttons */}
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all duration-300 rounded-lg flex items-center justify-center">
+                            <div className="opacity-0 group-hover:opacity-100 transition-all duration-300 flex flex-col gap-2">
+                              {/* View Full Size Button */}
                               <Button
                                 size="sm"
                                 variant="secondary"
-                                className="bg-white/90 hover:bg-white text-gray-900"
-                                onClick={() => window.open(`https://images.nymia.ai/cdn-cgi/image/w=800/${image.file_path}`, '_blank')}
+                                className="bg-white/95 hover:bg-white text-gray-900 shadow-lg hover:shadow-xl transition-all duration-200 min-w-[120px]"
+                                onClick={() => handleViewFullSize(image)}
                               >
                                 <ZoomIn className="w-4 h-4 mr-1" />
                                 View Full Size
                               </Button>
+
+                              {/* Download Button */}
+                              <Button
+                                size="sm"
+                                variant="default"
+                                className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg hover:shadow-xl transition-all duration-200 min-w-[120px]"
+                                onClick={() => handleDownload(image)}
+                              >
+                                <Download className="w-4 h-4 mr-1" />
+                                Download
+                              </Button>
+
+                              {/* Delete Button */}
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white shadow-lg hover:shadow-xl transition-all duration-200 min-w-[120px]"
+                                onClick={() => handleDelete(image)}
+                              >
+                                <Trash2 className="w-4 h-4 mr-1" />
+                                Delete
+                              </Button>
+                            </div>
+                          </div>
+
+                          {/* Image info overlay at bottom */}
+                          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                            <div className="text-white text-xs">
+                              <p className="font-medium truncate">{image.system_filename || `Image ${index + 1}`}</p>
+                              <p className="text-white/80">{image.generation_time_seconds ? `${image.generation_time_seconds}s` : 'Generated'}</p>
                             </div>
                           </div>
                         </div>
@@ -2955,6 +3089,33 @@ export default function ContentCreate() {
                   </Card>
                 ))}
               </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Full Size Image Modal */}
+      {fullSizeImageModal.isOpen && (
+        <Dialog open={fullSizeImageModal.isOpen} onOpenChange={(open) => setFullSizeImageModal(prev => ({ ...prev, isOpen: open }))}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg">
+                  <ZoomIn className="w-5 h-5 text-white" />
+                </div>
+                {fullSizeImageModal.imageName}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="flex items-center justify-center">
+              <img 
+                src={fullSizeImageModal.imageUrl} 
+                alt={fullSizeImageModal.imageName}
+                className="w-full h-auto max-h-[70vh] object-contain rounded-lg shadow-lg"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.style.display = 'none';
+                }}
+              />
             </div>
           </DialogContent>
         </Dialog>

@@ -387,17 +387,84 @@ export default function InfluencerLoraTraining() {
 
   if (!selectedInfluencer) {
     return (
-      <div className="p-6">
-        <div className="text-center py-12">
-          <AlertCircle className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-          <h2 className="text-xl font-semibold mb-2">No Influencer Selected</h2>
-          <p className="text-muted-foreground mb-4">
-            Please select an influencer to manage LORA training
-          </p>
-          <Button onClick={() => navigate('/influencers/edit')}>
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Influencers
-          </Button>
+      <div className="p-6 space-y-6">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-5">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight bg-ai-gradient bg-clip-text text-transparent">
+              LORA Training
+            </h1>
+            <p className="text-muted-foreground">
+              Select an influencer to manage LORA training
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+          {influencers.map((influencer) => (
+            <Card key={influencer.id} className="group hover:shadow-lg transition-all duration-300 border-border/50 hover:border-ai-purple-500/20">
+              <CardContent className="p-6 h-full">
+                <div className="flex flex-col justify-between h-full space-y-4">
+                  <div className="w-full h-full bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg overflow-hidden">
+                    {
+                      influencer.image_url ? (
+                        <img
+                          src={influencer.image_url}
+                          alt={`${influencer.name_first} ${influencer.name_last}`}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="flex flex-col w-full h-full items-center justify-center max-h-48 min-h-40">
+                          <ImageIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                          <h3 className="text-lg font-semibold mb-2">No image found</h3>
+                        </div>
+                      )
+                    }
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-semibold text-lg group-hover:text-ai-purple-500 transition-colors">
+                          {influencer.name_first} {influencer.name_last}
+                        </h3>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col gap-1 mb-3">
+                      <div className="flex text-sm text-muted-foreground flex-col">
+                        {influencer.notes ? (
+                          <span className="text-sm text-muted-foreground">
+                            {influencer.notes.length > 50 
+                              ? `${influencer.notes.substring(0, 50)}...` 
+                              : influencer.notes
+                            }
+                          </span>
+                        ) : (
+                          <span className="text-sm text-muted-foreground">
+                            {influencer.lifestyle || 'No lifestyle'} • {influencer.origin_residence || 'No residence'}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => navigate('/influencers/lora-training', { 
+                          state: { influencerId: influencer.id } 
+                        })}
+                        className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+                      >
+                        <Brain className="w-4 h-4 mr-2" />
+                        LORA Training
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
         </div>
       </div>
     );

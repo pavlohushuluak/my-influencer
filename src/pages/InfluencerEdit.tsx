@@ -1573,17 +1573,6 @@ export default function InfluencerEdit() {
                         <Settings className="w-4 h-4 mr-2" />
                         Edit
                       </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => navigate('/influencers/lora-training', { 
-                          state: { influencerId: influencer.id } 
-                        })}
-                        className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
-                      >
-                        <Brain className="w-4 h-4 mr-2" />
-                        LORA Training
-                      </Button>
                     </div>
                   </div>
                 </div>

@@ -7,10 +7,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Edit, 
-  Image, 
-  Save, 
+import {
+  Edit,
+  Image,
+  Save,
   Download,
   ArrowLeft,
   Settings,
@@ -49,7 +49,8 @@ import {
   Palette as PaletteIcon,
   Moon,
   Heart,
-  HeartOff
+  HeartOff,
+  Upload
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -57,8 +58,6 @@ import { toast } from 'sonner';
 import '@pqina/pintura/pintura.css';
 import { PinturaEditor } from '@pqina/react-pintura';
 import { getEditorDefaults } from '@pqina/pintura';
-
-const editorDefaults = getEditorDefaults();
 
 interface ImageData {
   id: string;
@@ -97,6 +96,7 @@ interface Template {
   category: string;
   aspectRatio: string;
   preview: string;
+  decorations?: any[];
 }
 
 export default function ContentEdit() {
@@ -104,7 +104,33 @@ export default function ContentEdit() {
   const navigate = useNavigate();
   const userData = useSelector((state: RootState) => state.user);
   const editorRef = useRef(null);
-  
+
+  // Get editor defaults with upload configuration
+  const getEditorDefaultsWithUpload = useCallback(() => {
+    return getEditorDefaults({
+      imageWriter: {
+        store: {
+          // Where to post the files to
+          url: 'https://api.nymia.ai/v1/uploadfile',
+
+          // Headers for authentication
+          headers: {
+            'Authorization': 'Bearer WeInfl3nc3withAI'
+          },
+
+          // Which fields to post
+          dataset: (state: any) => [
+            ['file', state.dest, state.dest.name],
+            ['user', userData?.id || ''],
+            ['filename', `edited/${state.dest.name}`]
+          ],
+        },
+      },
+    });
+  }, [userData?.id]);
+
+  const editorDefaults = getEditorDefaultsWithUpload();
+
   // State management
   const [selectedImage, setSelectedImage] = useState<ImageData | null>(null);
   const [imageSrc, setImageSrc] = useState<string | null>(null);
@@ -117,7 +143,12 @@ export default function ContentEdit() {
   const [saveAsNew, setSaveAsNew] = useState(false);
   const [newFilename, setNewFilename] = useState('');
   const [editorVisible, setEditorVisible] = useState(false);
-  
+  const [hasImage, setHasImage] = useState(false);
+  const [showImageSelection, setShowImageSelection] = useState(true);
+  const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
+  const [currentDecorations, setCurrentDecorations] = useState<any[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   // History management
   const [history, setHistory] = useState<EditHistory[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
@@ -175,7 +206,32 @@ export default function ContentEdit() {
       description: 'Square format optimized for Instagram',
       category: 'Social Media',
       aspectRatio: '1:1',
-      preview: '/templates/instagram.jpg'
+      preview: '/templates/instagram.jpg',
+      decorations: [
+        {
+          x: 64,
+          y: 64,
+          fontSize: 48,
+          fontWeight: 'bold',
+          text: 'Instagram Post',
+          color: [255, 255, 255],
+          isSelected: true,
+          disableStyle: ['fontSize', 'fontWeight', 'lineHeight'],
+          disableRemove: true,
+          disableMove: true,
+          disableFlip: true,
+          disableRotate: true,
+          disableTextLayout: true,
+          disableReorder: true,
+        },
+        {
+          x: 0,
+          y: 280,
+          width: '100%',
+          height: 2,
+          backgroundColor: [255, 255, 255],
+        }
+      ]
     },
     {
       id: '2',
@@ -183,7 +239,42 @@ export default function ContentEdit() {
       description: '16:9 format with bold colors',
       category: 'Video',
       aspectRatio: '16:9',
-      preview: '/templates/youtube.jpg'
+      preview: '/templates/youtube.jpg',
+      decorations: [
+        {
+          x: 64,
+          y: 64,
+          fontSize: 64,
+          fontWeight: 'bold',
+          text: 'YouTube Title',
+          color: [255, 0, 0],
+          isSelected: true,
+          disableStyle: ['fontSize', 'fontWeight', 'lineHeight'],
+          disableRemove: true,
+          disableMove: true,
+          disableFlip: true,
+          disableRotate: true,
+          disableTextLayout: true,
+          disableReorder: true,
+        },
+        {
+          top: 344,
+          left: 64,
+          right: 64,
+          height: 200,
+          fontSize: 32,
+          fontStyle: 'italic',
+          text: 'Your video description goes here. Make it engaging and clickable!',
+          color: [255, 255, 255],
+          disableStyle: ['fontSize', 'fontWeight', 'lineHeight'],
+          disableRemove: true,
+          disableMove: true,
+          disableFlip: true,
+          disableRotate: true,
+          disableTextLayout: true,
+          disableReorder: true,
+        }
+      ]
     },
     {
       id: '3',
@@ -191,7 +282,32 @@ export default function ContentEdit() {
       description: 'Professional banner format',
       category: 'Professional',
       aspectRatio: '4:1',
-      preview: '/templates/linkedin.jpg'
+      preview: '/templates/linkedin.jpg',
+      decorations: [
+        {
+          x: 64,
+          y: 64,
+          fontSize: 56,
+          fontWeight: 'bold',
+          text: 'Professional Title',
+          color: [0, 0, 0],
+          isSelected: true,
+          disableStyle: ['fontSize', 'fontWeight', 'lineHeight'],
+          disableRemove: true,
+          disableMove: true,
+          disableFlip: true,
+          disableRotate: true,
+          disableTextLayout: true,
+          disableReorder: true,
+        },
+        {
+          x: 0,
+          y: 200,
+          width: '100%',
+          height: 3,
+          backgroundColor: [0, 0, 0],
+        }
+      ]
     },
     {
       id: '4',
@@ -199,7 +315,25 @@ export default function ContentEdit() {
       description: 'Wide format for Facebook',
       category: 'Social Media',
       aspectRatio: '2.7:1',
-      preview: '/templates/facebook.jpg'
+      preview: '/templates/facebook.jpg',
+      decorations: [
+        {
+          x: 64,
+          y: 64,
+          fontSize: 48,
+          fontWeight: 'bold',
+          text: 'Facebook Cover',
+          color: [255, 255, 255],
+          isSelected: true,
+          disableStyle: ['fontSize', 'fontWeight', 'lineHeight'],
+          disableRemove: true,
+          disableMove: true,
+          disableFlip: true,
+          disableRotate: true,
+          disableTextLayout: true,
+          disableReorder: true,
+        }
+      ]
     },
     {
       id: '5',
@@ -207,7 +341,25 @@ export default function ContentEdit() {
       description: 'Square format for Twitter',
       category: 'Social Media',
       aspectRatio: '1:1',
-      preview: '/templates/twitter.jpg'
+      preview: '/templates/twitter.jpg',
+      decorations: [
+        {
+          x: 64,
+          y: 64,
+          fontSize: 40,
+          fontWeight: 'bold',
+          text: 'Tweet Title',
+          color: [29, 161, 242],
+          isSelected: true,
+          disableStyle: ['fontSize', 'fontWeight', 'lineHeight'],
+          disableRemove: true,
+          disableMove: true,
+          disableFlip: true,
+          disableRotate: true,
+          disableTextLayout: true,
+          disableReorder: true,
+        }
+      ]
     },
     {
       id: '6',
@@ -215,7 +367,42 @@ export default function ContentEdit() {
       description: 'Tall format for Pinterest',
       category: 'Social Media',
       aspectRatio: '2:3',
-      preview: '/templates/pinterest.jpg'
+      preview: '/templates/pinterest.jpg',
+      decorations: [
+        {
+          x: 64,
+          y: 64,
+          fontSize: 44,
+          fontWeight: 'bold',
+          text: 'Pinterest Pin',
+          color: [189, 8, 28],
+          isSelected: true,
+          disableStyle: ['fontSize', 'fontWeight', 'lineHeight'],
+          disableRemove: true,
+          disableMove: true,
+          disableFlip: true,
+          disableRotate: true,
+          disableTextLayout: true,
+          disableReorder: true,
+        },
+        {
+          top: 400,
+          left: 64,
+          right: 64,
+          height: 300,
+          fontSize: 28,
+          fontStyle: 'italic',
+          text: 'Your Pinterest description with engaging content and hashtags.',
+          color: [255, 255, 255],
+          disableStyle: ['fontSize', 'fontWeight', 'lineHeight'],
+          disableRemove: true,
+          disableMove: true,
+          disableFlip: true,
+          disableRotate: true,
+          disableTextLayout: true,
+          disableReorder: true,
+        }
+      ]
     }
   ]);
 
@@ -228,6 +415,7 @@ export default function ContentEdit() {
       const imageUrl = `https://images.nymia.ai/cdn-cgi/image/w=1200/${imageData.file_path}`;
       console.log('ContentEdit: Loading image from path:', imageUrl);
       setImageSrc(imageUrl);
+      setHasImage(true);
       addToHistory('Original image loaded', imageUrl);
     } else {
       console.log('ContentEdit: No image data received');
@@ -263,8 +451,8 @@ export default function ContentEdit() {
 
     // To make this work on Firefox we need to wait a short moment before clean up
     setTimeout(() => {
-        URL.revokeObjectURL(link.href);
-        link.parentNode?.removeChild(link);
+      URL.revokeObjectURL(link.href);
+      link.parentNode?.removeChild(link);
     }, 0);
   }, []);
 
@@ -272,17 +460,17 @@ export default function ContentEdit() {
     try {
       // Download the edited image
       downloadFile(imageState.dest);
-      
+
       // Also save to state for preview
       const editedURL = URL.createObjectURL(imageState.dest);
       setEditedImageUrl(editedURL);
       addToHistory('Image edited with Pintura', editedURL);
-      toast.success('Image edited and downloaded successfully');
+      toast.success('Image edited, uploaded, and downloaded successfully');
     } catch (error) {
       console.error('Error processing image:', error);
       toast.error('Failed to process image');
     }
-  }, [downloadFile, addToHistory]);
+  }, [downloadFile, addToHistory, userData?.id]);
 
   const applyPreset = useCallback((preset: Preset) => {
     // In a real implementation, you would apply preset settings to Pintura
@@ -291,9 +479,16 @@ export default function ContentEdit() {
   }, []);
 
   const applyTemplate = useCallback((template: Template) => {
-    // In a real implementation, you would apply template settings to Pintura
+    setSelectedTemplate(template);
+    setCurrentDecorations(template.decorations || []);
     toast.success(`Applied ${template.name} template`);
     setShowTemplates(false);
+  }, []);
+
+  const clearTemplate = useCallback(() => {
+    setSelectedTemplate(null);
+    setCurrentDecorations([]);
+    toast.success('Template cleared');
   }, []);
 
   const saveImage = useCallback(async (asNew: boolean = false) => {
@@ -301,10 +496,10 @@ export default function ContentEdit() {
 
     try {
       setIsEditing(true);
-      
+
       const response = await fetch(editedImageUrl);
       const blob = await response.blob();
-      
+
       const filename = asNew ? newFilename : selectedImage.system_filename;
       const formData = new FormData();
       formData.append('file', blob, filename);
@@ -336,7 +531,7 @@ export default function ContentEdit() {
 
   const downloadImage = useCallback(() => {
     if (!editedImageUrl) return;
-    
+
     // Create a hidden link and set the URL
     const link = document.createElement('a');
     link.style.display = 'none';
@@ -349,7 +544,7 @@ export default function ContentEdit() {
 
     // To make this work on Firefox we need to wait a short moment before clean up
     setTimeout(() => {
-        link.parentNode?.removeChild(link);
+      link.parentNode?.removeChild(link);
     }, 0);
   }, [selectedImage, editedImageUrl]);
 
@@ -369,19 +564,213 @@ export default function ContentEdit() {
     }
   }, [history, historyIndex]);
 
-  if (!selectedImage) {
+  const handleFileUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const result = e.target?.result as string;
+        
+        // Create a selectedImage object for uploaded files
+        const uploadedImage: ImageData = {
+          id: `uploaded-${Date.now()}`,
+          system_filename: file.name,
+          user_filename: file.name,
+          file_path: '',
+          created_at: new Date().toISOString(),
+          file_size_bytes: file.size,
+          image_format: file.type.split('/')[1] || 'jpeg',
+          file_type: file.type
+        };
+        
+        setSelectedImage(uploadedImage);
+        setImageSrc(result);
+        setHasImage(true);
+        setShowImageSelection(false);
+        addToHistory('Image uploaded', result);
+        toast.success('Image uploaded successfully');
+      };
+      reader.readAsDataURL(file);
+    }
+  }, [addToHistory]);
+
+  const triggerFileUpload = useCallback(() => {
+    fileInputRef.current?.click();
+  }, []);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+      const file = files[0];
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const result = e.target?.result as string;
+          
+          // Create a selectedImage object for uploaded files
+          const uploadedImage: ImageData = {
+            id: `uploaded-${Date.now()}`,
+            system_filename: file.name,
+            user_filename: file.name,
+            file_path: '',
+            created_at: new Date().toISOString(),
+            file_size_bytes: file.size,
+            image_format: file.type.split('/')[1] || 'jpeg',
+            file_type: file.type
+          };
+          
+          setSelectedImage(uploadedImage);
+          setImageSrc(result);
+          setHasImage(true);
+          setShowImageSelection(false);
+          addToHistory('Image uploaded via drag & drop', result);
+          toast.success('Image uploaded successfully');
+        };
+        reader.readAsDataURL(file);
+      } else {
+        toast.error('Please upload an image file');
+      }
+    }
+  }, [addToHistory]);
+
+  const handleSelectFromVault = useCallback(() => {
+    setShowImageSelection(false);
+    navigate('/content/vault');
+  }, [navigate]);
+
+  const handleUploadNew = useCallback(() => {
+    setShowImageSelection(false);
+    // Show the upload area instead of immediately triggering file input
+  }, []);
+
+  const handleBackToSelection = useCallback(() => {
+    setShowImageSelection(true);
+    setSelectedImage(null); // Clear selected image
+    setImageSrc(null);
+    setEditedImageUrl(null);
+    setHasImage(false);
+    setHistory([]);
+    setHistoryIndex(-1);
+    navigate('/content/edit'); // Navigate back to the selection screen
+  }, [navigate]);
+
+  if (!selectedImage && showImageSelection) {
     return (
       <div className="p-6 space-y-6">
-        <div className="text-center py-12">
-          <Image className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-          <h2 className="text-xl font-semibold mb-2">No Image Selected</h2>
-          <p className="text-muted-foreground mb-4">
-            Please select an image from the Vault to edit
-          </p>
-          <Button onClick={() => navigate('/content/vault')}>
-            Go to Vault
-          </Button>
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight bg-ai-gradient bg-clip-text text-transparent">
+              Edit Content
+            </h1>
+            <p className="text-muted-foreground">
+              Choose how you want to get started
+            </p>
+          </div>
         </div>
+
+        {/* Image Selection */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+          {/* Select from Vault */}
+          <Card className="cursor-pointer hover:shadow-lg transition-all duration-300" onClick={handleSelectFromVault}>
+            <CardContent className="p-8 text-center">
+              <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <FileImage className="w-10 h-10 text-blue-600" />
+              </div>
+              <h3 className="text-xl font-semibold mb-2">Select from Vault</h3>
+              <p className="text-muted-foreground mb-4">
+                Choose an existing image from your content vault
+              </p>
+              <Button className="w-full">
+                Browse Vault
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Upload New Image */}
+          <Card className="cursor-pointer hover:shadow-lg transition-all duration-300" onClick={handleUploadNew}>
+            <CardContent className="p-8 text-center">
+              <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Upload className="w-10 h-10 text-green-600" />
+              </div>
+              <h3 className="text-xl font-semibold mb-2">Upload New Image</h3>
+              <p className="text-muted-foreground mb-4">
+                Upload a new image from your device
+              </p>
+              <Button className="w-full">
+                Upload Image
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  if (!selectedImage && !showImageSelection) {
+    return (
+      <div className="p-6 space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleBackToSelection}
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to Selection
+            </Button>
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight bg-ai-gradient bg-clip-text text-transparent">
+                Edit Content
+              </h1>
+              <p className="text-muted-foreground">
+                Upload an image to get started
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Upload Area */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Upload Image</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {/* Hidden file input */}
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileUpload}
+              accept="image/*"
+              className="hidden"
+            />
+            
+            <div 
+              className="border-2 border-dashed border-gray-300 rounded-lg h-[600px] bg-muted flex flex-col items-center justify-center hover:border-gray-400 transition-colors cursor-pointer"
+              onClick={triggerFileUpload}
+              onDragOver={handleDragOver}
+              onDrop={handleDrop}
+            >
+              <Image className="w-16 h-16 text-gray-400 mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Upload an image to edit</h3>
+              <p className="text-gray-500 mb-4">Drag and drop an image here, or click to browse</p>
+              <Button onClick={triggerFileUpload}>
+                <Upload className="w-4 h-4 mr-2" />
+                Choose Image
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -394,17 +783,17 @@ export default function ContentEdit() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => navigate('/content/vault')}
+            onClick={handleBackToSelection}
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Vault
+            Back to Selection
           </Button>
           <div>
             <h1 className="text-3xl font-bold tracking-tight bg-ai-gradient bg-clip-text text-transparent">
               Edit Content
             </h1>
             <p className="text-muted-foreground">
-              Editing: {selectedImage.system_filename}
+              {selectedImage ? `Editing: ${selectedImage.system_filename}` : 'Upload an image to edit'}
             </p>
           </div>
         </div>
@@ -487,24 +876,42 @@ export default function ContentEdit() {
               </div>
             </CardHeader>
             <CardContent>
-              {/* {imageSrc && (
+              {/* Hidden file input */}
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileUpload}
+                accept="image/*"
+                className="hidden"
+              />
+              
+              {!hasImage ? (
+                <div 
+                  className="border-2 border-dashed border-gray-300 rounded-lg h-[600px] bg-muted flex flex-col items-center justify-center hover:border-gray-400 transition-colors cursor-pointer"
+                  onClick={triggerFileUpload}
+                  onDragOver={handleDragOver}
+                  onDrop={handleDrop}
+                >
+                  <Image className="w-16 h-16 text-gray-400 mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">Upload an image to edit</h3>
+                  <p className="text-gray-500 mb-4">Drag and drop an image here, or click to browse</p>
+                  <Button onClick={triggerFileUpload}>
+                    <Upload className="w-4 h-4 mr-2" />
+                    Choose Image
+                  </Button>
+                </div>
+              ) : (
                 <div className="border rounded-lg h-[600px] bg-muted">
                   <PinturaEditor
                     ref={editorRef}
                     {...editorDefaults}
                     src={imageSrc}
                     onProcess={handleEditorProcess}
+                    util={selectedTemplate ? 'decorate' : undefined}
+                    imageDecoration={currentDecorations}
                   />
                 </div>
-              )} */}
-                <div className="border rounded-lg h-[600px] bg-muted">
-                  <PinturaEditor
-                    ref={editorRef}
-                    {...editorDefaults}
-                    src={'/test.jpg'}
-                    onProcess={handleEditorProcess}
-                  />
-                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -523,7 +930,7 @@ export default function ContentEdit() {
                   <Edit className="w-6 h-6 mb-2" />
                   Edit Image
                 </Button>
-                
+
                 <Button
                   variant="outline"
                   onClick={() => setShowPresets(true)}
@@ -532,7 +939,7 @@ export default function ContentEdit() {
                   <Sparkles className="w-6 h-6 mb-2" />
                   Apply Preset
                 </Button>
-                
+
                 <Button
                   variant="outline"
                   onClick={() => setShowTemplates(true)}
@@ -541,7 +948,7 @@ export default function ContentEdit() {
                   <FileImage className="w-6 h-6 mb-2" />
                   Apply Template
                 </Button>
-                
+
                 <Button
                   variant="outline"
                   onClick={downloadImage}
@@ -600,22 +1007,22 @@ export default function ContentEdit() {
             <CardContent className="space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Filename:</span>
-                <span className="text-sm font-medium">{selectedImage.system_filename}</span>
+                <span className="text-sm font-medium">{selectedImage?.system_filename || 'N/A'}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Size:</span>
                 <span className="text-sm font-medium">
-                  {(selectedImage.file_size_bytes / 1024 / 1024).toFixed(2)} MB
+                  {selectedImage ? ((selectedImage.file_size_bytes / 1024 / 1024).toFixed(2)) : 'N/A'} MB
                 </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Format:</span>
-                <span className="text-sm font-medium">{selectedImage.image_format.toUpperCase()}</span>
+                <span className="text-sm font-medium">{selectedImage?.image_format?.toUpperCase() || 'N/A'}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Created:</span>
                 <span className="text-sm font-medium">
-                  {new Date(selectedImage.created_at).toLocaleDateString()}
+                  {selectedImage?.created_at ? new Date(selectedImage.created_at).toLocaleDateString() : 'N/A'}
                 </span>
               </div>
             </CardContent>
@@ -643,6 +1050,38 @@ export default function ContentEdit() {
               )}
             </CardContent>
           </Card>
+
+          {/* Template Control */}
+          {selectedTemplate && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Active Template</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Template:</span>
+                  <span className="text-sm font-medium">{selectedTemplate.name}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Category:</span>
+                  <Badge variant="outline" className="text-xs">{selectedTemplate.category}</Badge>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Aspect Ratio:</span>
+                  <Badge variant="secondary" className="text-xs">{selectedTemplate.aspectRatio}</Badge>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={clearTemplate}
+                  className="w-full mt-2"
+                >
+                  <X className="w-4 h-4 mr-2" />
+                  Clear Template
+                </Button>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
 
@@ -684,7 +1123,7 @@ export default function ContentEdit() {
           <DialogHeader>
             <DialogTitle>Format Templates</DialogTitle>
             <DialogDescription>
-              Apply format templates for different platforms
+              Apply format templates with predefined decorations for different platforms
             </DialogDescription>
           </DialogHeader>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -705,6 +1144,11 @@ export default function ContentEdit() {
                       <Badge variant="outline" className="text-xs">{template.category}</Badge>
                       <Badge variant="secondary" className="text-xs">{template.aspectRatio}</Badge>
                     </div>
+                    {template.decorations && template.decorations.length > 0 && (
+                      <div className="text-xs text-muted-foreground mt-2">
+                        Includes {template.decorations.length} decoration{template.decorations.length > 1 ? 's' : ''}
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -726,11 +1170,10 @@ export default function ContentEdit() {
             {history.map((item, index) => (
               <div
                 key={item.id}
-                className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-colors ${
-                  index === historyIndex
+                className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-colors ${index === historyIndex
                     ? 'border-purple-500 bg-purple-50 dark:bg-purple-950/20'
                     : 'border-border hover:border-purple-300'
-                }`}
+                  }`}
                 onClick={() => {
                   setHistoryIndex(index);
                   setImageSrc(item.imageData);
@@ -780,7 +1223,7 @@ export default function ContentEdit() {
               />
               <label htmlFor="save-as-new">Save as new file</label>
             </div>
-            
+
             {saveAsNew && (
               <div>
                 <label htmlFor="new-filename" className="text-sm font-medium">New filename</label>
@@ -794,7 +1237,7 @@ export default function ContentEdit() {
                 />
               </div>
             )}
-            
+
             <div className="flex gap-2">
               <Button
                 onClick={() => saveImage(saveAsNew)}

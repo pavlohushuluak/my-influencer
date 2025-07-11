@@ -176,21 +176,31 @@ export default function ContentEdit() {
     }, 0);
   }, []);
 
+  // --- 1. Remove automatic download from handleEditorProcess ---
   const handleEditorProcess = useCallback((imageState: any) => {
     try {
-      // Download the edited image
-      downloadFile(imageState.dest);
-
-      // Also save to state for preview
+      // Only save to state for preview, do not download automatically
       const editedURL = URL.createObjectURL(imageState.dest);
       setEditedImageUrl(editedURL);
       addToHistory('Image edited with Pintura', editedURL);
-      toast.success('Image edited, uploaded, and downloaded successfully');
+      toast.success('Image edited and ready!');
     } catch (error) {
       console.error('Error processing image:', error);
       toast.error('Failed to process image');
     }
-  }, [downloadFile, addToHistory, userData?.id]);
+  }, [addToHistory, userData?.id]);
+
+  // --- 2. Add Download button next to Upload to Vault ---
+  // Download handler for the button
+  const handleDownloadEdited = useCallback(async () => {
+    if (!editedImageUrl || !selectedImage) return;
+    // Fetch the blob and trigger download
+    const response = await fetch(editedImageUrl);
+    const blob = await response.blob();
+    const file = new File([blob], selectedImage.system_filename, { type: 'image/jpeg' });
+    // Use the existing downloadFile helper
+    downloadFile(file);
+  }, [editedImageUrl, selectedImage, downloadFile]);
 
   const uploadToVault = useCallback(async () => {
     if (!selectedImage || !editedImageUrl) {
@@ -888,9 +898,18 @@ export default function ContentEdit() {
                 <span className="hidden sm:inline">Upload to Vault</span>
               </>
             )}
-                      </Button>
-                    </div>
-                  </div>
+          </Button>
+          <Button
+            onClick={handleDownloadEdited}
+            disabled={!selectedImage || !editedImageUrl}
+            variant="outline"
+            className="flex items-center gap-2"
+          >
+            <Download className="w-4 h-4 mr-2" />
+            <span className="hidden sm:inline">Download</span>
+          </Button>
+        </div>
+      </div> {/* End of header div */}
 
       {/* Main Editor */}
       <div className="w-full">
@@ -951,7 +970,7 @@ export default function ContentEdit() {
               <p className="text-sm text-yellow-800 dark:text-yellow-200">
                 <strong>Warning:</strong> Overwriting will permanently replace the existing file.
               </p>
-                  </div>
+            </div>
             <div className="flex flex-col sm:flex-row gap-2">
               <Button
                 onClick={handleOverwriteConfirm}
@@ -969,7 +988,7 @@ export default function ContentEdit() {
                 <FileImage className="w-4 h-4 mr-2" />
                 Create New File
               </Button>
-        </div>
+            </div>
             <Button
               onClick={() => {
                 setShowOverwriteDialog(false);
@@ -982,7 +1001,7 @@ export default function ContentEdit() {
             >
               Cancel
             </Button>
-      </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

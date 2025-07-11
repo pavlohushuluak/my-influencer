@@ -22,7 +22,10 @@ export default function Dashboard() {
   const influencers = useSelector((state: RootState) => state.influencers.influencers);
   const loading = useSelector((state: RootState) => state.influencers.loading);
   const error = useSelector((state: RootState) => state.influencers.error);
-  const [showAllInfluencers, setShowAllInfluencers] = useState(false);
+  const [showAllPhaseOne, setShowAllPhaseOne] = useState(false);
+  const [showAllPhaseTwo, setShowAllPhaseTwo] = useState(false);
+  const [showAllPhaseThree, setShowAllPhaseThree] = useState(false);
+  const [showAllPhaseFour, setShowAllPhaseFour] = useState(false);
   const [showPlatformModal, setShowPlatformModal] = useState(false);
   const [selectedInfluencer, setSelectedInfluencer] = useState<string>('');
   const [selectedInfluencerData, setSelectedInfluencerData] = useState<Influencer | null>(null);
@@ -31,7 +34,10 @@ export default function Dashboard() {
   const [isCopyingImage, setIsCopyingImage] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
-  const displayedInfluencers = showAllInfluencers ? influencers : influencers.slice(0, 3);
+  const displayedInfluencerOne = showAllPhaseOne ? influencers : influencers.slice(0, 3);
+  const displayedInfluencerTwo = showAllPhaseTwo ? influencers : influencers.slice(0, 3);
+  const displayedInfluencerThree = showAllPhaseThree ? influencers : influencers.slice(0, 3);
+  const displayedInfluencerFour = showAllPhaseFour ? influencers : influencers.slice(0, 3);
 
   const userData = useSelector((state: RootState) => state.user);
 
@@ -396,9 +402,9 @@ export default function Dashboard() {
         <CardHeader className="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-950/30 dark:to-blue-950/30 border-b border-purple-200/50 dark:border-purple-800/50 p-3 px-10 mb-6">
           <div className="flex items-center justify-between">
             <CardTitle className="text-xl font-semibold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">Phase 1 - Create your Influencer</CardTitle>
-            <Button variant="ghost" size="sm" className="text-purple-600 hover:text-purple-700 hover:bg-purple-100 dark:hover:bg-purple-900/30" onClick={() => setShowAllInfluencers(!showAllInfluencers)}>
+            <Button variant="ghost" size="sm" className="text-purple-600 hover:text-purple-700 hover:bg-purple-100 dark:hover:bg-purple-900/30" onClick={() => setShowAllPhaseOne(!showAllPhaseOne)}>
               <MoreHorizontal className="w-4 h-4 mr-2" />
-              {showAllInfluencers ? 'Show Less' : 'Show More'}
+              {showAllPhaseOne ? 'Show Less' : 'Show More'}
             </Button>
           </div>
         </CardHeader>
@@ -410,7 +416,7 @@ export default function Dashboard() {
             {/* Left side - Influencer cards (3 width) */}
             <div className="col-span-3">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {displayedInfluencers.map((influencer) => (
+                {displayedInfluencerOne.map((influencer) => (
                   <Card key={influencer.id} className="group hover:shadow-lg transition-all duration-300 border-border/50 hover:border-ai-purple-500/20">
                     <CardContent className="p-6 h-full">
                       <div className="flex flex-col justify-between h-full space-y-4">
@@ -505,9 +511,9 @@ export default function Dashboard() {
         <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 border-b border-green-200/50 dark:border-green-800/50 p-3 px-10 mb-6">
           <div className="flex items-center justify-between">
             <CardTitle className="text-xl font-semibold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">Phase 2 - Train Character Consistency</CardTitle>
-            <Button variant="ghost" size="sm" className="text-green-600 hover:text-green-700 hover:bg-green-100 dark:hover:bg-green-900/30" onClick={() => setShowAllInfluencers(!showAllInfluencers)}>
+            <Button variant="ghost" size="sm" className="text-green-600 hover:text-green-700 hover:bg-green-100 dark:hover:bg-green-900/30" onClick={() => setShowAllPhaseTwo(!showAllPhaseTwo)}>
               <MoreHorizontal className="w-4 h-4 mr-2" />
-              {showAllInfluencers ? 'Show Less' : 'Show More'}
+              {showAllPhaseTwo ? 'Show Less' : 'Show More'}
             </Button>
           </div>
         </CardHeader>
@@ -519,7 +525,7 @@ export default function Dashboard() {
             {/* Left side - Influencer cards (3 width) */}
             <div className="col-span-3">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {displayedInfluencers.map((influencer) => (
+                {displayedInfluencerTwo.map((influencer) => (
                   <Card key={influencer.id} className="group hover:shadow-lg transition-all duration-300 border-border/50 hover:border-ai-purple-500/20">
                     <CardContent className="p-6 h-full">
                       <div className="flex flex-col justify-between h-full space-y-4">
@@ -605,9 +611,9 @@ export default function Dashboard() {
         <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border-b border-blue-200/50 dark:border-blue-800/50 p-3 px-10 mb-6">
           <div className="flex items-center justify-between">
             <CardTitle className="text-xl font-semibold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">Phase 3 - Create Social Media Content</CardTitle>
-            <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-700 hover:bg-blue-100 dark:hover:bg-blue-900/30">
+            <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-700 hover:bg-blue-100 dark:hover:bg-blue-900/30" onClick={() => setShowAllPhaseThree(!showAllPhaseThree)}>
               <MoreHorizontal className="w-4 h-4 mr-2" />
-              View All
+              {showAllPhaseThree ? 'Show Less' : 'Show More'}
             </Button>
           </div>
         </CardHeader>
@@ -619,7 +625,7 @@ export default function Dashboard() {
             {/* Left side - Influencer cards (3 width) */}
             <div className="col-span-3">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {displayedInfluencers.map((influencer) => (
+                {displayedInfluencerThree.map((influencer) => (
                   <Card key={influencer.id} className="group hover:shadow-lg transition-all duration-300 border-border/50 hover:border-ai-purple-500/20">
                     <CardContent className="p-6 h-full">
                       <div className="flex flex-col justify-between h-full space-y-4">
@@ -705,9 +711,9 @@ export default function Dashboard() {
         <CardHeader className="bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-950/30 dark:to-amber-950/30 border-b border-orange-200/50 dark:border-orange-800/50 p-3 px-10 mb-6">
           <div className="flex items-center justify-between">
             <CardTitle className="text-xl font-semibold bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent">Phase 4 - Monetize</CardTitle>
-            <Button variant="ghost" size="sm" className="text-orange-600 hover:text-orange-700 hover:bg-orange-100 dark:hover:bg-orange-900/30" onClick={() => setShowAllInfluencers(!showAllInfluencers)}>
+            <Button variant="ghost" size="sm" className="text-orange-600 hover:text-orange-700 hover:bg-orange-100 dark:hover:bg-orange-900/30" onClick={() => setShowAllPhaseFour(!showAllPhaseFour)}>
               <MoreHorizontal className="w-4 h-4 mr-2" />
-              {showAllInfluencers ? 'Show Less' : 'Show More'}
+              {showAllPhaseFour ? 'Show Less' : 'Show More'}
             </Button>
           </div>
         </CardHeader>
@@ -719,7 +725,7 @@ export default function Dashboard() {
             {/* Left side - Influencer cards (3 width) */}
             <div className="col-span-3">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {displayedInfluencers.map((influencer) => (
+                {displayedInfluencerFour.map((influencer) => (
                   <Card key={influencer.id} className="group hover:shadow-lg transition-all duration-300 border-border/50 hover:border-ai-purple-500/20">
                     <CardContent className="p-6 h-full">
                       <div className="flex flex-col justify-between h-full space-y-4">

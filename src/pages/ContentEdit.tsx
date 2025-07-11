@@ -1,56 +1,42 @@
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/store/store';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
-import { Slider } from '@/components/ui/slider';
-import { Switch } from '@/components/ui/switch';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
+import { Badge } from '@/components/ui/badge';
 import { 
   Edit, 
   Image, 
   Save, 
-  Undo, 
-  Redo, 
-  Crop, 
-  Filter, 
-  Type, 
-  Palette,
+  Download,
+  ArrowLeft,
+  Settings,
+  Sparkles,
+  FileImage,
+  History,
   RotateCw,
   RotateCcw,
   FlipHorizontal,
   FlipVertical,
-  ZoomIn,
-  ZoomOut,
-  Download,
-  Upload,
-  Settings,
-  Layers,
+  Crop,
+  Palette,
+  Sun,
+  Target,
+  Droplets,
+  Zap,
   Eye,
-  EyeOff,
-  Plus,
-  Trash2,
-  Copy,
+  Layers,
+  Sliders,
   Check,
   X,
   ChevronLeft,
   ChevronRight,
   Star,
   StarOff,
-  History,
-  FileImage,
   FileVideo,
-  Sparkles,
   Wand2,
   Camera,
   Brush,
@@ -61,16 +47,18 @@ import {
   Type as TypeIcon,
   Image as ImageIcon,
   Palette as PaletteIcon,
-  Sliders,
-  Target,
-  Droplets,
-  Sun,
   Moon,
-  Zap,
   Heart,
   HeartOff
 } from 'lucide-react';
 import { toast } from 'sonner';
+
+// Pintura imports
+import '@pqina/pintura/pintura.css';
+import { PinturaEditor } from '@pqina/react-pintura';
+import { getEditorDefaults } from '@pqina/pintura';
+
+const editorDefaults = getEditorDefaults();
 
 interface ImageData {
   id: string;
@@ -98,27 +86,8 @@ interface Preset {
   id: string;
   name: string;
   description: string;
-  settings: EditSettings;
-  isDefault?: boolean;
-}
-
-interface EditSettings {
-  brightness: number;
-  contrast: number;
-  saturation: number;
-  hue: number;
-  blur: number;
-  sharpen: number;
-  noise: number;
-  vignette: number;
-  temperature: number;
-  tint: number;
-  highlights: number;
-  shadows: number;
-  whites: number;
-  blacks: number;
-  exposure: number;
-  gamma: number;
+  category: string;
+  preview: string;
 }
 
 interface Template {
@@ -126,7 +95,7 @@ interface Template {
   name: string;
   description: string;
   category: string;
-  settings: EditSettings;
+  aspectRatio: string;
   preview: string;
 }
 
@@ -134,12 +103,12 @@ export default function ContentEdit() {
   const location = useLocation();
   const navigate = useNavigate();
   const userData = useSelector((state: RootState) => state.user);
+  const editorRef = useRef(null);
   
   // State management
   const [selectedImage, setSelectedImage] = useState<ImageData | null>(null);
-  const [originalImage, setOriginalImage] = useState<string | null>(null);
-  const [currentImage, setCurrentImage] = useState<string | null>(null);
-  const [editMode, setEditMode] = useState('adjust');
+  const [imageSrc, setImageSrc] = useState<string | null>(null);
+  const [editedImageUrl, setEditedImageUrl] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [showPresets, setShowPresets] = useState(false);
   const [showTemplates, setShowTemplates] = useState(false);
@@ -147,81 +116,65 @@ export default function ContentEdit() {
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [saveAsNew, setSaveAsNew] = useState(false);
   const [newFilename, setNewFilename] = useState('');
+  const [editorVisible, setEditorVisible] = useState(false);
   
-  // Edit settings
-  const [settings, setSettings] = useState<EditSettings>({
-    brightness: 0,
-    contrast: 0,
-    saturation: 0,
-    hue: 0,
-    blur: 0,
-    sharpen: 0,
-    noise: 0,
-    vignette: 0,
-    temperature: 0,
-    tint: 0,
-    highlights: 0,
-    shadows: 0,
-    whites: 0,
-    blacks: 0,
-    exposure: 0,
-    gamma: 1
-  });
-
   // History management
   const [history, setHistory] = useState<EditHistory[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
-  const [canUndo, setCanUndo] = useState(false);
-  const [canRedo, setCanRedo] = useState(false);
-
-  // Canvas and editing refs
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const imageRef = useRef<HTMLImageElement>(null);
-  const [canvasSize, setCanvasSize] = useState({ width: 800, height: 600 });
-  const [zoom, setZoom] = useState(1);
-  const [pan, setPan] = useState({ x: 0, y: 0 });
 
   // Presets and templates
-  const [presets, setPresets] = useState<Preset[]>([
+  const [presets] = useState<Preset[]>([
     {
       id: '1',
       name: 'Vintage',
       description: 'Warm vintage look with faded colors',
-      settings: { ...settings, temperature: 15, saturation: -20, contrast: 10, vignette: 30 }
+      category: 'Artistic',
+      preview: '/presets/vintage.jpg'
     },
     {
       id: '2',
       name: 'Black & White',
       description: 'Classic monochrome conversion',
-      settings: { ...settings, saturation: -100, contrast: 20, highlights: 10, shadows: -10 }
+      category: 'Classic',
+      preview: '/presets/bw.jpg'
     },
     {
       id: '3',
       name: 'HDR',
       description: 'High dynamic range look',
-      settings: { ...settings, highlights: -20, shadows: 20, contrast: 15, saturation: 10 }
+      category: 'Enhanced',
+      preview: '/presets/hdr.jpg'
     },
     {
       id: '4',
       name: 'Portrait',
       description: 'Optimized for portrait photography',
-      settings: { ...settings, temperature: 5, saturation: 5, highlights: -10, shadows: 5, blur: 2 }
+      category: 'Portrait',
+      preview: '/presets/portrait.jpg'
     },
     {
       id: '5',
       name: 'Landscape',
       description: 'Enhanced landscape colors',
-      settings: { ...settings, saturation: 15, temperature: 10, contrast: 10, highlights: 5 }
+      category: 'Nature',
+      preview: '/presets/landscape.jpg'
+    },
+    {
+      id: '6',
+      name: 'Dramatic',
+      description: 'High contrast dramatic look',
+      category: 'Artistic',
+      preview: '/presets/dramatic.jpg'
     }
   ]);
 
-  const [templates, setTemplates] = useState<Template[]>([
+  const [templates] = useState<Template[]>([
     {
       id: '1',
       name: 'Instagram Post',
       description: 'Square format optimized for Instagram',
       category: 'Social Media',
-      settings: { ...settings },
+      aspectRatio: '1:1',
       preview: '/templates/instagram.jpg'
     },
     {
@@ -229,7 +182,7 @@ export default function ContentEdit() {
       name: 'YouTube Thumbnail',
       description: '16:9 format with bold colors',
       category: 'Video',
-      settings: { ...settings, saturation: 20, contrast: 15 },
+      aspectRatio: '16:9',
       preview: '/templates/youtube.jpg'
     },
     {
@@ -237,8 +190,32 @@ export default function ContentEdit() {
       name: 'LinkedIn Banner',
       description: 'Professional banner format',
       category: 'Professional',
-      settings: { ...settings, temperature: 5, saturation: -5 },
+      aspectRatio: '4:1',
       preview: '/templates/linkedin.jpg'
+    },
+    {
+      id: '4',
+      name: 'Facebook Cover',
+      description: 'Wide format for Facebook',
+      category: 'Social Media',
+      aspectRatio: '2.7:1',
+      preview: '/templates/facebook.jpg'
+    },
+    {
+      id: '5',
+      name: 'Twitter Post',
+      description: 'Square format for Twitter',
+      category: 'Social Media',
+      aspectRatio: '1:1',
+      preview: '/templates/twitter.jpg'
+    },
+    {
+      id: '6',
+      name: 'Pinterest Pin',
+      description: 'Tall format for Pinterest',
+      category: 'Social Media',
+      aspectRatio: '2:3',
+      preview: '/templates/pinterest.jpg'
     }
   ]);
 
@@ -248,81 +225,14 @@ export default function ContentEdit() {
     console.log('ContentEdit: Received image data:', imageData);
     if (imageData) {
       setSelectedImage(imageData);
-      console.log('ContentEdit: Loading image from path:', imageData.file_path);
-      loadImage(`https://images.nymia.ai/cdn-cgi/image/w=800/${imageData.file_path}`);
+      const imageUrl = `https://images.nymia.ai/cdn-cgi/image/w=1200/${imageData.file_path}`;
+      console.log('ContentEdit: Loading image from path:', imageUrl);
+      setImageSrc(imageUrl);
+      addToHistory('Original image loaded', imageUrl);
     } else {
       console.log('ContentEdit: No image data received');
     }
   }, [location.state]);
-
-  const loadImage = useCallback(async (imagePath: string) => {
-    try {
-      
-      const img = document.createElement("img");
-      console.log('ContentEdit: Loading image from path:', imagePath);
-      img.crossOrigin = 'anonymous';
-      
-      img.onload = () => {
-        console.log('ContentEdit: Image loaded successfully');
-        setOriginalImage(imagePath);
-        setCurrentImage(imagePath);
-        
-        // Set canvas size based on image
-        const maxWidth = 800;
-        const maxHeight = 600;
-        const ratio = Math.min(maxWidth / img.width, maxHeight / img.height);
-        const newCanvasSize = {
-          width: img.width * ratio,
-          height: img.height * ratio
-        };
-        setCanvasSize(newCanvasSize);
-        
-        // Draw image on canvas
-        const canvas = canvasRef.current;
-        if (canvas) {
-          const ctx = canvas.getContext('2d');
-          if (ctx) {
-            canvas.width = newCanvasSize.width;
-            canvas.height = newCanvasSize.height;
-            ctx.drawImage(img, 0, 0, newCanvasSize.width, newCanvasSize.height);
-            console.log('ContentEdit: Image drawn on canvas');
-          }
-        }
-        
-        // Initialize history
-        addToHistory('Original image loaded', imagePath);
-      };
-      
-      img.onerror = (error) => {
-        console.error('ContentEdit: Error loading image:', error);
-        toast.error('Failed to load image');
-      };
-      
-      img.src = imagePath;
-    } catch (error) {
-      console.error('Error loading image:', error);
-      toast.error('Failed to load image');
-    }
-  }, [selectedImage, userData.id]);
-
-  // Draw image on canvas when currentImage changes
-  useEffect(() => {
-    if (currentImage && canvasRef.current) {
-      const canvas = canvasRef.current;
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        const img = document.createElement("img");
-        img.crossOrigin = 'anonymous';
-        
-        img.onload = () => {
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
-          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        };
-        
-        img.src = currentImage;
-      }
-    }
-  }, [currentImage]);
 
   const addToHistory = useCallback((description: string, imageData: string) => {
     const newHistory: EditHistory = {
@@ -338,101 +248,116 @@ export default function ContentEdit() {
 
     setHistory(newHistoryArray);
     setHistoryIndex(newHistoryArray.length - 1);
-    setCanUndo(newHistoryArray.length > 1);
-    setCanRedo(false);
   }, [history, historyIndex]);
 
-  const applySettings = useCallback(() => {
-    if (!currentImage || !canvasRef.current) return;
+  const downloadFile = useCallback((file: File) => {
+    // Create a hidden link and set the URL using createObjectURL
+    const link = document.createElement('a');
+    link.style.display = 'none';
+    link.href = URL.createObjectURL(file);
+    link.download = file.name;
 
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    // We need to add the link to the DOM for "click()" to work
+    document.body.appendChild(link);
+    link.click();
 
-    const img = document.createElement("img");
-    img.crossOrigin = 'anonymous';
-    
-    img.onload = () => {
-      // Clear canvas
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      
-      // Apply filters using CSS filters
-      const filterString = `
-        brightness(${100 + settings.brightness}%)
-        contrast(${100 + settings.contrast}%)
-        saturate(${100 + settings.saturation}%)
-        hue-rotate(${settings.hue}deg)
-        blur(${settings.blur}px)
-        sepia(${settings.temperature > 0 ? settings.temperature / 100 : 0})
-      `;
-      
-      // Create a temporary canvas for processing
-      const tempCanvas = document.createElement('canvas');
-      const tempCtx = tempCanvas.getContext('2d');
-      if (!tempCtx) return;
-      
-      tempCanvas.width = canvas.width;
-      tempCanvas.height = canvas.height;
-      
-      // Draw image with filters
-      tempCtx.filter = filterString;
-      tempCtx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      
-      // Copy to main canvas
-      ctx.drawImage(tempCanvas, 0, 0);
-      
-      // Convert to data URL for history
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
-      setCurrentImage(dataUrl);
-      addToHistory('Applied adjustments', dataUrl);
-    };
-    
-    img.src = currentImage;
-  }, [currentImage, settings, addToHistory]);
-
-  const handleSettingChange = useCallback((key: keyof EditSettings, value: number) => {
-    setSettings(prev => ({ ...prev, [key]: value }));
+    // To make this work on Firefox we need to wait a short moment before clean up
+    setTimeout(() => {
+        URL.revokeObjectURL(link.href);
+        link.parentNode?.removeChild(link);
+    }, 0);
   }, []);
 
-  const resetSettings = useCallback(() => {
-    setSettings({
-      brightness: 0,
-      contrast: 0,
-      saturation: 0,
-      hue: 0,
-      blur: 0,
-      sharpen: 0,
-      noise: 0,
-      vignette: 0,
-      temperature: 0,
-      tint: 0,
-      highlights: 0,
-      shadows: 0,
-      whites: 0,
-      blacks: 0,
-      exposure: 0,
-      gamma: 1
-    });
-  }, []);
+  const handleEditorProcess = useCallback((imageState: any) => {
+    try {
+      // Download the edited image
+      downloadFile(imageState.dest);
+      
+      // Also save to state for preview
+      const editedURL = URL.createObjectURL(imageState.dest);
+      setEditedImageUrl(editedURL);
+      addToHistory('Image edited with Pintura', editedURL);
+      toast.success('Image edited and downloaded successfully');
+    } catch (error) {
+      console.error('Error processing image:', error);
+      toast.error('Failed to process image');
+    }
+  }, [downloadFile, addToHistory]);
 
   const applyPreset = useCallback((preset: Preset) => {
-    setSettings(preset.settings);
+    // In a real implementation, you would apply preset settings to Pintura
     toast.success(`Applied ${preset.name} preset`);
+    setShowPresets(false);
   }, []);
 
   const applyTemplate = useCallback((template: Template) => {
-    setSettings(template.settings);
-    setCanvasSize({ width: 800, height: 600 }); // Adjust based on template
+    // In a real implementation, you would apply template settings to Pintura
     toast.success(`Applied ${template.name} template`);
+    setShowTemplates(false);
   }, []);
+
+  const saveImage = useCallback(async (asNew: boolean = false) => {
+    if (!selectedImage || !editedImageUrl) return;
+
+    try {
+      setIsEditing(true);
+      
+      const response = await fetch(editedImageUrl);
+      const blob = await response.blob();
+      
+      const filename = asNew ? newFilename : selectedImage.system_filename;
+      const formData = new FormData();
+      formData.append('file', blob, filename);
+      formData.append('user', userData.id);
+      formData.append('filename', `edited/${filename}`);
+
+      // Upload edited image
+      const uploadResponse = await fetch(`https://api.nymia.ai/v1/uploadfile`, {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: formData
+      });
+
+      if (uploadResponse.ok) {
+        toast.success(asNew ? 'Image saved as new file' : 'Image updated successfully');
+        setShowSaveDialog(false);
+      } else {
+        throw new Error('Failed to save image');
+      }
+    } catch (error) {
+      console.error('Error saving image:', error);
+      toast.error('Failed to save image');
+    } finally {
+      setIsEditing(false);
+    }
+  }, [selectedImage, editedImageUrl, newFilename, userData.id]);
+
+  const downloadImage = useCallback(() => {
+    if (!editedImageUrl) return;
+    
+    // Create a hidden link and set the URL
+    const link = document.createElement('a');
+    link.style.display = 'none';
+    link.href = editedImageUrl;
+    link.download = selectedImage?.system_filename || 'edited-image.jpg';
+
+    // We need to add the link to the DOM for "click()" to work
+    document.body.appendChild(link);
+    link.click();
+
+    // To make this work on Firefox we need to wait a short moment before clean up
+    setTimeout(() => {
+        link.parentNode?.removeChild(link);
+    }, 0);
+  }, [selectedImage, editedImageUrl]);
 
   const undo = useCallback(() => {
     if (historyIndex > 0) {
       const newIndex = historyIndex - 1;
       setHistoryIndex(newIndex);
-      setCurrentImage(history[newIndex].imageData);
-      setCanUndo(newIndex > 0);
-      setCanRedo(true);
+      setImageSrc(history[newIndex].imageData);
     }
   }, [history, historyIndex]);
 
@@ -440,144 +365,9 @@ export default function ContentEdit() {
     if (historyIndex < history.length - 1) {
       const newIndex = historyIndex + 1;
       setHistoryIndex(newIndex);
-      setCurrentImage(history[newIndex].imageData);
-      setCanUndo(true);
-      setCanRedo(newIndex < history.length - 1);
+      setImageSrc(history[newIndex].imageData);
     }
   }, [history, historyIndex]);
-
-  const saveImage = useCallback(async (asNew: boolean = false) => {
-    if (!selectedImage || !currentImage) return;
-
-    try {
-      setIsEditing(true);
-      
-      // Convert canvas to blob
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-      
-      canvas.toBlob(async (blob) => {
-        if (!blob) return;
-
-        const filename = asNew ? newFilename : selectedImage.system_filename;
-        const formData = new FormData();
-        formData.append('file', blob, filename);
-        formData.append('user', userData.id);
-        formData.append('filename', `edited/${filename}`);
-
-        // Upload edited image
-        const response = await fetch(`https://api.nymia.ai/v1/uploadfile`, {
-          method: 'POST',
-          headers: {
-            'Authorization': 'Bearer WeInfl3nc3withAI'
-          },
-          body: formData
-        });
-
-        if (response.ok) {
-          toast.success(asNew ? 'Image saved as new file' : 'Image updated successfully');
-          setShowSaveDialog(false);
-        } else {
-          throw new Error('Failed to save image');
-        }
-      }, 'image/jpeg', 0.9);
-      
-    } catch (error) {
-      console.error('Error saving image:', error);
-      toast.error('Failed to save image');
-    } finally {
-      setIsEditing(false);
-    }
-  }, [selectedImage, currentImage, newFilename, userData.id]);
-
-  const downloadImage = useCallback(() => {
-    if (!canvasRef.current) return;
-    
-    const link = document.createElement('a');
-    link.download = selectedImage?.system_filename || 'edited-image.jpg';
-    link.href = canvasRef.current.toDataURL('image/jpeg', 0.9);
-    link.click();
-  }, [selectedImage]);
-
-  const rotateImage = useCallback((direction: 'left' | 'right') => {
-    if (!currentImage) return;
-    
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    
-    const img = document.createElement("img");
-    img.onload = () => {
-      const angle = direction === 'left' ? -90 : 90;
-      const radians = (angle * Math.PI) / 180;
-      
-      // Swap dimensions for 90-degree rotation
-      const newWidth = Math.abs(canvas.width * Math.cos(radians)) + Math.abs(canvas.height * Math.sin(radians));
-      const newHeight = Math.abs(canvas.width * Math.sin(radians)) + Math.abs(canvas.height * Math.cos(radians));
-      
-      const tempCanvas = document.createElement('canvas');
-      const tempCtx = tempCanvas.getContext('2d');
-      if (!tempCtx) return;
-      
-      tempCanvas.width = newWidth;
-      tempCanvas.height = newHeight;
-      
-      tempCtx.translate(newWidth / 2, newHeight / 2);
-      tempCtx.rotate(radians);
-      tempCtx.drawImage(img, -canvas.width / 2, -canvas.height / 2);
-      
-      canvas.width = newWidth;
-      canvas.height = newHeight;
-      ctx.drawImage(tempCanvas, 0, 0);
-      
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
-      setCurrentImage(dataUrl);
-      addToHistory(`Rotated ${direction}`, dataUrl);
-    };
-    
-    img.src = currentImage;
-  }, [currentImage, addToHistory]);
-
-  const flipImage = useCallback((direction: 'horizontal' | 'vertical') => {
-    if (!currentImage) return;
-    
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    
-    const img = document.createElement("img");
-    img.onload = () => {
-      ctx.save();
-      
-      if (direction === 'horizontal') {
-        ctx.scale(-1, 1);
-        ctx.translate(-canvas.width, 0);
-      } else {
-        ctx.scale(1, -1);
-        ctx.translate(0, -canvas.height);
-      }
-      
-      ctx.drawImage(img, 0, 0);
-      ctx.restore();
-      
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
-      setCurrentImage(dataUrl);
-      addToHistory(`Flipped ${direction}`, dataUrl);
-    };
-    
-    img.src = currentImage;
-  }, [currentImage, addToHistory]);
-
-  // Apply settings when they change
-  useEffect(() => {
-    if (currentImage) {
-      applySettings();
-    }
-  }, [settings, applySettings]);
 
   if (!selectedImage) {
     return (
@@ -600,13 +390,23 @@ export default function ContentEdit() {
     <div className="p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight bg-ai-gradient bg-clip-text text-transparent">
-            Edit Content
-          </h1>
-          <p className="text-muted-foreground">
-            Editing: {selectedImage.system_filename}
-          </p>
+        <div className="flex items-center gap-4">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate('/content/vault')}
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Vault
+          </Button>
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight bg-ai-gradient bg-clip-text text-transparent">
+              Edit Content
+            </h1>
+            <p className="text-muted-foreground">
+              Editing: {selectedImage.system_filename}
+            </p>
+          </div>
         </div>
         
         <div className="flex items-center gap-2">
@@ -642,6 +442,7 @@ export default function ContentEdit() {
             variant="outline"
             size="sm"
             onClick={downloadImage}
+            disabled={!editedImageUrl}
           >
             <Download className="w-4 h-4 mr-2" />
             Download
@@ -649,7 +450,7 @@ export default function ContentEdit() {
           
           <Button
             onClick={() => setShowSaveDialog(true)}
-            disabled={isEditing}
+            disabled={isEditing || !editedImageUrl}
           >
             <Save className="w-4 h-4 mr-2" />
             Save
@@ -660,49 +461,50 @@ export default function ContentEdit() {
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Main Editor */}
         <div className="lg:col-span-3 space-y-6">
-          {/* Canvas */}
+          {/* Pintura Editor */}
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle>Image Editor</CardTitle>
+                <CardTitle>Professional Image Editor</CardTitle>
                 <div className="flex items-center gap-2">
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setZoom(Math.max(0.1, zoom - 0.1))}
+                    onClick={undo}
+                    disabled={historyIndex <= 0}
                   >
-                    <ZoomOut className="w-4 h-4" />
+                    <RotateCcw className="w-4 h-4" />
                   </Button>
-                  <span className="text-sm font-medium">{Math.round(zoom * 100)}%</span>
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setZoom(Math.min(3, zoom + 0.1))}
+                    onClick={redo}
+                    disabled={historyIndex >= history.length - 1}
                   >
-                    <ZoomIn className="w-4 h-4" />
+                    <RotateCw className="w-4 h-4" />
                   </Button>
                 </div>
               </div>
             </CardHeader>
             <CardContent>
-              <div className="relative overflow-hidden border rounded-lg bg-muted">
-                <div
-                  className="relative"
-                  style={{
-                    transform: `scale(${zoom}) translate(${pan.x}px, ${pan.y}px)`,
-                    transformOrigin: 'center',
-                    transition: 'transform 0.1s ease-out'
-                  }}
-                >
-                  <canvas
-                    ref={canvasRef}
-                    width={canvasSize.width}
-                    height={canvasSize.height}
-                    className="block mx-auto"
-                    style={{ maxWidth: '100%', height: 'auto' }}
+              {/* {imageSrc && (
+                <div className="border rounded-lg h-[600px] bg-muted">
+                  <PinturaEditor
+                    ref={editorRef}
+                    {...editorDefaults}
+                    src={imageSrc}
+                    onProcess={handleEditorProcess}
                   />
                 </div>
-              </div>
+              )} */}
+                <div className="border rounded-lg h-[600px] bg-muted">
+                  <PinturaEditor
+                    ref={editorRef}
+                    {...editorDefaults}
+                    src={'/test.jpg'}
+                    onProcess={handleEditorProcess}
+                  />
+                </div>
             </CardContent>
           </Card>
 
@@ -715,242 +517,81 @@ export default function ContentEdit() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <Button
                   variant="outline"
-                  onClick={() => rotateImage('left')}
+                  onClick={() => setEditorVisible(true)}
                   className="h-20 flex-col"
                 >
-                  <RotateCcw className="w-6 h-6 mb-2" />
-                  Rotate Left
+                  <Edit className="w-6 h-6 mb-2" />
+                  Edit Image
                 </Button>
                 
                 <Button
                   variant="outline"
-                  onClick={() => rotateImage('right')}
+                  onClick={() => setShowPresets(true)}
                   className="h-20 flex-col"
                 >
-                  <RotateCw className="w-6 h-6 mb-2" />
-                  Rotate Right
+                  <Sparkles className="w-6 h-6 mb-2" />
+                  Apply Preset
                 </Button>
                 
                 <Button
                   variant="outline"
-                  onClick={() => flipImage('horizontal')}
+                  onClick={() => setShowTemplates(true)}
                   className="h-20 flex-col"
                 >
-                  <FlipHorizontal className="w-6 h-6 mb-2" />
-                  Flip H
+                  <FileImage className="w-6 h-6 mb-2" />
+                  Apply Template
                 </Button>
                 
                 <Button
                   variant="outline"
-                  onClick={() => flipImage('vertical')}
+                  onClick={downloadImage}
+                  disabled={!editedImageUrl}
                   className="h-20 flex-col"
                 >
-                  <FlipVertical className="w-6 h-6 mb-2" />
-                  Flip V
-                </Button>
-                
-                <Button
-                  variant="outline"
-                  onClick={resetSettings}
-                  className="h-20 flex-col"
-                >
-                  <RotateCcw className="w-6 h-6 mb-2" />
-                  Reset
-                </Button>
-                
-                <Button
-                  variant="outline"
-                  onClick={undo}
-                  disabled={!canUndo}
-                  className="h-20 flex-col"
-                >
-                  <Undo className="w-6 h-6 mb-2" />
-                  Undo
-                </Button>
-                
-                <Button
-                  variant="outline"
-                  onClick={redo}
-                  disabled={!canRedo}
-                  className="h-20 flex-col"
-                >
-                  <Redo className="w-6 h-6 mb-2" />
-                  Redo
-                </Button>
-                
-                <Button
-                  variant="outline"
-                  onClick={() => setEditMode('crop')}
-                  className="h-20 flex-col"
-                >
-                  <Crop className="w-6 h-6 mb-2" />
-                  Crop
+                  <Download className="w-6 h-6 mb-2" />
+                  Download
                 </Button>
               </div>
             </CardContent>
           </Card>
+
+          {/* Edited Image Preview */}
+          {editedImageUrl && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Edited Image Preview</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="border rounded-lg overflow-hidden bg-muted">
+                  <img
+                    src={editedImageUrl}
+                    alt="Edited"
+                    className="w-full h-auto max-h-96 object-contain"
+                  />
+                </div>
+                <div className="flex gap-2 mt-4">
+                  <Button
+                    onClick={downloadImage}
+                    className="flex-1"
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Download Edited
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowSaveDialog(true)}
+                  >
+                    <Save className="w-4 h-4 mr-2" />
+                    Save to Server
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         {/* Sidebar */}
         <div className="space-y-6">
-          {/* Edit Tools */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Edit Tools</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Tabs value={editMode} onValueChange={setEditMode}>
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="adjust">Adjust</TabsTrigger>
-                  <TabsTrigger value="effects">Effects</TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="adjust" className="space-y-4">
-                  <div className="space-y-4">
-                    <div>
-                      <Label className="flex items-center gap-2">
-                        <Sun className="w-4 h-4" />
-                        Brightness
-                      </Label>
-                      <Slider
-                        value={[settings.brightness]}
-                        onValueChange={([value]) => handleSettingChange('brightness', value)}
-                        min={-100}
-                        max={100}
-                        step={1}
-                        className="w-full"
-                      />
-                    </div>
-
-                    <div>
-                      <Label className="flex items-center gap-2">
-                        <Target className="w-4 h-4" />
-                        Contrast
-                      </Label>
-                      <Slider
-                        value={[settings.contrast]}
-                        onValueChange={([value]) => handleSettingChange('contrast', value)}
-                        min={-100}
-                        max={100}
-                        step={1}
-                        className="w-full"
-                      />
-                    </div>
-
-                    <div>
-                      <Label className="flex items-center gap-2">
-                        <Droplets className="w-4 h-4" />
-                        Saturation
-                      </Label>
-                      <Slider
-                        value={[settings.saturation]}
-                        onValueChange={([value]) => handleSettingChange('saturation', value)}
-                        min={-100}
-                        max={100}
-                        step={1}
-                        className="w-full"
-                      />
-                    </div>
-
-                    <div>
-                      <Label className="flex items-center gap-2">
-                        <Palette className="w-4 h-4" />
-                        Hue
-                      </Label>
-                      <Slider
-                        value={[settings.hue]}
-                        onValueChange={([value]) => handleSettingChange('hue', value)}
-                        min={-180}
-                        max={180}
-                        step={1}
-                        className="w-full"
-                      />
-                    </div>
-
-                    <div>
-                      <Label className="flex items-center gap-2">
-                        <Zap className="w-4 h-4" />
-                        Temperature
-                      </Label>
-                      <Slider
-                        value={[settings.temperature]}
-                        onValueChange={([value]) => handleSettingChange('temperature', value)}
-                        min={-50}
-                        max={50}
-                        step={1}
-                        className="w-full"
-                      />
-                    </div>
-                  </div>
-                </TabsContent>
-
-                <TabsContent value="effects" className="space-y-4">
-                  <div className="space-y-4">
-                    <div>
-                      <Label className="flex items-center gap-2">
-                        <Eye className="w-4 h-4" />
-                        Blur
-                      </Label>
-                      <Slider
-                        value={[settings.blur]}
-                        onValueChange={([value]) => handleSettingChange('blur', value)}
-                        min={0}
-                        max={20}
-                        step={0.5}
-                        className="w-full"
-                      />
-                    </div>
-
-                    <div>
-                      <Label className="flex items-center gap-2">
-                        <Sparkles className="w-4 h-4" />
-                        Sharpen
-                      </Label>
-                      <Slider
-                        value={[settings.sharpen]}
-                        onValueChange={([value]) => handleSettingChange('sharpen', value)}
-                        min={0}
-                        max={100}
-                        step={1}
-                        className="w-full"
-                      />
-                    </div>
-
-                    <div>
-                      <Label className="flex items-center gap-2">
-                        <Layers className="w-4 h-4" />
-                        Vignette
-                      </Label>
-                      <Slider
-                        value={[settings.vignette]}
-                        onValueChange={([value]) => handleSettingChange('vignette', value)}
-                        min={0}
-                        max={100}
-                        step={1}
-                        className="w-full"
-                      />
-                    </div>
-
-                    <div>
-                      <Label className="flex items-center gap-2">
-                        <Sliders className="w-4 h-4" />
-                        Noise
-                      </Label>
-                      <Slider
-                        value={[settings.noise]}
-                        onValueChange={([value]) => handleSettingChange('noise', value)}
-                        min={0}
-                        max={50}
-                        step={1}
-                        className="w-full"
-                      />
-                    </div>
-                  </div>
-                </TabsContent>
-              </Tabs>
-            </CardContent>
-          </Card>
-
           {/* Image Info */}
           <Card>
             <CardHeader>
@@ -979,6 +620,29 @@ export default function ContentEdit() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Edit Status */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Edit Status</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">History:</span>
+                <Badge variant="secondary">{history.length} steps</Badge>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Current:</span>
+                <Badge variant="outline">{historyIndex + 1} of {history.length}</Badge>
+              </div>
+              {editedImageUrl && (
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Status:</span>
+                  <Badge variant="default" className="bg-green-500">Edited</Badge>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
       </div>
 
@@ -986,9 +650,9 @@ export default function ContentEdit() {
       <Dialog open={showPresets} onOpenChange={setShowPresets}>
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Presets</DialogTitle>
+            <DialogTitle>Professional Presets</DialogTitle>
             <DialogDescription>
-              Apply professional presets to your image
+              Apply professional presets to enhance your image
             </DialogDescription>
           </DialogHeader>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -996,18 +660,16 @@ export default function ContentEdit() {
               <Card
                 key={preset.id}
                 className="cursor-pointer hover:shadow-lg transition-all duration-300"
-                onClick={() => {
-                  applyPreset(preset);
-                  setShowPresets(false);
-                }}
+                onClick={() => applyPreset(preset)}
               >
                 <CardContent className="p-4">
                   <div className="space-y-2">
+                    <div className="w-full h-24 bg-muted rounded-lg mb-2 flex items-center justify-center">
+                      <Image className="w-8 h-8 text-muted-foreground" />
+                    </div>
                     <h3 className="font-semibold">{preset.name}</h3>
                     <p className="text-sm text-muted-foreground">{preset.description}</p>
-                    {preset.isDefault && (
-                      <Badge variant="secondary" className="text-xs">Default</Badge>
-                    )}
+                    <Badge variant="outline" className="text-xs">{preset.category}</Badge>
                   </div>
                 </CardContent>
               </Card>
@@ -1020,7 +682,7 @@ export default function ContentEdit() {
       <Dialog open={showTemplates} onOpenChange={setShowTemplates}>
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Templates</DialogTitle>
+            <DialogTitle>Format Templates</DialogTitle>
             <DialogDescription>
               Apply format templates for different platforms
             </DialogDescription>
@@ -1030,16 +692,19 @@ export default function ContentEdit() {
               <Card
                 key={template.id}
                 className="cursor-pointer hover:shadow-lg transition-all duration-300"
-                onClick={() => {
-                  applyTemplate(template);
-                  setShowTemplates(false);
-                }}
+                onClick={() => applyTemplate(template)}
               >
                 <CardContent className="p-4">
                   <div className="space-y-2">
+                    <div className="w-full h-24 bg-muted rounded-lg mb-2 flex items-center justify-center">
+                      <Image className="w-8 h-8 text-muted-foreground" />
+                    </div>
                     <h3 className="font-semibold">{template.name}</h3>
                     <p className="text-sm text-muted-foreground">{template.description}</p>
-                    <Badge variant="outline" className="text-xs">{template.category}</Badge>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="text-xs">{template.category}</Badge>
+                      <Badge variant="secondary" className="text-xs">{template.aspectRatio}</Badge>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -1068,9 +733,7 @@ export default function ContentEdit() {
                 }`}
                 onClick={() => {
                   setHistoryIndex(index);
-                  setCurrentImage(item.imageData);
-                  setCanUndo(index > 0);
-                  setCanRedo(index < history.length - 1);
+                  setImageSrc(item.imageData);
                 }}
               >
                 <div className="flex items-center gap-3">
@@ -1108,21 +771,26 @@ export default function ContentEdit() {
           </DialogHeader>
           <div className="space-y-4">
             <div className="flex items-center space-x-2">
-              <Switch
+              <input
+                type="checkbox"
+                id="save-as-new"
                 checked={saveAsNew}
-                onCheckedChange={setSaveAsNew}
+                onChange={(e) => setSaveAsNew(e.target.checked)}
+                className="rounded"
               />
-              <Label>Save as new file</Label>
+              <label htmlFor="save-as-new">Save as new file</label>
             </div>
             
             {saveAsNew && (
               <div>
-                <Label htmlFor="new-filename">New filename</Label>
-                <Input
+                <label htmlFor="new-filename" className="text-sm font-medium">New filename</label>
+                <input
                   id="new-filename"
+                  type="text"
                   value={newFilename}
                   onChange={(e) => setNewFilename(e.target.value)}
                   placeholder="Enter new filename..."
+                  className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
             )}

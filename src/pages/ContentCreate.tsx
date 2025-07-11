@@ -148,7 +148,6 @@ export default function ContentCreate() {
 
   // Influencer selector dialog state
   const [showInfluencerSelector, setShowInfluencerSelector] = useState(false);
-  const [generatedTaskId, setGeneratedTaskId] = useState('');
   const [generatedTaskIds, setGeneratedTaskIds] = useState<string[]>([]);
   const [generatedImages, setGeneratedImages] = useState<any[]>([]);
   const [isLoadingGeneratedImages, setIsLoadingGeneratedImages] = useState(false);
@@ -508,35 +507,6 @@ export default function ContentCreate() {
     fetchFormatOptions();
   }, []);
 
-  const fetchGeneratedImages = async (taskIds: string[]) => {
-    if (!taskIds || taskIds.length === 0) return;
-
-    setIsLoadingGeneratedImages(true);
-    try {
-      // Fetch images for all task IDs
-      const allImages: any[] = [];
-      
-      for (const taskId of taskIds) {
-        const response = await fetch(`https://db.nymia.ai/rest/v1/generated_images?task_id=eq.${taskId}`, {
-          headers: {
-            'Authorization': 'Bearer WeInfl3nc3withAI'
-          }
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          allImages.push(...data);
-        }
-      }
-
-      setGeneratedImages(allImages);
-    } catch (error) {
-      console.error('Error fetching generated images:', error);
-    } finally {
-      setIsLoadingGeneratedImages(false);
-    }
-  };
-
   const handleDownload = async (image: any) => {
     try {
       toast.info('Downloading image...', {
@@ -816,7 +786,6 @@ export default function ContentCreate() {
 
       // Add new task ID to the list
       setGeneratedTaskIds(prev => [...prev, result.id]);
-      setGeneratedTaskId(result.id);
       toast.success('Content generation started successfully');
 
       setActiveTab('scene');
@@ -940,16 +909,42 @@ export default function ContentCreate() {
   }
 
   useEffect(() => {
-    if (generatedTaskIds.length > 0) {
-      fetchGeneratedImages(generatedTaskIds);
-    }
-  }, [generatedTaskIds]);
+    const fetchGeneratedImages = async () => {
+      console.log(generatedTaskIds);
+      if (!generatedImages || generatedTaskIds.length === 0) return;
 
-  useEffect(() => {
-    if (generatedTaskId) {
-      fetchGeneratedImages([generatedTaskId]);
+      setIsLoadingGeneratedImages(true);
+      try {
+        // Fetch images for all task IDs
+        const allImages: any[] = [];
+
+        for (const taskId of generatedTaskIds) {
+          const response = await fetch(`https://db.nymia.ai/rest/v1/generated_images?task_id=eq.${taskId}`, {
+            headers: {
+              'Authorization': 'Bearer WeInfl3nc3withAI'
+            }
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            allImages.push(...data);
+          }
+        }
+
+        setGeneratedImages(allImages);
+        console.log(generatedImages);
+      } catch (error) {
+        console.error('Error fetching generated images:', error);
+      } finally {
+        setIsLoadingGeneratedImages(false);
+      }
     }
-  }, [generatedTaskId]);
+
+    fetchGeneratedImages();
+
+    const interval = setInterval(fetchGeneratedImages, 30000);
+    return () => clearInterval(interval);
+  }, [generatedTaskIds]);
 
   // Handle regeneration data from Vault.tsx
   useEffect(() => {
@@ -1226,10 +1221,10 @@ export default function ContentCreate() {
       });
 
       if (response.ok) {
-        setGeneratedImages(prev => 
-          prev.map(img => 
-            img.system_filename === systemFilename 
-              ? { ...img, favorite } 
+        setGeneratedImages(prev =>
+          prev.map(img =>
+            img.system_filename === systemFilename
+              ? { ...img, favorite }
               : img
           )
         );
@@ -1251,10 +1246,10 @@ export default function ContentCreate() {
       });
 
       if (response.ok) {
-        setGeneratedImages(prev => 
-          prev.map(img => 
-            img.system_filename === systemFilename 
-              ? { ...img, rating } 
+        setGeneratedImages(prev =>
+          prev.map(img =>
+            img.system_filename === systemFilename
+              ? { ...img, rating }
               : img
           )
         );
@@ -1276,10 +1271,10 @@ export default function ContentCreate() {
       });
 
       if (response.ok) {
-        setGeneratedImages(prev => 
-          prev.map(img => 
-            img.system_filename === systemFilename 
-              ? { ...img, user_notes: userNotes } 
+        setGeneratedImages(prev =>
+          prev.map(img =>
+            img.system_filename === systemFilename
+              ? { ...img, user_notes: userNotes }
               : img
           )
         );
@@ -1301,10 +1296,10 @@ export default function ContentCreate() {
       });
 
       if (response.ok) {
-        setGeneratedImages(prev => 
-          prev.map(img => 
-            img.system_filename === systemFilename 
-              ? { ...img, user_tags: userTags } 
+        setGeneratedImages(prev =>
+          prev.map(img =>
+            img.system_filename === systemFilename
+              ? { ...img, user_tags: userTags }
               : img
           )
         );
@@ -1331,10 +1326,10 @@ export default function ContentCreate() {
       });
 
       if (response.ok) {
-        setGeneratedImages(prev => 
-          prev.map(img => 
-            img.system_filename === oldFilename 
-              ? { ...img, user_filename: newName } 
+        setGeneratedImages(prev =>
+          prev.map(img =>
+            img.system_filename === oldFilename
+              ? { ...img, user_filename: newName }
               : img
           )
         );
@@ -3550,8 +3545,8 @@ export default function ContentCreate() {
               </DialogTitle>
             </DialogHeader>
             <div className="flex items-center justify-center">
-              <img 
-                src={fullSizeImageModal.imageUrl} 
+              <img
+                src={fullSizeImageModal.imageUrl}
                 alt={fullSizeImageModal.imageName}
                 className="w-full h-auto max-h-[70vh] object-contain rounded-lg shadow-lg"
                 onError={(e) => {
@@ -3579,7 +3574,7 @@ export default function ContentCreate() {
             <div className="space-y-6">
               {/* Image Display */}
               <div className="flex items-center justify-center">
-                <img 
+                <img
                   src={`https://images.nymia.ai/cdn-cgi/image/w=800/${detailedImageModal.image.file_path}`}
                   alt={detailedImageModal.image.system_filename}
                   className="w-full h-auto max-h-[50vh] object-contain rounded-lg shadow-lg"

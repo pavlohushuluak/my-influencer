@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { RootState } from '@/store/store';
@@ -177,6 +177,10 @@ export default function Vault() {
   const [editingFile, setEditingFile] = useState<string | null>(null);
   const [editingFileName, setEditingFileName] = useState<string>('');
   const [renamingFile, setRenamingFile] = useState<string | null>(null);
+  const [isRenaming, setIsRenaming] = useState<boolean>(false);
+  const [showRenameConflictDialog, setShowRenameConflictDialog] = useState<boolean>(false);
+  const [conflictRenameFilename, setConflictRenameFilename] = useState<string>('');
+  const [pendingRenameData, setPendingRenameData] = useState<{ oldFilename: string; newName: string; oldPath: string } | null>(null);
 
   // Filter menu state
   const [filterMenuOpen, setFilterMenuOpen] = useState<boolean>(false);
@@ -1728,39 +1732,6 @@ export default function Vault() {
                       })
                     });
 
-                    const postFile = await fetch(`https://db.nymia.ai/rest/v1/generated_images?system_filename=eq.${fileName}&user_filename=eq.${copiedPath}/${relativePath}`, {
-                      method: 'GET',
-                      headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': 'Bearer WeInfl3nc3withAI'
-                      }
-                    });
-
-                    const postFileJson = await postFile.json();
-                    const postFileData = postFileJson[0];
-
-                    if (postFileData.id) {
-
-                      delete postFileData.id;
-
-                      console.log("Post File Data:", postFileData);
-                      console.log("Post File Data:", postFileData.user_filename);
-                      console.log("Current Path:", `${currentPath}/${newFolderName}/${relativePath}`);
-
-                      await fetch(`https://db.nymia.ai/rest/v1/generated_images`, {
-                        method: 'POST',
-                        headers: {
-                          'Content-Type': 'application/json',
-                          'Authorization': 'Bearer WeInfl3nc3withAI'
-                        },
-                        body: JSON.stringify({
-                          ...postFileData,
-                          user_filename: `${currentPath}/${newFolderName}/${relativePath}`
-                        })
-                      });
-                    }
-
-
                     if (!copyResponse.ok) {
                       console.warn(`Failed to copy file ${file}`);
                       throw new Error(`Failed to copy file ${file}`);
@@ -1972,16 +1943,81 @@ export default function Vault() {
 
     // Preserve the original file extension
     const fileExtension = oldFilename.split('.').pop();
-    const finalNewName = enNewName + '.' + fileExtension;
+    let finalNewName = enNewName + '.' + fileExtension;
 
     console.log("Compare Path:", comparePath);
     console.log("Old Filename:", oldFilename);
-    console.log("Final New Name:", finalNewName);
+    console.log("Initial New Name:", finalNewName);
 
     try {
+      setIsRenaming(true);
       setRenamingFile(oldFilename);
-      toast.info('Renaming file...', {
-        description: 'This may take a moment'
+      
+      const loadingToast = toast.loading('Preparing rename...', {
+        description: 'Checking for filename conflicts',
+        duration: Infinity
+      });
+
+      // Get existing files to check for duplicates
+      const getFilesResponse = await fetch('https://api.nymia.ai/v1/getfilenames', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          user: userData.id,
+          folder: comparePath === "" ? "output" : `vault/${comparePath}`
+        })
+      });
+
+      if (getFilesResponse.ok) {
+        const files = await getFilesResponse.json();
+        console.log('Files in folder:', files);
+
+        if (files && files.length > 0 && files[0].Key) {
+          // Extract existing filenames from the current folder
+          const existingFilenames = files.map((file: any) => {
+            const fileKey = file.Key;
+            const folderPrefix = comparePath === "" ? "output/" : `vault/${comparePath}/`;
+            const re = new RegExp(`^.*?${folderPrefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`);
+            const fileName = fileKey.replace(re, "");
+            console.log("Existing File Name:", fileName);
+            return fileName;
+          });
+
+          // Check if filename exists (excluding the current file being renamed)
+          if (existingFilenames.includes(finalNewName) && finalNewName !== oldFilename) {
+            setConflictRenameFilename(finalNewName);
+            setPendingRenameData({ oldFilename, newName, oldPath });
+            setShowRenameConflictDialog(true);
+            toast.dismiss(loadingToast);
+            setIsRenaming(false);
+            setRenamingFile(null);
+            return;
+          }
+
+          // Generate unique filename
+          const baseName = enNewName;
+          const extension = '.' + fileExtension;
+          
+          let counter = 1;
+          let testFilename = finalNewName;
+          
+          while (existingFilenames.includes(testFilename) && testFilename !== oldFilename) {
+            testFilename = `${baseName}(${counter})${extension}`;
+            counter++;
+          }
+          
+          finalNewName = testFilename;
+          console.log('Final filename:', finalNewName);
+        }
+      }
+
+      // Update loading message
+      toast.loading('Updating database...', {
+        id: loadingToast,
+        description: 'Updating file metadata'
       });
 
       // Update database with new filename
@@ -2000,6 +2036,12 @@ export default function Vault() {
         throw new Error('Failed to update database');
       }
 
+      // Update loading message
+      toast.loading('Copying file...', {
+        id: loadingToast,
+        description: 'Creating new file with updated name'
+      });
+
       // Copy file with new name
       const copyResponse = await fetch('https://api.nymia.ai/v1/copyfile', {
         method: 'POST',
@@ -2017,6 +2059,12 @@ export default function Vault() {
       if (!copyResponse.ok) {
         throw new Error('Failed to copy file');
       }
+
+      // Update loading message
+      toast.loading('Cleaning up...', {
+        id: loadingToast,
+        description: 'Removing old file'
+      });
 
       // Delete old file
       const deleteResponse = await fetch('https://api.nymia.ai/v1/deletefile', {
@@ -2046,6 +2094,7 @@ export default function Vault() {
       setEditingFileName('');
       setRenamingFile(null);
 
+      toast.dismiss(loadingToast);
       toast.success(`File renamed to "${finalNewName}" successfully`);
 
     } catch (error) {
@@ -2054,8 +2103,303 @@ export default function Vault() {
       setEditingFile(null);
       setEditingFileName('');
       setRenamingFile(null);
+    } finally {
+      setIsRenaming(false);
     }
   };
+
+  const handleRenameOverwriteConfirm = useCallback(async () => {
+    if (!pendingRenameData) return;
+
+    try {
+      setIsRenaming(true);
+      setShowRenameConflictDialog(false);
+
+      const loadingToast = toast.loading('Overwriting file...', {
+        description: `Replacing "${conflictRenameFilename}"`,
+        duration: Infinity
+      });
+
+      const { oldFilename, newName, oldPath } = pendingRenameData;
+      const comparePath = oldPath;
+      const fullOldPath = oldPath === "" ? "output" : "vault/" + oldPath;
+
+      // Delete the conflicting file first
+      const deleteResponse = await fetch('https://api.nymia.ai/v1/deletefile', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          user: userData.id,
+          filename: `${fullOldPath}/${conflictRenameFilename}`
+        })
+      });
+
+      if (!deleteResponse.ok) {
+        throw new Error('Failed to delete conflicting file');
+      }
+
+      // Delete from database
+      const dbDeleteResponse = await fetch(`https://db.nymia.ai/rest/v1/generated_images?system_filename=eq.${conflictRenameFilename}&user_filename=eq.${comparePath}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        }
+      });
+
+      if (!dbDeleteResponse.ok) {
+        console.warn('Failed to delete conflicting database entry, but continuing with rename');
+      }
+
+      // Update loading message
+      toast.loading('Renaming file...', {
+        id: loadingToast,
+        description: 'Updating file name'
+      });
+
+      // Update database with new filename
+      const dbResponse = await fetch(`https://db.nymia.ai/rest/v1/generated_images?system_filename=eq.${oldFilename}&user_filename=eq.${comparePath}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          system_filename: conflictRenameFilename
+        })
+      });
+
+      if (!dbResponse.ok) {
+        throw new Error('Failed to update database');
+      }
+
+      // Update loading message
+      toast.loading('Copying file...', {
+        id: loadingToast,
+        description: 'Creating new file with updated name'
+      });
+
+      // Copy file with new name
+      const copyResponse = await fetch('https://api.nymia.ai/v1/copyfile', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          user: userData.id,
+          sourcefilename: `${fullOldPath}/${oldFilename}`,
+          destinationfilename: `${fullOldPath}/${conflictRenameFilename}`
+        })
+      });
+
+      if (!copyResponse.ok) {
+        throw new Error('Failed to copy file');
+      }
+
+      // Update loading message
+      toast.loading('Cleaning up...', {
+        id: loadingToast,
+        description: 'Removing old file'
+      });
+
+      // Delete old file
+      const deleteOldResponse = await fetch('https://api.nymia.ai/v1/deletefile', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          user: userData.id,
+          filename: `${fullOldPath}/${oldFilename}`
+        })
+      });
+
+      if (!deleteOldResponse.ok) {
+        throw new Error('Failed to delete old file');
+      }
+
+      // Update local state - replace the old file with the renamed file
+      setGeneratedImages(prev => prev.map(img =>
+        img.system_filename === oldFilename
+          ? { ...img, system_filename: conflictRenameFilename }
+          : img
+      ));
+
+      setEditingFile(null);
+      setEditingFileName('');
+      setRenamingFile(null);
+
+      toast.dismiss(loadingToast);
+      toast.success(`File "${conflictRenameFilename}" overwritten successfully!`);
+    } catch (error) {
+      console.error('Error overwriting file during rename:', error);
+      toast.error('Failed to overwrite file. Please try again.');
+    } finally {
+      setIsRenaming(false);
+      setPendingRenameData(null);
+      setConflictRenameFilename('');
+    }
+  }, [pendingRenameData, conflictRenameFilename, userData?.id]);
+
+  const handleRenameCreateNew = useCallback(async () => {
+    if (!pendingRenameData) return;
+
+    try {
+      setIsRenaming(true);
+      setShowRenameConflictDialog(false);
+
+      const loadingToast = toast.loading('Creating new filename...', {
+        description: 'Generating unique filename',
+        duration: Infinity
+      });
+
+      const { oldFilename, newName, oldPath } = pendingRenameData;
+      const comparePath = oldPath;
+      const fullOldPath = oldPath === "" ? "output" : "vault/" + oldPath;
+
+      // Get existing files to check for duplicates
+      const getFilesResponse = await fetch('https://api.nymia.ai/v1/getfilenames', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          user: userData.id,
+          folder: comparePath === "" ? "output" : `vault/${comparePath}`
+        })
+      });
+
+      let finalNewName = conflictRenameFilename;
+      
+      if (getFilesResponse.ok) {
+        const files = await getFilesResponse.json();
+        console.log('Files to check for new filename:', files);
+
+        if (files && files.length > 0 && files[0].Key) {
+          // Extract existing filenames from the current folder
+          const existingFilenames = files.map((file: any) => {
+            const fileKey = file.Key;
+            const folderPrefix = comparePath === "" ? "output/" : `vault/${comparePath}/`;
+            const re = new RegExp(`^.*?${folderPrefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`);
+            const fileName = fileKey.replace(re, "");
+            console.log("Existing File Name:", fileName);
+            return fileName;
+          });
+
+          // Generate unique filename with numbering
+          const baseName = conflictRenameFilename.substring(0, conflictRenameFilename.lastIndexOf('.'));
+          const extension = conflictRenameFilename.substring(conflictRenameFilename.lastIndexOf('.'));
+          
+          let counter = 1;
+          let testFilename = `${baseName}(${counter})${extension}`;
+          
+          while (existingFilenames.includes(testFilename)) {
+            counter++;
+            testFilename = `${baseName}(${counter})${extension}`;
+          }
+          
+          finalNewName = testFilename;
+          console.log('Final new filename:', finalNewName);
+        }
+      }
+
+      // Update loading message
+      toast.loading('Updating database...', {
+        id: loadingToast,
+        description: 'Updating file metadata'
+      });
+
+      // Update database with new filename
+      const dbResponse = await fetch(`https://db.nymia.ai/rest/v1/generated_images?system_filename=eq.${oldFilename}&user_filename=eq.${comparePath}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          system_filename: finalNewName
+        })
+      });
+
+      if (!dbResponse.ok) {
+        throw new Error('Failed to update database');
+      }
+
+      // Update loading message
+      toast.loading('Copying file...', {
+        id: loadingToast,
+        description: 'Creating new file with updated name'
+      });
+
+      // Copy file with new name
+      const copyResponse = await fetch('https://api.nymia.ai/v1/copyfile', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          user: userData.id,
+          sourcefilename: `${fullOldPath}/${oldFilename}`,
+          destinationfilename: `${fullOldPath}/${finalNewName}`
+        })
+      });
+
+      if (!copyResponse.ok) {
+        throw new Error('Failed to copy file');
+      }
+
+      // Update loading message
+      toast.loading('Cleaning up...', {
+        id: loadingToast,
+        description: 'Removing old file'
+      });
+
+      // Delete old file
+      const deleteResponse = await fetch('https://api.nymia.ai/v1/deletefile', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          user: userData.id,
+          filename: `${fullOldPath}/${oldFilename}`
+        })
+      });
+
+      if (!deleteResponse.ok) {
+        throw new Error('Failed to delete old file');
+      }
+
+      // Update local state
+      setGeneratedImages(prev => prev.map(img =>
+        img.system_filename === oldFilename
+          ? { ...img, system_filename: finalNewName }
+          : img
+      ));
+
+      setEditingFile(null);
+      setEditingFileName('');
+      setRenamingFile(null);
+
+      toast.dismiss(loadingToast);
+      toast.success(`New file created successfully as "${finalNewName}"!`);
+    } catch (error) {
+      console.error('Error creating new file during rename:', error);
+      toast.error('Failed to create new file. Please try again.');
+    } finally {
+      setIsRenaming(false);
+      setPendingRenameData(null);
+      setConflictRenameFilename('');
+    }
+  }, [pendingRenameData, conflictRenameFilename, userData?.id]);
 
   // File delete handler
   const handleFileDelete = async (image: GeneratedImageData) => {
@@ -2203,7 +2547,6 @@ export default function Vault() {
       formData.append('filename', `${currentPath === '' ? 'output' : 'vault/' + currentPath}/${uploadModelData.system_filename}`);
 
       console.log(formData);
-      console
       // Upload file
       const uploadResponse = await fetch(`https://api.nymia.ai/v1/uploadfile?user=${userData.id}&filename=${'vault/' + currentPath + '/' + uploadModelData.system_filename}`, {
         method: 'POST',
@@ -3605,6 +3948,16 @@ export default function Vault() {
 
                   {/* Image */}
                   <div className="relative w-full group mb-4" style={{ paddingBottom: '100%' }}>
+                    {/* Uploaded/Edited Image Indicator */}
+                    {(image.model_version === 'edited' || image.quality_setting === 'edited') && (
+                      <div className="absolute top-2 right-2 z-10">
+                        <Badge variant="secondary" className="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs font-medium shadow-lg">
+                          <Edit className="w-3 h-3 mr-1" />
+                          Edited
+                        </Badge>
+                      </div>
+                    )}
+                    
                     <img
                       src={`https://images.nymia.ai/cdn-cgi/image/w=400/${userData.id}/${image.user_filename === "" ? "output" : "vault/" + image.user_filename}/${image.system_filename}`}
                       alt={image.system_filename}
@@ -3902,8 +4255,8 @@ export default function Vault() {
                     </Button>
                   </div>
 
-                  {/* Regenerate Button - Only for non-uploaded images */}
-                  {!image.task_id?.startsWith('upload_') && (
+                  {/* Regenerate Button - Only for non-uploaded and non-edited images */}
+                  {!(image.model_version === 'edited' || image.quality_setting === 'edited') && !image.task_id?.startsWith('upload_') && (
                     <div className="mt-2">
                       <Button
                         size="sm"
@@ -4215,13 +4568,12 @@ export default function Vault() {
           {detailedImageModal.image && (
             <div className="space-y-8">
               {/* Enhanced Header */}
-              <DialogHeader className="text-center pb-6 border-b border-gray-200/50 dark:border-gray-700/50">
-                <div className="flex items-center justify-center gap-3 mb-2">
-                  <div className="bg-gradient-to-br from-blue-500 to-purple-600 rounded-full w-10 h-10 flex items-center justify-center shadow-lg">
-                    {detailedImageModal.image.file_type === 'video' ? (
-                      <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M8 5v14l11-7z" />
-                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15V7l8 5-8 5z" opacity="0.3" />
+              <DialogHeader className="text-center space-y-4">
+                <div className="flex items-center justify-center gap-3">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg">
+                    {detailedImageModal.image.file_type.includes('video') ? (
+                      <svg className="w-6 h-6 text-white" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z" />
                       </svg>
                     ) : (
                       <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor">
@@ -4233,10 +4585,14 @@ export default function Vault() {
                   <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                     {decodeName(detailedImageModal.image.user_filename)}
                   </DialogTitle>
+                  {/* Edited Image Indicator */}
+                  {(detailedImageModal.image.model_version === 'edited' || detailedImageModal.image.quality_setting === 'edited') && (
+                    <Badge variant="secondary" className="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs font-medium shadow-lg">
+                      <Edit className="w-3 h-3 mr-1" />
+                      Edited
+                    </Badge>
+                  )}
                 </div>
-                <DialogDescription className="text-base text-gray-600 dark:text-gray-400">
-                  Comprehensive details and metadata for this generated {detailedImageModal.image.file_type}
-                </DialogDescription>
               </DialogHeader>
 
               {/* Enhanced Image Display */}
@@ -4995,6 +5351,55 @@ export default function Vault() {
                 </p>
               </div>
             )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Rename Conflict Dialog */}
+      <Dialog open={showRenameConflictDialog} onOpenChange={setShowRenameConflictDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>File Already Exists</DialogTitle>
+            <DialogDescription>
+              A file named "{conflictRenameFilename}" already exists in this folder. What would you like to do?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="p-4 bg-yellow-50 dark:bg-yellow-950/20 rounded-lg">
+              <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                <strong>Warning:</strong> Overwriting will permanently replace the existing file.
+              </p>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Button
+                onClick={handleRenameOverwriteConfirm}
+                variant="destructive"
+                className="flex-1"
+              >
+                <Upload className="w-4 h-4 mr-2" />
+                Overwrite File
+              </Button>
+              <Button
+                onClick={handleRenameCreateNew}
+                variant="outline"
+                className="flex-1"
+              >
+                <File className="w-4 h-4 mr-2" />
+                Create New File
+              </Button>
+            </div>
+            <Button
+              onClick={() => {
+                setShowRenameConflictDialog(false);
+                setPendingRenameData(null);
+                setConflictRenameFilename('');
+                setIsRenaming(false);
+              }}
+              variant="ghost"
+              className="w-full"
+            >
+              Cancel
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

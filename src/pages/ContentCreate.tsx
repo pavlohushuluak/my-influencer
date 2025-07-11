@@ -13,7 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
-import { Image, Wand2, Settings, Image as ImageIcon, Sparkles, Loader2, Camera, Search, X, Filter, Plus, RotateCcw, Download, Trash2 } from 'lucide-react';
+import { Image, Wand2, Settings, Image as ImageIcon, Sparkles, Loader2, Camera, Search, X, Filter, Plus, RotateCcw, Download, Trash2, Calendar, Share, Pencil } from 'lucide-react';
 import { toast } from 'sonner';
 import { Command, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -149,6 +149,7 @@ export default function ContentCreate() {
   // Influencer selector dialog state
   const [showInfluencerSelector, setShowInfluencerSelector] = useState(false);
   const [generatedTaskId, setGeneratedTaskId] = useState('');
+  const [generatedTaskIds, setGeneratedTaskIds] = useState<string[]>([]);
   const [generatedImages, setGeneratedImages] = useState<any[]>([]);
   const [isLoadingGeneratedImages, setIsLoadingGeneratedImages] = useState(false);
   const [fullSizeImageModal, setFullSizeImageModal] = useState<{ isOpen: boolean; imageUrl: string; imageName: string }>({
@@ -156,6 +157,17 @@ export default function ContentCreate() {
     imageUrl: '',
     imageName: ''
   });
+
+  // Vault-style image card state
+  const [detailedImageModal, setDetailedImageModal] = useState<{ open: boolean; image: any | null }>({ open: false, image: null });
+  const [editingNotes, setEditingNotes] = useState<string | null>(null);
+  const [editingTags, setEditingTags] = useState<string | null>(null);
+  const [notesInput, setNotesInput] = useState<string>('');
+  const [tagsInput, setTagsInput] = useState<string>('');
+  const [editingFile, setEditingFile] = useState<string | null>(null);
+  const [editingFileName, setEditingFileName] = useState<string>('');
+  const [renamingFile, setRenamingFile] = useState<string | null>(null);
+  const [fileContextMenu, setFileContextMenu] = useState<{ x: number; y: number; image: any } | null>(null);
 
   // Defensive: ensure formatOptions is always an array
   const safeFormatOptions = Array.isArray(formatOptions) ? formatOptions : [];
@@ -496,23 +508,28 @@ export default function ContentCreate() {
     fetchFormatOptions();
   }, []);
 
-  const fetchGeneratedImages = async (taskId: string) => {
-    if (!taskId) return;
+  const fetchGeneratedImages = async (taskIds: string[]) => {
+    if (!taskIds || taskIds.length === 0) return;
 
     setIsLoadingGeneratedImages(true);
     try {
-      const response = await fetch(`https://db.nymia.ai/rest/v1/generated_images?task_id=eq.${taskId}`, {
-        headers: {
-          'Authorization': 'Bearer WeInfl3nc3withAI'
-        }
-      });
+      // Fetch images for all task IDs
+      const allImages: any[] = [];
+      
+      for (const taskId of taskIds) {
+        const response = await fetch(`https://db.nymia.ai/rest/v1/generated_images?task_id=eq.${taskId}`, {
+          headers: {
+            'Authorization': 'Bearer WeInfl3nc3withAI'
+          }
+        });
 
-      if (!response.ok) {
-        throw new Error('Failed to fetch generated images');
+        if (response.ok) {
+          const data = await response.json();
+          allImages.push(...data);
+        }
       }
 
-      const data = await response.json();
-      setGeneratedImages(data);
+      setGeneratedImages(allImages);
     } catch (error) {
       console.error('Error fetching generated images:', error);
     } finally {
@@ -596,9 +613,7 @@ export default function ContentCreate() {
         }
       });
 
-      // Remove from local state
-      setGeneratedImages(prev => prev.filter(img => img.file_path !== image.file_path));
-
+      setGeneratedImages(prev => prev.filter(img => img.id !== image.id));
       toast.success(`Image "${filename}" deleted successfully`);
     } catch (error) {
       console.error('Error deleting image:', error);
@@ -752,12 +767,12 @@ export default function ContentCreate() {
           face_shape: data[0].face_shape,
           facial_features: data[0].facial_features,
           skin_tone: data[0].skin_tone,
-          bust: data[0].bust_size, // Default value since not in Influencer type
+          bust: data[0].bust_size,
           body_type: data[0].body_type,
           color_palette: data[0].color_palette || [],
           clothing_style_everyday: data[0].clothing_style_everyday,
-          eyebrow_style: data[0].eyebrow_style, // Default value since not in Influencer type
-          makeup_style: modelDescription.makeup, // Use from modelDescription or default
+          eyebrow_style: data[0].eyebrow_style,
+          makeup_style: modelDescription.makeup,
           name_first: data[0].name_first,
           name_last: data[0].name_last,
           visual_only: data[0].visual_only,
@@ -799,6 +814,8 @@ export default function ContentCreate() {
 
       const result = await response.json();
 
+      // Add new task ID to the list
+      setGeneratedTaskIds(prev => [...prev, result.id]);
       setGeneratedTaskId(result.id);
       toast.success('Content generation started successfully');
 
@@ -923,16 +940,14 @@ export default function ContentCreate() {
   }
 
   useEffect(() => {
+    if (generatedTaskIds.length > 0) {
+      fetchGeneratedImages(generatedTaskIds);
+    }
+  }, [generatedTaskIds]);
+
+  useEffect(() => {
     if (generatedTaskId) {
-      fetchGeneratedImages(generatedTaskId);
-
-      // Set up polling every 100ms
-      const interval = setInterval(() => {
-        fetchGeneratedImages(generatedTaskId);
-      }, 5000);
-
-      // Clean up interval on unmount or when generatedTaskId changes
-      return () => clearInterval(interval);
+      fetchGeneratedImages([generatedTaskId]);
     }
   }, [generatedTaskId]);
 
@@ -1197,6 +1212,186 @@ export default function ContentCreate() {
       console.log('✅ REGENERATION PROCESS COMPLETED');
     }
   }, [location.state]);
+
+  // Vault-style functions
+  const updateFavorite = async (systemFilename: string, favorite: boolean) => {
+    try {
+      const response = await fetch(`https://db.nymia.ai/rest/v1/generated_images?system_filename=eq.${systemFilename}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({ favorite })
+      });
+
+      if (response.ok) {
+        setGeneratedImages(prev => 
+          prev.map(img => 
+            img.system_filename === systemFilename 
+              ? { ...img, favorite } 
+              : img
+          )
+        );
+      }
+    } catch (error) {
+      console.error('Error updating favorite:', error);
+    }
+  };
+
+  const updateRating = async (systemFilename: string, rating: number) => {
+    try {
+      const response = await fetch(`https://db.nymia.ai/rest/v1/generated_images?system_filename=eq.${systemFilename}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({ rating })
+      });
+
+      if (response.ok) {
+        setGeneratedImages(prev => 
+          prev.map(img => 
+            img.system_filename === systemFilename 
+              ? { ...img, rating } 
+              : img
+          )
+        );
+      }
+    } catch (error) {
+      console.error('Error updating rating:', error);
+    }
+  };
+
+  const updateUserNotes = async (systemFilename: string, userNotes: string) => {
+    try {
+      const response = await fetch(`https://db.nymia.ai/rest/v1/generated_images?system_filename=eq.${systemFilename}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({ user_notes: userNotes })
+      });
+
+      if (response.ok) {
+        setGeneratedImages(prev => 
+          prev.map(img => 
+            img.system_filename === systemFilename 
+              ? { ...img, user_notes: userNotes } 
+              : img
+          )
+        );
+      }
+    } catch (error) {
+      console.error('Error updating user notes:', error);
+    }
+  };
+
+  const updateUserTags = async (systemFilename: string, userTags: string[]) => {
+    try {
+      const response = await fetch(`https://db.nymia.ai/rest/v1/generated_images?system_filename=eq.${systemFilename}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({ user_tags: userTags })
+      });
+
+      if (response.ok) {
+        setGeneratedImages(prev => 
+          prev.map(img => 
+            img.system_filename === systemFilename 
+              ? { ...img, user_tags: userTags } 
+              : img
+          )
+        );
+      }
+    } catch (error) {
+      console.error('Error updating user tags:', error);
+    }
+  };
+
+  const handleFileContextMenu = (e: React.MouseEvent, image: any) => {
+    e.preventDefault();
+    setFileContextMenu({ x: e.clientX, y: e.clientY, image });
+  };
+
+  const handleFileRename = async (oldFilename: string, newName: string) => {
+    try {
+      const response = await fetch(`https://db.nymia.ai/rest/v1/generated_images?system_filename=eq.${oldFilename}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({ user_filename: newName })
+      });
+
+      if (response.ok) {
+        setGeneratedImages(prev => 
+          prev.map(img => 
+            img.system_filename === oldFilename 
+              ? { ...img, user_filename: newName } 
+              : img
+          )
+        );
+        setEditingFile(null);
+        setEditingFileName('');
+        setRenamingFile(null);
+      }
+    } catch (error) {
+      console.error('Error renaming file:', error);
+    }
+  };
+
+  const handleFileDelete = async (image: any) => {
+    try {
+      toast.info('Deleting image...', {
+        description: 'This may take a moment'
+      });
+
+      const filename = image.file_path.split('/').pop();
+
+      await fetch(`https://api.nymia.ai/v1/deletefile`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          user: userData.id,
+          filename: 'output/' + filename
+        })
+      });
+
+      await fetch(`https://db.nymia.ai/rest/v1/generated_images?id=eq.${image.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        }
+      });
+
+      setGeneratedImages(prev => prev.filter(img => img.id !== image.id));
+      toast.success(`Image "${filename}" deleted successfully`);
+    } catch (error) {
+      console.error('Error deleting image:', error);
+      toast.error('Failed to delete image. Please try again.');
+    }
+  };
+
+  const handleShare = (systemFilename: string) => {
+    const imageUrl = `https://images.nymia.ai/cdn-cgi/image/w=800/output/${systemFilename}`;
+    navigator.clipboard.writeText(imageUrl);
+    toast.success('Image URL copied to clipboard!');
+  };
+
+  const decodeName = (name: string): string => {
+    return decodeURIComponent(name.replace(/\+/g, ' '));
+  };
 
   return (
     <div className="px-6 space-y-4">
@@ -2864,7 +3059,7 @@ export default function ContentCreate() {
       )}
 
       {/* Generated Image Results Card */}
-      {generatedTaskId && (
+      {generatedTaskIds.length > 0 && (
         <div className="space-y-6">
           <Card>
             <CardHeader>
@@ -2883,67 +3078,315 @@ export default function ContentCreate() {
                 generatedImages.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
                     {generatedImages
-                      .filter(image => image.file_path && image.system_filename === image.file_path.split('/').pop()) // Only show images with file_path
+                      .filter(image => image.file_path && image.system_filename === image.file_path.split('/').pop())
                       .map((image, index) => (
-                        <div key={index} className="relative group">
-                          <div className="aspect-square rounded-lg overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900">
-                            <img
-                              src={`https://images.nymia.ai/cdn-cgi/image/w=400/${image.file_path}`}
-                              alt={`Generated image ${index + 1}`}
-                              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                              onError={(e) => {
-                                const target = e.target as HTMLImageElement;
-                                target.style.display = 'none';
-                              }}
-                            />
-                          </div>
+                        <Card
+                          key={image.id}
+                          className={`group hover:shadow-xl transition-all duration-300 border-border/50 hover:border-yellow-500/30 backdrop-blur-sm bg-gradient-to-br from-yellow-50/20 to-orange-50/20 dark:from-yellow-950/5 dark:to-orange-950/5 ${renamingFile === image.system_filename ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}
+                          onContextMenu={(e) => renamingFile !== image.system_filename && handleFileContextMenu(e, image)}
+                        >
+                          <CardContent className="p-4">
+                            {/* Top Row: File Type, Ratings, Favorite */}
+                            <div className="flex items-center justify-between mb-3">
+                              {/* File Type Icon */}
+                              <div className="rounded-full w-8 h-8 flex items-center justify-center shadow-md bg-gradient-to-br from-blue-500 to-purple-600">
+                                <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="currentColor">
+                                  <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z" />
+                                  <circle cx="8.5" cy="8.5" r="1.5" opacity="0.8" />
+                                </svg>
+                              </div>
 
-                          {/* Overlay with action buttons */}
-                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all duration-300 rounded-lg flex items-center justify-center">
-                            <div className="opacity-0 group-hover:opacity-100 transition-all duration-300 flex flex-col gap-2">
-                              {/* View Full Size Button */}
+                              {/* Rating Stars */}
+                              <div className="flex gap-1">
+                                {[1, 2, 3, 4, 5].map((star) => (
+                                  <svg
+                                    key={star}
+                                    className={`w-4 h-4 cursor-pointer hover:scale-110 transition-transform ${star <= (image.rating || 0) ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
+                                    viewBox="0 0 24 24"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      updateRating(image.system_filename, star);
+                                    }}
+                                  >
+                                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                                  </svg>
+                                ))}
+                              </div>
+
+                              {/* Favorite Heart */}
+                              <div>
+                                {image.favorite ? (
+                                  <div
+                                    className="bg-red-500 rounded-full w-8 h-8 flex items-center justify-center cursor-pointer hover:bg-red-600 transition-colors"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      updateFavorite(image.system_filename, false);
+                                    }}
+                                  >
+                                    <svg className="w-4 h-4 text-white fill-current" viewBox="0 0 24 24">
+                                      <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                                    </svg>
+                                  </div>
+                                ) : (
+                                  <div
+                                    className="bg-black/50 rounded-full w-8 h-8 flex items-center justify-center cursor-pointer hover:bg-black/70 transition-colors"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      updateFavorite(image.system_filename, true);
+                                    }}
+                                  >
+                                    <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                      <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                                    </svg>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Image */}
+                            <div className="relative w-full group mb-4" style={{ paddingBottom: '100%' }}>
+                              <img
+                                src={`https://images.nymia.ai/cdn-cgi/image/w=400/${image.file_path}`}
+                                alt={image.system_filename}
+                                className="absolute inset-0 w-full h-full object-cover rounded-md shadow-sm cursor-pointer transition-all duration-200 hover:scale-105"
+                                onClick={() => setDetailedImageModal({ open: true, image })}
+                                onError={(e) => {
+                                  const target = e.target as HTMLImageElement;
+                                  target.style.display = 'none';
+                                }}
+                              />
+                            </div>
+
+                            {/* User Notes */}
+                            {editingNotes === image.system_filename ? (
+                              <div className="mb-3 space-y-2">
+                                <Input
+                                  value={notesInput}
+                                  onChange={(e) => setNotesInput(e.target.value)}
+                                  placeholder="Add notes..."
+                                  className="text-sm"
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                      updateUserNotes(image.system_filename, notesInput);
+                                      setEditingNotes(null);
+                                      setNotesInput('');
+                                    } else if (e.key === 'Escape') {
+                                      setEditingNotes(null);
+                                      setNotesInput('');
+                                    }
+                                  }}
+                                  autoFocus
+                                />
+                                <div className="flex gap-1">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-6 text-xs"
+                                    onClick={() => {
+                                      updateUserNotes(image.system_filename, notesInput);
+                                      setEditingNotes(null);
+                                      setNotesInput('');
+                                    }}
+                                  >
+                                    Save
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-6 text-xs"
+                                    onClick={() => {
+                                      setEditingNotes(null);
+                                      setNotesInput('');
+                                    }}
+                                  >
+                                    Cancel
+                                  </Button>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="mb-3">
+                                {image.user_notes ? (
+                                  <p
+                                    className="text-sm text-gray-700 dark:text-gray-300 line-clamp-2 cursor-pointer hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
+                                    onClick={() => {
+                                      setEditingNotes(image.system_filename);
+                                      setNotesInput(image.user_notes || '');
+                                    }}
+                                  >
+                                    {image.user_notes}
+                                  </p>
+                                ) : (
+                                  <div
+                                    className="text-sm text-gray-500 dark:text-gray-400 cursor-pointer hover:text-gray-700 dark:hover:text-gray-300"
+                                    onClick={() => {
+                                      setEditingNotes(image.system_filename);
+                                      setNotesInput('');
+                                    }}
+                                  >
+                                    Add notes
+                                  </div>
+                                )}
+                              </div>
+                            )}
+
+                            {/* User Tags */}
+                            {image.user_tags && image.user_tags.length > 0 && (
+                              <div className="mb-3 flex flex-wrap gap-1">
+                                {image.user_tags.map((tag: string, index: number) => (
+                                  <Badge
+                                    key={index}
+                                    variant="secondary"
+                                    className="text-xs flex items-center gap-1 cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/20 transition-colors"
+                                  >
+                                    {tag.trim()}
+                                    <button
+                                      className="ml-1 hover:text-red-500 transition-colors"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        const updatedTags = image.user_tags?.filter((_: string, i: number) => i !== index) || [];
+                                        updateUserTags(image.system_filename, updatedTags);
+                                      }}
+                                    >
+                                      ×
+                                    </button>
+                                  </Badge>
+                                ))}
+                              </div>
+                            )}
+
+                            {/* Editable User Tags */}
+                            <div className="mb-3">
+                              {editingTags === image.system_filename ? (
+                                <div className="space-y-2">
+                                  <Input
+                                    value={tagsInput}
+                                    onChange={(e) => setTagsInput(e.target.value)}
+                                    placeholder="Add tags (comma separated)..."
+                                    className="text-sm"
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter') {
+                                        const newTags = tagsInput.trim() ? tagsInput.split(',').map(tag => tag.trim()).filter(tag => tag) : [];
+                                        const existingTags = image.user_tags || [];
+                                        const combinedTags = [...existingTags, ...newTags];
+                                        const uniqueTags = [...new Set(combinedTags)];
+                                        updateUserTags(image.system_filename, uniqueTags);
+                                        setEditingTags(null);
+                                        setTagsInput('');
+                                      } else if (e.key === 'Escape') {
+                                        setEditingTags(null);
+                                        setTagsInput('');
+                                      }
+                                    }}
+                                    autoFocus
+                                  />
+                                  <div className="flex gap-1">
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="h-6 text-xs"
+                                      onClick={() => {
+                                        const newTags = tagsInput.trim() ? tagsInput.split(',').map(tag => tag.trim()).filter(tag => tag) : [];
+                                        const existingTags = image.user_tags || [];
+                                        const combinedTags = [...existingTags, ...newTags];
+                                        const uniqueTags = [...new Set(combinedTags)];
+                                        updateUserTags(image.system_filename, uniqueTags);
+                                        setEditingTags(null);
+                                        setTagsInput('');
+                                      }}
+                                    >
+                                      Add
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="h-6 text-xs"
+                                      onClick={() => {
+                                        setEditingTags(null);
+                                        setTagsInput('');
+                                      }}
+                                    >
+                                      Cancel
+                                    </Button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div
+                                  className="text-sm text-gray-500 dark:text-gray-400 cursor-pointer hover:text-gray-700 dark:hover:text-gray-300"
+                                  onClick={() => {
+                                    setEditingTags(image.system_filename);
+                                    setTagsInput('');
+                                  }}
+                                >
+                                  Add tags
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Filename and Date */}
+                            <div className="space-y-2">
+                              {editingFile === image.system_filename && renamingFile !== image.system_filename ? (
+                                <div className="w-full">
+                                  <div className="relative">
+                                    <Input
+                                      value={editingFileName}
+                                      onChange={(e) => setEditingFileName(e.target.value)}
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                          handleFileRename(image.system_filename, editingFileName);
+                                        } else if (e.key === 'Escape') {
+                                          setEditingFile(null);
+                                          setEditingFileName('');
+                                        }
+                                      }}
+                                      onBlur={() => handleFileRename(image.system_filename, editingFileName)}
+                                      className="text-sm h-8"
+                                      autoFocus
+                                    />
+                                  </div>
+                                </div>
+                              ) : (
+                                <>
+                                  <h3 className="font-medium text-sm text-gray-800 dark:text-gray-200 truncate">
+                                    {decodeName(image.system_filename)}
+                                  </h3>
+                                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                    <Calendar className="w-3 h-3" />
+                                    {new Date(image.created_at).toLocaleDateString()}
+                                  </div>
+                                </>
+                              )}
+                            </div>
+
+                            {/* Action Buttons */}
+                            <div className="flex gap-1.5 mt-3">
                               <Button
                                 size="sm"
-                                variant="secondary"
-                                className="bg-white/95 hover:bg-white text-gray-900 shadow-lg hover:shadow-xl transition-all duration-200 min-w-[120px]"
-                                onClick={() => handleViewFullSize(image)}
-                              >
-                                <ZoomIn className="w-4 h-4 mr-1" />
-                                View Full Size
-                              </Button>
-
-                              {/* Download Button */}
-                              <Button
-                                size="sm"
-                                variant="default"
-                                className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg hover:shadow-xl transition-all duration-200 min-w-[120px]"
+                                variant="outline"
+                                className="flex-1 h-8 text-xs font-medium hover:bg-purple-700 hover:border-purple-500 transition-colors"
                                 onClick={() => handleDownload(image)}
                               >
-                                <Download className="w-4 h-4 mr-1" />
-                                Download
+                                <Download className="w-3 h-3 mr-1.5" />
+                                <span className="hidden sm:inline">Download</span>
                               </Button>
-
-                              {/* Delete Button */}
                               <Button
                                 size="sm"
-                                variant="destructive"
-                                className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white shadow-lg hover:shadow-xl transition-all duration-200 min-w-[120px]"
-                                onClick={() => handleDelete(image)}
+                                variant="outline"
+                                className="h-8 w-8 p-0 hover:bg-green-50 hover:bg-green-700 hover:border-green-500 transition-colors"
+                                onClick={() => handleShare(image.system_filename)}
                               >
-                                <Trash2 className="w-4 h-4 mr-1" />
-                                Delete
+                                <Share className="w-3 h-3" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-amber-500 hover:border-amber-300 transition-colors"
+                                onClick={() => handleFileDelete(image)}
+                              >
+                                <Trash2 className="w-3 h-3" />
                               </Button>
                             </div>
-                          </div>
-
-                          {/* Image info overlay at bottom */}
-                          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                            <div className="text-white text-xs">
-                              <p className="font-medium truncate">{image.system_filename || `Image ${index + 1}`}</p>
-                              <p className="text-white/80">{image.generation_time_seconds ? `${image.generation_time_seconds}s` : 'Generated'}</p>
-                            </div>
-                          </div>
-                        </div>
+                          </CardContent>
+                        </Card>
                       ))}
                   </div>
                 ) : (
@@ -3119,6 +3562,202 @@ export default function ContentCreate() {
             </div>
           </DialogContent>
         </Dialog>
+      )}
+
+      {/* Detailed Image Modal */}
+      {detailedImageModal.open && detailedImageModal.image && (
+        <Dialog open={detailedImageModal.open} onOpenChange={(open) => setDetailedImageModal({ open, image: null })}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg">
+                  <Image className="w-5 h-5 text-white" />
+                </div>
+                Image Details
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-6">
+              {/* Image Display */}
+              <div className="flex items-center justify-center">
+                <img 
+                  src={`https://images.nymia.ai/cdn-cgi/image/w=800/${detailedImageModal.image.file_path}`}
+                  alt={detailedImageModal.image.system_filename}
+                  className="w-full h-auto max-h-[50vh] object-contain rounded-lg shadow-lg"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.style.display = 'none';
+                  }}
+                />
+              </div>
+
+              {/* Image Information */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="font-semibold mb-2">File Information</h3>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Filename:</span>
+                        <span className="font-mono">{decodeName(detailedImageModal.image.system_filename)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Created:</span>
+                        <span>{new Date(detailedImageModal.image.created_at).toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">File Size:</span>
+                        <span>{(detailedImageModal.image.file_size_bytes / 1024 / 1024).toFixed(2)} MB</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Format:</span>
+                        <span>{detailedImageModal.image.image_format}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="font-semibold mb-2">Generation Settings</h3>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Seed:</span>
+                        <span>{detailedImageModal.image.seed}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Guidance:</span>
+                        <span>{detailedImageModal.image.guidance}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Steps:</span>
+                        <span>{detailedImageModal.image.steps}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Quality:</span>
+                        <span>{detailedImageModal.image.quality_setting}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="font-semibold mb-2">Prompts</h3>
+                    <div className="space-y-2 text-sm">
+                      <div>
+                        <span className="text-muted-foreground block mb-1">T5XXL Prompt:</span>
+                        <p className="text-xs bg-gray-100 dark:bg-gray-800 p-2 rounded">{detailedImageModal.image.t5xxl_prompt}</p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground block mb-1">CLIP Prompt:</span>
+                        <p className="text-xs bg-gray-100 dark:bg-gray-800 p-2 rounded">{detailedImageModal.image.clip_l_prompt}</p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground block mb-1">Negative Prompt:</span>
+                        <p className="text-xs bg-gray-100 dark:bg-gray-800 p-2 rounded">{detailedImageModal.image.negative_prompt}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="font-semibold mb-2">Actions</h3>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleDownload(detailedImageModal.image)}
+                      >
+                        <Download className="w-4 h-4 mr-2" />
+                        Download
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleShare(detailedImageModal.image.system_filename)}
+                      >
+                        <Share className="w-4 h-4 mr-2" />
+                        Share
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => {
+                          handleFileDelete(detailedImageModal.image);
+                          setDetailedImageModal({ open: false, image: null });
+                        }}
+                      >
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Delete
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Context Menu */}
+      {fileContextMenu && (
+        <div
+          className="fixed z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg py-1 min-w-[150px]"
+          style={{
+            left: fileContextMenu.x,
+            top: fileContextMenu.y,
+          }}
+          onMouseLeave={() => setFileContextMenu(null)}
+        >
+          <button
+            className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+            onClick={() => {
+              setEditingFile(fileContextMenu.image.system_filename);
+              setEditingFileName(fileContextMenu.image.user_filename || fileContextMenu.image.system_filename);
+              setRenamingFile(fileContextMenu.image.system_filename);
+              setFileContextMenu(null);
+            }}
+          >
+            <Pencil className="w-4 h-4" />
+            Rename
+          </button>
+          <button
+            className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+            onClick={() => {
+              handleDownload(fileContextMenu.image);
+              setFileContextMenu(null);
+            }}
+          >
+            <Download className="w-4 h-4" />
+            Download
+          </button>
+          <button
+            className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+            onClick={() => {
+              handleShare(fileContextMenu.image.system_filename);
+              setFileContextMenu(null);
+            }}
+          >
+            <Share className="w-4 h-4" />
+            Share
+          </button>
+          <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>
+          <button
+            className="w-full px-4 py-2 text-left text-sm hover:bg-red-100 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 flex items-center gap-2"
+            onClick={() => {
+              handleFileDelete(fileContextMenu.image);
+              setFileContextMenu(null);
+            }}
+          >
+            <Trash2 className="w-4 h-4" />
+            Delete
+          </button>
+        </div>
+      )}
+
+      {/* Global click handler to close context menu */}
+      {fileContextMenu && (
+        <div
+          className="fixed inset-0 z-40"
+          onClick={() => setFileContextMenu(null)}
+        />
       )}
     </div>
   );

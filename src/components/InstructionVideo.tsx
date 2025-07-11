@@ -8,7 +8,6 @@ interface InstructionVideoProps {
   youtubeUrl?: string;
   title?: string;
   description?: string;
-  duration?: string;
   guideLink?: string;
   theme?: 'purple' | 'green' | 'blue' | 'orange';
   className?: string;
@@ -20,7 +19,6 @@ const InstructionVideo: React.FC<InstructionVideoProps> = ({
   youtubeUrl,
   title = "Watch the instruction",
   description = "Step-by-step guide",
-  duration = "5:32",
   guideLink = "#",
   theme = "purple",
   className = ""

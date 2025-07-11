@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import YouTube from 'react-youtube';
 
 interface InstructionVideoProps {
   imageUrl?: string;
@@ -90,53 +89,6 @@ const InstructionVideo: React.FC<InstructionVideoProps> = ({
 
   const handleGuideClick = () => {
     setShowGuideModal(true);
-  };
-
-  // Extract YouTube video ID from URL
-  const getYouTubeVideoId = (url: string) => {
-    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
-    const match = url.match(regExp);
-    return (match && match[2].length === 11) ? match[2] : null;
-  };
-
-  const videoId = youtubeUrl ? getYouTubeVideoId(youtubeUrl) : null;
-
-  // YouTube player options
-  const opts = {
-    height: '100%',
-    width: '100%',
-    playerVars: {
-      autoplay: 1,
-      modestbranding: 1,
-      rel: 0,
-      showinfo: 0,
-      controls: 1,
-      fs: 1,
-      iv_load_policy: 3,
-      cc_load_policy: 0,
-      disablekb: 0,
-      enablejsapi: 1,
-      origin: window.location.origin,
-    },
-  };
-
-  // YouTube event handlers
-  const onReady = (event: any) => {
-    // Video is ready to play
-    console.log('YouTube video is ready');
-  };
-
-  const onStateChange = (event: any) => {
-    // Handle video state changes
-    if (event.data === 0) {
-      // Video ended
-      setIsPlaying(false);
-    }
-  };
-
-  const onError = (event: any) => {
-    console.error('YouTube video error:', event);
-    setIsPlaying(false);
   };
 
   // Get guide content based on theme
@@ -242,19 +194,19 @@ const InstructionVideo: React.FC<InstructionVideoProps> = ({
           </div>
           
           <div className={`relative aspect-video bg-gradient-to-br ${config.bgGradient} dark:${config.darkBgGradient} rounded-2xl overflow-hidden shadow-xl border-2 ${config.borderColor} bg-opacity-60 backdrop-blur-md mb-4`}>
-            {isPlaying && videoId ? (
+            {isPlaying && youtubeUrl ? (
               <div className="relative w-full h-full">
-                <YouTube
-                  videoId={videoId}
-                  opts={opts}
-                  onReady={onReady}
-                  onStateChange={onStateChange}
-                  onError={onError}
+                <iframe
+                  src={youtubeUrl}
+                  title={title}
                   className="w-full h-full"
+                  frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
                 />
                 <Button
                   onClick={handleBackClick}
-                  className="absolute top-2 right-2 bg-black/70 hover:bg-black/90 text-white rounded-full w-8 h-8 p-0 z-10"
+                  className="absolute top-2 right-2 bg-black/70 hover:bg-black/90 text-white rounded-full w-8 h-8 p-0"
                   size="sm"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -292,9 +244,6 @@ const InstructionVideo: React.FC<InstructionVideoProps> = ({
                   <div className="w-16 h-16 bg-white/95 backdrop-blur-sm rounded-full flex items-center justify-center shadow-xl border-2 border-white/50 hover:scale-110 transition-transform duration-300 cursor-pointer ring-2 ring-white/20">
                     <div className={`w-0 h-0 border-l-[12px] ${config.playButtonColor} border-t-[8px] border-t-transparent border-b-[8px] border-b-transparent ml-1`}></div>
                   </div>
-                </div>
-                <div className="absolute bottom-2 right-2 bg-black/70 text-white px-2 py-1 rounded text-xs">
-                  {duration}
                 </div>
               </div>
             )}

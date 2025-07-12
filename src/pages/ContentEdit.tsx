@@ -54,6 +54,13 @@ interface EditHistory {
   imageData: string;
 }
 
+// Utility functions for encoding/decoding filenames
+function encodeFilename(name: string) {
+  return name.replace(/ /g, '_space_');
+}
+function decodeFilename(name: string) {
+  return name.replace(/_space_/g, ' ');
+}
 
 export default function ContentEdit() {
   const location = useLocation();
@@ -75,6 +82,9 @@ export default function ContentEdit() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showFilenameDialog, setShowFilenameDialog] = useState(false);
   const [customFilename, setCustomFilename] = useState('');
+  // New for extension lock
+  const [filenameBase, setFilenameBase] = useState('');
+  const [filenameExt, setFilenameExt] = useState('');
 
   // Theme options
   const THEME_MODES = [
@@ -174,7 +184,7 @@ export default function ContentEdit() {
         },
         body: JSON.stringify({
           user: userData.id,
-          filename: imageData.file_path.substring(imageData.file_path.indexOf('output/'))
+          filename: 'output/' + imageData.system_filename
         })
       });
 
@@ -203,7 +213,7 @@ export default function ContentEdit() {
       toast.error('Failed to download image. Please try again.');
 
       // Fallback to CDN URL if download fails
-      const fallbackUrl = `https://images.nymia.ai/cdn-cgi/image/w=1200/${imageData.file_path}`;
+      const fallbackUrl = `https://images.nymia.ai/cdn-cgi/image/w=1200/${userData.id}/output/${imageData.system_filename}`;
       setImageSrc(fallbackUrl);
       setHasImage(true);
       addToHistory('Original image loaded (fallback)', fallbackUrl);
@@ -316,7 +326,18 @@ export default function ContentEdit() {
   // When Upload to Vault is clicked, open the dialog
   const handleUploadToVaultClick = useCallback(() => {
     if (!selectedImage) return;
-    setCustomFilename(selectedImage.system_filename);
+    // Split filename into base and extension
+    const orig = selectedImage.system_filename;
+    const lastDot = orig.lastIndexOf('.');
+    let base = orig;
+    let ext = '';
+    if (lastDot > 0) {
+      base = orig.substring(0, lastDot);
+      ext = orig.substring(lastDot);
+    }
+    setFilenameBase(base);
+    setFilenameExt(ext);
+    setCustomFilename(orig); // for backward compatibility, but not used for input now
     setShowFilenameDialog(true);
   }, [selectedImage]);
 
@@ -334,7 +355,6 @@ export default function ContentEdit() {
       // Show loading toast
       const loadingToast = toast.loading('Preparing upload...', {
         description: 'Processing edited image',
-        duration: Infinity
       });
 
       // Fetch the edited image as a blob
@@ -402,7 +422,7 @@ export default function ContentEdit() {
       // Update loading message
       toast.loading('Uploading to Vault...', {
         id: loadingToast,
-        description: `Saving as "${finalFilename}"`
+        description: `Saving as "${decodeFilename(finalFilename)}"`
       });
 
       // Create a file from the blob with the unique filename
@@ -478,7 +498,7 @@ export default function ContentEdit() {
       }
 
       toast.dismiss(loadingToast);
-      toast.success(`Image uploaded to Vault successfully as "${finalFilename}"!`);
+      toast.success(`Image uploaded to Vault successfully as "${decodeFilename(finalFilename)}"!`);
     } catch (error) {
       console.error('Error uploading to vault:', error);
       toast.error('Failed to upload to vault. Please try again.');
@@ -490,8 +510,10 @@ export default function ContentEdit() {
   // Confirm filename and proceed with upload
   const handleConfirmFilename = useCallback(() => {
     setShowFilenameDialog(false);
-    uploadToVault(customFilename);
-  }, [customFilename, uploadToVault]);
+    // Always combine base and ext, then encode
+    const combined = filenameBase + filenameExt;
+    uploadToVault(encodeFilename(combined));
+  }, [filenameBase, filenameExt, uploadToVault]);
 
   const handleOverwriteConfirm = useCallback(async () => {
     if (!pendingUploadData) return;
@@ -501,8 +523,7 @@ export default function ContentEdit() {
       setShowOverwriteDialog(false);
 
       const loadingToast = toast.loading('Overwriting file...', {
-        description: `Replacing "${conflictFilename}"`,
-        duration: Infinity
+        description: `Replacing "${decodeFilename(conflictFilename)}"`
       });
 
       // Delete old file first
@@ -614,7 +635,7 @@ export default function ContentEdit() {
       }
 
       toast.dismiss(loadingToast);
-      toast.success(`File "${conflictFilename}" overwritten successfully!`);
+      toast.success(`File "${decodeFilename(conflictFilename)}" overwritten successfully!`);
     } catch (error) {
       console.error('Error overwriting file:', error);
       toast.error('Failed to overwrite file. Please try again.');
@@ -633,8 +654,7 @@ export default function ContentEdit() {
       setShowOverwriteDialog(false);
 
       const loadingToast = toast.loading('Creating new file...', {
-        description: 'Generating unique filename',
-        duration: Infinity
+        description: 'Generating unique filename'
       });
 
       // Get existing files to check for duplicates
@@ -686,7 +706,7 @@ export default function ContentEdit() {
       // Update loading message
       toast.loading('Uploading new file...', {
         id: loadingToast,
-        description: `Saving as "${finalFilename}"`
+        description: `Saving as "${decodeFilename(finalFilename)}"`
       });
 
       // Create a file from the blob with the unique filename
@@ -762,7 +782,7 @@ export default function ContentEdit() {
       }
 
       toast.dismiss(loadingToast);
-      toast.success(`New file created successfully as "${finalFilename}"!`);
+      toast.success(`New file created successfully as "${decodeFilename(finalFilename)}"!`);
     } catch (error) {
       console.error('Error creating new file:', error);
       toast.error('Failed to create new file. Please try again.');
@@ -1032,7 +1052,7 @@ export default function ContentEdit() {
               Edit Content
             </h1>
             <p className="text-sm md:text-base text-muted-foreground">
-              {selectedImage ? `Editing: ${selectedImage.system_filename}` : 'Upload an image to edit'}
+              {selectedImage ? `Editing: ${decodeFilename(selectedImage.system_filename)}` : 'Upload an image to edit'}
             </p>
           </div>
         </div>
@@ -1255,12 +1275,17 @@ export default function ContentEdit() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <Input
-              value={customFilename}
-              onChange={e => setCustomFilename(e.target.value)}
-              placeholder="Enter filename..."
-              className="w-full"
-            />
+            <div className="flex items-center">
+              <Input
+                value={decodeFilename(filenameBase)}
+                onChange={e => setFilenameBase(e.target.value)}
+                placeholder="Enter filename..."
+                className="w-full rounded-r-none"
+              />
+              <span className="px-3 py-2 bg-gray-100 dark:bg-gray-800 border border-l-0 border-input rounded-r-md text-gray-600 dark:text-gray-400 text-sm font-mono select-none">
+                {filenameExt}
+              </span>
+            </div>
             <div className="flex gap-2 justify-end">
               <Button variant="outline" onClick={() => setShowFilenameDialog(false)}>Cancel</Button>
               <Button onClick={handleConfirmFilename} className="bg-blue-600 hover:bg-blue-700 text-white">Upload</Button>

@@ -2095,7 +2095,7 @@ export default function Vault() {
       setRenamingFile(null);
 
       toast.dismiss(loadingToast);
-      toast.success(`File renamed to "${finalNewName}" successfully`);
+      toast.success(`File renamed to "${decodeName(finalNewName)}" successfully`);
 
     } catch (error) {
       console.error('Error renaming file:', error);
@@ -4200,7 +4200,7 @@ export default function Vault() {
                       <div className="w-full">
                         <div className="relative">
                           <Input
-                            value={editingFileName}
+                            value={decodeName(editingFileName)}
                             onChange={(e) => setEditingFileName(e.target.value)}
                             onKeyDown={(e) => {
                               if (e.key === 'Enter') {

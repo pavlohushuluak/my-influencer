@@ -12,14 +12,24 @@ import {
   Download,
   ArrowLeft,
   FileImage,
-  Upload
+  Upload,
+  Palette,
+  Sun,
+  Moon,
+  Droplet,
+  X
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 // Pintura imports
 import '@pqina/pintura/pintura.css';
 import { PinturaEditor } from '@pqina/react-pintura';
-import { getEditorDefaults } from '@pqina/pintura';
+import { colorStringToColorArray, getEditorDefaults } from '@pqina/pintura';
+import xSvg from '@/assets/social/x.svg';
+import tiktokSvg from '@/assets/social/tiktok.svg';
+import facebookSvg from '@/assets/social/facebook.svg';
+import instagramSvg from '@/assets/social/instagram.svg';
 
 interface ImageData {
   id: string;
@@ -63,6 +73,60 @@ export default function ContentEdit() {
   const [pendingUploadData, setPendingUploadData] = useState<{ blob: Blob; filename: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Theme options
+  const THEME_MODES = [
+    { key: 'light', label: 'Light', icon: Sun },
+    { key: 'dark', label: 'Dark', icon: Moon },
+    { key: 'custom', label: 'Custom', icon: Palette },
+  ];
+  const LIGHT_BG = [1, 1, 1];
+  const DARK_BG = [0, 0, 0];
+  const COLOR_LABELS = [
+    { key: 'red', label: 'Red', color: 'bg-red-500', idx: 0 },
+    { key: 'green', label: 'Green', color: 'bg-green-500', idx: 1 },
+    { key: 'blue', label: 'Blue', color: 'bg-blue-500', idx: 2 },
+  ];
+
+  const [themeMode, setThemeMode] = useState('dark');
+  const [customRGB, setCustomRGB] = useState([1, 1, 1]); // default all on
+  const [showCustomModal, setShowCustomModal] = useState(false);
+
+  // Compute the current theme array
+  const theme = themeMode === 'light'
+    ? LIGHT_BG
+    : themeMode === 'dark'
+      ? DARK_BG
+      : customRGB;
+
+  // Handle theme mode change
+  const handleThemeMode = (mode: string) => {
+    setThemeMode(mode);
+    setShowCustomModal(mode === 'custom');
+  };
+
+  // Handle color toggle
+  const handleColorToggle = (idx: number) => {
+    setCustomRGB(prev => {
+      const newArr = [...prev];
+      newArr[idx] = newArr[idx] === 1 ? 0 : 1;
+      return newArr;
+    });
+  };
+
+  // Modal close on outside click
+  const modalRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!showCustomModal) return;
+    const handleClick = (e: MouseEvent) => {
+      if (modalRef.current && !modalRef.current.contains(e.target as Node)) {
+        setShowCustomModal(false);
+        setThemeMode('custom'); // keep custom selected
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [showCustomModal]);
+
   // Get editor defaults with upload configuration
   const getEditorDefaultsWithUpload = useCallback(() => {
     return getEditorDefaults({
@@ -90,11 +154,10 @@ export default function ContentEdit() {
   const [historyIndex, setHistoryIndex] = useState(-1);
 
   const fetchImage = async (imageData: ImageData) => {
+    let loadingToast: any;
     try {
       setIsLoadingImage(true);
-
-      // Show loading toast
-      const loadingToast = toast.loading('Loading image...', {
+      loadingToast = toast.loading('Loading image...', {
         description: 'Preparing image for editing',
         duration: Infinity
       });
@@ -143,8 +206,18 @@ export default function ContentEdit() {
       addToHistory('Original image loaded (fallback)', fallbackUrl);
     } finally {
       setIsLoadingImage(false);
+      if (loadingToast) toast.dismiss(loadingToast);
     }
   }
+
+  useEffect(() => {
+    const imageData = location.state?.imageData;
+    // Only run if both imageData and userData.id are available, and not already loaded
+    if (imageData && userData?.id && (!selectedImage || selectedImage.id !== imageData.id)) {
+      setSelectedImage(imageData);
+      fetchImage(imageData);
+    }
+  }, [location.state, userData?.id]);
 
   // Get image data from navigation state
   useEffect(() => {
@@ -152,11 +225,10 @@ export default function ContentEdit() {
     console.log('ContentEdit: Received image data:', imageData);
     if (imageData) {
       setSelectedImage(imageData);
-      fetchImage(imageData);
     } else {
       console.log('ContentEdit: No image data received');
     }
-  }, [location.state, userData?.id]);
+  }, [location.state]);
 
   // Cleanup function to revoke object URLs when component unmounts
   useEffect(() => {
@@ -708,6 +780,8 @@ export default function ContentEdit() {
         setShowImageSelection(false);
         addToHistory('Image uploaded', result);
         toast.success('Image uploaded successfully');
+        // Clear the file input so the same file can be uploaded again
+        if (fileInputRef.current) fileInputRef.current.value = '';
       };
       reader.readAsDataURL(file);
     }
@@ -788,6 +862,26 @@ export default function ContentEdit() {
     setHistoryIndex(-1);
     navigate('/content/edit'); // Navigate back to the selection screen
   }, [navigate]);
+
+  const [socialStickerUrls, setSocialStickerUrls] = useState<string[]>([]);
+
+  useEffect(() => {
+    // Helper to fetch and convert SVG to data URL
+    const fetchSvgAsDataUrl = async (svgPath: string) => {
+      const response = await fetch(svgPath);
+      const svgText = await response.text();
+      return 'data:image/svg+xml;utf8,' + encodeURIComponent(svgText);
+    };
+    (async () => {
+      const urls = await Promise.all([
+        fetchSvgAsDataUrl(xSvg),
+        fetchSvgAsDataUrl(tiktokSvg),
+        fetchSvgAsDataUrl(facebookSvg),
+        fetchSvgAsDataUrl(instagramSvg),
+      ]);
+      setSocialStickerUrls(urls);
+    })();
+  }, []);
 
   if (!selectedImage && showImageSelection) {
     return (
@@ -925,33 +1019,78 @@ export default function ContentEdit() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <Button
-            onClick={uploadToVault}
-            disabled={!selectedImage || !editedImageUrl || isUploading}
-            className="bg-blue-600 hover:bg-blue-700"
-          >
-            {isUploading ? (
-              <>
-                <div className="w-4 h-4 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                <span className="hidden sm:inline">Uploading...</span>
-              </>
-            ) : (
-              <>
-                <Upload className="w-4 h-4 mr-2" />
-                <span className="hidden sm:inline">Upload to Vault</span>
-              </>
+        <div className="flex items-center justify-between px-4 py-2 z-20">
+          {/* Left: Theme selector and (optionally) mode selectors */}
+          <div className="flex items-center gap-6 relative">
+            {/* Theme Segmented Control */}
+            <div className="flex items-center gap-1 bg-white/80 dark:bg-gray-900/80 rounded-full shadow px-2 py-1 border border-blue-100 mr-2">
+              {THEME_MODES.map(opt => (
+                <button
+                  key={opt.key}
+                  onClick={() => handleThemeMode(opt.key)}
+                  className={`flex items-center gap-1 px-3 py-1 rounded-full font-medium text-xs transition-all
+                    ${themeMode === opt.key ? 'bg-blue-600 text-white shadow-md' : 'text-gray-700 dark:text-gray-200 hover:bg-blue-50 dark:hover:bg-blue-900'}`}
+                  style={{ outline: themeMode === opt.key ? '2px solid #2563eb' : 'none' }}
+                  title={opt.label}
+                >
+                  <opt.icon className="w-4 h-4" />
+                  <span className="hidden sm:inline">{opt.label}</span>
+                </button>
+              ))}
+            </div>
+            {/* Custom theme modal */}
+            {showCustomModal && (
+              <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/30">
+                <div ref={modalRef} className="bg-white dark:bg-gray-900 border border-blue-200 rounded-2xl shadow-2xl px-8 py-6 flex flex-col items-center relative animate-fade-in">
+                  <button onClick={() => setShowCustomModal(false)} className="absolute top-2 right-2 text-gray-400 hover:text-red-500"><X className="w-5 h-5" /></button>
+                  <div className="mb-3 text-base text-gray-700 dark:text-gray-200 font-semibold">Custom Color Theme</div>
+                  <div className="flex gap-4 mb-3">
+                    {COLOR_LABELS.map((color, idx) => (
+                      <button
+                        key={color.key}
+                        onClick={() => handleColorToggle(color.idx)}
+                        className={`w-12 h-12 rounded-full flex items-center justify-center border-4 transition-all
+                          ${color.color} ${customRGB[color.idx] ? 'border-amber-500 scale-110 shadow-lg' : 'border-gray-300 opacity-50'}`}
+                        title={`Toggle ${color.label}`}
+                      >
+                        <Droplet className="w-6 h-6 text-white" />
+                      </button>
+                    ))}
+                  </div>
+                  <div className="text-xs text-gray-500">Toggle colors to create your custom background</div>
+                </div>
+              </div>
             )}
-          </Button>
-          <Button
-            onClick={handleDownloadEdited}
-            disabled={!selectedImage || !editedImageUrl}
-            variant="outline"
-            className="flex items-center gap-2"
-          >
-            <Download className="w-4 h-4 mr-2" />
-            <span className="hidden sm:inline">Download</span>
-          </Button>
+          </div>
+          {/* Right: Download and Upload buttons */}
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={uploadToVault}
+              disabled={!selectedImage || !editedImageUrl || isUploading}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              {isUploading ? (
+                <>
+                  <div className="w-4 h-4 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  <span className="hidden sm:inline">Uploading...</span>
+                </>
+              ) : (
+                <>
+                  <Upload className="w-4 h-4 mr-2" />
+                  <span className="hidden sm:inline">Upload to Vault</span>
+                </>
+              )}
+            </Button>
+            <Button
+              onClick={handleDownloadEdited}
+              disabled={!selectedImage || !editedImageUrl}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <Download className="w-4 h-4 mr-2" />
+              <span className="hidden sm:inline">Download</span>
+            </Button>
+          </div>
         </div>
       </div> {/* End of header div */}
 
@@ -998,9 +1137,22 @@ export default function ContentEdit() {
                   {...editorDefaults}
                   src={imageSrc}
                   onProcess={handleEditorProcess}
-                  utils={['crop', 'finetune', 'filter', 'annotate', 'frame', 'sticker', 'fill', 'redact', 'resize']}
-                  stickers={['😀', '😁', '😆', '😅', '🤣', '🙃', '😉', '😊', '😇', '😕', '😮', '😧', '😰', '😭', '😱', '😓', '😫', '🎉', '👍', '👎', '💘', '💝', '💖', '💓', '💞', '💕', '💔', '💋', '💯', '🥳', '🏆', '🏅', '🥇', '🥈', '🥉', '🍕', '🖌️', '🌤', '🌥']}
-                  imageCropAspectRatio={1}
+                  utils={['crop', 'sticker', 'finetune', 'filter', 'annotate', 'frame', 'fill', 'redact', 'resize']}
+                  stickers={[
+                    ['social', [...socialStickerUrls,]],
+                    ['emojis', [
+                      '😀', '😁', '😆', '😅', '🤣', '🙃', '😉', '😊', '😇', '🥳', '😕', '😮', '😧', '😰', '😭', '😱', '😓', '😫', '👍', '👎'
+                    ]],
+                    [
+                      'hearts',
+                      [
+                        '💘', '💝', '💖', '💓', '💞', '💕', '💔', '💋', '💯'
+                      ]
+                    ],
+                    ['default', [
+                      '🏆', '🏅', '🥇', '🥈', '🥉', '🎉', '🍕', '🖌️', '🌤', '🌥'
+                   ]],
+                  ]}
                   // Offer different crop options
                   cropSelectPresetOptions={[
                     [undefined, 'Custom'],
@@ -1018,6 +1170,7 @@ export default function ContentEdit() {
                     [10 / 16, '10:16'],
                     [9 / 16, '9:16'],
                   ]}
+                  imageBackgroundColor={theme}
                 />
               </div>
             )}

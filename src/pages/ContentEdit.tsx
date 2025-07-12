@@ -8,48 +8,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import {
-  Edit,
   Image,
-  Save,
   Download,
   ArrowLeft,
-  Settings,
-  Sparkles,
   FileImage,
-  History,
-  RotateCw,
-  RotateCcw,
-  FlipHorizontal,
-  FlipVertical,
-  Crop,
-  Palette,
-  Sun,
-  Target,
-  Droplets,
-  Zap,
-  Eye,
-  Layers,
-  Sliders,
-  Check,
-  X,
-  ChevronLeft,
-  ChevronRight,
-  Star,
-  StarOff,
-  FileVideo,
-  Wand2,
-  Camera,
-  Brush,
-  Eraser,
-  Move,
-  Square,
-  Circle,
-  Type as TypeIcon,
-  Image as ImageIcon,
-  Palette as PaletteIcon,
-  Moon,
-  Heart,
-  HeartOff,
   Upload
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -93,6 +55,7 @@ export default function ContentEdit() {
   const [imageSrc, setImageSrc] = useState<string | null>(null);
   const [editedImageUrl, setEditedImageUrl] = useState<string | null>(null);
   const [hasImage, setHasImage] = useState(false);
+  const [isLoadingImage, setIsLoadingImage] = useState(false);
   const [showImageSelection, setShowImageSelection] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
   const [showOverwriteDialog, setShowOverwriteDialog] = useState(false);
@@ -126,23 +89,96 @@ export default function ContentEdit() {
   const [history, setHistory] = useState<EditHistory[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
 
+  const fetchImage = async (imageData: ImageData) => {
+    try {
+      setIsLoadingImage(true);
+      
+      // Show loading toast
+      const loadingToast = toast.loading('Loading image...', {
+        description: 'Preparing image for editing',
+        duration: Infinity
+      });
+
+      // Download the image file
+      const response = await fetch('https://api.nymia.ai/v1/downloadfile', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          user: userData.id,
+          filename: imageData.file_path.substring(imageData.file_path.indexOf('output/'))
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to download image');
+      }
+
+      // Get the blob from the response
+      const blob = await response.blob();
+      
+      // Create a URL for the downloaded blob
+      const imageUrl = URL.createObjectURL(blob);
+      
+      // Set the image source to the downloaded file
+      setImageSrc(imageUrl);
+      setHasImage(true);
+      
+      // Add to history
+      addToHistory('Original image loaded', imageUrl);
+      
+      toast.dismiss(loadingToast);
+      toast.success('Image loaded successfully!');
+      
+    } catch (error) {
+      console.error('Error downloading image:', error);
+      toast.error('Failed to download image. Please try again.');
+      
+      // Fallback to CDN URL if download fails
+      const fallbackUrl = `https://images.nymia.ai/cdn-cgi/image/w=1200/${imageData.file_path}`;
+      setImageSrc(fallbackUrl);
+      setHasImage(true);
+      addToHistory('Original image loaded (fallback)', fallbackUrl);
+    } finally {
+      setIsLoadingImage(false);
+    }
+  }
+
   // Get image data from navigation state
   useEffect(() => {
     const imageData = location.state?.imageData;
     console.log('ContentEdit: Received image data:', imageData);
     if (imageData) {
       setSelectedImage(imageData);
-      const imageUrl = `https://images.nymia.ai/cdn-cgi/image/w=1200/${imageData.file_path}`;
-      console.log('ContentEdit: Loading image from path:', imageUrl);
-      setImageSrc(imageUrl);
-      setHasImage(true);
-      addToHistory('Original image loaded', imageUrl);
+      fetchImage(imageData);
     } else {
       console.log('ContentEdit: No image data received');
     }
-  }, [location.state]);
+  }, [location.state, userData?.id]);
+
+  // Cleanup function to revoke object URLs when component unmounts
+  useEffect(() => {
+    return () => {
+      // Cleanup object URLs to prevent memory leaks
+      if (imageSrc && imageSrc.startsWith('blob:')) {
+        URL.revokeObjectURL(imageSrc);
+      }
+      if (editedImageUrl && editedImageUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(editedImageUrl);
+      }
+    };
+  }, [imageSrc, editedImageUrl]);
 
   const addToHistory = useCallback((description: string, imageData: string) => {
+    // Cleanup previous blob URLs in history to prevent memory leaks
+    history.forEach((item) => {
+      if (item.imageData && item.imageData.startsWith('blob:')) {
+        URL.revokeObjectURL(item.imageData);
+      }
+    });
+
     const newHistory: EditHistory = {
       id: Date.now().toString(),
       timestamp: new Date(),
@@ -210,7 +246,7 @@ export default function ContentEdit() {
 
     try {
       setIsUploading(true);
-      
+
       // Show loading toast
       const loadingToast = toast.loading('Preparing upload...', {
         description: 'Processing edited image',
@@ -236,7 +272,7 @@ export default function ContentEdit() {
 
       let finalFilename = selectedImage.system_filename;
       let hasConflict = false;
-      
+
       if (getFilesResponse.ok) {
         const files = await getFilesResponse.json();
         console.log('Files to copy:', files);
@@ -265,15 +301,15 @@ export default function ContentEdit() {
           // Generate unique filename
           const baseName = selectedImage.system_filename.substring(0, selectedImage.system_filename.lastIndexOf('.'));
           const extension = selectedImage.system_filename.substring(selectedImage.system_filename.lastIndexOf('.'));
-          
+
           let counter = 1;
           let testFilename = selectedImage.system_filename;
-          
+
           while (existingFilenames.includes(testFilename)) {
             testFilename = `${baseName}(${counter})${extension}`;
             counter++;
           }
-          
+
           finalFilename = testFilename;
           console.log('Final filename:', finalFilename);
         }
@@ -525,7 +561,7 @@ export default function ContentEdit() {
       });
 
       let finalFilename = selectedImage.system_filename;
-      
+
       if (getFilesResponse.ok) {
         const files = await getFilesResponse.json();
         console.log('Files to check for new filename:', files);
@@ -543,15 +579,15 @@ export default function ContentEdit() {
           // Generate unique filename with numbering
           const baseName = selectedImage.system_filename.substring(0, selectedImage.system_filename.lastIndexOf('.'));
           const extension = selectedImage.system_filename.substring(selectedImage.system_filename.lastIndexOf('.'));
-          
+
           let counter = 1;
           let testFilename = `${baseName}(${counter})${extension}`;
-          
+
           while (existingFilenames.includes(testFilename)) {
             counter++;
             testFilename = `${baseName}(${counter})${extension}`;
           }
-          
+
           finalFilename = testFilename;
           console.log('Final new filename:', finalFilename);
         }
@@ -653,7 +689,7 @@ export default function ContentEdit() {
       const reader = new FileReader();
       reader.onload = (e) => {
         const result = e.target?.result as string;
-        
+
         // Create a selectedImage object for uploaded files
         const uploadedImage: ImageData = {
           id: `uploaded-${Date.now()}`,
@@ -665,7 +701,7 @@ export default function ContentEdit() {
           image_format: file.type.split('/')[1] || 'jpeg',
           file_type: file.type
         };
-        
+
         setSelectedImage(uploadedImage);
         setImageSrc(result);
         setHasImage(true);
@@ -689,7 +725,7 @@ export default function ContentEdit() {
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     const files = e.dataTransfer.files;
     if (files.length > 0) {
       const file = files[0];
@@ -697,7 +733,7 @@ export default function ContentEdit() {
         const reader = new FileReader();
         reader.onload = (e) => {
           const result = e.target?.result as string;
-          
+
           // Create a selectedImage object for uploaded files
           const uploadedImage: ImageData = {
             id: `uploaded-${Date.now()}`,
@@ -709,7 +745,7 @@ export default function ContentEdit() {
             image_format: file.type.split('/')[1] || 'jpeg',
             file_type: file.type
           };
-          
+
           setSelectedImage(uploadedImage);
           setImageSrc(result);
           setHasImage(true);
@@ -735,6 +771,14 @@ export default function ContentEdit() {
   }, []);
 
   const handleBackToSelection = useCallback(() => {
+    // Cleanup current blob URLs before clearing state
+    if (imageSrc && imageSrc.startsWith('blob:')) {
+      URL.revokeObjectURL(imageSrc);
+    }
+    if (editedImageUrl && editedImageUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(editedImageUrl);
+    }
+    
     setShowImageSelection(true);
     setSelectedImage(null); // Clear selected image
     setImageSrc(null);
@@ -746,19 +790,19 @@ export default function ContentEdit() {
   }, [navigate]);
 
   if (!selectedImage && showImageSelection) {
-  return (
+    return (
       <div className="p-4 md:p-6 space-y-4 md:space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
-      <div>
+          <div>
             <h1 className="text-2xl md:text-3xl font-bold tracking-tight bg-ai-gradient bg-clip-text text-transparent">
-          Edit Content
-        </h1>
+              Edit Content
+            </h1>
             <p className="text-sm md:text-base text-muted-foreground">
               Choose how you want to get started
-        </p>
+            </p>
           </div>
-      </div>
+        </div>
 
         {/* Image Selection */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 max-w-4xl mx-auto">
@@ -837,8 +881,8 @@ export default function ContentEdit() {
               accept="image/*"
               className="hidden"
             />
-            
-            <div 
+
+            <div
               className="border-2 border-dashed border-gray-300 rounded-lg h-[400px] md:h-[600px] bg-muted flex flex-col items-center justify-center hover:border-gray-400 transition-colors cursor-pointer"
               onClick={triggerFileUpload}
               onDragOver={handleDragOver}
@@ -851,10 +895,10 @@ export default function ContentEdit() {
                 <Upload className="w-4 h-4 mr-2" />
                 Choose Image
               </Button>
-                  </div>
+            </div>
           </CardContent>
         </Card>
-                    </div>
+      </div>
     );
   }
 
@@ -877,10 +921,10 @@ export default function ContentEdit() {
             </h1>
             <p className="text-sm md:text-base text-muted-foreground">
               {selectedImage ? `Editing: ${selectedImage.system_filename}` : 'Upload an image to edit'}
-                    </p>
-                  </div>
-                </div>
-        
+            </p>
+          </div>
+        </div>
+
         <div className="flex items-center gap-2">
           <Button
             onClick={uploadToVault}
@@ -913,11 +957,11 @@ export default function ContentEdit() {
 
       {/* Main Editor */}
       <div className="w-full">
-              <Card>
-                <CardHeader>
+        <Card>
+          <CardHeader>
             <CardTitle>Professional Image Editor</CardTitle>
-                </CardHeader>
-                <CardContent>
+          </CardHeader>
+          <CardContent>
             {/* Hidden file input */}
             <input
               type="file"
@@ -926,9 +970,9 @@ export default function ContentEdit() {
               accept="image/*"
               className="hidden"
             />
-            
+
             {!hasImage ? (
-              <div 
+              <div
                 className="border-2 border-dashed border-gray-300 rounded-lg h-[400px] md:h-[600px] bg-muted flex flex-col items-center justify-center hover:border-gray-400 transition-colors cursor-pointer"
                 onClick={triggerFileUpload}
                 onDragOver={handleDragOver}
@@ -940,8 +984,13 @@ export default function ContentEdit() {
                 <Button onClick={triggerFileUpload}>
                   <Upload className="w-4 h-4 mr-2" />
                   Choose Image
-                        </Button>
-                      </div>
+                </Button>
+              </div>
+            ) : isLoadingImage ? (
+              <div className="border rounded-lg h-[400px] md:h-[600px] bg-muted flex flex-col items-center justify-center">
+                <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mb-4" />
+                <p className="text-sm md:text-base text-gray-500 text-center px-4">Preparing image for editing</p>
+              </div>
             ) : (
               <div className="border rounded-lg h-[400px] md:h-[600px] bg-muted">
                 <PinturaEditor
@@ -950,11 +999,11 @@ export default function ContentEdit() {
                   src={imageSrc}
                   onProcess={handleEditorProcess}
                 />
-                      </div>
+              </div>
             )}
-                </CardContent>
-              </Card>
-                  </div>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Overwrite Confirmation Dialog */}
       <Dialog open={showOverwriteDialog} onOpenChange={setShowOverwriteDialog}>

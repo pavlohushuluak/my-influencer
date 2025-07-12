@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '@/store/store';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,7 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
-import { Image, Wand2, Settings, Image as ImageIcon, Sparkles, Loader2, Camera, Search, X, Filter, Plus, RotateCcw, Download, Trash2, Calendar, Share, Pencil } from 'lucide-react';
+import { Image, Wand2, Settings, Image as ImageIcon, Sparkles, Loader2, Camera, Search, X, Filter, Plus, RotateCcw, Download, Trash2, Calendar, Share, Pencil, Edit3 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Command, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -43,6 +43,7 @@ interface Option {
 
 export default function ContentCreate() {
   const location = useLocation();
+  const navigate = useNavigate();
   const dispatch = useDispatch();
   const userData = useSelector((state: RootState) => state.user);
   const influencers = useSelector((state: RootState) => state.influencers.influencers);
@@ -1379,9 +1380,33 @@ export default function ContentCreate() {
   };
 
   const handleShare = (systemFilename: string) => {
-    const imageUrl = `https://images.nymia.ai/cdn-cgi/image/w=800/output/${systemFilename}`;
-    navigator.clipboard.writeText(imageUrl);
-    toast.success('Image URL copied to clipboard!');
+    // Implement share functionality
+    toast.info('Share functionality coming soon');
+  };
+
+  const handleEdit = (image: any) => {
+    // Navigate to ContentEdit with the image data
+    navigate('/content/edit', {
+      state: {
+        imageData: {
+          id: image.id,
+          system_filename: image.system_filename,
+          user_filename: image.user_filename,
+          file_path: image.file_path,
+          user_notes: image.user_notes,
+          user_tags: image.user_tags,
+          rating: image.rating,
+          favorite: image.favorite,
+          created_at: image.created_at,
+          file_size_bytes: image.file_size_bytes,
+          image_format: image.image_format,
+          file_type: image.file_type
+        }
+      }
+    });
+    toast.success('Opening image editor...', {
+      description: `Ready to edit "${image.system_filename}"`
+    });
   };
 
   const decodeName = (name: string): string => {
@@ -3077,7 +3102,7 @@ export default function ContentCreate() {
                       .map((image, index) => (
                         <Card
                           key={image.id}
-                          className={`group hover:shadow-xl transition-all duration-300 border-border/50 hover:border-yellow-500/30 backdrop-blur-sm bg-gradient-to-br from-yellow-50/20 to-orange-50/20 dark:from-yellow-950/5 dark:to-orange-950/5 ${renamingFile === image.system_filename ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}
+                          className={`group hover:shadow-xl transition-all duration-300 border-border/50 hover:border-blue-500/50 backdrop-blur-sm bg-gradient-to-br from-yellow-50/20 to-orange-50/20 dark:from-yellow-950/5 dark:to-orange-950/5 hover:from-blue-50/30 hover:to-purple-50/30 dark:hover:from-blue-950/10 dark:hover:to-purple-950/10 ${renamingFile === image.system_filename ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}
                           onContextMenu={(e) => renamingFile !== image.system_filename && handleFileContextMenu(e, image)}
                         >
                           <CardContent className="p-4">
@@ -3150,6 +3175,12 @@ export default function ContentCreate() {
                                   target.style.display = 'none';
                                 }}
                               />
+                              {/* Edit Overlay */}
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded-md flex items-end justify-end p-2">
+                                <div className="bg-white/90 dark:bg-black/90 rounded-full p-1.5 shadow-lg">
+                                  <Edit3 className="w-3 h-3 text-gray-700 dark:text-gray-300" />
+                                </div>
+                              </div>
                             </div>
 
                             {/* User Notes */}
@@ -3378,6 +3409,18 @@ export default function ContentCreate() {
                                 onClick={() => handleFileDelete(image)}
                               >
                                 <Trash2 className="w-3 h-3" />
+                              </Button>
+                            </div>
+                            <div className="flex gap-1.5 mt-3">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="flex-1 h-8 text-xs font-medium bg-gradient-to-r from-blue-500 to-purple-600 text-white border-blue-500 hover:from-blue-600 hover:to-purple-700 hover:border-blue-600 transition-all duration-200 shadow-sm"
+                                onClick={() => handleEdit(image)}
+                                title="Edit this image with professional tools"
+                              >
+                                <Edit3 className="w-3 h-3 mr-1.5" />
+                                <span className="hidden sm:inline">Edit</span>
                               </Button>
                             </div>
                           </CardContent>

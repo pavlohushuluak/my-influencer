@@ -92,7 +92,7 @@ export default function ContentEdit() {
   const fetchImage = async (imageData: ImageData) => {
     try {
       setIsLoadingImage(true);
-      
+
       // Show loading toast
       const loadingToast = toast.loading('Loading image...', {
         description: 'Preparing image for editing',
@@ -118,24 +118,24 @@ export default function ContentEdit() {
 
       // Get the blob from the response
       const blob = await response.blob();
-      
+
       // Create a URL for the downloaded blob
       const imageUrl = URL.createObjectURL(blob);
-      
+
       // Set the image source to the downloaded file
       setImageSrc(imageUrl);
       setHasImage(true);
-      
+
       // Add to history
       addToHistory('Original image loaded', imageUrl);
-      
+
       toast.dismiss(loadingToast);
       toast.success('Image loaded successfully!');
-      
+
     } catch (error) {
       console.error('Error downloading image:', error);
       toast.error('Failed to download image. Please try again.');
-      
+
       // Fallback to CDN URL if download fails
       const fallbackUrl = `https://images.nymia.ai/cdn-cgi/image/w=1200/${imageData.file_path}`;
       setImageSrc(fallbackUrl);
@@ -778,7 +778,7 @@ export default function ContentEdit() {
     if (editedImageUrl && editedImageUrl.startsWith('blob:')) {
       URL.revokeObjectURL(editedImageUrl);
     }
-    
+
     setShowImageSelection(true);
     setSelectedImage(null); // Clear selected image
     setImageSrc(null);
@@ -999,7 +999,25 @@ export default function ContentEdit() {
                   src={imageSrc}
                   onProcess={handleEditorProcess}
                   utils={['crop', 'finetune', 'filter', 'annotate', 'frame', 'sticker', 'fill', 'redact', 'resize']}
-                  stickers={['😀', '😁', '😆', '😅', '🤣', '🙃', '😉', '😊', '😇', '😕', '😮', '😧', '😰', '😭', '😱', '😓', '😫', '🎉', '👍', '👎',  '💘', '💝', '💖', '💓', '💞', '💕', '💔', '💋', '💯', '🥳', '🏆', '🏅', '🥇', '🥈', '🥉', '🍕', '🖌️', '🌤', '🌥']}
+                  stickers={['😀', '😁', '😆', '😅', '🤣', '🙃', '😉', '😊', '😇', '😕', '😮', '😧', '😰', '😭', '😱', '😓', '😫', '🎉', '👍', '👎', '💘', '💝', '💖', '💓', '💞', '💕', '💔', '💋', '💯', '🥳', '🏆', '🏅', '🥇', '🥈', '🥉', '🍕', '🖌️', '🌤', '🌥']}
+                  imageCropAspectRatio={1}
+                  // Offer different crop options
+                  cropSelectPresetOptions={[
+                    [undefined, 'Custom'],
+                    [1, '1:1'],
+                    [2 / 1, '2:1'],
+                    [3 / 2, '3:2'],
+                    [4 / 3, '4:3'],
+                    [5 / 4, '5:4'],
+                    [16 / 10, '16:10'],
+                    [16 / 9, '16:9'],
+                    [1 / 2, '1:2'],
+                    [2 / 3, '2:3'],
+                    [3 / 4, '3:4'],
+                    [4 / 5, '4:5'],
+                    [10 / 16, '10:16'],
+                    [9 / 16, '9:16'],
+                  ]}
                 />
               </div>
             )}

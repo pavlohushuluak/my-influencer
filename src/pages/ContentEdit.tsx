@@ -998,6 +998,8 @@ export default function ContentEdit() {
                   {...editorDefaults}
                   src={imageSrc}
                   onProcess={handleEditorProcess}
+                  utils={['crop', 'finetune', 'filter', 'annotate', 'frame', 'sticker', 'fill', 'redact', 'resize']}
+                  stickers={['😀', '😁', '😆', '😅', '🤣', '🙃', '😉', '😊', '😇', '😕', '😮', '😧', '😰', '😭', '😱', '😓', '😫', '🎉', '👍', '👎',  '💘', '💝', '💖', '💓', '💞', '💕', '💔', '💋', '💯', '🥳', '🏆', '🏅', '🥇', '🥈', '🥉', '🍕', '🖌️', '🌤', '🌥']}
                 />
               </div>
             )}

@@ -3035,14 +3035,17 @@ export default function Vault() {
       // Step 3: Parse the JSON job data
       const jsonjob = JSON.parse(originalTask.jsonjob);
       console.log("Parsed JSON job:", jsonjob);
+      if(jsonjob.seed === -1){
+        jsonjob.seed = null;
+      }
 
       // Step 4: Navigate to ContentCreate with the JSON job data
-      navigate('/content/create', {
-        state: {
+      navigate('/content/create', { 
+        state: { 
           jsonjobData: jsonjob,
           isRegeneration: true,
           originalImage: image
-        }
+        } 
       });
 
       toast.success('Redirecting to ContentCreate for regeneration');
@@ -3405,66 +3408,66 @@ export default function Vault() {
         <CardHeader className="pt-5 pb-2">
           {/* Breadcrumb Navigation */}
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div
-                className={`flex items-center gap-2 p-2 rounded-lg transition-all duration-200 ${dragOverFolder === '' ? 'ring-2 ring-blue-500 ring-opacity-50 bg-blue-100 dark:bg-blue-900/20 scale-105 shadow-lg' : 'hover:bg-gray-100 dark:hover:bg-gray-800'
-                  }`}
-                onDragOver={(e) => handleDragOver(e, '')}
-                onDragLeave={handleDragLeave}
-                onDrop={(e) => handleDrop(e, '')}
-              >
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={navigateToHome}
-                  className="h-8 px-2 text-sm font-medium"
-                >
-                  <Home className="w-4 h-4 mr-1" />
-                  Home
-                </Button>
-              </div>
-              {getBreadcrumbItems().map((item, index) => (
-                <div key={item.path} className="flex items-center gap-2">
-                  <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                  <div
-                    className={`flex items-center gap-2 p-2 rounded-lg transition-all duration-200 ${dragOverFolder === item.path ? 'ring-2 ring-blue-500 ring-opacity-50 bg-blue-100 dark:bg-blue-900/20 scale-105 shadow-lg' : 'hover:bg-gray-100 dark:hover:bg-gray-800'
-                      }`}
-                    onDragOver={(e) => handleDragOver(e, item.path)}
-                    onDragLeave={handleDragLeave}
-                    onDrop={(e) => handleDrop(e, item.path)}
-                  >
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => navigateToFolder(item.path)}
-                      className="h-8 px-2 text-sm font-medium"
-                    >
-                      {decodeName(item.name)}
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-            {/* Refresh Button */}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleRefresh}
-              disabled={isRefreshing}
-              className="flex items-center gap-1.5 transition-all duration-200 bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 dark:from-blue-950/20 dark:to-indigo-950/20 dark:hover:from-blue-900/30 dark:hover:to-indigo-900/30 border-blue-200 dark:border-blue-800 hover:border-blue-300 dark:hover:border-blue-700 text-blue-700 dark:text-blue-300 hover:text-blue-800 dark:hover:text-blue-200 shadow-sm hover:shadow-md"
+          <div className="flex items-center gap-2">
+            <div
+              className={`flex items-center gap-2 p-2 rounded-lg transition-all duration-200 ${dragOverFolder === '' ? 'ring-2 ring-blue-500 ring-opacity-50 bg-blue-100 dark:bg-blue-900/20 scale-105 shadow-lg' : 'hover:bg-gray-100 dark:hover:bg-gray-800'
+                }`}
+              onDragOver={(e) => handleDragOver(e, '')}
+              onDragLeave={handleDragLeave}
+              onDrop={(e) => handleDrop(e, '')}
             >
-              {isRefreshing ? (
-                <>
-                  <RefreshCcw className="w-4 h-4 animate-spin" />
-                  Refreshing...
-                </>
-              ) : (
-                <>
-                  <RefreshCcw className="w-4 h-4" />
-                  Refresh
-                </>
-              )}
-            </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={navigateToHome}
+                className="h-8 px-2 text-sm font-medium"
+              >
+                <Home className="w-4 h-4 mr-1" />
+                Home
+              </Button>
+            </div>
+            {getBreadcrumbItems().map((item, index) => (
+              <div key={item.path} className="flex items-center gap-2">
+                <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                <div
+                  className={`flex items-center gap-2 p-2 rounded-lg transition-all duration-200 ${dragOverFolder === item.path ? 'ring-2 ring-blue-500 ring-opacity-50 bg-blue-100 dark:bg-blue-900/20 scale-105 shadow-lg' : 'hover:bg-gray-100 dark:hover:bg-gray-800'
+                    }`}
+                  onDragOver={(e) => handleDragOver(e, item.path)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, item.path)}
+                >
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => navigateToFolder(item.path)}
+                    className="h-8 px-2 text-sm font-medium"
+                  >
+                    {decodeName(item.name)}
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+          {/* Refresh Button */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className="flex items-center gap-1.5 transition-all duration-200 bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 dark:from-blue-950/20 dark:to-indigo-950/20 dark:hover:from-blue-900/30 dark:hover:to-indigo-900/30 border-blue-200 dark:border-blue-800 hover:border-blue-300 dark:hover:border-blue-700 text-blue-700 dark:text-blue-300 hover:text-blue-800 dark:hover:text-blue-200 shadow-sm hover:shadow-md"
+          >
+            {isRefreshing ? (
+              <>
+                <RefreshCcw className="w-4 h-4 animate-spin" />
+                Refreshing...
+              </>
+            ) : (
+              <>
+                <RefreshCcw className="w-4 h-4" />
+                Refresh
+              </>
+            )}
+          </Button>
           </div>
 
           <div className="flex items-center justify-between">
@@ -3827,17 +3830,17 @@ export default function Vault() {
 
                     {/* Image Preview Window */}
                     <div className={`w-full h-32 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center mb-4 transition-all duration-200 ${dragOverUpload
-                      ? 'border-purple-400 dark:border-purple-500 bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30 scale-105'
-                      : 'group-hover:border-purple-400 dark:group-hover:border-purple-500'
+                        ? 'border-purple-400 dark:border-purple-500 bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30 scale-105'
+                        : 'group-hover:border-purple-400 dark:group-hover:border-purple-500'
                       }`}>
                       <div className="text-center">
                         <Upload className={`w-6 h-6 mx-auto mb-2 transition-colors ${dragOverUpload
-                          ? 'text-purple-500 dark:text-purple-400'
-                          : 'text-gray-400 dark:text-gray-500'
+                            ? 'text-purple-500 dark:text-purple-400'
+                            : 'text-gray-400 dark:text-gray-500'
                           }`} />
                         <p className={`text-xs transition-colors ${dragOverUpload
-                          ? 'text-purple-600 dark:text-purple-400'
-                          : 'text-gray-500 dark:text-gray-400'
+                            ? 'text-purple-600 dark:text-purple-400'
+                            : 'text-gray-500 dark:text-gray-400'
                           }`}>
                           {dragOverUpload ? 'Drop file here!' : 'Drop file here or click to upload'}
                         </p>
@@ -3962,10 +3965,10 @@ export default function Vault() {
                       src={`https://images.nymia.ai/cdn-cgi/image/w=400/${userData.id}/${image.user_filename === "" ? "output" : "vault/" + image.user_filename}/${image.system_filename}`}
                       alt={image.system_filename}
                       className={`absolute inset-0 w-full h-full object-cover rounded-md shadow-sm cursor-pointer transition-all duration-200 ${isDragging && draggedImage?.id === image.id
-                        ? 'opacity-50 scale-95 ring-2 ring-blue-500 ring-opacity-50'
-                        : isDragging
-                          ? 'opacity-30 scale-98'
-                          : 'hover:scale-105'
+                          ? 'opacity-50 scale-95 ring-2 ring-blue-500 ring-opacity-50'
+                          : isDragging
+                            ? 'opacity-30 scale-98'
+                            : 'hover:scale-105'
                         }`}
                       onClick={(e) => {
                         // Only open modal if not dragging
@@ -5308,8 +5311,8 @@ export default function Vault() {
                               )}
                               {influencer.notes ? (
                                 <span className="text-xs text-muted-foreground">
-                                  {influencer.notes.length > 80
-                                    ? `${influencer.notes.substring(0, 80)}...`
+                                  {influencer.notes.length > 80 
+                                    ? `${influencer.notes.substring(0, 80)}...` 
                                     : influencer.notes
                                   }
                                 </span>

@@ -30,6 +30,7 @@ import xSvg from '@/assets/social/x.svg';
 import tiktokSvg from '@/assets/social/tiktok.svg';
 import facebookSvg from '@/assets/social/facebook.svg';
 import instagramSvg from '@/assets/social/instagram.svg';
+import { Input } from '@/components/ui/input';
 
 interface ImageData {
   id: string;
@@ -72,6 +73,8 @@ export default function ContentEdit() {
   const [conflictFilename, setConflictFilename] = useState('');
   const [pendingUploadData, setPendingUploadData] = useState<{ blob: Blob; filename: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [showFilenameDialog, setShowFilenameDialog] = useState(false);
+  const [customFilename, setCustomFilename] = useState('');
 
   // Theme options
   const THEME_MODES = [
@@ -310,11 +313,20 @@ export default function ContentEdit() {
     downloadFile(file);
   }, [editedImageUrl, selectedImage, downloadFile]);
 
-  const uploadToVault = useCallback(async () => {
+  // When Upload to Vault is clicked, open the dialog
+  const handleUploadToVaultClick = useCallback(() => {
+    if (!selectedImage) return;
+    setCustomFilename(selectedImage.system_filename);
+    setShowFilenameDialog(true);
+  }, [selectedImage]);
+
+  // Update uploadToVault to accept a filename
+  const uploadToVault = useCallback(async (filenameOverride?: string) => {
     if (!selectedImage || !editedImageUrl) {
       toast.error('Please edit an image first');
       return;
     }
+    const filenameToUse = filenameOverride || selectedImage.system_filename;
 
     try {
       setIsUploading(true);
@@ -342,7 +354,7 @@ export default function ContentEdit() {
         })
       });
 
-      let finalFilename = selectedImage.system_filename;
+      let finalFilename = filenameToUse;
       let hasConflict = false;
 
       if (getFilesResponse.ok) {
@@ -360,10 +372,10 @@ export default function ContentEdit() {
           });
 
           // Check if filename exists
-          if (existingFilenames.includes(selectedImage.system_filename)) {
+          if (existingFilenames.includes(filenameToUse)) {
             hasConflict = true;
-            setConflictFilename(selectedImage.system_filename);
-            setPendingUploadData({ blob, filename: selectedImage.system_filename });
+            setConflictFilename(filenameToUse);
+            setPendingUploadData({ blob, filename: filenameToUse });
             setShowOverwriteDialog(true);
             toast.dismiss(loadingToast);
             setIsUploading(false);
@@ -371,11 +383,11 @@ export default function ContentEdit() {
           }
 
           // Generate unique filename
-          const baseName = selectedImage.system_filename.substring(0, selectedImage.system_filename.lastIndexOf('.'));
-          const extension = selectedImage.system_filename.substring(selectedImage.system_filename.lastIndexOf('.'));
+          const baseName = filenameToUse.substring(0, filenameToUse.lastIndexOf('.'));
+          const extension = filenameToUse.substring(filenameToUse.lastIndexOf('.'));
 
           let counter = 1;
-          let testFilename = selectedImage.system_filename;
+          let testFilename = filenameToUse;
 
           while (existingFilenames.includes(testFilename)) {
             testFilename = `${baseName}(${counter})${extension}`;
@@ -474,6 +486,12 @@ export default function ContentEdit() {
       setIsUploading(false);
     }
   }, [selectedImage, editedImageUrl, userData?.id]);
+
+  // Confirm filename and proceed with upload
+  const handleConfirmFilename = useCallback(() => {
+    setShowFilenameDialog(false);
+    uploadToVault(customFilename);
+  }, [customFilename, uploadToVault]);
 
   const handleOverwriteConfirm = useCallback(async () => {
     if (!pendingUploadData) return;
@@ -1065,7 +1083,7 @@ export default function ContentEdit() {
           {/* Right: Download and Upload buttons */}
           <div className="flex items-center gap-2">
             <Button
-              onClick={uploadToVault}
+              onClick={handleUploadToVaultClick}
               disabled={!selectedImage || !editedImageUrl || isUploading}
               className="bg-blue-600 hover:bg-blue-700"
             >
@@ -1223,6 +1241,30 @@ export default function ContentEdit() {
             >
               Cancel
             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Filename Dialog */}
+      <Dialog open={showFilenameDialog} onOpenChange={setShowFilenameDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Choose Filename</DialogTitle>
+            <DialogDescription>
+              You can use your own filename for this image. Please edit below if you wish.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Input
+              value={customFilename}
+              onChange={e => setCustomFilename(e.target.value)}
+              placeholder="Enter filename..."
+              className="w-full"
+            />
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" onClick={() => setShowFilenameDialog(false)}>Cancel</Button>
+              <Button onClick={handleConfirmFilename} className="bg-blue-600 hover:bg-blue-700 text-white">Upload</Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

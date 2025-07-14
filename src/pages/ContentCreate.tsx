@@ -641,10 +641,54 @@ export default function ContentCreate() {
   };
 
   const handleInputChange = (field: string, value: any) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
+    setFormData(prev => {
+      const newFormData = {
+        ...prev,
+        [field]: value
+      };
+
+      // If usePromptOnly is being enabled, reset all form data to initial state
+      if (field === 'usePromptOnly' && value === true) {
+        return {
+          model: '',
+          scene: '',
+          task: 'generate_image',
+          lora: false,
+          noAI: true,
+          prompt: prev.prompt, // Keep the current prompt
+          format: 'Portrait (4:5)',
+          numberOfImages: 1,
+          seed: '',
+          guidance: 3.5,
+          negative_prompt: '',
+          nsfw_strength: 0,
+          lora_strength: 0.9,
+          quality: 'Quality',
+          engine: '',
+          usePromptOnly: true
+        };
+      }
+
+      return newFormData;
+    });
+
+    // If usePromptOnly is being enabled, also reset scene specifications
+    if (field === 'usePromptOnly' && value === true) {
+      setSceneSpecs({
+        framing: '',
+        rotation: '',
+        lighting_preset: '',
+        scene_setting: '',
+        pose: '',
+        clothes: ''
+      });
+
+      // Reset model description makeup to default
+      setModelDescription(prev => ({
+        ...prev,
+        makeup: 'Natural / No-Makeup Look'
+      }));
+    }
   };
 
   const handleSceneSpecChange = (field: string, value: any) => {

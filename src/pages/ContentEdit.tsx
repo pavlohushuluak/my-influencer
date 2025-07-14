@@ -1034,19 +1034,19 @@ export default function ContentEdit() {
   }, []);
 
   if (!selectedImage && showImageSelection) {
-    return (
+  return (
       <div className="p-4 md:p-6 space-y-4 md:space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
-          <div>
+      <div>
             <h1 className="text-2xl md:text-3xl font-bold tracking-tight bg-ai-gradient bg-clip-text text-transparent">
-              Edit Content
-            </h1>
+          Edit Content
+        </h1>
             <p className="text-sm md:text-base text-muted-foreground">
               Choose how you want to get started
-            </p>
+        </p>
           </div>
-        </div>
+      </div>
 
         {/* Image Selection */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 max-w-4xl mx-auto">
@@ -1055,7 +1055,7 @@ export default function ContentEdit() {
             <CardContent className="p-6 md:p-8 text-center">
               <div className="w-16 h-16 md:w-20 md:h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <FileImage className="w-8 h-8 md:w-10 md:h-10 text-blue-600" />
-              </div>
+                  </div>
               <h3 className="text-lg md:text-xl font-semibold mb-2">Select from Vault</h3>
               <p className="text-sm md:text-base text-muted-foreground mb-4">
                 Choose an existing image from your content vault
@@ -1071,7 +1071,7 @@ export default function ContentEdit() {
             <CardContent className="p-6 md:p-8 text-center">
               <div className="w-16 h-16 md:w-20 md:h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Upload className="w-8 h-8 md:w-10 md:h-10 text-green-600" />
-              </div>
+                  </div>
               <h3 className="text-lg md:text-xl font-semibold mb-2">Upload New Image</h3>
               <p className="text-sm md:text-base text-muted-foreground mb-4">
                 Upload a new image from your device
@@ -1079,8 +1079,8 @@ export default function ContentEdit() {
               <Button className="w-full">
                 Upload Image
               </Button>
-            </CardContent>
-          </Card>
+          </CardContent>
+        </Card>
         </div>
       </div>
     );
@@ -1090,7 +1090,7 @@ export default function ContentEdit() {
     return (
       <div className="p-4 md:p-6 space-y-4 md:space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 md:gap-4">
             <Button
               variant="outline"
@@ -1099,7 +1099,7 @@ export default function ContentEdit() {
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
               <span className="hidden sm:inline">Back to Selection</span>
-            </Button>
+                      </Button>
             <div>
               <h1 className="text-2xl md:text-3xl font-bold tracking-tight bg-ai-gradient bg-clip-text text-transparent">
                 Edit Content
@@ -1107,16 +1107,16 @@ export default function ContentEdit() {
               <p className="text-sm md:text-base text-muted-foreground">
                 Upload an image to get started
               </p>
-            </div>
-          </div>
-        </div>
+                    </div>
+                  </div>
+                  </div>
 
         {/* Upload Area */}
-        <Card>
-          <CardHeader>
+              <Card>
+                <CardHeader>
             <CardTitle>Upload Image</CardTitle>
-          </CardHeader>
-          <CardContent>
+                </CardHeader>
+                <CardContent>
             {/* Hidden file input */}
             <input
               type="file"
@@ -1154,7 +1154,7 @@ export default function ContentEdit() {
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             <span className="hidden sm:inline">Back to Selection</span>
-          </Button>
+                        </Button>
           <div>
             <h1 className="text-2xl md:text-3xl font-bold tracking-tight bg-ai-gradient bg-clip-text text-transparent">
               Edit Content
@@ -1162,7 +1162,7 @@ export default function ContentEdit() {
             <p className="text-sm md:text-base text-muted-foreground">
               {selectedImage ? `Editing: ${decodeFilename(selectedImage.system_filename)}` : 'Upload an image to edit'}
             </p>
-          </div>
+                      </div>
         </div>
 
         <div className="flex items-center justify-between px-4 py-2 z-20">
@@ -1195,7 +1195,7 @@ export default function ContentEdit() {
                 >
                   <div className="w-4 h-4 border-2 border-current rounded" />
                   <span className="hidden sm:inline ml-2">Size</span>
-                </Button>
+                          </Button>
 
                 {/* Size Controls Dropdown */}
                 {showSizeControls && (
@@ -1222,15 +1222,15 @@ export default function ContentEdit() {
                             >
                               {preset.name}
                             </button>
-                          ))}
-                        </div>
+                        ))}
+                      </div>
                       </div>
 
                       {/* Custom Size Inputs */}
                       <div className="space-y-3">
                         <label className="text-xs font-medium text-gray-600 dark:text-gray-400">Custom Size (px)</label>
                         <div className="grid grid-cols-2 gap-3">
-                          <div>
+                        <div>
                             <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">Width (px)</label>
                             <Input
                               type="number"
@@ -1246,7 +1246,7 @@ export default function ContentEdit() {
                               min="400"
                               max="2000"
                             />
-                          </div>
+                        </div>
                           <div>
                             <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">Height (px)</label>
                             <Input
@@ -1330,17 +1330,17 @@ export default function ContentEdit() {
             >
               <Download className="w-4 h-4 mr-2" />
               <span className="hidden sm:inline">Download</span>
-            </Button>
-          </div>
+                        </Button>
+                      </div>
         </div>
       </div> {/* End of header div */}
 
       {/* Main Editor */}
       <div className="w-full">
-        <Card>
-          <CardHeader>
+              <Card>
+                <CardHeader>
             <CardTitle>Professional Image Editor</CardTitle>
-          </CardHeader>
+                </CardHeader>
           <CardContent>
             {/* Hidden file input */}
             <input
@@ -1361,12 +1361,12 @@ export default function ContentEdit() {
                 <Image className="w-12 h-12 md:w-16 md:h-16 text-gray-400 mb-4" />
                 <h3 className="text-base md:text-lg font-medium text-gray-900 mb-2 text-center">Upload an image to edit</h3>
                 <p className="text-sm md:text-base text-gray-500 mb-4 text-center px-4">Drag and drop an image here, or click to browse</p>
-              </div>
+                  </div>
             ) : isLoadingImage ? (
               <div className="border rounded-lg bg-muted flex flex-col items-center justify-center" style={{ height: editorHeight }}>
                 <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mb-4" />
                 <p className="text-sm md:text-base text-gray-500 text-center px-4">Preparing image for editing</p>
-              </div>
+                  </div>
             ) : (
               <div
                 className={`border rounded-lg bg-muted relative transition-all duration-200 ${isResizing ? 'ring-2 ring-blue-500 ring-opacity-50 shadow-lg' : ''
@@ -1452,8 +1452,8 @@ export default function ContentEdit() {
                 />
               </div>
             )}
-          </CardContent>
-        </Card>
+                </CardContent>
+              </Card>
       </div>
 
       {/* Overwrite Confirmation Dialog */}
@@ -1470,7 +1470,7 @@ export default function ContentEdit() {
               <p className="text-sm text-yellow-800 dark:text-yellow-200">
                 <strong>Warning:</strong> Overwriting will permanently replace the existing file.
               </p>
-            </div>
+        </div>
             <div className="flex flex-col sm:flex-row gap-2">
               <Button
                 onClick={handleOverwriteConfirm}
@@ -1488,7 +1488,7 @@ export default function ContentEdit() {
                 <FileImage className="w-4 h-4 mr-2" />
                 Create New File
               </Button>
-            </div>
+      </div>
             <Button
               onClick={() => {
                 setShowOverwriteDialog(false);

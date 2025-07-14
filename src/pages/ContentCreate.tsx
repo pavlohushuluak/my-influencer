@@ -78,7 +78,8 @@ export default function ContentCreate() {
     nsfw_strength: 0,
     lora_strength: 0.9,
     quality: 'Quality',
-    engine: ''
+    engine: '',
+    usePromptOnly: false
   });
 
   // Scene specifications
@@ -762,6 +763,7 @@ export default function ContentCreate() {
         number_of_images: formData.numberOfImages,
         format: safeFormatOptions.find(opt => opt.label === formData.format)?.label || formData.format,
         engine: formData.engine,
+        usePromptOnly: formData.usePromptOnly,
         model: data[0] ? {
           id: data[0].id,
           influencer_type: data[0].influencer_type,
@@ -935,7 +937,8 @@ export default function ContentCreate() {
       nsfw_strength: 0,
       lora_strength: 0.9,
       quality: 'Quality',
-      engine: ''
+      engine: '',
+      usePromptOnly: false
     });
     setModelData(null);
     setSceneSpecs({
@@ -1102,6 +1105,14 @@ export default function ContentCreate() {
         setFormData(prev => ({
           ...prev,
           noAI: regenerationData.noAI
+        }));
+      }
+
+      if (regenerationData.usePromptOnly !== undefined) {
+        console.log('✅ Setting usePromptOnly:', regenerationData.usePromptOnly);
+        setFormData(prev => ({
+          ...prev,
+          usePromptOnly: regenerationData.usePromptOnly
         }));
       }
 
@@ -1608,6 +1619,15 @@ export default function ContentCreate() {
                 {formData.quality}
               </Badge>
             </div>
+
+            <div className="flex flex-col space-y-2">
+              <span className="text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wide">
+                PROMPT ONLY
+              </span>
+              <Badge variant={formData.usePromptOnly ? "default" : "secondary"} className={`w-fit ${formData.usePromptOnly ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white' : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300'}`}>
+                {formData.usePromptOnly ? "Enabled" : "Disabled"}
+              </Badge>
+            </div>
           </div>
         </div>
 
@@ -1702,6 +1722,15 @@ export default function ContentCreate() {
             </span>
             <Badge variant="secondary" className="w-fit bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300">
               {formData.quality}
+            </Badge>
+          </div>
+
+          <div className="flex flex-col space-y-2">
+            <span className="text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wide">
+              PROMPT ONLY
+            </span>
+            <Badge variant={formData.usePromptOnly ? "default" : "secondary"} className={`w-fit ${formData.usePromptOnly ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white' : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300'}`}>
+              {formData.usePromptOnly ? "Enabled" : "Disabled"}
             </Badge>
           </div>
         </div>
@@ -1894,6 +1923,7 @@ export default function ContentCreate() {
                       <Select
                         value={formData.task}
                         onValueChange={(value) => handleInputChange('task', value)}
+                        disabled={formData.usePromptOnly}
                       >
                         <SelectTrigger>
                           <div className='pl-10'>
@@ -1922,6 +1952,7 @@ export default function ContentCreate() {
                         min={1}
                         step={1}
                         className="w-full"
+                        disabled={formData.usePromptOnly}
                       />
                     </div>
 
@@ -1934,6 +1965,7 @@ export default function ContentCreate() {
                         min={1.0}
                         step={0.1}
                         className="w-full"
+                        disabled={formData.usePromptOnly}
                       />
                     </div>
                   </div>
@@ -1945,6 +1977,7 @@ export default function ContentCreate() {
                       <Select
                         value={formData.format}
                         onValueChange={(value) => handleInputChange('format', value)}
+                        disabled={formData.usePromptOnly}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Select format" />
@@ -1956,8 +1989,8 @@ export default function ContentCreate() {
                         </SelectContent>
                       </Select>
                       <div
-                        onClick={() => setShowFormatSelector(true)}
-                        className='flex items-center justify-center cursor-pointer w-full'
+                        onClick={formData.usePromptOnly ? undefined : () => setShowFormatSelector(true)}
+                        className={`flex items-center justify-center w-full ${formData.usePromptOnly ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                       >
                         {formData.format && safeFormatOptions.find(option => option.label === formData.format)?.image ? (
                           <Card className="relative w-full max-w-[250px]">
@@ -2011,6 +2044,7 @@ export default function ContentCreate() {
                       <Select
                         value={modelDescription.makeup}
                         onValueChange={(value) => handleModelDescriptionChange('makeup', value)}
+                        disabled={formData.usePromptOnly}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Select makeup style" />
@@ -2022,8 +2056,8 @@ export default function ContentCreate() {
                         </SelectContent>
                       </Select>
                       <div
-                        onClick={() => setShowMakeupSelector(true)}
-                        className='flex items-center justify-center cursor-pointer w-full'
+                        onClick={formData.usePromptOnly ? undefined : () => setShowMakeupSelector(true)}
+                        className={`flex items-center justify-center w-full ${formData.usePromptOnly ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                       >
                         {modelDescription.makeup && makeupOptions.find(option => option.label === modelDescription.makeup)?.image ? (
                           <Card className="relative w-full max-w-[250px]">
@@ -2076,6 +2110,7 @@ export default function ContentCreate() {
                       <Select
                         value={formData.engine}
                         onValueChange={(value) => handleInputChange('engine', value)}
+                        disabled={formData.usePromptOnly}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Select engine" />
@@ -2087,8 +2122,8 @@ export default function ContentCreate() {
                         </SelectContent>
                       </Select>
                       <div
-                        onClick={() => setShowEngineSelector(true)}
-                        className='flex items-center justify-center cursor-pointer w-full'
+                        onClick={formData.usePromptOnly ? undefined : () => setShowEngineSelector(true)}
+                        className={`flex items-center justify-center w-full ${formData.usePromptOnly ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                       >
                         {formData.engine && engineOptions.find(option => option.label === formData.engine)?.image ? (
                           <Card className="relative w-full max-w-[250px]">
@@ -2191,12 +2226,28 @@ export default function ContentCreate() {
                       />
                     </div>
                     </div> */}
+
+                    {/* Use Prompt Only Toggle */}
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label>Use Prompt Only</Label>
+                        <p className="text-sm text-muted-foreground">
+                          System will follow the prompt and ignore all other selections.
+                        </p>
+                      </div>
+                      <Switch
+                        checked={formData.usePromptOnly}
+                        onCheckedChange={(checked) => handleInputChange('usePromptOnly', checked)}
+                      />
+                    </div>
+
                     <div className="lg:hidden grid grid-cols-1 sm:grid-cols-3 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label>Framing</Label>
                         <Select
                           value={sceneSpecs.framing}
                           onValueChange={(value) => handleSceneSpecChange('framing', value)}
+                          disabled={formData.usePromptOnly}
                         >
                           <SelectTrigger>
                             <SelectValue placeholder="Select framing" />
@@ -2208,8 +2259,8 @@ export default function ContentCreate() {
                           </SelectContent>
                         </Select>
                         <div
-                          onClick={() => setShowFramingSelector(true)}
-                          className='flex items-center justify-center cursor-pointer w-full'
+                          onClick={formData.usePromptOnly ? undefined : () => setShowFramingSelector(true)}
+                          className={`flex items-center justify-center w-full ${formData.usePromptOnly ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                         >
                           {sceneSpecs.framing && framingOptions.find(option => option.label === sceneSpecs.framing)?.image ? (
                             <Card className="relative w-full max-w-[250px]">
@@ -2263,6 +2314,7 @@ export default function ContentCreate() {
                         <Select
                           value={sceneSpecs.rotation}
                           onValueChange={(value) => handleSceneSpecChange('rotation', value)}
+                          disabled={formData.usePromptOnly}
                         >
                           <SelectTrigger>
                             <SelectValue placeholder="Select rotation" />
@@ -2274,8 +2326,8 @@ export default function ContentCreate() {
                           </SelectContent>
                         </Select>
                         <div
-                          onClick={() => setShowRotationSelector(true)}
-                          className='flex items-center justify-center cursor-pointer w-full'
+                          onClick={formData.usePromptOnly ? undefined : () => setShowRotationSelector(true)}
+                          className={`flex items-center justify-center w-full ${formData.usePromptOnly ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                         >
                           {sceneSpecs.rotation && rotationOptions.find(option => option.label === sceneSpecs.rotation)?.image ? (
                             <Card className="relative w-full max-w-[250px]">
@@ -2329,6 +2381,7 @@ export default function ContentCreate() {
                         <Select
                           value={sceneSpecs.lighting_preset}
                           onValueChange={(value) => handleSceneSpecChange('lighting_preset', value)}
+                          disabled={formData.usePromptOnly}
                         >
                           <SelectTrigger>
                             <SelectValue placeholder="Select lighting preset" />
@@ -2340,8 +2393,8 @@ export default function ContentCreate() {
                           </SelectContent>
                         </Select>
                         <div
-                          onClick={() => setShowLightingSelector(true)}
-                          className='flex items-center justify-center cursor-pointer w-full'
+                          onClick={formData.usePromptOnly ? undefined : () => setShowLightingSelector(true)}
+                          className={`flex items-center justify-center w-full ${formData.usePromptOnly ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                         >
                           {sceneSpecs.lighting_preset && lightingOptions.find(option => option.label === sceneSpecs.lighting_preset)?.image ? (
                             <Card className="relative w-full max-w-[250px]">
@@ -2395,6 +2448,7 @@ export default function ContentCreate() {
                         <Select
                           value={sceneSpecs.scene_setting}
                           onValueChange={(value) => handleSceneSpecChange('scene_setting', value)}
+                          disabled={formData.usePromptOnly}
                         >
                           <SelectTrigger>
                             <SelectValue placeholder="Select scene setting" />
@@ -2406,8 +2460,8 @@ export default function ContentCreate() {
                           </SelectContent>
                         </Select>
                         <div
-                          onClick={() => setShowSceneSettingsSelector(true)}
-                          className='flex items-center justify-center cursor-pointer w-full'
+                          onClick={formData.usePromptOnly ? undefined : () => setShowSceneSettingsSelector(true)}
+                          className={`flex items-center justify-center w-full ${formData.usePromptOnly ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                         >
                           {sceneSpecs.scene_setting && sceneSettingsOptions.find(option => option.label === sceneSpecs.scene_setting)?.image ? (
                             <Card className="relative w-full max-w-[250px]">
@@ -2461,6 +2515,7 @@ export default function ContentCreate() {
                         <Select
                           value={sceneSpecs.pose}
                           onValueChange={(value) => handleSceneSpecChange('pose', value)}
+                          disabled={formData.usePromptOnly}
                         >
                           <SelectTrigger>
                             <SelectValue placeholder="Select pose" />
@@ -2472,8 +2527,8 @@ export default function ContentCreate() {
                           </SelectContent>
                         </Select>
                         <div
-                          onClick={() => setShowPoseSelector(true)}
-                          className='flex items-center justify-center cursor-pointer w-full'
+                          onClick={formData.usePromptOnly ? undefined : () => setShowPoseSelector(true)}
+                          className={`flex items-center justify-center w-full ${formData.usePromptOnly ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                         >
                           {sceneSpecs.pose && poseOptions.find(option => option.label === sceneSpecs.pose)?.image ? (
                             <Card className="relative w-full max-w-[250px]">
@@ -2527,6 +2582,7 @@ export default function ContentCreate() {
                         <Select
                           value={sceneSpecs.clothes}
                           onValueChange={(value) => handleSceneSpecChange('clothes', value)}
+                          disabled={formData.usePromptOnly}
                         >
                           <SelectTrigger>
                             <SelectValue placeholder="Select outfits" />
@@ -2538,8 +2594,8 @@ export default function ContentCreate() {
                           </SelectContent>
                         </Select>
                         <div
-                          onClick={() => setShowClothesSelector(true)}
-                          className='flex items-center justify-center cursor-pointer w-full'
+                          onClick={formData.usePromptOnly ? undefined : () => setShowClothesSelector(true)}
+                          className={`flex items-center justify-center w-full ${formData.usePromptOnly ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                         >
                           {sceneSpecs.clothes && clothesOptions.find(option => option.label === sceneSpecs.clothes)?.image ? (
                             <Card className="relative w-full max-w-[250px]">
@@ -2621,6 +2677,7 @@ export default function ContentCreate() {
                         placeholder="Describe things you don't want to see. Optional, we take care of the essentials for you anyway."
                         rows={3}
                         className="pl-10 pr-4 border-2 focus:border-red-500/50 focus:ring-red-500/20 transition-all duration-200"
+                        disabled={formData.usePromptOnly}
                       />
                       <div className="absolute left-3 top-3 text-muted-foreground">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2640,6 +2697,7 @@ export default function ContentCreate() {
                         min={-1}
                         step={0.1}
                         className="w-full"
+                        disabled={formData.usePromptOnly}
                       />
                       <div className="flex justify-between text-xs text-muted-foreground">
                         <span>SFW (-1)</span>
@@ -2656,6 +2714,7 @@ export default function ContentCreate() {
                         min={-1}
                         step={0.1}
                         className="w-full"
+                        disabled={formData.usePromptOnly}
                       />
                       <div className="flex justify-between text-xs text-muted-foreground">
                         <span>Weak (-1)</span>
@@ -2668,6 +2727,7 @@ export default function ContentCreate() {
                       <Select
                         value={formData.quality || 'Quality'}
                         onValueChange={(value) => handleInputChange('quality', value)}
+                        disabled={formData.usePromptOnly}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Select quality" />
@@ -2693,6 +2753,7 @@ export default function ContentCreate() {
                       <Switch
                         checked={formData.lora}
                         onCheckedChange={(checked) => handleInputChange('lora', checked)}
+                        disabled={formData.usePromptOnly}
                       />
                     </div>
 
@@ -2706,6 +2767,7 @@ export default function ContentCreate() {
                       <Switch
                         checked={formData.noAI}
                         onCheckedChange={(checked) => handleInputChange('noAI', checked)}
+                        disabled={formData.usePromptOnly}
                       />
                     </div>
 
@@ -2715,6 +2777,7 @@ export default function ContentCreate() {
                         value={formData.seed}
                         onChange={(e) => handleInputChange('seed', e.target.value)}
                         placeholder="Enter seed value for reproducible results"
+                        disabled={formData.usePromptOnly}
                       />
                     </div>
                   </div>
@@ -2891,6 +2954,7 @@ export default function ContentCreate() {
                 <Select
                   value={sceneSpecs.framing}
                   onValueChange={(value) => handleSceneSpecChange('framing', value)}
+                  disabled={formData.usePromptOnly}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select framing" />
@@ -2902,8 +2966,8 @@ export default function ContentCreate() {
                   </SelectContent>
                 </Select>
                 <div
-                  onClick={() => setShowFramingSelector(true)}
-                  className='flex items-center justify-center cursor-pointer w-full'
+                  onClick={formData.usePromptOnly ? undefined : () => setShowFramingSelector(true)}
+                  className={`flex items-center justify-center w-full ${formData.usePromptOnly ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                 >
                   {sceneSpecs.framing && framingOptions.find(option => option.label === sceneSpecs.framing)?.image ? (
                     <Card className="relative w-full max-w-[200px]">
@@ -2957,6 +3021,7 @@ export default function ContentCreate() {
                 <Select
                   value={sceneSpecs.rotation}
                   onValueChange={(value) => handleSceneSpecChange('rotation', value)}
+                  disabled={formData.usePromptOnly}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select rotation" />
@@ -2968,8 +3033,8 @@ export default function ContentCreate() {
                   </SelectContent>
                 </Select>
                 <div
-                  onClick={() => setShowRotationSelector(true)}
-                  className='flex items-center justify-center cursor-pointer w-full'
+                  onClick={formData.usePromptOnly ? undefined : () => setShowRotationSelector(true)}
+                  className={`flex items-center justify-center w-full ${formData.usePromptOnly ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                 >
                   {sceneSpecs.rotation && rotationOptions.find(option => option.label === sceneSpecs.rotation)?.image ? (
                     <Card className="relative w-full max-w-[200px]">
@@ -3023,6 +3088,7 @@ export default function ContentCreate() {
                 <Select
                   value={sceneSpecs.lighting_preset}
                   onValueChange={(value) => handleSceneSpecChange('lighting_preset', value)}
+                  disabled={formData.usePromptOnly}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select lighting preset" />
@@ -3034,8 +3100,8 @@ export default function ContentCreate() {
                   </SelectContent>
                 </Select>
                 <div
-                  onClick={() => setShowLightingSelector(true)}
-                  className='flex items-center justify-center cursor-pointer w-full'
+                  onClick={formData.usePromptOnly ? undefined : () => setShowLightingSelector(true)}
+                  className={`flex items-center justify-center w-full ${formData.usePromptOnly ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                 >
                   {sceneSpecs.lighting_preset && lightingOptions.find(option => option.label === sceneSpecs.lighting_preset)?.image ? (
                     <Card className="relative w-full max-w-[200px]">
@@ -3089,6 +3155,7 @@ export default function ContentCreate() {
                 <Select
                   value={sceneSpecs.scene_setting}
                   onValueChange={(value) => handleSceneSpecChange('scene_setting', value)}
+                  disabled={formData.usePromptOnly}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select scene setting" />
@@ -3100,8 +3167,8 @@ export default function ContentCreate() {
                   </SelectContent>
                 </Select>
                 <div
-                  onClick={() => setShowSceneSettingsSelector(true)}
-                  className='flex items-center justify-center cursor-pointer w-full'
+                  onClick={formData.usePromptOnly ? undefined : () => setShowSceneSettingsSelector(true)}
+                  className={`flex items-center justify-center w-full ${formData.usePromptOnly ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                 >
                   {sceneSpecs.scene_setting && sceneSettingsOptions.find(option => option.label === sceneSpecs.scene_setting)?.image ? (
                     <Card className="relative w-full max-w-[200px]">
@@ -3155,6 +3222,7 @@ export default function ContentCreate() {
                 <Select
                   value={sceneSpecs.pose}
                   onValueChange={(value) => handleSceneSpecChange('pose', value)}
+                  disabled={formData.usePromptOnly}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select pose" />
@@ -3166,8 +3234,8 @@ export default function ContentCreate() {
                   </SelectContent>
                 </Select>
                 <div
-                  onClick={() => setShowPoseSelector(true)}
-                  className='flex items-center justify-center cursor-pointer w-full'
+                  onClick={formData.usePromptOnly ? undefined : () => setShowPoseSelector(true)}
+                  className={`flex items-center justify-center w-full ${formData.usePromptOnly ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                 >
                   {sceneSpecs.pose && poseOptions.find(option => option.label === sceneSpecs.pose)?.image ? (
                     <Card className="relative w-full max-w-[200px]">
@@ -3221,6 +3289,7 @@ export default function ContentCreate() {
                 <Select
                   value={sceneSpecs.clothes}
                   onValueChange={(value) => handleSceneSpecChange('clothes', value)}
+                  disabled={formData.usePromptOnly}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select outfits" />
@@ -3232,8 +3301,8 @@ export default function ContentCreate() {
                   </SelectContent>
                 </Select>
                 <div
-                  onClick={() => setShowClothesSelector(true)}
-                  className='flex items-center justify-center cursor-pointer w-full'
+                  onClick={formData.usePromptOnly ? undefined : () => setShowClothesSelector(true)}
+                  className={`flex items-center justify-center w-full ${formData.usePromptOnly ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                 >
                   {sceneSpecs.clothes && clothesOptions.find(option => option.label === sceneSpecs.clothes)?.image ? (
                     <Card className="relative w-full max-w-[200px]">

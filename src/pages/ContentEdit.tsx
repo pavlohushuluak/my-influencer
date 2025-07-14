@@ -104,6 +104,104 @@ export default function ContentEdit() {
   const [customRGB, setCustomRGB] = useState([1, 1, 1]); // default all on
   const [showCustomModal, setShowCustomModal] = useState(false);
 
+  // Editor size controls
+  const [editorWidth, setEditorWidth] = useState('100%');
+  const [editorHeight, setEditorHeight] = useState('85vh');
+  const [showSizeControls, setShowSizeControls] = useState(false);
+  const [isResizing, setIsResizing] = useState(false);
+  const [resizeStart, setResizeStart] = useState({ x: 0, y: 0, width: 0, height: 0 });
+  const editorContainerRef = useRef<HTMLDivElement>(null);
+
+  // Preset sizes for quick selection
+  const PRESET_SIZES = [
+    { name: 'Full Screen', width: '100%', height: '85vh' },
+    { name: 'Large', width: '90%', height: '75vh' },
+    { name: 'Medium', width: '80%', height: '65vh' },
+    { name: 'Small', width: '70%', height: '55vh' },
+  ];
+
+  // Resize handlers
+  const handleResizeStart = (e: React.MouseEvent, direction: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsResizing(true);
+    setResizeStart({
+      x: e.clientX,
+      y: e.clientY,
+      width: editorContainerRef.current?.offsetWidth || 0,
+      height: editorContainerRef.current?.offsetHeight || 0
+    });
+  };
+
+  const handleResizeMove = useCallback((e: MouseEvent) => {
+    if (!isResizing) return;
+
+    const deltaX = e.clientX - resizeStart.x;
+    const deltaY = e.clientY - resizeStart.y;
+
+    // Calculate new dimensions based on resize direction
+    let newWidth = resizeStart.width;
+    let newHeight = resizeStart.height;
+
+    // Handle different resize directions
+    if (e.target && (e.target as Element).closest('[data-resize-direction]')) {
+      const direction = (e.target as Element).closest('[data-resize-direction]')?.getAttribute('data-resize-direction');
+      
+      switch (direction) {
+        case 'nw':
+        case 'ne':
+        case 'sw':
+        case 'se':
+          newWidth = Math.max(400, resizeStart.width + deltaX);
+          newHeight = Math.max(300, resizeStart.height + deltaY);
+          break;
+        case 'n':
+        case 's':
+          newHeight = Math.max(300, resizeStart.height + deltaY);
+          break;
+        case 'e':
+        case 'w':
+          newWidth = Math.max(400, resizeStart.width + deltaX);
+          break;
+        default:
+          newWidth = Math.max(400, resizeStart.width + deltaX);
+          newHeight = Math.max(300, resizeStart.height + deltaY);
+      }
+    } else {
+      // Default behavior for corner resizing
+      newWidth = Math.max(400, resizeStart.width + deltaX);
+      newHeight = Math.max(300, resizeStart.height + deltaY);
+    }
+
+    setEditorWidth(`${newWidth}px`);
+    setEditorHeight(`${newHeight}px`);
+  }, [isResizing, resizeStart]);
+
+  const handleResizeEnd = useCallback(() => {
+    setIsResizing(false);
+  }, []);
+
+  useEffect(() => {
+    if (isResizing) {
+      document.addEventListener('mousemove', handleResizeMove);
+      document.addEventListener('mouseup', handleResizeEnd);
+      document.body.style.cursor = 'nw-resize';
+      document.body.style.userSelect = 'none';
+    } else {
+      document.removeEventListener('mousemove', handleResizeMove);
+      document.removeEventListener('mouseup', handleResizeEnd);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', handleResizeMove);
+      document.removeEventListener('mouseup', handleResizeEnd);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+  }, [isResizing, handleResizeMove, handleResizeEnd]);
+
   // Compute the current theme array
   const theme = themeMode === 'light'
     ? LIGHT_BG
@@ -128,6 +226,8 @@ export default function ContentEdit() {
 
   // Modal close on outside click
   const modalRef = useRef<HTMLDivElement>(null);
+  const sizeControlsRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     if (!showCustomModal) return;
     const handleClick = (e: MouseEvent) => {
@@ -139,6 +239,18 @@ export default function ContentEdit() {
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
   }, [showCustomModal]);
+
+  // Size controls close on outside click
+  useEffect(() => {
+    if (!showSizeControls) return;
+    const handleClick = (e: MouseEvent) => {
+      if (sizeControlsRef.current && !sizeControlsRef.current.contains(e.target as Node)) {
+        setShowSizeControls(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [showSizeControls]);
 
   // Get editor defaults with upload configuration
   const getEditorDefaultsWithUpload = useCallback(() => {
@@ -1058,7 +1170,7 @@ export default function ContentEdit() {
         </div>
 
         <div className="flex items-center justify-between px-4 py-2 z-20">
-          {/* Left: Theme selector and (optionally) mode selectors */}
+          {/* Left: Theme selector and size controls */}
           <div className="flex items-center gap-6 relative">
             {/* Theme Segmented Control */}
             <div className="flex items-center gap-1 bg-white/80 dark:bg-gray-900/80 rounded-full shadow px-2 py-1 border border-blue-100 mr-2">
@@ -1076,6 +1188,103 @@ export default function ContentEdit() {
                 </button>
               ))}
             </div>
+
+            {/* Editor Size Controls */}
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowSizeControls(!showSizeControls)}
+                className="bg-white/80 dark:bg-gray-900/80 border border-gray-200 dark:border-gray-700"
+              >
+                <div className="w-4 h-4 border-2 border-current rounded" />
+                <span className="hidden sm:inline ml-2">Size</span>
+              </Button>
+
+              {/* Size Controls Dropdown */}
+              {showSizeControls && (
+                <div ref={sizeControlsRef} className="absolute top-full left-0 mt-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-4 min-w-[280px] z-50">
+                  <div className="space-y-4">
+                    <h4 className="font-medium text-sm text-gray-900 dark:text-gray-100">Editor Size</h4>
+
+                    {/* Preset Sizes */}
+                    <div className="space-y-2">
+                      <label className="text-xs font-medium text-gray-600 dark:text-gray-400">Quick Presets</label>
+                      <div className="grid grid-cols-2 gap-2">
+                        {PRESET_SIZES.map((preset) => (
+                          <button
+                            key={preset.name}
+                            onClick={() => {
+                              setEditorWidth(preset.width);
+                              setEditorHeight(preset.height);
+                              setShowSizeControls(false);
+                            }}
+                            className={`px-3 py-2 text-xs rounded border transition-all ${editorWidth === preset.width && editorHeight === preset.height
+                                ? 'bg-blue-100 border-blue-300 text-blue-700 dark:bg-blue-900/30 dark:border-blue-600 dark:text-blue-300'
+                                : 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700'
+                              }`}
+                          >
+                            {preset.name}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Custom Size Inputs */}
+                    <div className="space-y-3">
+                      <label className="text-xs font-medium text-gray-600 dark:text-gray-400">Custom Size (px)</label>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">Width (px)</label>
+                          <Input
+                            type="number"
+                            value={editorWidth.replace('px', '')}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              if (value && !isNaN(Number(value))) {
+                                setEditorWidth(`${value}px`);
+                              }
+                            }}
+                            placeholder="800"
+                            className="text-xs h-8"
+                            min="400"
+                            max="2000"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">Height (px)</label>
+                          <Input
+                            type="number"
+                            value={editorHeight.replace('px', '')}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              if (value && !isNaN(Number(value))) {
+                                setEditorHeight(`${value}px`);
+                              }
+                            }}
+                            placeholder="600"
+                            className="text-xs h-8"
+                            min="300"
+                            max="1500"
+                          />
+                        </div>
+                      </div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">
+                        Enter values between 400-2000px for width and 300-1500px for height
+                      </div>
+                    </div>
+
+                    {/* Current Size Display */}
+                    <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
+                      <div className="text-xs text-gray-600 dark:text-gray-400">
+                        Current: {editorWidth} × {editorHeight}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
             {/* Custom theme modal */}
             {showCustomModal && (
               <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/30">
@@ -1164,12 +1373,54 @@ export default function ContentEdit() {
                 </Button>
               </div>
             ) : isLoadingImage ? (
-              <div className="border rounded-lg h-[85vh] bg-muted flex flex-col items-center justify-center">
+              <div className="border rounded-lg bg-muted flex flex-col items-center justify-center" style={{ height: editorHeight }}>
                 <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mb-4" />
                 <p className="text-sm md:text-base text-gray-500 text-center px-4">Preparing image for editing</p>
               </div>
             ) : (
-              <div className="border rounded-lg h-[85vh] bg-muted">
+              <div
+                className={`border rounded-lg bg-muted relative transition-all duration-200 ${
+                  isResizing ? 'ring-2 ring-blue-500 ring-opacity-50 shadow-lg' : ''
+                }`}
+                style={{ width: editorWidth, height: editorHeight }}
+                ref={editorContainerRef}
+              >
+                {/* Resize indicator */}
+                {isResizing && (
+                  <div className="absolute top-2 right-2 bg-blue-600 text-white text-xs px-2 py-1 rounded z-10">
+                    {editorWidth} × {editorHeight}
+                  </div>
+                )}
+                
+                {/* Resize handles - Only right, bottom, and right-bottom corner */}
+                <div
+                  className="absolute right-0 top-1/2 transform -translate-y-1/2 w-1 h-16 cursor-ew-resize bg-gradient-to-b from-blue-400/60 to-blue-600/60 hover:from-blue-400/80 hover:to-blue-600/80 transition-all duration-200 rounded-l z-10 group"
+                  onMouseDown={(e) => handleResizeStart(e, 'e')}
+                  data-resize-direction="e"
+                  title="Resize width"
+                >
+                  <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-1 h-8 bg-white/80 rounded opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+                
+                <div
+                  className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-16 h-1 cursor-ns-resize bg-gradient-to-r from-blue-400/60 to-blue-600/60 hover:from-blue-400/80 hover:to-blue-600/80 transition-all duration-200 rounded-t z-10 group"
+                  onMouseDown={(e) => handleResizeStart(e, 's')}
+                  data-resize-direction="s"
+                  title="Resize height"
+                >
+                  <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 h-1 w-8 bg-white/80 rounded opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+                
+                <div
+                  className="absolute bottom-0 right-0 w-6 h-6 cursor-nw-resize bg-gradient-to-br from-blue-500/70 to-blue-700/70 hover:from-blue-500/90 hover:to-blue-700/90 transition-all duration-200 rounded-tl z-10 group shadow-lg"
+                  onMouseDown={(e) => handleResizeStart(e, 'se')}
+                  data-resize-direction="se"
+                  title="Resize both width and height"
+                >
+                  <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-3 h-3 bg-white/90 rounded-sm opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <div className="absolute bottom-1 right-1 w-2 h-2 border-2 border-white/60 rounded-full" />
+                </div>
+                
                 <PinturaEditor
                   ref={editorRef}
                   {...editorDefaults}

@@ -1135,10 +1135,6 @@ export default function ContentEdit() {
               <Image className="w-12 h-12 md:w-16 md:h-16 text-gray-400 mb-4" />
               <h3 className="text-base md:text-lg font-medium text-gray-900 mb-2 text-center">Upload an image to edit</h3>
               <p className="text-sm md:text-base text-gray-500 mb-4 text-center px-4">Drag and drop an image here, or click to browse</p>
-              <Button onClick={triggerFileUpload}>
-                <Upload className="w-4 h-4 mr-2" />
-                Choose Image
-              </Button>
             </div>
           </CardContent>
         </Card>
@@ -1365,10 +1361,6 @@ export default function ContentEdit() {
                 <Image className="w-12 h-12 md:w-16 md:h-16 text-gray-400 mb-4" />
                 <h3 className="text-base md:text-lg font-medium text-gray-900 mb-2 text-center">Upload an image to edit</h3>
                 <p className="text-sm md:text-base text-gray-500 mb-4 text-center px-4">Drag and drop an image here, or click to browse</p>
-                <Button onClick={triggerFileUpload}>
-                  <Upload className="w-4 h-4 mr-2" />
-                  Choose Image
-                </Button>
               </div>
             ) : isLoadingImage ? (
               <div className="border rounded-lg bg-muted flex flex-col items-center justify-center" style={{ height: editorHeight }}>

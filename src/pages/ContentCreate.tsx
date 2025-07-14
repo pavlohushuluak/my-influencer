@@ -169,6 +169,7 @@ export default function ContentCreate() {
   const [editingFileName, setEditingFileName] = useState<string>('');
   const [renamingFile, setRenamingFile] = useState<string | null>(null);
   const [fileContextMenu, setFileContextMenu] = useState<{ x: number; y: number; image: any } | null>(null);
+  const [regeneratingImages, setRegeneratingImages] = useState<Set<string>>(new Set());
 
   // Defensive: ensure formatOptions is always an array
   const safeFormatOptions = Array.isArray(formatOptions) ? formatOptions : [];
@@ -1431,28 +1432,94 @@ export default function ContentCreate() {
   };
 
   const handleEdit = (image: any) => {
-    // Navigate to ContentEdit with the image data
-    navigate('/content/edit', {
-      state: {
-        imageData: {
-          id: image.id,
-          system_filename: image.system_filename,
-          user_filename: image.user_filename,
-          file_path: image.file_path,
-          user_notes: image.user_notes,
-          user_tags: image.user_tags,
-          rating: image.rating,
-          favorite: image.favorite,
-          created_at: image.created_at,
-          file_size_bytes: image.file_size_bytes,
-          image_format: image.image_format,
-          file_type: image.file_type
+    navigate('/content/edit', { 
+      state: { 
+        imageData: image 
+      } 
+    });
+  };
+
+  const handleRegenerate = async (image: any) => {
+    // Only allow regeneration for non-uploaded and non-edited images
+    if (image.model_version === 'edited' || image.quality_setting === 'edited' || image.task_id?.startsWith('upload_')) {
+      toast.error('Cannot regenerate uploaded or edited images');
+      return;
+    }
+
+    setRegeneratingImages(prev => new Set(prev).add(image.system_filename));
+
+    try {
+      toast.info('Regenerating image...', {
+        description: 'Fetching original task data and creating new generation'
+      });
+
+      // Step 1: Get the task_id from the generated image
+      const imageResponse = await fetch(`https://db.nymia.ai/rest/v1/generated_images?file_path=eq.${image.file_path}`, {
+        headers: {
+          'Authorization': 'Bearer WeInfl3nc3withAI'
         }
+      });
+
+      if (!imageResponse.ok) {
+        throw new Error('Failed to fetch image data');
       }
-    });
-    toast.success('Opening image editor...', {
-      description: `Ready to edit "${image.system_filename}"`
-    });
+
+      const imageData = await imageResponse.json();
+      if (!imageData || imageData.length === 0) {
+        throw new Error('Image data not found');
+      }
+
+      const taskId = imageData[0].task_id;
+
+      // Step 2: Get the original task data
+      const taskResponse = await fetch(`https://db.nymia.ai/rest/v1/tasks?id=eq.${taskId}`, {
+        headers: {
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        }
+      });
+
+      if (!taskResponse.ok) {
+        throw new Error('Failed to fetch task data');
+      }
+
+      const taskData = await taskResponse.json();
+      if (!taskData || taskData.length === 0) {
+        throw new Error('Task data not found');
+      }
+
+      const originalTask = taskData[0];
+      console.log("OriginalTask:", originalTask.jsonjob);
+
+      // Step 3: Parse the JSON job data
+      const jsonjob = JSON.parse(originalTask.jsonjob);
+      console.log("Parsed JSON job:", jsonjob);
+      if(jsonjob.seed === -1){
+        jsonjob.seed = null;
+      }
+
+      // Step 4: Navigate to ContentCreate with the JSON job data
+      navigate('/content/create', { 
+        state: { 
+          jsonjobData: jsonjob,
+          isRegeneration: true,
+          originalImage: image
+        } 
+      });
+
+      toast.success('Redirecting to ContentCreate for regeneration');
+
+    } catch (error) {
+      console.error('Regeneration error:', error);
+      toast.error('Failed to regenerate image', {
+        description: error instanceof Error ? error.message : 'Unknown error occurred'
+      });
+    } finally {
+      setRegeneratingImages(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(image.system_filename);
+        return newSet;
+      });
+    }
   };
 
   const decodeName = (name: string): string => {
@@ -3564,6 +3631,31 @@ export default function ContentCreate() {
                                 <span className="hidden sm:inline">Edit</span>
                               </Button>
                             </div>
+
+                            {/* Regenerate Button - Only for non-uploaded and non-edited images */}
+                            {!(image.model_version === 'edited' || image.quality_setting === 'edited') && !image.task_id?.startsWith('upload_') && (
+                              <div className="mt-2">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="w-full h-8 text-xs font-medium bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white border-0 shadow-md hover:shadow-lg transition-all duration-300"
+                                  onClick={() => handleRegenerate(image)}
+                                  disabled={regeneratingImages.has(image.system_filename)}
+                                >
+                                  {regeneratingImages.has(image.system_filename) ? (
+                                    <div className="flex items-center gap-2">
+                                      <RotateCcw className="w-3 h-3 animate-spin" />
+                                      <span>Regenerating...</span>
+                                    </div>
+                                  ) : (
+                                    <div className="flex items-center gap-2">
+                                      <RotateCcw className="w-3 h-3" />
+                                      <span>Regenerate</span>
+                                    </div>
+                                  )}
+                                </Button>
+                              </div>
+                            )}
                           </CardContent>
                         </Card>
                       ))}

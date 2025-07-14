@@ -498,8 +498,8 @@ export default function Dashboard() {
 
             {/* Right side - Intro video (2 width) */}
             <div className="hidden xl:block col-span-2 flex items-center justify-center">
-              <div className="w-full h-full flex items-center justify-center">
-                <InstructionVideo {...getInstructionVideoConfig('phase1')} />
+              <div className="w-full h-full flex items-center justify-center p-4">
+                <InstructionVideo {...getInstructionVideoConfig('phase1')} className="w-full max-w-lg" />
               </div>
             </div>
           </div>
@@ -598,8 +598,8 @@ export default function Dashboard() {
 
             {/* Right side - Intro video (2 width) */}
             <div className="hidden xl:block col-span-2 flex items-center justify-center">
-              <div className="w-full h-full flex items-center justify-center">
-                <InstructionVideo {...getInstructionVideoConfig('phase2')} />
+              <div className="w-full h-full flex items-center justify-center p-4">
+                <InstructionVideo {...getInstructionVideoConfig('phase2')} className="w-full max-w-lg" />
               </div>
             </div>
           </div>
@@ -698,8 +698,8 @@ export default function Dashboard() {
 
             {/* Right side - Intro video (2 width) */}
             <div className="hidden xl:block col-span-2 flex items-center justify-center">
-              <div className="w-full h-full flex items-center justify-center">
-                <InstructionVideo {...getInstructionVideoConfig('phase3')} />
+              <div className="w-full h-full flex items-center justify-center p-4">
+                <InstructionVideo {...getInstructionVideoConfig('phase3')} className="w-full max-w-lg" />
               </div>
             </div>
           </div>
@@ -798,8 +798,8 @@ export default function Dashboard() {
 
             {/* Right side - Intro video (2 width) */}
             <div className="hidden xl:block col-span-2 flex items-center justify-center">
-              <div className="w-full h-full flex items-center justify-center">
-                <InstructionVideo {...getInstructionVideoConfig('phase4')} />
+              <div className="w-full h-full flex items-center justify-center p-4">
+                <InstructionVideo {...getInstructionVideoConfig('phase4')} className="w-full max-w-lg" />
               </div>
             </div>
           </div>

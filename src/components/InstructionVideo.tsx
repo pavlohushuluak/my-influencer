@@ -191,7 +191,7 @@ const InstructionVideo: React.FC<InstructionVideoProps> = ({
             </h3>
           </div>
           
-          <div className={`relative aspect-video bg-gradient-to-br ${config.bgGradient} dark:${config.darkBgGradient} rounded-2xl overflow-hidden shadow-xl border-2 ${config.borderColor} bg-opacity-60 backdrop-blur-md mb-4`}>
+          <div className={`relative ${isPlaying ? 'w-full h-96' : 'aspect-video'} bg-gradient-to-br ${config.bgGradient} dark:${config.darkBgGradient} rounded-2xl overflow-hidden shadow-xl border-2 ${config.borderColor} bg-opacity-60 backdrop-blur-md mb-4 transition-all duration-300 ${isPlaying ? 'scale-105' : ''}`}>
             {isPlaying && youtubeUrl ? (
               <div className="relative w-full h-full">
                 <iframe
@@ -204,7 +204,7 @@ const InstructionVideo: React.FC<InstructionVideoProps> = ({
                 />
                 <Button
                   onClick={handleBackClick}
-                  className="absolute top-2 right-2 bg-black/70 hover:bg-black/90 text-white rounded-full w-8 h-8 p-0"
+                  className="absolute top-2 right-2 bg-black/70 hover:bg-black/90 text-white rounded-full w-8 h-8 p-0 z-10"
                   size="sm"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -222,7 +222,7 @@ const InstructionVideo: React.FC<InstructionVideoProps> = ({
                 />
                 <Button
                   onClick={handleBackClick}
-                  className="absolute top-2 right-2 bg-black/70 hover:bg-black/90 text-white rounded-full w-8 h-8 p-0"
+                  className="absolute top-2 right-2 bg-black/70 hover:bg-black/90 text-white rounded-full w-8 h-8 p-0 z-10"
                   size="sm"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -1164,12 +1164,12 @@ export default function ContentEdit() {
                 </Button>
               </div>
             ) : isLoadingImage ? (
-              <div className="border rounded-lg h-[400px] md:h-[600px] bg-muted flex flex-col items-center justify-center">
+              <div className="border rounded-lg h-[85vh] bg-muted flex flex-col items-center justify-center">
                 <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mb-4" />
                 <p className="text-sm md:text-base text-gray-500 text-center px-4">Preparing image for editing</p>
               </div>
             ) : (
-              <div className="border rounded-lg h-[400px] md:h-[600px] bg-muted">
+              <div className="border rounded-lg h-[85vh] bg-muted">
                 <PinturaEditor
                   ref={editorRef}
                   {...editorDefaults}
@@ -1189,7 +1189,7 @@ export default function ContentEdit() {
                     ],
                     ['default', [
                       '🏆', '🏅', '🥇', '🥈', '🥉', '🎉', '🍕', '🖌️', '🌤', '🌥'
-                   ]],
+                    ]],
                   ]}
                   // Offer different crop options
                   cropSelectPresetOptions={[

@@ -77,7 +77,8 @@ export default function ContentCreate() {
     negative_prompt: '',
     nsfw_strength: 0,
     lora_strength: 0.9,
-    quality: 'Quality'
+    quality: 'Quality',
+    engine: ''
   });
 
   // Scene specifications
@@ -494,18 +495,53 @@ export default function ContentCreate() {
             'Authorization': 'Bearer WeInfl3nc3withAI'
           }
         });
-
-        if (!response.ok) {
-          throw new Error('Failed to fetch format options');
+        if (response.ok) {
+          const data = await response.json();
+          if (data && data.fieldoptions && Array.isArray(data.fieldoptions)) {
+            const options = data.fieldoptions.map((item: any) => ({
+              label: item.label,
+              image: item.image,
+              description: item.description
+            }));
+            setFormatOptions(options);
+          }
+        } else {
+          console.error('Failed to fetch format options:', response.status, response.statusText);
         }
-
-        const data = await response.json();
-        setFormatOptions(data);
       } catch (error) {
         console.error('Error fetching format options:', error);
       }
     };
     fetchFormatOptions();
+  }, []);
+
+  // Fetch engine options from API
+  useEffect(() => {
+    const fetchEngineOptions = async () => {
+      try {
+        const response = await fetch('https://api.nymia.ai/v1/fieldoptions?fieldtype=engine', {
+          headers: {
+            'Authorization': 'Bearer WeInfl3nc3withAI'
+          }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          if (data && data.fieldoptions && Array.isArray(data.fieldoptions)) {
+            const options = data.fieldoptions.map((item: any) => ({
+              label: item.label,
+              image: item.image,
+              description: item.description
+            }));
+            setEngineOptions(options);
+          }
+        } else {
+          console.error('Failed to fetch engine options:', response.status, response.statusText);
+        }
+      } catch (error) {
+        console.error('Error fetching engine options:', error);
+      }
+    };
+    fetchEngineOptions();
   }, []);
 
   const handleDownload = async (image: any) => {
@@ -724,6 +760,7 @@ export default function ContentCreate() {
         guidance: formData.guidance,
         number_of_images: formData.numberOfImages,
         format: safeFormatOptions.find(opt => opt.label === formData.format)?.label || formData.format,
+        engine: formData.engine,
         model: data[0] ? {
           id: data[0].id,
           influencer_type: data[0].influencer_type,
@@ -896,7 +933,8 @@ export default function ContentCreate() {
       negative_prompt: '',
       nsfw_strength: 0,
       lora_strength: 0.9,
-      quality: 'Quality'
+      quality: 'Quality',
+      engine: ''
     });
     setModelData(null);
     setSceneSpecs({
@@ -1042,6 +1080,14 @@ export default function ContentCreate() {
         }));
       }
 
+      if (regenerationData.engine) {
+        console.log('✅ Setting engine:', regenerationData.engine);
+        setFormData(prev => ({
+          ...prev,
+          engine: regenerationData.engine
+        }));
+      }
+
       if (regenerationData.lora !== undefined) {
         console.log('✅ Setting LORA:', regenerationData.lora);
         setFormData(prev => ({
@@ -1059,7 +1105,7 @@ export default function ContentCreate() {
       }
 
       // Step 2: Populate scene specifications
-      console.log('🎬 Step 2: Populating scene specifications');
+      console.log('�� Step 2: Populating scene specifications');
       if (regenerationData.scene) {
         console.log('📽️ Scene data:', regenerationData.scene);
         const sceneData = {
@@ -1412,6 +1458,10 @@ export default function ContentCreate() {
   const decodeName = (name: string): string => {
     return decodeURIComponent(name.replace(/\+/g, ' '));
   };
+
+  // Engine options and modal state
+  const [engineOptions, setEngineOptions] = useState<Option[]>([]);
+  const [showEngineSelector, setShowEngineSelector] = useState(false);
 
   return (
     <div className="px-6 space-y-4">
@@ -1822,7 +1872,7 @@ export default function ContentCreate() {
                   </div>
 
                   {/* Second Row: Format and Makeup Style */}
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                     <div className="space-y-2">
                       <Label>Format</Label>
                       <Select
@@ -1850,6 +1900,19 @@ export default function ContentCreate() {
                                   src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${safeFormatOptions.find(option => option.label === formData.format)?.image}`}
                                   className="absolute inset-0 w-full h-full object-cover rounded-md"
                                 />
+                                <Button
+                                  variant="destructive"
+                                  size="sm"
+                                  className="absolute bottom-2 right-2 w-8 h-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleInputChange('format', '');
+                                  }}
+                                >
+                                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                  </svg>
+                                </Button>
                               </div>
                               <p className="text-sm text-center font-medium mt-2">{safeFormatOptions.find(option => option.label === formData.format)?.label}</p>
                             </CardContent>
@@ -1903,6 +1966,19 @@ export default function ContentCreate() {
                                   src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${makeupOptions.find(option => option.label === modelDescription.makeup)?.image}`}
                                   className="absolute inset-0 w-full h-full object-cover rounded-md"
                                 />
+                                <Button
+                                  variant="destructive"
+                                  size="sm"
+                                  className="absolute bottom-2 right-2 w-8 h-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleModelDescriptionChange('makeup', '');
+                                  }}
+                                >
+                                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                  </svg>
+                                </Button>
                               </div>
                               <p className="text-sm text-center font-medium mt-2">{makeupOptions.find(option => option.label === modelDescription.makeup)?.label}</p>
                             </CardContent>
@@ -1925,6 +2001,71 @@ export default function ContentCreate() {
                           onSelect={(label) => handleModelDescriptionChange('makeup', label)}
                           onClose={() => setShowMakeupSelector(false)}
                           title="Select Makeup Style"
+                        />
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Engine</Label>
+                      <Select
+                        value={formData.engine}
+                        onValueChange={(value) => handleInputChange('engine', value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select engine" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {engineOptions.map((option) => (
+                            <SelectItem key={option.label} value={option.label}>{option.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <div
+                        onClick={() => setShowEngineSelector(true)}
+                        className='flex items-center justify-center cursor-pointer w-full'
+                      >
+                        {formData.engine && engineOptions.find(option => option.label === formData.engine)?.image ? (
+                          <Card className="relative w-full max-w-[250px]">
+                            <CardContent className="p-4">
+                              <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
+                                <img
+                                  src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${engineOptions.find(option => option.label === formData.engine)?.image}`}
+                                  className="absolute inset-0 w-full h-full object-cover rounded-md"
+                                />
+                                <Button
+                                  variant="destructive"
+                                  size="sm"
+                                  className="absolute bottom-2 right-2 w-8 h-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleInputChange('engine', '');
+                                  }}
+                                >
+                                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                  </svg>
+                                </Button>
+                              </div>
+                              <p className="text-sm text-center font-medium mt-2">{engineOptions.find(option => option.label === formData.engine)?.label}</p>
+                            </CardContent>
+                          </Card>
+                        ) : (
+                          <Card className="relative w-full border max-w-[250px]">
+                            <CardContent className="p-4">
+                              <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
+                                <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
+                                  Select engine
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        )}
+                      </div>
+                      {showEngineSelector && (
+                        <OptionSelector
+                          options={engineOptions}
+                          onSelect={(label) => handleInputChange('engine', label)}
+                          onClose={() => setShowEngineSelector(false)}
+                          title="Select Engine"
                         />
                       )}
                     </div>

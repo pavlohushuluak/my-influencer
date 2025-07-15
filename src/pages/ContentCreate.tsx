@@ -13,7 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
-import { Image, Wand2, Settings, Image as ImageIcon, Sparkles, Loader2, Camera, Search, X, Filter, Plus, RotateCcw, Download, Trash2, Calendar, Share, Pencil, Edit3 } from 'lucide-react';
+import { Image, Wand2, Settings, Image as ImageIcon, Sparkles, Loader2, Camera, Search, X, Filter, Plus, RotateCcw, Download, Trash2, Calendar, Share, Pencil, Edit3, BookOpen, Save, FolderOpen } from 'lucide-react';
 import { toast } from 'sonner';
 import { Command, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -1488,10 +1488,10 @@ export default function ContentCreate() {
   };
 
   const handleEdit = (image: any) => {
-    navigate('/content/edit', { 
-      state: { 
-        imageData: image 
-      } 
+    navigate('/content/edit', {
+      state: {
+        imageData: image
+      }
     });
   };
 
@@ -1549,17 +1549,17 @@ export default function ContentCreate() {
       // Step 3: Parse the JSON job data
       const jsonjob = JSON.parse(originalTask.jsonjob);
       console.log("Parsed JSON job:", jsonjob);
-      if(jsonjob.seed === -1){
+      if (jsonjob.seed === -1) {
         jsonjob.seed = null;
       }
 
       // Step 4: Navigate to ContentCreate with the JSON job data
-      navigate('/content/create', { 
-        state: { 
+      navigate('/content/create', {
+        state: {
           jsonjobData: jsonjob,
           isRegeneration: true,
           originalImage: image
-        } 
+        }
       });
 
       toast.success('Redirecting to ContentCreate for regeneration');
@@ -1597,6 +1597,11 @@ export default function ContentCreate() {
     toast.success(`Selected image from vault: ${image.system_filename}`);
   };
 
+  // Add new state for preset functionality
+  const [showPresetModal, setShowPresetModal] = useState(false);
+  const [showLibraryModal, setShowLibraryModal] = useState(false);
+  const [presetName, setPresetName] = useState('');
+
   return (
     <div className="px-6 space-y-4">
       {/* Header */}
@@ -1611,83 +1616,45 @@ export default function ContentCreate() {
             </p>
           </div>
         </div>
-        <div className="hidden xl:block bg-gradient-to-r from-slate-50 to-blue-50 dark:from-slate-900/50 dark:to-blue-900/20 rounded-xl py-2 px-6">
-          <div className="hidden xl:grid xl:grid-cols-4 2xl:grid-cols-5 gap-4">
-            <div className="flex flex-col space-y-2">
-              <span className="text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wide">
-                Task Type
-              </span>
-              <Badge variant="secondary" className="w-fit bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300">
-                {TASK_OPTIONS.find(opt => opt.value === formData.task)?.label}
-              </Badge>
-            </div>
 
-            <div className="flex flex-col space-y-2">
-              <span className="text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wide">
-                Format
-              </span>
-              <Badge variant="secondary" className="w-fit bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300">
-                {safeFormatOptions.find(opt => opt.label === formData.format)?.label || formData.format}
-              </Badge>
-            </div>
+        {/* Professional Preset and Library Buttons */}
+        <div className="flex items-center gap-3">
+          <div className="items-center gap-2 hidden xl:grid xl:grid-cols-3">
+            <Button
+              onClick={() => setShowPresetModal(true)}
+              variant="outline"
+              size="sm"
+              className="h-10 px-4 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border-amber-200 dark:border-amber-700 hover:from-amber-100 hover:to-orange-100 dark:hover:from-amber-800/30 dark:hover:to-orange-800/30 text-amber-700 dark:text-amber-300 font-medium shadow-sm hover:shadow-md transition-all duration-200"
+            >
+              <BookOpen className="w-4 h-4 mr-2" />
+              My Presets
+            </Button>
 
-            <div className="flex flex-col space-y-2">
-              <span className="text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wide">
-                Images
-              </span>
-              <Badge variant="secondary" className="w-fit bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300">
-                {formData.numberOfImages}
-              </Badge>
-            </div>
+            <Button
+              onClick={() => setShowLibraryModal(true)}
+              variant="outline"
+              size="sm"
+              className="h-10 px-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-blue-200 dark:border-blue-700 hover:from-blue-100 hover:to-indigo-100 dark:hover:from-blue-800/30 dark:hover:to-indigo-800/30 text-blue-700 dark:text-blue-300 font-medium shadow-sm hover:shadow-md transition-all duration-200"
+            >
+              <FolderOpen className="w-4 h-4 mr-2" />
+              Library
+            </Button>
 
-            <div className="flex flex-col space-y-2">
-              <span className="text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wide">
-                Guidance
-              </span>
-              <Badge variant="secondary" className="w-fit bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300">
-                {formData.guidance}
-              </Badge>
-            </div>
-
-            <div className="flex flex-col space-y-2">
-              <span className="text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wide">
-                CONSISTENCY
-              </span>
-              <Badge variant={formData.lora ? "default" : "secondary"} className={`w-fit ${formData.lora ? 'bg-gradient-to-r from-purple-500 to-blue-500 text-white' : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300'}`}>
-                {formData.lora ? "Enabled" : "Disabled"}
-              </Badge>
-            </div>
-
-            <div className="flex flex-col space-y-2">
-              <span className="text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wide">
-                AI OPTIMIZE
-              </span>
-              <Badge variant={formData.noAI ? "default" : "secondary"} className={`w-fit ${formData.noAI ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white' : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300'}`}>
-                {formData.noAI ? "Enabled" : "Disabled"}
-              </Badge>
-            </div>
-
-            <div className="flex flex-col space-y-2">
-              <span className="text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wide">
-                QUALITY
-              </span>
-              <Badge variant="secondary" className="w-fit bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300">
-                {formData.quality}
-              </Badge>
-            </div>
-
-            <div className="flex flex-col space-y-2">
-              <span className="text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wide">
-                PROMPT ONLY
-              </span>
-              <Badge variant={formData.usePromptOnly ? "default" : "secondary"} className={`w-fit ${formData.usePromptOnly ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white' : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300'}`}>
-                {formData.usePromptOnly ? "Enabled" : "Disabled"}
-              </Badge>
-            </div>
+            <Button
+              onClick={() => {
+                // Handle save as preset functionality
+                toast.info('Save as Preset functionality coming soon');
+              }}
+              variant="outline"
+              size="sm"
+              className="h-10 px-4 bg-gradient-to-r from-emerald-50 to-green-50 dark:from-emerald-900/20 dark:to-green-900/20 border-emerald-200 dark:border-emerald-700 hover:from-emerald-100 hover:to-green-100 dark:hover:from-emerald-800/30 dark:hover:to-green-800/30 text-emerald-700 dark:text-emerald-300 font-medium shadow-sm hover:shadow-md transition-all duration-200"
+            >
+              <Save className="w-4 h-4 mr-2" />
+              Save as Preset
+            </Button>
           </div>
         </div>
-
-        <div className="flex flex-col space-y-2">
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-1 gap-2">
           <Button
             onClick={handleGenerate}
             disabled={!validateForm() || isGenerating}
@@ -1714,18 +1681,46 @@ export default function ContentCreate() {
             <RotateCcw className="w-4 h-4 mr-2" />
             Reset Form
           </Button>
+        </div>
+      </div>
+
+      {/* Professional Preset and Library Buttons */}
+      <div className="flex w-full items-center gap-3 xl:hidden">
+        <div className="items-center gap-2 grid grid-cols-1 md:grid-cols-3 w-full">
           <Button
-            onClick={() => setShowVaultSelector(true)}
+            onClick={() => setShowPresetModal(true)}
             variant="outline"
-            className="bg-gradient-to-r from-green-600 to-emerald-600"
+            className="w-full h-10 px-4 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border-amber-200 dark:border-amber-700 hover:from-amber-100 hover:to-orange-100 dark:hover:from-amber-800/30 dark:hover:to-orange-800/30 text-amber-700 dark:text-amber-300 font-medium shadow-sm hover:shadow-md transition-all duration-200"
           >
-            <Image className="w-4 h-4 mr-2" />
-            Select from Vault
+            <BookOpen className="w-4 h-4 mr-2" />
+            My Presets
+          </Button>
+
+          <Button
+            onClick={() => setShowLibraryModal(true)}
+            variant="outline"
+            className="h-10 px-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-blue-200 dark:border-blue-700 hover:from-blue-100 hover:to-indigo-100 dark:hover:from-blue-800/30 dark:hover:to-indigo-800/30 text-blue-700 dark:text-blue-300 font-medium shadow-sm hover:shadow-md transition-all duration-200"
+          >
+            <FolderOpen className="w-4 h-4 mr-2" />
+            Library
+          </Button>
+
+          <Button
+            onClick={() => {
+              // Handle save as preset functionality
+              toast.info('Save as Preset functionality coming soon');
+            }}
+            variant="outline"
+            className="h-10 px-4 bg-gradient-to-r from-emerald-50 to-green-50 dark:from-emerald-900/20 dark:to-green-900/20 border-emerald-200 dark:border-emerald-700 hover:from-emerald-100 hover:to-green-100 dark:hover:from-emerald-800/30 dark:hover:to-green-800/30 text-emerald-700 dark:text-emerald-300 font-medium shadow-sm hover:shadow-md transition-all duration-200"
+          >
+            <Save className="w-4 h-4 mr-2" />
+            Save as Preset
           </Button>
         </div>
       </div>
-      <div className="xl:hidden bg-gradient-to-r from-slate-50 to-blue-50 dark:from-slate-900/50 dark:to-blue-900/20 rounded-xl p-6">
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+
+      <div className="bg-gradient-to-r from-slate-50 to-blue-50 dark:from-slate-900/50 dark:to-blue-900/20 rounded-xl p-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-4">
           <div className="flex flex-col space-y-2">
             <span className="text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wide">
               Task Type
@@ -4186,6 +4181,200 @@ export default function ContentCreate() {
         title="Select Image from Vault"
         description="Browse your vault and select an image to use as reference"
       />
+
+      {/* My Presets Modal */}
+      <Dialog open={showPresetModal} onOpenChange={setShowPresetModal}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <div className="p-2 bg-gradient-to-br from-amber-500 to-orange-600 rounded-lg">
+                <BookOpen className="w-5 h-5 text-white" />
+              </div>
+              My Presets
+            </DialogTitle>
+            <p className="text-sm text-muted-foreground">
+              Browse and manage your saved content generation presets
+            </p>
+          </DialogHeader>
+          <div className="space-y-6">
+            {/* Placeholder content for presets */}
+            <div className="text-center py-12">
+              <BookOpen className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-semibold mb-2">No Presets Yet</h3>
+              <p className="text-muted-foreground mb-4">
+                Save your current settings as a preset to reuse them later
+              </p>
+              <Button
+                onClick={() => {
+                  setShowPresetModal(false);
+                  toast.info('Save as Preset functionality coming soon');
+                }}
+                className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600"
+              >
+                <Save className="w-4 h-4 mr-2" />
+                Create Your First Preset
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Library Modal */}
+      <Dialog open={showLibraryModal} onOpenChange={setShowLibraryModal}>
+        <DialogContent className="max-w-6xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <div className="p-2 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg">
+                <FolderOpen className="w-5 h-5 text-white" />
+              </div>
+              Content Library
+            </DialogTitle>
+            <p className="text-sm text-muted-foreground">
+              Browse your saved content templates and configurations
+            </p>
+          </DialogHeader>
+          <div className="space-y-6">
+            {/* Search and Filter Section */}
+            <div className="flex gap-4">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                <Input
+                  placeholder="Search library items..."
+                  className="pl-10"
+                />
+              </div>
+              <Button variant="outline" className="gap-2">
+                <Filter className="w-4 h-4" />
+                Filter
+              </Button>
+            </div>
+
+            {/* Library Categories */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <Card className="group hover:shadow-lg transition-all duration-300 cursor-pointer">
+                <CardContent className="p-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="p-2 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg">
+                      <Camera className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold">Scene Presets</h3>
+                      <p className="text-sm text-muted-foreground">0 items</p>
+                    </div>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Saved scene configurations and lighting setups
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="group hover:shadow-lg transition-all duration-300 cursor-pointer">
+                <CardContent className="p-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="p-2 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg">
+                      <Sparkles className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold">Style Presets</h3>
+                      <p className="text-sm text-muted-foreground">0 items</p>
+                    </div>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Saved style configurations and artistic presets
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="group hover:shadow-lg transition-all duration-300 cursor-pointer">
+                <CardContent className="p-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="p-2 bg-gradient-to-br from-orange-500 to-red-600 rounded-lg">
+                      <Settings className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold">Generation Settings</h3>
+                      <p className="text-sm text-muted-foreground">0 items</p>
+                    </div>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Saved generation parameters and configurations
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="group hover:shadow-lg transition-all duration-300 cursor-pointer">
+                <CardContent className="p-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="p-2 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-lg">
+                      <Image className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold">Model Configurations</h3>
+                      <p className="text-sm text-muted-foreground">0 items</p>
+                    </div>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Saved model settings and character configurations
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="group hover:shadow-lg transition-all duration-300 cursor-pointer">
+                <CardContent className="p-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="p-2 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg">
+                      <Wand2 className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold">Prompt Templates</h3>
+                      <p className="text-sm text-muted-foreground">0 items</p>
+                    </div>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Saved prompt templates and text configurations
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="group hover:shadow-lg transition-all duration-300 cursor-pointer">
+                <CardContent className="p-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="p-2 bg-gradient-to-br from-yellow-500 to-orange-600 rounded-lg">
+                      <Plus className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold">Create New</h3>
+                      <p className="text-sm text-muted-foreground">Add new item</p>
+                    </div>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Create a new library item from current settings
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Empty State */}
+            <div className="text-center py-8">
+              <FolderOpen className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-semibold mb-2">Library is Empty</h3>
+              <p className="text-muted-foreground mb-4">
+                Start building your content library by saving your first preset
+              </p>
+              <Button
+                onClick={() => {
+                  setShowLibraryModal(false);
+                  toast.info('Save as Preset functionality coming soon');
+                }}
+                className="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600"
+              >
+                <Save className="w-4 h-4 mr-2" />
+                Save Current Settings
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

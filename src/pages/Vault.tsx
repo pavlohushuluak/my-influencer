@@ -692,7 +692,7 @@ export default function Vault() {
           comparison = 0;
       }
 
-      return sortOrder === 'desc' ? -comparison : comparison;
+      return sortOrder === 'desc' ? comparison : -comparison;
     });
 
   const hasActiveFilters = searchTerm ||

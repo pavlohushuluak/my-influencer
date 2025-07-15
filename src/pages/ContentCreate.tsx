@@ -13,7 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
-import { Image, Wand2, Settings, Image as ImageIcon, Sparkles, Loader2, Camera, Search, X, Filter, Plus, RotateCcw, Download, Trash2, Calendar, Share, Pencil, Edit3, BookOpen, Save, FolderOpen, Upload, Edit } from 'lucide-react';
+import { Image, Wand2, Settings, Image as ImageIcon, Sparkles, Loader2, Camera, Search, X, Filter, Plus, RotateCcw, Download, Trash2, Calendar, Share, Pencil, Edit3, BookOpen, Save, FolderOpen, Upload, Edit, AlertTriangle, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 import { Command, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -1609,6 +1609,11 @@ export default function ContentCreate() {
   const [showPresetModal, setShowPresetModal] = useState(false);
   const [showLibraryModal, setShowLibraryModal] = useState(false);
   const [presetName, setPresetName] = useState('');
+  const [presets, setPresets] = useState<any[]>([]);
+  const [isLoadingPresets, setIsLoadingPresets] = useState(false);
+  const [presetSearchTerm, setPresetSearchTerm] = useState('');
+  const [selectedPreset, setSelectedPreset] = useState<any>(null);
+  const [showPresetDetails, setShowPresetDetails] = useState(false);
 
   // Save as Preset functionality
   const [showSavePresetModal, setShowSavePresetModal] = useState(false);
@@ -1621,28 +1626,9 @@ export default function ContentCreate() {
   // Upload functionality for preset images
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const [showUploadModal, setShowUploadModal] = useState(false);
-  const [uploadFormData, setUploadFormData] = useState({
-    system_filename: '',
-    user_notes: '',
-    user_tags: [] as string[],
-    rating: 0,
-    favorite: false,
-    image_format: 'jpeg',
-    file_type: 'image'
-  });
 
   // Recent renders functionality
   const [showRecentRendersModal, setShowRecentRendersModal] = useState(false);
-  const [recentRendersFilter, setRecentRendersFilter] = useState('');
-  const [recentRendersSortBy, setRecentRendersSortBy] = useState<'date' | 'name' | 'rating'>('date');
-  const [recentRendersSortOrder, setRecentRendersSortOrder] = useState<'asc' | 'desc'>('desc');
-
-  // Save as Preset functions
-  const handleSavePreset = () => {
-    setShowSavePresetModal(true);
-  };
 
   const handlePresetImageSelect = (image: any, source: 'vault' | 'upload' | 'recent') => {
     setSelectedPresetImage(image);
@@ -1651,76 +1637,354 @@ export default function ContentCreate() {
     toast.success(`Selected image from ${source}`);
   };
 
+  // Helper function to generate unique filename
+  const generateUniqueFilename = (originalFilename: string, existingFilenames: string[]): string => {
+    const baseName = originalFilename.substring(0, originalFilename.lastIndexOf('.'));
+    const extension = originalFilename.substring(originalFilename.lastIndexOf('.'));
+    
+    let counter = 1;
+    let testFilename = `${baseName}(${counter})${extension}`;
+    
+    while (existingFilenames.includes(testFilename)) {
+      counter++;
+      testFilename = `${baseName}(${counter})${extension}`;
+    }
+    
+    return testFilename;
+  };
+
+  // Helper function to check for file conflicts
+  const checkFileConflict = async (filename: string): Promise<{ hasConflict: boolean; existingFilenames: string[] }> => {
+    try {
+      const getFilesResponse = await fetch('https://api.nymia.ai/v1/getfilenames', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          user: userData.id,
+          folder: 'presets'
+        })
+      });
+
+      if (getFilesResponse.ok) {
+        const files = await getFilesResponse.json();
+        console.log('Files in presets folder:', files);
+
+        if (files && files.length > 0 && files[0].Key) {
+          // Extract existing filenames from the presets folder
+          const existingFilenames = files.map((file: any) => {
+            const fileKey = file.Key;
+            const re = new RegExp(`^.*?presets/`);
+            const fileName = fileKey.replace(re, "");
+            console.log("Existing File Name:", fileName);
+            return fileName;
+          });
+
+          return {
+            hasConflict: existingFilenames.includes(filename),
+            existingFilenames
+          };
+        }
+      }
+      
+      return { hasConflict: false, existingFilenames: [] };
+    } catch (error) {
+      console.error('Error checking file conflict:', error);
+      return { hasConflict: false, existingFilenames: [] };
+    }
+  };
+
+  // Handle overwrite confirmation
+  const handleOverwriteConfirm = async () => {
+    setShowOverwriteDialog(false);
+    await savePresetWithFilename(conflictFilename, true);
+  };
+
+  // Handle new filename confirmation
+  const handleNewFilenameConfirm = async () => {
+    setShowOverwriteDialog(false);
+    await savePresetWithFilename(finalFilename, false);
+  };
+
+  // Save preset with specific filename
+  const savePresetWithFilename = async (filename: string, isOverwrite: boolean = false) => {
+    if (!pendingPresetData) return;
+
+    setIsSavingPreset(true);
+
+    try {
+      const { presetData, isUpload } = pendingPresetData;
+
+      if (isUpload && uploadedFile) {
+        // Create a new file with the unique filename
+        const file = new File([uploadedFile], filename, { type: uploadedFile.type });
+        
+        const uploadResponse = await fetch(`https://api.nymia.ai/v1/uploadfile?user=${userData.id}&filename=presets/${filename}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/octet-stream',
+            'Authorization': 'Bearer WeInfl3nc3withAI'
+          },
+          body: file
+        });
+
+        if (!uploadResponse.ok) {
+          throw new Error('Failed to upload file');
+        }
+      } else {
+        const oldPath = selectedPresetImage.user_filename === "" ? "output" : `vault/${selectedPresetImage.user_filename}`;
+        const copyResponse = await fetch('https://api.nymia.ai/v1/copyfile', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer WeInfl3nc3withAI'
+          },
+          body: JSON.stringify({
+            user: userData.id,
+            sourcefilename: `${oldPath}/${selectedPresetImage.system_filename}`,
+            destinationfilename: `presets/${filename}`
+          })
+        });
+
+        if (!copyResponse.ok) {
+          throw new Error('Failed to copy file');
+        }
+      }
+
+      // Update preset data with the final filename
+      presetData.image_name = filename;
+
+      // Save to database
+      const response = await fetch('https://db.nymia.ai/rest/v1/presets', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify(presetData)
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save preset');
+      }
+
+      // Show appropriate success message
+      if (isOverwrite) {
+        toast.success(`Preset "${presetName}" saved successfully! (Overwrote existing file)`);
+      } else if (filename !== (presetImageSource === 'upload' && uploadedFile ? uploadedFile.name : selectedPresetImage.system_filename)) {
+        toast.success(`Preset "${presetName}" saved successfully! (Saved as "${decodeName(filename)}")`);
+      } else {
+        toast.success(`Preset "${presetName}" saved successfully!`);
+      }
+      
+      // Reset form
+      setPresetName('');
+      setSelectedPresetImage(null);
+      setPresetImageSource(null);
+      setShowSavePresetModal(false);
+
+      // Reset upload state if it was an upload
+      if (presetImageSource === 'upload') {
+        if (uploadedImageUrl) {
+          URL.revokeObjectURL(uploadedImageUrl);
+        }
+        setUploadedFile(null);
+        setUploadedImageUrl(null);
+      }
+
+    } catch (error) {
+      console.error('Error saving preset:', error);
+      toast.error('Failed to save preset. Please try again.');
+    } finally {
+      setIsSavingPreset(false);
+      setPendingPresetData(null);
+      setConflictFilename('');
+      setFinalFilename('');
+    }
+  };
+
+  const resetPresetForm = () => {
+    setPresetName('');
+    setSelectedPresetImage(null);
+    setPresetImageSource(null);
+    setShowSavePresetModal(false);
+  };
+
+  // Upload handlers
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file');
+      return;
+    }
+
+    // Validate file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('File size must be less than 10MB');
+      return;
+    }
+
+    setUploadedFile(file);
+    
+    // Create preview URL
+    const imageUrl = URL.createObjectURL(file);
+    setUploadedImageUrl(imageUrl);
+    
+    // Set default filename
+    const filename = file.name.replace(/\.[^/.]+$/, ''); // Remove extension
+    const systemFilename = `${filename}_${Date.now()}.${file.name.split('.').pop() || 'jpg'}`;
+    
+    // Create a temporary image object that looks like a vault image
+    const uploadedImage = {
+      id: `upload_${Date.now()}`,
+      task_id: `upload_${Date.now()}`,
+      user_filename: '',
+      system_filename: systemFilename,
+      created_at: new Date().toISOString(),
+      user_notes: '',
+      user_tags: [],
+      file_path: `vault/${systemFilename}`,
+      file_size_bytes: file.size,
+      image_format: file.name.split('.').pop() || 'jpg',
+      seed: 0,
+      guidance: 0,
+      steps: 0,
+      nsfw_strength: 0,
+      lora_strength: 0,
+      model_version: 'uploaded',
+      t5xxl_prompt: '',
+      clip_l_prompt: '',
+      negative_prompt: '',
+      actual_seed_used: 0,
+      actual_guidance_used: 0,
+      actual_steps_used: 0,
+      quality_setting: 'uploaded',
+      rating: 0,
+      favorite: false,
+      file_type: 'image',
+      // Add preview URL for display
+      preview_url: imageUrl
+    };
+
+    // Select the uploaded image for preset
+    setSelectedPresetImage(uploadedImage);
+    setPresetImageSource('upload');
+
+    toast.success('Image uploaded successfully');
+  };
+
+  // Recent renders handlers
+  const handleRecentRendersSelect = (image: any) => {
+    setSelectedPresetImage(image);
+    setPresetImageSource('recent');
+    setShowRecentRendersModal(false);
+    toast.success(`Selected recent render: ${decodeName(image.system_filename)}`);
+  };
+
+  // File conflict resolution state
+  const [showOverwriteDialog, setShowOverwriteDialog] = useState(false);
+  const [conflictFilename, setConflictFilename] = useState('');
+  const [finalFilename, setFinalFilename] = useState('');
+  const [pendingPresetData, setPendingPresetData] = useState<any>(null);
+
   const handleSavePresetToDatabase = async () => {
     if (!presetName.trim() || !selectedPresetImage) {
       toast.error('Please provide a preset name and select an image');
       return;
     }
 
-    setIsSavingPreset(true);
-
     try {
-      // If the image source is upload and we have an uploaded file, upload it first
-      if (presetImageSource === 'upload' && uploadedFile) {
-        // Upload file to API
-        const uploadResponse = await fetch(`https://api.nymia.ai/v1/uploadfile?user=${userData.id}&filename=vault/${uploadFormData.system_filename}`, {
-          method: 'POST',
-          body: uploadedFile
-        });
+      // Determine the filename to use
+      const originalFilename = presetImageSource === 'upload' && uploadedFile 
+        ? uploadedFile.name 
+        : selectedPresetImage.system_filename;
 
-        if (!uploadResponse.ok) {
-          throw new Error('Failed to upload file');
-        }
+      // Check for file conflicts
+      const { hasConflict, existingFilenames } = await checkFileConflict(originalFilename);
 
-        // Create database entry for the uploaded image
-        const imageData = {
-          user_id: userData.id,
-          task_id: `upload_${Date.now()}`,
-          user_filename: '',
-          system_filename: uploadFormData.system_filename,
-          created_at: new Date().toISOString(),
-          user_notes: uploadFormData.user_notes,
-          user_tags: uploadFormData.user_tags,
-          file_path: `vault/${uploadFormData.system_filename}`,
-          file_size_bytes: uploadedFile.size,
-          image_format: uploadFormData.image_format,
-          seed: 0,
-          guidance: 0,
-          steps: 0,
-          nsfw_strength: 0,
-          lora_strength: 0,
-          model_version: 'uploaded',
-          t5xxl_prompt: '',
-          clip_l_prompt: '',
-          negative_prompt: '',
-          actual_seed_used: 0,
-          actual_guidance_used: 0,
-          actual_steps_used: 0,
-          quality_setting: 'uploaded',
-          rating: uploadFormData.rating,
-          favorite: uploadFormData.favorite,
-          file_type: uploadFormData.file_type
+      if (hasConflict) {
+        // Generate unique filename
+        const uniqueFilename = generateUniqueFilename(originalFilename, existingFilenames);
+        
+        // Store conflict info and show dialog
+        setConflictFilename(originalFilename);
+        setFinalFilename(uniqueFilename);
+        setShowOverwriteDialog(true);
+        
+        // Prepare preset data for later use
+        const jsonjob = {
+          task: formData.task,
+          lora: formData.lora,
+          noAI: formData.noAI,
+          prompt: formData.prompt,
+          negative_prompt: formData.negative_prompt,
+          nsfw_strength: formData.nsfw_strength,
+          lora_strength: formData.lora_strength,
+          quality: formData.quality,
+          seed: formData.seed ? parseInt(formData.seed) : -1,
+          guidance: formData.guidance,
+          number_of_images: formData.numberOfImages,
+          format: safeFormatOptions.find(opt => opt.label === formData.format)?.label || formData.format,
+          engine: formData.engine,
+          usePromptOnly: formData.usePromptOnly,
+          model: modelData ? {
+            id: modelData.id,
+            influencer_type: modelData.influencer_type,
+            sex: modelData.sex,
+            cultural_background: modelData.cultural_background,
+            hair_length: modelData.hair_length,
+            hair_color: modelData.hair_color,
+            hair_style: modelData.hair_style,
+            eye_color: modelData.eye_color,
+            lip_style: modelData.lip_style,
+            nose_style: modelData.nose_style,
+            face_shape: modelData.face_shape,
+            facial_features: modelData.facial_features,
+            skin_tone: modelData.skin_tone,
+            bust: modelData.bust_size,
+            body_type: modelData.body_type,
+            color_palette: modelData.color_palette || [],
+            clothing_style_everyday: modelData.clothing_style_everyday,
+            eyebrow_style: modelData.eyebrow_style,
+            makeup_style: modelDescription.makeup,
+            name_first: modelData.name_first,
+            name_last: modelData.name_last,
+            visual_only: modelData.visual_only,
+            age: modelData.age,
+            lifestyle: modelData.lifestyle
+          } : null,
+          scene: {
+            framing: sceneSpecs.framing,
+            rotation: sceneSpecs.rotation,
+            lighting_preset: sceneSpecs.lighting_preset,
+            scene_setting: sceneSpecs.scene_setting,
+            pose: sceneSpecs.pose,
+            clothes: sceneSpecs.clothes
+          }
         };
 
-        const dbResponse = await fetch('https://db.nymia.ai/rest/v1/images', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer WeInfl3nc3withAI'
-          },
-          body: JSON.stringify(imageData)
+        const presetData = {
+          user_id: userData.id,
+          jsonjob: jsonjob,
+          name: presetName,
+          image_name: originalFilename,
+          route: '/presets'
+        };
+
+        setPendingPresetData({
+          presetData,
+          isUpload: presetImageSource === 'upload'
         });
-
-        if (!dbResponse.ok) {
-          throw new Error('Failed to save image metadata');
-        }
-
-        const savedImage = await dbResponse.json();
-        // Update the selected preset image with the saved image data
-        setSelectedPresetImage(savedImage);
+        
+        return; // Wait for user decision
       }
 
-      // Create the JSON job data from current form state
+      // No conflict, proceed with original filename
       const jsonjob = {
         task: formData.task,
         lora: formData.lora,
@@ -1772,297 +2036,139 @@ export default function ContentCreate() {
         }
       };
 
-      // Prepare the preset data
       const presetData = {
         user_id: userData.id,
         jsonjob: jsonjob,
-        name: presetName.trim(),
-        image_name: selectedPresetImage.system_filename || selectedPresetImage.name || 'preset-image',
-        route: '/content/create'
+        name: presetName,
+        image_name: originalFilename,
+        route: '/presets'
       };
 
-      // Save to database
-      const response = await fetch('https://db.nymia.ai/rest/v1/presets', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer WeInfl3nc3withAI'
-        },
-        body: JSON.stringify(presetData)
+      setPendingPresetData({
+        presetData,
+        isUpload: presetImageSource === 'upload'
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to save preset');
-      }
-
-      const savedPreset = await response.json();
-      
-      toast.success(`Preset "${presetName}" saved successfully!`);
-      
-      // Reset form
-      setPresetName('');
-      setSelectedPresetImage(null);
-      setPresetImageSource(null);
-      setShowSavePresetModal(false);
-
-      // Reset upload state if it was an upload
-      if (presetImageSource === 'upload') {
-        if (uploadedImageUrl) {
-          URL.revokeObjectURL(uploadedImageUrl);
-        }
-        setUploadedFile(null);
-        setUploadedImageUrl(null);
-        setUploadFormData({
-          system_filename: '',
-          user_notes: '',
-          user_tags: [],
-          rating: 0,
-          favorite: false,
-          image_format: 'jpeg',
-          file_type: 'image'
-        });
-      }
+      // Save with original filename
+      await savePresetWithFilename(originalFilename, false);
 
     } catch (error) {
       console.error('Error saving preset:', error);
       toast.error('Failed to save preset. Please try again.');
-    } finally {
-      setIsSavingPreset(false);
     }
   };
 
-  const resetPresetForm = () => {
-    setPresetName('');
-    setSelectedPresetImage(null);
-    setPresetImageSource(null);
-    setShowSavePresetModal(false);
+  // Save as Preset functions
+  const handleSavePreset = () => {
+    setShowSavePresetModal(true);
   };
 
-  // Upload handlers
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      toast.error('Please select an image file');
-      return;
-    }
-
-    // Validate file size (max 10MB)
-    if (file.size > 10 * 1024 * 1024) {
-      toast.error('File size must be less than 10MB');
-      return;
-    }
-
-    setUploadedFile(file);
+  // Fetch presets from database
+  const fetchPresets = async () => {
+    if (!userData?.id) return;
     
-    // Create preview URL
-    const imageUrl = URL.createObjectURL(file);
-    setUploadedImageUrl(imageUrl);
-    
-    // Set default filename
-    const filename = file.name.replace(/\.[^/.]+$/, ''); // Remove extension
-    const systemFilename = `${filename}_${Date.now()}.${file.name.split('.').pop() || 'jpg'}`;
-    
-    setUploadFormData(prev => ({
-      ...prev,
-      system_filename: systemFilename
-    }));
-
-    // Create a temporary image object that looks like a vault image
-    const uploadedImage = {
-      id: `upload_${Date.now()}`,
-      task_id: `upload_${Date.now()}`,
-      user_filename: '',
-      system_filename: systemFilename,
-      created_at: new Date().toISOString(),
-      user_notes: '',
-      user_tags: [],
-      file_path: `vault/${systemFilename}`,
-      file_size_bytes: file.size,
-      image_format: file.name.split('.').pop() || 'jpg',
-      seed: 0,
-      guidance: 0,
-      steps: 0,
-      nsfw_strength: 0,
-      lora_strength: 0,
-      model_version: 'uploaded',
-      t5xxl_prompt: '',
-      clip_l_prompt: '',
-      negative_prompt: '',
-      actual_seed_used: 0,
-      actual_guidance_used: 0,
-      actual_steps_used: 0,
-      quality_setting: 'uploaded',
-      rating: 0,
-      favorite: false,
-      file_type: 'image',
-      // Add preview URL for display
-      preview_url: imageUrl
-    };
-
-    // Select the uploaded image for preset
-    setSelectedPresetImage(uploadedImage);
-    setPresetImageSource('upload');
-
-    toast.success('Image uploaded successfully');
-  };
-
-  const handleUploadToVault = async () => {
-    if (!uploadedFile || !uploadFormData.system_filename.trim()) {
-      toast.error('Please provide a filename and select a file');
-      return;
-    }
-
-    setIsUploading(true);
-
+    setIsLoadingPresets(true);
     try {
-      // Upload file to API
-      const uploadResponse = await fetch(`https://api.nymia.ai/v1/uploadfile?user=${userData.id}&filename=vault/${uploadFormData.system_filename}`, {
-        method: 'POST',
-        body: uploadedFile
-      });
-
-      if (!uploadResponse.ok) {
-        throw new Error('Failed to upload file');
-      }
-
-      // Create database entry
-      const imageData = {
-        user_id: userData.id,
-        task_id: `upload_${Date.now()}`,
-        user_filename: '',
-        system_filename: uploadFormData.system_filename,
-        created_at: new Date().toISOString(),
-        user_notes: uploadFormData.user_notes,
-        user_tags: uploadFormData.user_tags,
-        file_path: `vault/${uploadFormData.system_filename}`,
-        file_size_bytes: uploadedFile.size,
-        image_format: uploadFormData.image_format,
-        seed: 0,
-        guidance: 0,
-        steps: 0,
-        nsfw_strength: 0,
-        lora_strength: 0,
-        model_version: 'uploaded',
-        t5xxl_prompt: '',
-        clip_l_prompt: '',
-        negative_prompt: '',
-        actual_seed_used: 0,
-        actual_guidance_used: 0,
-        actual_steps_used: 0,
-        quality_setting: 'uploaded',
-        rating: uploadFormData.rating,
-        favorite: uploadFormData.favorite,
-        file_type: uploadFormData.file_type
-      };
-
-      const dbResponse = await fetch('https://db.nymia.ai/rest/v1/images', {
-        method: 'POST',
+      const response = await fetch(`https://db.nymia.ai/rest/v1/presets?user_id=eq.${userData.id}`, {
         headers: {
-          'Content-Type': 'application/json',
           'Authorization': 'Bearer WeInfl3nc3withAI'
-        },
-        body: JSON.stringify(imageData)
+        }
       });
 
-      if (!dbResponse.ok) {
-        throw new Error('Failed to save image metadata');
+      if (response.ok) {
+        const presetsData = await response.json();
+        setPresets(presetsData);
       }
-
-      const savedImage = await dbResponse.json();
-      
-      // Select the uploaded image for preset
-      setSelectedPresetImage(savedImage);
-      setPresetImageSource('upload');
-      setShowUploadModal(false);
-      
-      // Reset upload state
-      if (uploadedImageUrl) {
-        URL.revokeObjectURL(uploadedImageUrl);
-      }
-      setUploadedFile(null);
-      setUploadedImageUrl(null);
-      setUploadFormData({
-        system_filename: '',
-        user_notes: '',
-        user_tags: [],
-        rating: 0,
-        favorite: false,
-        image_format: 'jpeg',
-        file_type: 'image'
-      });
-
-      toast.success('Image uploaded to vault successfully!');
-
     } catch (error) {
-      console.error('Error uploading image:', error);
-      toast.error('Failed to upload image. Please try again.');
+      console.error('Error fetching presets:', error);
+      toast.error('Failed to load presets');
     } finally {
-      setIsUploading(false);
+      setIsLoadingPresets(false);
     }
   };
 
-  const handleRemoveUploadedImage = () => {
-    if (uploadedImageUrl) {
-      URL.revokeObjectURL(uploadedImageUrl);
-    }
-    setUploadedFile(null);
-    setUploadedImageUrl(null);
-    setUploadFormData({
-      system_filename: '',
-      user_notes: '',
-      user_tags: [],
-      rating: 0,
-      favorite: false,
-      image_format: 'jpeg',
-      file_type: 'image'
-    });
+  // Load presets when modal opens
+  const handleOpenPresetModal = () => {
+    setShowPresetModal(true);
+    fetchPresets();
   };
 
-  // Recent renders handlers
-  const handleRecentRendersSelect = (image: any) => {
-    setSelectedPresetImage(image);
-    setPresetImageSource('recent');
-    setShowRecentRendersModal(false);
-    toast.success(`Selected recent render: ${decodeName(image.system_filename)}`);
-  };
-
-  const filteredAndSortedRecentRenders = useMemo(() => {
-    let filtered = generatedImages.filter(image => 
-      decodeName(image.system_filename).toLowerCase().includes(recentRendersFilter.toLowerCase())
-    );
-
-    filtered.sort((a, b) => {
-      let aValue: any, bValue: any;
+  // Apply preset to current form
+  const handleApplyPreset = (preset: any) => {
+    try {
+      const jsonjob = preset.jsonjob;
       
-      switch (recentRendersSortBy) {
-        case 'date':
-          aValue = new Date(a.created_at).getTime();
-          bValue = new Date(b.created_at).getTime();
-          break;
-        case 'name':
-          aValue = decodeName(a.system_filename).toLowerCase();
-          bValue = decodeName(b.system_filename).toLowerCase();
-          break;
-        case 'rating':
-          aValue = a.rating || 0;
-          bValue = b.rating || 0;
-          break;
-        default:
-          return 0;
+      // Apply form data
+      if (jsonjob.task) setFormData(prev => ({ ...prev, task: jsonjob.task }));
+      if (jsonjob.lora) setFormData(prev => ({ ...prev, lora: jsonjob.lora }));
+      if (jsonjob.noAI) setFormData(prev => ({ ...prev, noAI: jsonjob.noAI }));
+      if (jsonjob.prompt) setFormData(prev => ({ ...prev, prompt: jsonjob.prompt }));
+      if (jsonjob.negative_prompt) setFormData(prev => ({ ...prev, negative_prompt: jsonjob.negative_prompt }));
+      if (jsonjob.nsfw_strength) setFormData(prev => ({ ...prev, nsfw_strength: jsonjob.nsfw_strength }));
+      if (jsonjob.lora_strength) setFormData(prev => ({ ...prev, lora_strength: jsonjob.lora_strength }));
+      if (jsonjob.quality) setFormData(prev => ({ ...prev, quality: jsonjob.quality }));
+      if (jsonjob.seed) setFormData(prev => ({ ...prev, seed: jsonjob.seed.toString() }));
+      if (jsonjob.guidance) setFormData(prev => ({ ...prev, guidance: jsonjob.guidance }));
+      if (jsonjob.number_of_images) setFormData(prev => ({ ...prev, numberOfImages: jsonjob.number_of_images }));
+      if (jsonjob.format) setFormData(prev => ({ ...prev, format: jsonjob.format }));
+      if (jsonjob.engine) setFormData(prev => ({ ...prev, engine: jsonjob.engine }));
+      if (jsonjob.usePromptOnly) setFormData(prev => ({ ...prev, usePromptOnly: jsonjob.usePromptOnly }));
+
+      // Apply scene specs
+      if (jsonjob.scene) {
+        if (jsonjob.scene.framing) setSceneSpecs(prev => ({ ...prev, framing: jsonjob.scene.framing }));
+        if (jsonjob.scene.rotation) setSceneSpecs(prev => ({ ...prev, rotation: jsonjob.scene.rotation }));
+        if (jsonjob.scene.lighting_preset) setSceneSpecs(prev => ({ ...prev, lighting_preset: jsonjob.scene.lighting_preset }));
+        if (jsonjob.scene.scene_setting) setSceneSpecs(prev => ({ ...prev, scene_setting: jsonjob.scene.scene_setting }));
+        if (jsonjob.scene.pose) setSceneSpecs(prev => ({ ...prev, pose: jsonjob.scene.pose }));
+        if (jsonjob.scene.clothes) setSceneSpecs(prev => ({ ...prev, clothes: jsonjob.scene.clothes }));
       }
 
-      if (recentRendersSortOrder === 'asc') {
-        return aValue > bValue ? 1 : -1;
+      // Apply model data if available
+      if (jsonjob.model) {
+        setModelData(jsonjob.model);
+      }
+
+      setShowPresetModal(false);
+      toast.success(`Applied preset: ${preset.name}`);
+    } catch (error) {
+      console.error('Error applying preset:', error);
+      toast.error('Failed to apply preset');
+    }
+  };
+
+  // Delete preset
+  const handleDeletePreset = async (preset: any) => {
+    try {
+      const response = await fetch(`https://db.nymia.ai/rest/v1/presets?id=eq.${preset.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        }
+      });
+
+      if (response.ok) {
+        setPresets(prev => prev.filter(p => p.id !== preset.id));
+        toast.success(`Deleted preset: ${preset.name}`);
       } else {
-        return aValue < bValue ? 1 : -1;
+        throw new Error('Failed to delete preset');
       }
-    });
+    } catch (error) {
+      console.error('Error deleting preset:', error);
+      toast.error('Failed to delete preset');
+    }
+  };
 
-    return filtered;
-  }, [generatedImages, recentRendersFilter, recentRendersSortBy, recentRendersSortOrder]);
+  // View preset details
+  const handleViewPresetDetails = (preset: any) => {
+    setSelectedPreset(preset);
+    setShowPresetDetails(true);
+  };
+
+  // Filtered presets based on search
+  const filteredPresets = presets.filter(preset =>
+    preset.name.toLowerCase().includes(presetSearchTerm.toLowerCase())
+  );
 
   return (
     <div className="px-6 space-y-4">
@@ -2083,7 +2189,7 @@ export default function ContentCreate() {
         <div className="flex items-center gap-3">
           <div className="items-center gap-2 hidden xl:grid xl:grid-cols-3">
             <Button
-              onClick={() => setShowPresetModal(true)}
+              onClick={handleOpenPresetModal}
               variant="outline"
               size="sm"
               className="h-10 px-4 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border-amber-200 dark:border-amber-700 hover:from-amber-100 hover:to-orange-100 dark:hover:from-amber-800/30 dark:hover:to-orange-800/30 text-amber-700 dark:text-amber-300 font-medium shadow-sm hover:shadow-md transition-all duration-200"
@@ -4995,117 +5101,464 @@ export default function ContentCreate() {
           </DialogHeader>
           
           <div className="space-y-6">
-            {/* Search and Filter Section */}
-            <div className="flex gap-4">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                <Input
-                  placeholder="Search recent renders..."
-                  value={recentRendersFilter}
-                  onChange={(e) => setRecentRendersFilter(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-              <div className="flex gap-2">
-                <Select value={recentRendersSortBy} onValueChange={(value: 'date' | 'name' | 'rating') => setRecentRendersSortBy(value)}>
-                  <SelectTrigger className="w-32">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="date">Date</SelectItem>
-                    <SelectItem value="name">Name</SelectItem>
-                    <SelectItem value="rating">Rating</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setRecentRendersSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
-                >
-                  {recentRendersSortOrder === 'asc' ? <SortAsc className="w-4 h-4" /> : <SortDesc className="w-4 h-4" />}
-                </Button>
-              </div>
-            </div>
-
             {/* Recent Renders Grid */}
-            {filteredAndSortedRecentRenders.length > 0 ? (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {filteredAndSortedRecentRenders.map((image) => (
-                  <Card
-                    key={image.id}
-                    className="group hover:shadow-lg transition-all duration-300 cursor-pointer"
-                    onClick={() => handleRecentRendersSelect(image)}
-                  >
-                    <CardContent className="p-4">
-                      <div className="relative w-full" style={{ paddingBottom: '100%' }}>
-                        {/* Rating Stars */}
-                        <div className="absolute top-2 right-2 z-10 flex gap-0.5">
-                          {[1, 2, 3, 4, 5].map((star) => (
-                            <svg
-                              key={star}
-                              className={`w-3 h-3 ${star <= (image.rating || 0) ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
-                              viewBox="0 0 24 24"
-                            >
-                              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+            {generatedImages.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
+                {generatedImages
+                  .filter(image => image.file_path && image.system_filename === image.file_path.split('/').pop())
+                  .map((image, index) => (
+                    <Card
+                      key={image.id}
+                      className={`group hover:shadow-xl transition-all duration-300 border-border/50 hover:border-blue-500/50 backdrop-blur-sm bg-gradient-to-br from-yellow-50/20 to-orange-50/20 dark:from-yellow-950/5 dark:to-orange-950/5 hover:from-blue-50/30 hover:to-purple-50/30 dark:hover:from-blue-950/10 dark:hover:to-purple-950/10 cursor-pointer`}
+                      onClick={() => handleRecentRendersSelect(image)}
+                    >
+                      <CardContent className="p-4">
+                        {/* Top Row: File Type, Ratings, Favorite */}
+                        <div className="flex items-center justify-between mb-3">
+                          {/* File Type Icon */}
+                          <div className="rounded-full w-8 h-8 flex items-center justify-center shadow-md bg-gradient-to-br from-blue-500 to-purple-600">
+                            <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="currentColor">
+                              <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z" />
+                              <circle cx="8.5" cy="8.5" r="1.5" opacity="0.8" />
                             </svg>
-                          ))}
+                          </div>
+
+                          {/* Rating Stars */}
+                          <div className="flex gap-1">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <svg
+                                key={star}
+                                className={`w-4 h-4 ${star <= (image.rating || 0) ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
+                                viewBox="0 0 24 24"
+                              >
+                                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                              </svg>
+                            ))}
+                          </div>
+
+                          {/* Favorite Heart */}
+                          <div>
+                            {image.favorite ? (
+                              <div className="bg-red-500 rounded-full w-8 h-8 flex items-center justify-center">
+                                <svg className="w-4 h-4 text-white fill-current" viewBox="0 0 24 24">
+                                  <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                                </svg>
+                              </div>
+                            ) : (
+                              <div className="bg-black/50 rounded-full w-8 h-8 flex items-center justify-center">
+                                <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                  <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                                </svg>
+                              </div>
+                            )}
+                          </div>
                         </div>
 
-                        {/* Favorite Heart */}
-                        {image.favorite && (
-                          <div className="absolute top-2 left-2 z-10">
-                            <div className="bg-red-500 rounded-full w-6 h-6 flex items-center justify-center">
-                              <svg className="w-3 h-3 text-white fill-current" viewBox="0 0 24 24">
-                                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-                              </svg>
+                        {/* Image */}
+                        <div className="relative w-full group mb-4" style={{ paddingBottom: '100%' }}>
+                          <img
+                            src={`https://images.nymia.ai/cdn-cgi/image/w=400/${image.file_path}`}
+                            alt={image.system_filename}
+                            className="absolute inset-0 w-full h-full object-cover rounded-md shadow-sm cursor-pointer transition-all duration-200 hover:scale-105"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.style.display = 'none';
+                            }}
+                          />
+                          {/* Zoom Overlay */}
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded-md flex items-end justify-end p-2">
+                            <div className="flex gap-1">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-8 w-8 p-0 bg-white/90 dark:bg-black/90 hover:bg-white dark:hover:bg-black shadow-lg hover:shadow-xl transition-all duration-200"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setFullSizeImageModal({
+                                    isOpen: true,
+                                    imageUrl: `https://images.nymia.ai/cdn-cgi/image/w=1200/${image.file_path}`,
+                                    imageName: decodeName(image.system_filename)
+                                  });
+                                }}
+                              >
+                                <ZoomIn className="w-3 h-3 text-gray-700 dark:text-gray-300" />
+                              </Button>
                             </div>
+                          </div>
+                        </div>
+
+                        {/* User Notes */}
+                        {image.user_notes && (
+                          <div className="mb-3">
+                            <p className="text-sm text-gray-700 dark:text-gray-300 line-clamp-2">
+                              {image.user_notes}
+                            </p>
                           </div>
                         )}
 
-                        <img
-                          src={`https://images.nymia.ai/cdn-cgi/image/w=400/${image.file_path}`}
-                          alt={image.system_filename}
-                          className="absolute inset-0 w-full h-full object-cover rounded-md transition-all duration-200 group-hover:scale-105"
-                        />
-                      </div>
-                      
-                      <div className="mt-3 space-y-1">
-                        <p className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">
-                          {decodeName(image.system_filename)}
-                        </p>
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <Calendar className="w-3 h-3" />
-                          {new Date(image.created_at).toLocaleDateString()}
+                        {/* User Tags */}
+                        {image.user_tags && image.user_tags.length > 0 && (
+                          <div className="mb-3 flex flex-wrap gap-1">
+                            {image.user_tags.slice(0, 3).map((tag: string, index: number) => (
+                              <Badge
+                                key={index}
+                                variant="secondary"
+                                className="text-xs"
+                              >
+                                {tag.trim()}
+                              </Badge>
+                            ))}
+                            {image.user_tags.length > 3 && (
+                              <Badge variant="secondary" className="text-xs">
+                                +{image.user_tags.length - 3}
+                              </Badge>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Filename and Date */}
+                        <div className="space-y-2">
+                          <h3 className="font-medium text-sm text-gray-800 dark:text-gray-200 truncate">
+                            {decodeName(image.system_filename)}
+                          </h3>
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <Calendar className="w-3 h-3" />
+                            {new Date(image.created_at).toLocaleDateString()}
+                          </div>
                         </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                      </CardContent>
+                    </Card>
+                  ))}
               </div>
             ) : (
               <div className="text-center py-12">
                 <Image className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-semibold mb-2">
-                  {recentRendersFilter ? 'No matching renders found' : 'No recent renders available'}
-                </h3>
+                <h3 className="text-lg font-semibold mb-2">No recent renders available</h3>
                 <p className="text-muted-foreground mb-4">
-                  {recentRendersFilter 
-                    ? 'Try adjusting your search terms'
-                    : 'Generate some images first to see them here'
-                  }
+                  Generate some images first to see them here
                 </p>
-                {!recentRendersFilter && (
-                  <Button
-                    onClick={() => setShowRecentRendersModal(false)}
-                    className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
-                  >
-                    <Sparkles className="w-4 h-4 mr-2" />
-                    Generate Images
-                  </Button>
-                )}
               </div>
             )}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* File Conflict Overwrite Dialog */}
+      <Dialog open={showOverwriteDialog} onOpenChange={setShowOverwriteDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <div className="p-2 bg-gradient-to-br from-orange-500 to-red-600 rounded-lg">
+                <AlertTriangle className="w-5 h-5 text-white" />
+              </div>
+              File Already Exists
+            </DialogTitle>
+            <p className="text-sm text-muted-foreground">
+              A file with the same name already exists in the presets folder.
+            </p>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="p-4 bg-orange-50 dark:bg-orange-950/20 rounded-lg border border-orange-200 dark:border-orange-800">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="w-5 h-5 text-orange-600 dark:text-orange-400 mt-0.5 flex-shrink-0" />
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-orange-800 dark:text-orange-200">
+                    Conflict detected
+                  </p>
+                  <p className="text-xs text-orange-700 dark:text-orange-300">
+                    File: <span className="font-mono">{decodeName(conflictFilename)}</span>
+                  </p>
+                  <p className="text-xs text-orange-700 dark:text-orange-300">
+                    Suggested: <span className="font-mono">{decodeName(finalFilename)}</span>
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                onClick={handleOverwriteConfirm}
+                className="flex-1 bg-red-50 hover:bg-red-100 dark:bg-red-950/20 dark:hover:bg-red-950/30 border-red-200 dark:border-red-800 text-red-700 dark:text-red-300"
+              >
+                <AlertTriangle className="w-4 h-4 mr-2" />
+                Overwrite
+              </Button>
+              <Button
+                onClick={handleNewFilenameConfirm}
+                className="flex-1 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700"
+              >
+                <Save className="w-4 h-4 mr-2" />
+                Use New Name
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Preset Details Modal */}
+      <Dialog open={showPresetDetails} onOpenChange={setShowPresetDetails}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <div className="p-2 bg-gradient-to-br from-amber-500 to-orange-600 rounded-lg">
+                <BookOpen className="w-5 h-5 text-white" />
+              </div>
+              Preset Details
+            </DialogTitle>
+            <p className="text-sm text-muted-foreground">
+              View detailed information about this preset
+            </p>
+          </DialogHeader>
+          
+          {selectedPreset && (
+            <div className="space-y-6">
+              {/* Header Info */}
+              <div className="flex items-start justify-between">
+                <div>
+                  <h2 className="text-xl font-semibold mb-2">{selectedPreset.name}</h2>
+                  <p className="text-sm text-muted-foreground">
+                    Created on {new Date(selectedPreset.created_at).toLocaleDateString()}
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    onClick={() => handleApplyPreset(selectedPreset)}
+                    className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600"
+                  >
+                    <Wand2 className="w-4 h-4 mr-2" />
+                    Apply Preset
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => handleDeletePreset(selectedPreset)}
+                    className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300"
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Delete
+                  </Button>
+                </div>
+              </div>
+
+              {/* Preset Image */}
+              {selectedPreset.image_name && (
+                <div className="relative w-full max-w-md mx-auto" style={{ paddingBottom: '75%' }}>
+                  <img
+                    src={`https://images.nymia.ai/cdn-cgi/image/w=600/${userData.id}/presets/${selectedPreset.image_name}`}
+                    alt={selectedPreset.name}
+                    className="absolute inset-0 w-full h-full object-cover rounded-lg shadow-lg"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                      const fallback = document.createElement('div');
+                      fallback.className = 'absolute inset-0 w-full h-full bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-900/20 dark:to-orange-900/20 rounded-lg flex items-center justify-center';
+                      fallback.innerHTML = `
+                        <div class="text-center">
+                          <BookOpen class="w-12 h-12 text-amber-500 mx-auto mb-3" />
+                          <p class="text-sm text-amber-600 dark:text-amber-400">Preset Image</p>
+                        </div>
+                      `;
+                      target.parentNode?.appendChild(fallback);
+                    }}
+                  />
+                </div>
+              )}
+
+              {/* Preset Configuration */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Basic Settings */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Settings className="w-4 h-4" />
+                      Basic Settings
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {selectedPreset.jsonjob?.task && (
+                      <div className="flex justify-between">
+                        <span className="text-sm text-muted-foreground">Task:</span>
+                        <span className="text-sm font-medium capitalize">{selectedPreset.jsonjob.task}</span>
+                      </div>
+                    )}
+                    {selectedPreset.jsonjob?.engine && (
+                      <div className="flex justify-between">
+                        <span className="text-sm text-muted-foreground">Engine:</span>
+                        <span className="text-sm font-medium">{selectedPreset.jsonjob.engine}</span>
+                      </div>
+                    )}
+                    {selectedPreset.jsonjob?.quality && (
+                      <div className="flex justify-between">
+                        <span className="text-sm text-muted-foreground">Quality:</span>
+                        <span className="text-sm font-medium">{selectedPreset.jsonjob.quality}</span>
+                      </div>
+                    )}
+                    {selectedPreset.jsonjob?.format && (
+                      <div className="flex justify-between">
+                        <span className="text-sm text-muted-foreground">Format:</span>
+                        <span className="text-sm font-medium">{selectedPreset.jsonjob.format}</span>
+                      </div>
+                    )}
+                    {selectedPreset.jsonjob?.number_of_images && (
+                      <div className="flex justify-between">
+                        <span className="text-sm text-muted-foreground">Images:</span>
+                        <span className="text-sm font-medium">{selectedPreset.jsonjob.number_of_images}</span>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Model Information */}
+                {selectedPreset.jsonjob?.model && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Image className="w-4 h-4" />
+                        Model Information
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="flex justify-between">
+                        <span className="text-sm text-muted-foreground">Name:</span>
+                        <span className="text-sm font-medium">
+                          {selectedPreset.jsonjob.model.name_first} {selectedPreset.jsonjob.model.name_last}
+                        </span>
+                      </div>
+                      {selectedPreset.jsonjob.model.influencer_type && (
+                        <div className="flex justify-between">
+                          <span className="text-sm text-muted-foreground">Type:</span>
+                          <span className="text-sm font-medium capitalize">{selectedPreset.jsonjob.model.influencer_type}</span>
+                        </div>
+                      )}
+                      {selectedPreset.jsonjob.model.age && (
+                        <div className="flex justify-between">
+                          <span className="text-sm text-muted-foreground">Age:</span>
+                          <span className="text-sm font-medium">{selectedPreset.jsonjob.model.age}</span>
+                        </div>
+                      )}
+                      {selectedPreset.jsonjob.model.cultural_background && (
+                        <div className="flex justify-between">
+                          <span className="text-sm text-muted-foreground">Background:</span>
+                          <span className="text-sm font-medium capitalize">{selectedPreset.jsonjob.model.cultural_background}</span>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Scene Settings */}
+                {selectedPreset.jsonjob?.scene && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Camera className="w-4 h-4" />
+                        Scene Settings
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      {selectedPreset.jsonjob.scene.framing && (
+                        <div className="flex justify-between">
+                          <span className="text-sm text-muted-foreground">Framing:</span>
+                          <span className="text-sm font-medium capitalize">{selectedPreset.jsonjob.scene.framing}</span>
+                        </div>
+                      )}
+                      {selectedPreset.jsonjob.scene.lighting_preset && (
+                        <div className="flex justify-between">
+                          <span className="text-sm text-muted-foreground">Lighting:</span>
+                          <span className="text-sm font-medium capitalize">{selectedPreset.jsonjob.scene.lighting_preset}</span>
+                        </div>
+                      )}
+                      {selectedPreset.jsonjob.scene.scene_setting && (
+                        <div className="flex justify-between">
+                          <span className="text-sm text-muted-foreground">Setting:</span>
+                          <span className="text-sm font-medium capitalize">{selectedPreset.jsonjob.scene.scene_setting}</span>
+                        </div>
+                      )}
+                      {selectedPreset.jsonjob.scene.pose && (
+                        <div className="flex justify-between">
+                          <span className="text-sm text-muted-foreground">Pose:</span>
+                          <span className="text-sm font-medium capitalize">{selectedPreset.jsonjob.scene.pose}</span>
+                        </div>
+                      )}
+                      {selectedPreset.jsonjob.scene.clothes && (
+                        <div className="flex justify-between">
+                          <span className="text-sm text-muted-foreground">Clothes:</span>
+                          <span className="text-sm font-medium capitalize">{selectedPreset.jsonjob.scene.clothes}</span>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Generation Parameters */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Wand2 className="w-4 h-4" />
+                      Generation Parameters
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {selectedPreset.jsonjob?.guidance && (
+                      <div className="flex justify-between">
+                        <span className="text-sm text-muted-foreground">Guidance:</span>
+                        <span className="text-sm font-medium">{selectedPreset.jsonjob.guidance}</span>
+                      </div>
+                    )}
+                    {selectedPreset.jsonjob?.seed && selectedPreset.jsonjob.seed !== -1 && (
+                      <div className="flex justify-between">
+                        <span className="text-sm text-muted-foreground">Seed:</span>
+                        <span className="text-sm font-medium">{selectedPreset.jsonjob.seed}</span>
+                      </div>
+                    )}
+                    {selectedPreset.jsonjob?.nsfw_strength && (
+                      <div className="flex justify-between">
+                        <span className="text-sm text-muted-foreground">NSFW Strength:</span>
+                        <span className="text-sm font-medium">{selectedPreset.jsonjob.nsfw_strength}</span>
+                      </div>
+                    )}
+                    {selectedPreset.jsonjob?.lora_strength && (
+                      <div className="flex justify-between">
+                        <span className="text-sm text-muted-foreground">LoRA Strength:</span>
+                        <span className="text-sm font-medium">{selectedPreset.jsonjob.lora_strength}</span>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Prompts */}
+              {(selectedPreset.jsonjob?.prompt || selectedPreset.jsonjob?.negative_prompt) && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Pencil className="w-4 h-4" />
+                      Prompts
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {selectedPreset.jsonjob.prompt && (
+                      <div>
+                        <Label className="text-sm font-medium">Positive Prompt</Label>
+                        <p className="text-sm text-muted-foreground mt-1 p-3 bg-muted rounded-md">
+                          {selectedPreset.jsonjob.prompt}
+                        </p>
+                      </div>
+                    )}
+                    {selectedPreset.jsonjob.negative_prompt && (
+                      <div>
+                        <Label className="text-sm font-medium">Negative Prompt</Label>
+                        <p className="text-sm text-muted-foreground mt-1 p-3 bg-muted rounded-md">
+                          {selectedPreset.jsonjob.negative_prompt}
+                        </p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>

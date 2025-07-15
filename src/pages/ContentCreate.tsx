@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '@/store/store';
@@ -23,6 +23,7 @@ import { setInfluencers, setLoading, setError } from '@/store/slices/influencers
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ZoomIn } from 'lucide-react';
 import VaultSelector from '@/components/VaultSelector';
+import { SortAsc, SortDesc } from 'lucide-react';
 
 const TASK_OPTIONS = [
   { value: 'generate_image', label: 'Generate Image', description: 'Generate a single image' },
@@ -1617,6 +1618,27 @@ export default function ContentCreate() {
   const [isSavingPreset, setIsSavingPreset] = useState(false);
   const [showVaultSelectorForPreset, setShowVaultSelectorForPreset] = useState(false);
 
+  // Upload functionality for preset images
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [uploadFormData, setUploadFormData] = useState({
+    system_filename: '',
+    user_notes: '',
+    user_tags: [] as string[],
+    rating: 0,
+    favorite: false,
+    image_format: 'jpeg',
+    file_type: 'image'
+  });
+
+  // Recent renders functionality
+  const [showRecentRendersModal, setShowRecentRendersModal] = useState(false);
+  const [recentRendersFilter, setRecentRendersFilter] = useState('');
+  const [recentRendersSortBy, setRecentRendersSortBy] = useState<'date' | 'name' | 'rating'>('date');
+  const [recentRendersSortOrder, setRecentRendersSortOrder] = useState<'asc' | 'desc'>('desc');
+
   // Save as Preset functions
   const handleSavePreset = () => {
     setShowSavePresetModal(true);
@@ -1638,6 +1660,66 @@ export default function ContentCreate() {
     setIsSavingPreset(true);
 
     try {
+      // If the image source is upload and we have an uploaded file, upload it first
+      if (presetImageSource === 'upload' && uploadedFile) {
+        // Upload file to API
+        const uploadResponse = await fetch(`https://api.nymia.ai/v1/uploadfile?user=${userData.id}&filename=vault/${uploadFormData.system_filename}`, {
+          method: 'POST',
+          body: uploadedFile
+        });
+
+        if (!uploadResponse.ok) {
+          throw new Error('Failed to upload file');
+        }
+
+        // Create database entry for the uploaded image
+        const imageData = {
+          user_id: userData.id,
+          task_id: `upload_${Date.now()}`,
+          user_filename: '',
+          system_filename: uploadFormData.system_filename,
+          created_at: new Date().toISOString(),
+          user_notes: uploadFormData.user_notes,
+          user_tags: uploadFormData.user_tags,
+          file_path: `vault/${uploadFormData.system_filename}`,
+          file_size_bytes: uploadedFile.size,
+          image_format: uploadFormData.image_format,
+          seed: 0,
+          guidance: 0,
+          steps: 0,
+          nsfw_strength: 0,
+          lora_strength: 0,
+          model_version: 'uploaded',
+          t5xxl_prompt: '',
+          clip_l_prompt: '',
+          negative_prompt: '',
+          actual_seed_used: 0,
+          actual_guidance_used: 0,
+          actual_steps_used: 0,
+          quality_setting: 'uploaded',
+          rating: uploadFormData.rating,
+          favorite: uploadFormData.favorite,
+          file_type: uploadFormData.file_type
+        };
+
+        const dbResponse = await fetch('https://db.nymia.ai/rest/v1/images', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer WeInfl3nc3withAI'
+          },
+          body: JSON.stringify(imageData)
+        });
+
+        if (!dbResponse.ok) {
+          throw new Error('Failed to save image metadata');
+        }
+
+        const savedImage = await dbResponse.json();
+        // Update the selected preset image with the saved image data
+        setSelectedPresetImage(savedImage);
+      }
+
       // Create the JSON job data from current form state
       const jsonjob = {
         task: formData.task,
@@ -1723,6 +1805,24 @@ export default function ContentCreate() {
       setPresetImageSource(null);
       setShowSavePresetModal(false);
 
+      // Reset upload state if it was an upload
+      if (presetImageSource === 'upload') {
+        if (uploadedImageUrl) {
+          URL.revokeObjectURL(uploadedImageUrl);
+        }
+        setUploadedFile(null);
+        setUploadedImageUrl(null);
+        setUploadFormData({
+          system_filename: '',
+          user_notes: '',
+          user_tags: [],
+          rating: 0,
+          favorite: false,
+          image_format: 'jpeg',
+          file_type: 'image'
+        });
+      }
+
     } catch (error) {
       console.error('Error saving preset:', error);
       toast.error('Failed to save preset. Please try again.');
@@ -1737,6 +1837,232 @@ export default function ContentCreate() {
     setPresetImageSource(null);
     setShowSavePresetModal(false);
   };
+
+  // Upload handlers
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file');
+      return;
+    }
+
+    // Validate file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('File size must be less than 10MB');
+      return;
+    }
+
+    setUploadedFile(file);
+    
+    // Create preview URL
+    const imageUrl = URL.createObjectURL(file);
+    setUploadedImageUrl(imageUrl);
+    
+    // Set default filename
+    const filename = file.name.replace(/\.[^/.]+$/, ''); // Remove extension
+    const systemFilename = `${filename}_${Date.now()}.${file.name.split('.').pop() || 'jpg'}`;
+    
+    setUploadFormData(prev => ({
+      ...prev,
+      system_filename: systemFilename
+    }));
+
+    // Create a temporary image object that looks like a vault image
+    const uploadedImage = {
+      id: `upload_${Date.now()}`,
+      task_id: `upload_${Date.now()}`,
+      user_filename: '',
+      system_filename: systemFilename,
+      created_at: new Date().toISOString(),
+      user_notes: '',
+      user_tags: [],
+      file_path: `vault/${systemFilename}`,
+      file_size_bytes: file.size,
+      image_format: file.name.split('.').pop() || 'jpg',
+      seed: 0,
+      guidance: 0,
+      steps: 0,
+      nsfw_strength: 0,
+      lora_strength: 0,
+      model_version: 'uploaded',
+      t5xxl_prompt: '',
+      clip_l_prompt: '',
+      negative_prompt: '',
+      actual_seed_used: 0,
+      actual_guidance_used: 0,
+      actual_steps_used: 0,
+      quality_setting: 'uploaded',
+      rating: 0,
+      favorite: false,
+      file_type: 'image',
+      // Add preview URL for display
+      preview_url: imageUrl
+    };
+
+    // Select the uploaded image for preset
+    setSelectedPresetImage(uploadedImage);
+    setPresetImageSource('upload');
+
+    toast.success('Image uploaded successfully');
+  };
+
+  const handleUploadToVault = async () => {
+    if (!uploadedFile || !uploadFormData.system_filename.trim()) {
+      toast.error('Please provide a filename and select a file');
+      return;
+    }
+
+    setIsUploading(true);
+
+    try {
+      // Upload file to API
+      const uploadResponse = await fetch(`https://api.nymia.ai/v1/uploadfile?user=${userData.id}&filename=vault/${uploadFormData.system_filename}`, {
+        method: 'POST',
+        body: uploadedFile
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error('Failed to upload file');
+      }
+
+      // Create database entry
+      const imageData = {
+        user_id: userData.id,
+        task_id: `upload_${Date.now()}`,
+        user_filename: '',
+        system_filename: uploadFormData.system_filename,
+        created_at: new Date().toISOString(),
+        user_notes: uploadFormData.user_notes,
+        user_tags: uploadFormData.user_tags,
+        file_path: `vault/${uploadFormData.system_filename}`,
+        file_size_bytes: uploadedFile.size,
+        image_format: uploadFormData.image_format,
+        seed: 0,
+        guidance: 0,
+        steps: 0,
+        nsfw_strength: 0,
+        lora_strength: 0,
+        model_version: 'uploaded',
+        t5xxl_prompt: '',
+        clip_l_prompt: '',
+        negative_prompt: '',
+        actual_seed_used: 0,
+        actual_guidance_used: 0,
+        actual_steps_used: 0,
+        quality_setting: 'uploaded',
+        rating: uploadFormData.rating,
+        favorite: uploadFormData.favorite,
+        file_type: uploadFormData.file_type
+      };
+
+      const dbResponse = await fetch('https://db.nymia.ai/rest/v1/images', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify(imageData)
+      });
+
+      if (!dbResponse.ok) {
+        throw new Error('Failed to save image metadata');
+      }
+
+      const savedImage = await dbResponse.json();
+      
+      // Select the uploaded image for preset
+      setSelectedPresetImage(savedImage);
+      setPresetImageSource('upload');
+      setShowUploadModal(false);
+      
+      // Reset upload state
+      if (uploadedImageUrl) {
+        URL.revokeObjectURL(uploadedImageUrl);
+      }
+      setUploadedFile(null);
+      setUploadedImageUrl(null);
+      setUploadFormData({
+        system_filename: '',
+        user_notes: '',
+        user_tags: [],
+        rating: 0,
+        favorite: false,
+        image_format: 'jpeg',
+        file_type: 'image'
+      });
+
+      toast.success('Image uploaded to vault successfully!');
+
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      toast.error('Failed to upload image. Please try again.');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleRemoveUploadedImage = () => {
+    if (uploadedImageUrl) {
+      URL.revokeObjectURL(uploadedImageUrl);
+    }
+    setUploadedFile(null);
+    setUploadedImageUrl(null);
+    setUploadFormData({
+      system_filename: '',
+      user_notes: '',
+      user_tags: [],
+      rating: 0,
+      favorite: false,
+      image_format: 'jpeg',
+      file_type: 'image'
+    });
+  };
+
+  // Recent renders handlers
+  const handleRecentRendersSelect = (image: any) => {
+    setSelectedPresetImage(image);
+    setPresetImageSource('recent');
+    setShowRecentRendersModal(false);
+    toast.success(`Selected recent render: ${decodeName(image.system_filename)}`);
+  };
+
+  const filteredAndSortedRecentRenders = useMemo(() => {
+    let filtered = generatedImages.filter(image => 
+      decodeName(image.system_filename).toLowerCase().includes(recentRendersFilter.toLowerCase())
+    );
+
+    filtered.sort((a, b) => {
+      let aValue: any, bValue: any;
+      
+      switch (recentRendersSortBy) {
+        case 'date':
+          aValue = new Date(a.created_at).getTime();
+          bValue = new Date(b.created_at).getTime();
+          break;
+        case 'name':
+          aValue = decodeName(a.system_filename).toLowerCase();
+          bValue = decodeName(b.system_filename).toLowerCase();
+          break;
+        case 'rating':
+          aValue = a.rating || 0;
+          bValue = b.rating || 0;
+          break;
+        default:
+          return 0;
+      }
+
+      if (recentRendersSortOrder === 'asc') {
+        return aValue > bValue ? 1 : -1;
+      } else {
+        return aValue < bValue ? 1 : -1;
+      }
+    });
+
+    return filtered;
+  }, [generatedImages, recentRendersFilter, recentRendersSortBy, recentRendersSortOrder]);
 
   return (
     <div className="px-6 space-y-4">
@@ -4166,7 +4492,7 @@ export default function ContentCreate() {
             </div>
 
             {/* Library Categories */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {/* <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <Card className="group hover:shadow-lg transition-all duration-300 cursor-pointer">
                 <CardContent className="p-6">
                   <div className="flex items-center gap-3 mb-4">
@@ -4268,7 +4594,7 @@ export default function ContentCreate() {
                   </p>
                 </CardContent>
               </Card>
-            </div>
+            </div> */}
 
             {/* Empty State */}
             <div className="text-center py-8">
@@ -4407,7 +4733,7 @@ export default function ContentCreate() {
                         </div>
 
                         <img
-                          src={`https://images.nymia.ai/cdn-cgi/image/w=400/${userData.id}/${selectedPresetImage.user_filename === "" ? "output" : "vault/" + selectedPresetImage.user_filename}/${selectedPresetImage.system_filename}`}
+                          src={selectedPresetImage.preview_url || `https://images.nymia.ai/cdn-cgi/image/w=400/${userData.id}/${selectedPresetImage.user_filename === "" ? "output" : "vault/" + selectedPresetImage.user_filename}/${selectedPresetImage.system_filename}`}
                           alt="Selected preset image"
                           className="absolute inset-0 w-full h-full object-cover rounded-md shadow-sm cursor-pointer transition-all duration-200 hover:scale-105"
                           onError={(e) => {
@@ -4500,8 +4826,8 @@ export default function ContentCreate() {
                   <Card 
                     className="group hover:shadow-lg transition-all duration-300 cursor-pointer border-2 border-dashed border-gray-300 hover:border-emerald-500"
                     onClick={() => {
-                      // Handle upload functionality
-                      toast.info('Upload functionality coming soon');
+                      // Trigger file selection directly
+                      document.getElementById('file-upload-direct')?.click();
                     }}
                   >
                     <CardContent className="p-6 text-center">
@@ -4512,19 +4838,19 @@ export default function ContentCreate() {
                       <p className="text-sm text-muted-foreground">
                         Upload a new image
                       </p>
+                      <input
+                        type="file"
+                        id="file-upload-direct"
+                        accept="image/*"
+                        onChange={handleFileUpload}
+                        className="hidden"
+                      />
                     </CardContent>
                   </Card>
 
                   <Card 
                     className="group hover:shadow-lg transition-all duration-300 cursor-pointer border-2 border-dashed border-gray-300 hover:border-emerald-500"
-                    onClick={() => {
-                      // Handle recent renders selection
-                      if (generatedImages.length > 0) {
-                        setShowImageSelector(true);
-                      } else {
-                        toast.error('No recent renders available');
-                      }
-                    }}
+                    onClick={() => setShowRecentRendersModal(true)}
                   >
                     <CardContent className="p-6 text-center">
                       <div className="p-3 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg w-12 h-12 mx-auto mb-3 flex items-center justify-center">
@@ -4649,6 +4975,136 @@ export default function ContentCreate() {
                 </div>
               )}
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Recent Renders Modal */}
+      <Dialog open={showRecentRendersModal} onOpenChange={setShowRecentRendersModal}>
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <div className="p-2 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg">
+                <Image className="w-5 h-5 text-white" />
+              </div>
+              Select Recent Render
+            </DialogTitle>
+            <p className="text-sm text-muted-foreground">
+              Choose from your recent generated images
+            </p>
+          </DialogHeader>
+          
+          <div className="space-y-6">
+            {/* Search and Filter Section */}
+            <div className="flex gap-4">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                <Input
+                  placeholder="Search recent renders..."
+                  value={recentRendersFilter}
+                  onChange={(e) => setRecentRendersFilter(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <div className="flex gap-2">
+                <Select value={recentRendersSortBy} onValueChange={(value: 'date' | 'name' | 'rating') => setRecentRendersSortBy(value)}>
+                  <SelectTrigger className="w-32">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="date">Date</SelectItem>
+                    <SelectItem value="name">Name</SelectItem>
+                    <SelectItem value="rating">Rating</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setRecentRendersSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
+                >
+                  {recentRendersSortOrder === 'asc' ? <SortAsc className="w-4 h-4" /> : <SortDesc className="w-4 h-4" />}
+                </Button>
+              </div>
+            </div>
+
+            {/* Recent Renders Grid */}
+            {filteredAndSortedRecentRenders.length > 0 ? (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {filteredAndSortedRecentRenders.map((image) => (
+                  <Card
+                    key={image.id}
+                    className="group hover:shadow-lg transition-all duration-300 cursor-pointer"
+                    onClick={() => handleRecentRendersSelect(image)}
+                  >
+                    <CardContent className="p-4">
+                      <div className="relative w-full" style={{ paddingBottom: '100%' }}>
+                        {/* Rating Stars */}
+                        <div className="absolute top-2 right-2 z-10 flex gap-0.5">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <svg
+                              key={star}
+                              className={`w-3 h-3 ${star <= (image.rating || 0) ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
+                              viewBox="0 0 24 24"
+                            >
+                              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                            </svg>
+                          ))}
+                        </div>
+
+                        {/* Favorite Heart */}
+                        {image.favorite && (
+                          <div className="absolute top-2 left-2 z-10">
+                            <div className="bg-red-500 rounded-full w-6 h-6 flex items-center justify-center">
+                              <svg className="w-3 h-3 text-white fill-current" viewBox="0 0 24 24">
+                                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                              </svg>
+                            </div>
+                          </div>
+                        )}
+
+                        <img
+                          src={`https://images.nymia.ai/cdn-cgi/image/w=400/${image.file_path}`}
+                          alt={image.system_filename}
+                          className="absolute inset-0 w-full h-full object-cover rounded-md transition-all duration-200 group-hover:scale-105"
+                        />
+                      </div>
+                      
+                      <div className="mt-3 space-y-1">
+                        <p className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">
+                          {decodeName(image.system_filename)}
+                        </p>
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <Calendar className="w-3 h-3" />
+                          {new Date(image.created_at).toLocaleDateString()}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <Image className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-semibold mb-2">
+                  {recentRendersFilter ? 'No matching renders found' : 'No recent renders available'}
+                </h3>
+                <p className="text-muted-foreground mb-4">
+                  {recentRendersFilter 
+                    ? 'Try adjusting your search terms'
+                    : 'Generate some images first to see them here'
+                  }
+                </p>
+                {!recentRendersFilter && (
+                  <Button
+                    onClick={() => setShowRecentRendersModal(false)}
+                    className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+                  >
+                    <Sparkles className="w-4 h-4 mr-2" />
+                    Generate Images
+                  </Button>
+                )}
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>

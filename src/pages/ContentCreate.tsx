@@ -13,7 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
-import { Image, Wand2, Settings, Image as ImageIcon, Sparkles, Loader2, Camera, Search, X, Filter, Plus, RotateCcw, Download, Trash2, Calendar, Share, Pencil, Edit3, BookOpen, Save, FolderOpen, Upload } from 'lucide-react';
+import { Image, Wand2, Settings, Image as ImageIcon, Sparkles, Loader2, Camera, Search, X, Filter, Plus, RotateCcw, Download, Trash2, Calendar, Share, Pencil, Edit3, BookOpen, Save, FolderOpen, Upload, Edit } from 'lucide-react';
 import { toast } from 'sonner';
 import { Command, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -4329,31 +4329,148 @@ export default function ContentCreate() {
               {/* Selected Image Display */}
               {selectedPresetImage && (
                 <div className="relative">
-                  <Card className="overflow-hidden">
-                    <CardContent className="p-0">
-                      <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
-                        <img
-                          src={`https://images.nymia.ai/cdn-cgi/image/w=400/${userData.id}/${selectedPresetImage.user_filename === "" ? "output" : "vault/" + selectedPresetImage.user_filename}/${selectedPresetImage.system_filename}`}
-                          alt="Selected preset image"
-                          className="absolute inset-0 w-full h-full object-cover"
-                        />
-                        <div className="absolute top-2 right-2">
-                          <Badge variant="secondary" className="bg-black/70 text-white">
+                  <Card className={`justify-center flex group hover:shadow-xl transition-all duration-300 border-border/50 hover:border-yellow-500/30 backdrop-blur-sm ${selectedPresetImage.task_id?.startsWith('upload_')
+                    ? 'bg-gradient-to-br from-purple-50/20 to-pink-50/20 dark:from-purple-950/5 dark:to-pink-950/5 hover:border-purple-500/30'
+                    : 'bg-gradient-to-br from-yellow-50/20 to-orange-50/20 dark:from-yellow-950/5 dark:to-orange-950/5'
+                    }`}>
+                    <CardContent className="p-4">
+                      {/* Top Row: File Type, Ratings, Favorite */}
+                      <div className="flex items-center justify-between mb-3">
+                        {/* File Type Icon */}
+                        <div className={`rounded-full w-8 h-8 flex items-center justify-center shadow-md ${selectedPresetImage.task_id?.startsWith('upload_')
+                          ? 'bg-gradient-to-br from-purple-500 to-pink-600'
+                          : 'bg-gradient-to-br from-blue-500 to-purple-600'
+                          }`}>
+                          {selectedPresetImage.task_id?.startsWith('upload_') ? (
+                            <Upload className="w-4 h-4 text-white" />
+                          ) : selectedPresetImage.file_type === 'video' ? (
+                            <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="currentColor">
+                              <path d="M8 5v14l11-7z" />
+                              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15V7l8 5-8 5z" opacity="0.3" />
+                            </svg>
+                          ) : (
+                            <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="currentColor">
+                              <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z" />
+                              <circle cx="8.5" cy="8.5" r="1.5" opacity="0.8" />
+                            </svg>
+                          )}
+                        </div>
+
+                        {/* Rating Stars */}
+                        <div className="flex gap-1">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <svg
+                              key={star}
+                              className={`w-4 h-4 ${star <= (selectedPresetImage.rating || 0) ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
+                              viewBox="0 0 24 24"
+                            >
+                              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                            </svg>
+                          ))}
+                        </div>
+
+                        {/* Favorite Heart */}
+                        <div>
+                          {selectedPresetImage.favorite ? (
+                            <div className="bg-red-500 rounded-full w-8 h-8 flex items-center justify-center">
+                              <svg className="w-4 h-4 text-white fill-current" viewBox="0 0 24 24">
+                                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                              </svg>
+                            </div>
+                          ) : (
+                            <div className="bg-black/50 rounded-full w-8 h-8 flex items-center justify-center">
+                              <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                              </svg>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Image */}
+                      <div className="relative w-full group mb-4" style={{ paddingBottom: '100%' }}>
+                        {/* Uploaded/Edited Image Indicator */}
+                        {(selectedPresetImage.model_version === 'edited' || selectedPresetImage.quality_setting === 'edited') && (
+                          <div className="absolute top-2 right-2 z-10">
+                            <Badge variant="secondary" className="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs font-medium shadow-lg">
+                              <Edit className="w-3 h-3 mr-1" />
+                              Edited
+                            </Badge>
+                          </div>
+                        )}
+
+                        {/* Source Badge */}
+                        <div className="absolute top-2 left-2 z-10">
+                          <Badge variant="secondary" className="bg-black/70 text-white text-xs font-medium shadow-lg">
                             {presetImageSource}
                           </Badge>
                         </div>
+
+                        <img
+                          src={`https://images.nymia.ai/cdn-cgi/image/w=400/${userData.id}/${selectedPresetImage.user_filename === "" ? "output" : "vault/" + selectedPresetImage.user_filename}/${selectedPresetImage.system_filename}`}
+                          alt="Selected preset image"
+                          className="absolute inset-0 w-full h-full object-cover rounded-md shadow-sm cursor-pointer transition-all duration-200 hover:scale-105"
+                          onError={(e) => {
+                            // Fallback for uploaded files that might not be accessible via CDN
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                            const fallback = document.createElement('div');
+                            fallback.className = 'absolute inset-0 w-full h-full bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/20 dark:to-pink-900/20 rounded-md flex items-center justify-center';
+                            fallback.innerHTML = `
+                              <div class="text-center">
+                                <Upload class="w-8 h-8 text-purple-500 mx-auto mb-2" />
+                                <p class="text-xs text-purple-600 dark:text-purple-400">Uploaded File</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">${selectedPresetImage.system_filename}</p>
+                              </div>
+                            `;
+                            target.parentNode?.appendChild(fallback);
+                          }}
+                        />
                       </div>
-                      <div className="p-4">
-                        <p className="text-sm font-medium truncate">
-                          {selectedPresetImage.system_filename || selectedPresetImage.name}
-                        </p>
+
+                      {/* User Notes */}
+                      {selectedPresetImage.user_notes && (
+                        <div className="mb-3">
+                          <p className="text-sm text-gray-700 dark:text-gray-300 line-clamp-2">{selectedPresetImage.user_notes}</p>
+                        </div>
+                      )}
+
+                      {/* User Tags */}
+                      {selectedPresetImage.user_tags && selectedPresetImage.user_tags.length > 0 && (
+                        <div className="mb-3 flex flex-wrap gap-1">
+                          {selectedPresetImage.user_tags.slice(0, 3).map((tag, index) => (
+                            <Badge key={index} variant="secondary" className="text-xs">
+                              {tag.trim()}
+                            </Badge>
+                          ))}
+                          {selectedPresetImage.user_tags.length > 3 && (
+                            <Badge variant="secondary" className="text-xs">
+                              +{selectedPresetImage.user_tags.length - 3}
+                            </Badge>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Filename and Date */}
+                      <div className="space-y-2">
+                        <h3 className="font-medium text-sm text-gray-800 dark:text-gray-200 truncate">
+                          {decodeName(selectedPresetImage.system_filename)}
+                        </h3>
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <Calendar className="w-3 h-3" />
+                          {new Date(selectedPresetImage.created_at).toLocaleDateString()}
+                        </div>
+                      </div>
+
+                      {/* Action Button */}
+                      <div className="flex gap-1.5 mt-3">
                         <Button
-                          variant="outline"
                           size="sm"
+                          variant="outline"
+                          className="flex-1 h-8 text-xs font-medium"
                           onClick={() => setSelectedPresetImage(null)}
-                          className="mt-2"
                         >
-                          <X className="w-4 h-4 mr-1" />
+                          <X className="w-3 h-3 mr-1.5" />
                           Remove Image
                         </Button>
                       </div>

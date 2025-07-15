@@ -20,10 +20,11 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { useDebounce } from '@/hooks/useDebounce';
 import { Influencer } from '@/store/slices/influencersSlice';
 import { setInfluencers, setLoading, setError } from '@/store/slices/influencersSlice';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { ZoomIn } from 'lucide-react';
 import VaultSelector from '@/components/VaultSelector';
 import { SortAsc, SortDesc } from 'lucide-react';
+import PresetsManager from '@/components/PresetsManager';
 
 const TASK_OPTIONS = [
   { value: 'generate_image', label: 'Generate Image', description: 'Generate a single image' },
@@ -500,7 +501,7 @@ export default function ContentCreate() {
           }
         });
         if (response.ok) {
-          const data = await response.json();
+        const data = await response.json();
           if (data && data.fieldoptions && Array.isArray(data.fieldoptions)) {
             const options = data.fieldoptions.map((item: any) => ({
               label: item.label,
@@ -524,9 +525,9 @@ export default function ContentCreate() {
     const fetchEngineOptions = async () => {
       try {
         const response = await fetch('https://api.nymia.ai/v1/fieldoptions?fieldtype=engine', {
-          headers: {
-            'Authorization': 'Bearer WeInfl3nc3withAI'
-          }
+        headers: {
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        }
         });
         if (response.ok) {
           const data = await response.json();
@@ -645,8 +646,8 @@ export default function ContentCreate() {
   const handleInputChange = (field: string, value: any) => {
     setFormData(prev => {
       const newFormData = {
-        ...prev,
-        [field]: value
+      ...prev,
+      [field]: value
       };
 
       // If usePromptOnly is being enabled, reset all form data to initial state
@@ -1046,10 +1047,10 @@ export default function ContentCreate() {
       console.log('📍 Location State:', location.state);
       console.log('📊 Regeneration Data:', regenerationData);
       console.log('🖼️ Original Image:', originalImage);
-
+      
       // Step 1: Populate form data from the JSON job
       console.log('📝 Step 1: Populating form data from JSON job');
-
+      
       if (regenerationData.task) {
         console.log('✅ Setting task type:', regenerationData.task);
         setFormData(prev => ({
@@ -1182,11 +1183,11 @@ export default function ContentCreate() {
       console.log('👤 Step 3: Processing model/influencer data');
       if (regenerationData.model) {
         console.log('🎭 Model data from JSON job:', regenerationData.model);
-
+        
         // Check if we have a model ID to fetch from database
         if (regenerationData.model.id) {
           console.log('🔍 Fetching influencer data from database with ID:', regenerationData.model.id);
-
+          
           // Fetch the influencer data from the database
           const fetchInfluencerData = async () => {
             try {
@@ -1206,10 +1207,10 @@ export default function ContentCreate() {
               if (influencerData && influencerData.length > 0) {
                 const influencer = influencerData[0];
                 console.log('✅ Found influencer in database:', influencer);
-
+                
                 // Set the model data with the complete influencer information
                 setModelData(influencer);
-
+                
                 // Populate model description with complete data
                 const modelDesc = {
                   appearance: `${influencer.name_first || ''} ${influencer.name_last || ''}, ${influencer.age_lifestyle || ''}`,
@@ -1233,7 +1234,7 @@ export default function ContentCreate() {
                   age: influencer.age || '',
                   lifestyle: influencer.lifestyle || ''
                 };
-
+                
                 console.log('📝 Setting model description:', modelDesc);
                 setModelDescription(modelDesc);
 
@@ -1606,7 +1607,6 @@ export default function ContentCreate() {
   };
 
   // Add new state for preset functionality
-  const [showPresetModal, setShowPresetModal] = useState(false);
   const [showLibraryModal, setShowLibraryModal] = useState(false);
   const [presetName, setPresetName] = useState('');
   const [presets, setPresets] = useState<any[]>([]);
@@ -2069,7 +2069,7 @@ export default function ContentCreate() {
 
     setIsLoadingPresets(true);
     try {
-      console.log('🔍 Fetching presets for user:', userData.id);
+      console.log('Fetching presets for user:', userData.id);
       
       const response = await fetch(`https://db.nymia.ai/rest/v1/presets?user_id=eq.${userData.id}`, {
         headers: {
@@ -2080,7 +2080,7 @@ export default function ContentCreate() {
 
       if (response.ok) {
         const presetsData = await response.json();
-        console.log('✅ Presets fetched successfully:', presetsData);
+        console.log('Presets fetched successfully:', presetsData);
         
         // Transform the data to include additional computed fields
         const transformedPresets = presetsData.map((preset: any) => ({
@@ -2096,13 +2096,13 @@ export default function ContentCreate() {
         }));
         
         setPresets(transformedPresets);
-        console.log('📊 Transformed presets:', transformedPresets);
+        console.log('Transformed presets:', transformedPresets);
       } else {
-        console.error('❌ Failed to fetch presets:', response.status, response.statusText);
+        console.error('Failed to fetch presets:', response.status, response.statusText);
         toast.error('Failed to load presets');
       }
     } catch (error) {
-      console.error('❌ Error fetching presets:', error);
+      console.error('Error fetching presets:', error);
       toast.error('Failed to load presets');
     } finally {
       setIsLoadingPresets(false);
@@ -2111,7 +2111,7 @@ export default function ContentCreate() {
 
   // Load presets when modal opens
   const handleOpenPresetModal = () => {
-    setShowPresetModal(true);
+    setShowPresetsManager(true);
     fetchPresets();
   };
 
@@ -2151,7 +2151,7 @@ export default function ContentCreate() {
         setModelData(jsonjob.model);
       }
 
-      setShowPresetModal(false);
+      setShowPresetsManager(false);
       toast.success(`Applied preset: ${preset.name}`);
     } catch (error) {
       console.error('Error applying preset:', error);
@@ -2192,6 +2192,9 @@ export default function ContentCreate() {
     preset.name.toLowerCase().includes(presetSearchTerm.toLowerCase())
   );
 
+  // Preset modal state
+  const [showPresetsManager, setShowPresetsManager] = useState(false);
+
   return (
     <div className="px-6 space-y-4">
       {/* Header */}
@@ -2205,7 +2208,7 @@ export default function ContentCreate() {
               {modelData ? `Creating content for ${modelData.name_first} ${modelData.name_last}` : 'Generate new content'}
             </p>
           </div>
-        </div>
+            </div>
 
         {/* Professional Preset and Library Buttons */}
         <div className="flex items-center gap-3">
@@ -2239,8 +2242,8 @@ export default function ContentCreate() {
               <Save className="w-4 h-4 mr-2" />
               Save as Preset
             </Button>
-          </div>
-        </div>
+            </div>
+            </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-1 gap-2">
           <Button
             onClick={handleGenerate}
@@ -2275,7 +2278,7 @@ export default function ContentCreate() {
       <div className="flex w-full items-center gap-3 xl:hidden">
         <div className="items-center gap-2 grid grid-cols-1 md:grid-cols-3 w-full">
           <Button
-            onClick={() => setShowPresetModal(true)}
+            onClick={() => setShowPresetsManager(true)}
             variant="outline"
             className="w-full h-10 px-4 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border-amber-200 dark:border-amber-700 hover:from-amber-100 hover:to-orange-100 dark:hover:from-amber-800/30 dark:hover:to-orange-800/30 text-amber-700 dark:text-amber-300 font-medium shadow-sm hover:shadow-md transition-all duration-200"
           >
@@ -4085,16 +4088,16 @@ export default function ContentCreate() {
 
                             {/* Image */}
                             <div className="relative w-full group mb-4" style={{ paddingBottom: '100%' }}>
-                              <img
-                                src={`https://images.nymia.ai/cdn-cgi/image/w=400/${image.file_path}`}
+                            <img
+                              src={`https://images.nymia.ai/cdn-cgi/image/w=400/${image.file_path}`}
                                 alt={image.system_filename}
                                 className="absolute inset-0 w-full h-full object-cover rounded-md shadow-sm cursor-pointer transition-all duration-200 hover:scale-105"
                                 onClick={() => setDetailedImageModal({ open: true, image })}
-                                onError={(e) => {
-                                  const target = e.target as HTMLImageElement;
-                                  target.style.display = 'none';
-                                }}
-                              />
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                              }}
+                            />
                               {/* Zoom Overlay */}
                               <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded-md flex items-end justify-end p-2">
                                 <div className="flex gap-1">
@@ -4113,7 +4116,7 @@ export default function ContentCreate() {
                                   >
                                     <ZoomIn className="w-3 h-3 text-gray-700 dark:text-gray-300" />
                                   </Button>
-                                </div>
+                          </div>
                               </div>
                             </div>
 
@@ -4138,8 +4141,8 @@ export default function ContentCreate() {
                                   autoFocus
                                 />
                                 <div className="flex gap-1">
-                                  <Button
-                                    size="sm"
+                              <Button
+                                size="sm"
                                     variant="outline"
                                     className="h-6 text-xs"
                                     onClick={() => {
@@ -4195,7 +4198,7 @@ export default function ContentCreate() {
                                 {image.user_tags.map((tag: string, index: number) => (
                                   <Badge
                                     key={index}
-                                    variant="secondary"
+                                variant="secondary"
                                     className="text-xs flex items-center gap-1 cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/20 transition-colors"
                                   >
                                     {tag.trim()}
@@ -4266,9 +4269,9 @@ export default function ContentCreate() {
                                       }}
                                     >
                                       Cancel
-                                    </Button>
-                                  </div>
-                                </div>
+                              </Button>
+                            </div>
+                          </div>
                               ) : (
                                 <div
                                   className="text-sm text-gray-500 dark:text-gray-400 cursor-pointer hover:text-gray-700 dark:hover:text-gray-300"
@@ -4278,7 +4281,7 @@ export default function ContentCreate() {
                                   }}
                                 >
                                   Add tags
-                                </div>
+                        </div>
                               )}
                             </div>
 
@@ -4553,7 +4556,7 @@ export default function ContentCreate() {
       />
 
       {/* My Presets Modal */}
-      <Dialog open={showPresetModal} onOpenChange={setShowPresetModal}>
+      <Dialog open={showPresetsManager} onOpenChange={setShowPresetsManager}>
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -4586,9 +4589,9 @@ export default function ContentCreate() {
                   <div className="flex items-center justify-center py-12">
                     <Loader2 className="w-8 h-8 animate-spin text-amber-500" />
                     <span className="ml-2 text-muted-foreground">Loading presets...</span>
-                  </div>
-                );
-              }
+    </div>
+  );
+}
 
               if (filteredPresets.length > 0) {
                 return (
@@ -4710,7 +4713,7 @@ export default function ContentCreate() {
                       </p>
                       <Button
                         onClick={() => {
-                          setShowPresetModal(false);
+                          setShowPresetsManager(false);
                           handleSavePreset();
                         }}
                         className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600"

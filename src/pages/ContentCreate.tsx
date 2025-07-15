@@ -22,6 +22,7 @@ import { Influencer } from '@/store/slices/influencersSlice';
 import { setInfluencers, setLoading, setError } from '@/store/slices/influencersSlice';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ZoomIn } from 'lucide-react';
+import VaultSelector from '@/components/VaultSelector';
 
 const TASK_OPTIONS = [
   { value: 'generate_image', label: 'Generate Image', description: 'Generate a single image' },
@@ -1585,6 +1586,17 @@ export default function ContentCreate() {
   const [engineOptions, setEngineOptions] = useState<Option[]>([]);
   const [showEngineSelector, setShowEngineSelector] = useState(false);
 
+  // Vault selector state
+  const [showVaultSelector, setShowVaultSelector] = useState(false);
+  const [selectedVaultImage, setSelectedVaultImage] = useState<any>(null);
+
+  const handleVaultImageSelect = (image: any) => {
+    setSelectedVaultImage(image);
+    // You can use the selected image data here
+    // For example, you could set it as a reference image or use it in some way
+    toast.success(`Selected image from vault: ${image.system_filename}`);
+  };
+
   return (
     <div className="px-6 space-y-4">
       {/* Header */}
@@ -1701,6 +1713,14 @@ export default function ContentCreate() {
           >
             <RotateCcw className="w-4 h-4 mr-2" />
             Reset Form
+          </Button>
+          <Button
+            onClick={() => setShowVaultSelector(true)}
+            variant="outline"
+            className="bg-gradient-to-r from-green-600 to-emerald-600"
+          >
+            <Image className="w-4 h-4 mr-2" />
+            Select from Vault
           </Button>
         </div>
       </div>
@@ -4157,6 +4177,15 @@ export default function ContentCreate() {
           onClick={() => setFileContextMenu(null)}
         />
       )}
+
+      {/* Vault Selector Modal */}
+      <VaultSelector
+        open={showVaultSelector}
+        onOpenChange={setShowVaultSelector}
+        onImageSelect={handleVaultImageSelect}
+        title="Select Image from Vault"
+        description="Browse your vault and select an image to use as reference"
+      />
     </div>
   );
 }

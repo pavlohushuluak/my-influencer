@@ -111,6 +111,17 @@ export function SignUpForm({ onToggleMode }: SignUpFormProps) {
         },
         body: JSON.stringify({
           user: data.body.user.id,
+          folder: "presets"
+        })
+      });
+      await fetch('https://api.nymia.ai/v1/createfolder', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          user: data.body.user.id,
           folder: "output"
         })
       });

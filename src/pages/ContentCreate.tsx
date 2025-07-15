@@ -13,7 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
-import { Image, Wand2, Settings, Image as ImageIcon, Sparkles, Loader2, Camera, Search, X, Filter, Plus, RotateCcw, Download, Trash2, Calendar, Share, Pencil, Edit3, BookOpen, Save, FolderOpen } from 'lucide-react';
+import { Image, Wand2, Settings, Image as ImageIcon, Sparkles, Loader2, Camera, Search, X, Filter, Plus, RotateCcw, Download, Trash2, Calendar, Share, Pencil, Edit3, BookOpen, Save, FolderOpen, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 import { Command, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -499,7 +499,7 @@ export default function ContentCreate() {
           }
         });
         if (response.ok) {
-          const data = await response.json();
+        const data = await response.json();
           if (data && data.fieldoptions && Array.isArray(data.fieldoptions)) {
             const options = data.fieldoptions.map((item: any) => ({
               label: item.label,
@@ -523,9 +523,9 @@ export default function ContentCreate() {
     const fetchEngineOptions = async () => {
       try {
         const response = await fetch('https://api.nymia.ai/v1/fieldoptions?fieldtype=engine', {
-          headers: {
-            'Authorization': 'Bearer WeInfl3nc3withAI'
-          }
+        headers: {
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        }
         });
         if (response.ok) {
           const data = await response.json();
@@ -644,8 +644,8 @@ export default function ContentCreate() {
   const handleInputChange = (field: string, value: any) => {
     setFormData(prev => {
       const newFormData = {
-        ...prev,
-        [field]: value
+      ...prev,
+      [field]: value
       };
 
       // If usePromptOnly is being enabled, reset all form data to initial state
@@ -1045,10 +1045,10 @@ export default function ContentCreate() {
       console.log('📍 Location State:', location.state);
       console.log('📊 Regeneration Data:', regenerationData);
       console.log('🖼️ Original Image:', originalImage);
-
+      
       // Step 1: Populate form data from the JSON job
       console.log('📝 Step 1: Populating form data from JSON job');
-
+      
       if (regenerationData.task) {
         console.log('✅ Setting task type:', regenerationData.task);
         setFormData(prev => ({
@@ -1181,11 +1181,11 @@ export default function ContentCreate() {
       console.log('👤 Step 3: Processing model/influencer data');
       if (regenerationData.model) {
         console.log('🎭 Model data from JSON job:', regenerationData.model);
-
+        
         // Check if we have a model ID to fetch from database
         if (regenerationData.model.id) {
           console.log('🔍 Fetching influencer data from database with ID:', regenerationData.model.id);
-
+          
           // Fetch the influencer data from the database
           const fetchInfluencerData = async () => {
             try {
@@ -1205,10 +1205,10 @@ export default function ContentCreate() {
               if (influencerData && influencerData.length > 0) {
                 const influencer = influencerData[0];
                 console.log('✅ Found influencer in database:', influencer);
-
+                
                 // Set the model data with the complete influencer information
                 setModelData(influencer);
-
+                
                 // Populate model description with complete data
                 const modelDesc = {
                   appearance: `${influencer.name_first || ''} ${influencer.name_last || ''}, ${influencer.age_lifestyle || ''}`,
@@ -1232,7 +1232,7 @@ export default function ContentCreate() {
                   age: influencer.age || '',
                   lifestyle: influencer.lifestyle || ''
                 };
-
+                
                 console.log('📝 Setting model description:', modelDesc);
                 setModelDescription(modelDesc);
 
@@ -1597,10 +1597,146 @@ export default function ContentCreate() {
     toast.success(`Selected image from vault: ${image.system_filename}`);
   };
 
+  const handleVaultImageSelectForPreset = (image: any) => {
+    setSelectedPresetImage(image);
+    setPresetImageSource('vault');
+    setShowVaultSelectorForPreset(false);
+    toast.success(`Selected image from vault for preset: ${image.system_filename}`);
+  };
+
   // Add new state for preset functionality
   const [showPresetModal, setShowPresetModal] = useState(false);
   const [showLibraryModal, setShowLibraryModal] = useState(false);
   const [presetName, setPresetName] = useState('');
+
+  // Save as Preset functionality
+  const [showSavePresetModal, setShowSavePresetModal] = useState(false);
+  const [selectedPresetImage, setSelectedPresetImage] = useState<any>(null);
+  const [presetImageSource, setPresetImageSource] = useState<'vault' | 'upload' | 'recent' | null>(null);
+  const [showImageSelector, setShowImageSelector] = useState(false);
+  const [isSavingPreset, setIsSavingPreset] = useState(false);
+  const [showVaultSelectorForPreset, setShowVaultSelectorForPreset] = useState(false);
+
+  // Save as Preset functions
+  const handleSavePreset = () => {
+    setShowSavePresetModal(true);
+  };
+
+  const handlePresetImageSelect = (image: any, source: 'vault' | 'upload' | 'recent') => {
+    setSelectedPresetImage(image);
+    setPresetImageSource(source);
+    setShowImageSelector(false);
+    toast.success(`Selected image from ${source}`);
+  };
+
+  const handleSavePresetToDatabase = async () => {
+    if (!presetName.trim() || !selectedPresetImage) {
+      toast.error('Please provide a preset name and select an image');
+      return;
+    }
+
+    setIsSavingPreset(true);
+
+    try {
+      // Create the JSON job data from current form state
+      const jsonjob = {
+        task: formData.task,
+        lora: formData.lora,
+        noAI: formData.noAI,
+        prompt: formData.prompt,
+        negative_prompt: formData.negative_prompt,
+        nsfw_strength: formData.nsfw_strength,
+        lora_strength: formData.lora_strength,
+        quality: formData.quality,
+        seed: formData.seed ? parseInt(formData.seed) : -1,
+        guidance: formData.guidance,
+        number_of_images: formData.numberOfImages,
+        format: safeFormatOptions.find(opt => opt.label === formData.format)?.label || formData.format,
+        engine: formData.engine,
+        usePromptOnly: formData.usePromptOnly,
+        model: modelData ? {
+          id: modelData.id,
+          influencer_type: modelData.influencer_type,
+          sex: modelData.sex,
+          cultural_background: modelData.cultural_background,
+          hair_length: modelData.hair_length,
+          hair_color: modelData.hair_color,
+          hair_style: modelData.hair_style,
+          eye_color: modelData.eye_color,
+          lip_style: modelData.lip_style,
+          nose_style: modelData.nose_style,
+          face_shape: modelData.face_shape,
+          facial_features: modelData.facial_features,
+          skin_tone: modelData.skin_tone,
+          bust: modelData.bust_size,
+          body_type: modelData.body_type,
+          color_palette: modelData.color_palette || [],
+          clothing_style_everyday: modelData.clothing_style_everyday,
+          eyebrow_style: modelData.eyebrow_style,
+          makeup_style: modelDescription.makeup,
+          name_first: modelData.name_first,
+          name_last: modelData.name_last,
+          visual_only: modelData.visual_only,
+          age: modelData.age,
+          lifestyle: modelData.lifestyle
+        } : null,
+        scene: {
+          framing: sceneSpecs.framing,
+          rotation: sceneSpecs.rotation,
+          lighting_preset: sceneSpecs.lighting_preset,
+          scene_setting: sceneSpecs.scene_setting,
+          pose: sceneSpecs.pose,
+          clothes: sceneSpecs.clothes
+        }
+      };
+
+      // Prepare the preset data
+      const presetData = {
+        user_id: userData.id,
+        jsonjob: jsonjob,
+        name: presetName.trim(),
+        image_name: selectedPresetImage.system_filename || selectedPresetImage.name || 'preset-image',
+        route: '/content/create'
+      };
+
+      // Save to database
+      const response = await fetch('https://db.nymia.ai/rest/v1/presets', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify(presetData)
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save preset');
+      }
+
+      const savedPreset = await response.json();
+      
+      toast.success(`Preset "${presetName}" saved successfully!`);
+      
+      // Reset form
+      setPresetName('');
+      setSelectedPresetImage(null);
+      setPresetImageSource(null);
+      setShowSavePresetModal(false);
+
+    } catch (error) {
+      console.error('Error saving preset:', error);
+      toast.error('Failed to save preset. Please try again.');
+    } finally {
+      setIsSavingPreset(false);
+    }
+  };
+
+  const resetPresetForm = () => {
+    setPresetName('');
+    setSelectedPresetImage(null);
+    setPresetImageSource(null);
+    setShowSavePresetModal(false);
+  };
 
   return (
     <div className="px-6 space-y-4">
@@ -1615,7 +1751,7 @@ export default function ContentCreate() {
               {modelData ? `Creating content for ${modelData.name_first} ${modelData.name_last}` : 'Generate new content'}
             </p>
           </div>
-        </div>
+            </div>
 
         {/* Professional Preset and Library Buttons */}
         <div className="flex items-center gap-3">
@@ -1641,10 +1777,7 @@ export default function ContentCreate() {
             </Button>
 
             <Button
-              onClick={() => {
-                // Handle save as preset functionality
-                toast.info('Save as Preset functionality coming soon');
-              }}
+              onClick={handleSavePreset}
               variant="outline"
               size="sm"
               className="h-10 px-4 bg-gradient-to-r from-emerald-50 to-green-50 dark:from-emerald-900/20 dark:to-green-900/20 border-emerald-200 dark:border-emerald-700 hover:from-emerald-100 hover:to-green-100 dark:hover:from-emerald-800/30 dark:hover:to-green-800/30 text-emerald-700 dark:text-emerald-300 font-medium shadow-sm hover:shadow-md transition-all duration-200"
@@ -1652,8 +1785,8 @@ export default function ContentCreate() {
               <Save className="w-4 h-4 mr-2" />
               Save as Preset
             </Button>
-          </div>
-        </div>
+            </div>
+            </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-1 gap-2">
           <Button
             onClick={handleGenerate}
@@ -1706,10 +1839,7 @@ export default function ContentCreate() {
           </Button>
 
           <Button
-            onClick={() => {
-              // Handle save as preset functionality
-              toast.info('Save as Preset functionality coming soon');
-            }}
+            onClick={handleSavePreset}
             variant="outline"
             className="h-10 px-4 bg-gradient-to-r from-emerald-50 to-green-50 dark:from-emerald-900/20 dark:to-green-900/20 border-emerald-200 dark:border-emerald-700 hover:from-emerald-100 hover:to-green-100 dark:hover:from-emerald-800/30 dark:hover:to-green-800/30 text-emerald-700 dark:text-emerald-300 font-medium shadow-sm hover:shadow-md transition-all duration-200"
           >
@@ -3501,16 +3631,16 @@ export default function ContentCreate() {
 
                             {/* Image */}
                             <div className="relative w-full group mb-4" style={{ paddingBottom: '100%' }}>
-                              <img
-                                src={`https://images.nymia.ai/cdn-cgi/image/w=400/${image.file_path}`}
+                            <img
+                              src={`https://images.nymia.ai/cdn-cgi/image/w=400/${image.file_path}`}
                                 alt={image.system_filename}
                                 className="absolute inset-0 w-full h-full object-cover rounded-md shadow-sm cursor-pointer transition-all duration-200 hover:scale-105"
                                 onClick={() => setDetailedImageModal({ open: true, image })}
-                                onError={(e) => {
-                                  const target = e.target as HTMLImageElement;
-                                  target.style.display = 'none';
-                                }}
-                              />
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                              }}
+                            />
                               {/* Zoom Overlay */}
                               <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded-md flex items-end justify-end p-2">
                                 <div className="flex gap-1">
@@ -3529,7 +3659,7 @@ export default function ContentCreate() {
                                   >
                                     <ZoomIn className="w-3 h-3 text-gray-700 dark:text-gray-300" />
                                   </Button>
-                                </div>
+                          </div>
                               </div>
                             </div>
 
@@ -3554,8 +3684,8 @@ export default function ContentCreate() {
                                   autoFocus
                                 />
                                 <div className="flex gap-1">
-                                  <Button
-                                    size="sm"
+                              <Button
+                                size="sm"
                                     variant="outline"
                                     className="h-6 text-xs"
                                     onClick={() => {
@@ -3611,7 +3741,7 @@ export default function ContentCreate() {
                                 {image.user_tags.map((tag: string, index: number) => (
                                   <Badge
                                     key={index}
-                                    variant="secondary"
+                                variant="secondary"
                                     className="text-xs flex items-center gap-1 cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/20 transition-colors"
                                   >
                                     {tag.trim()}
@@ -3682,9 +3812,9 @@ export default function ContentCreate() {
                                       }}
                                     >
                                       Cancel
-                                    </Button>
-                                  </div>
-                                </div>
+                              </Button>
+                            </div>
+                          </div>
                               ) : (
                                 <div
                                   className="text-sm text-gray-500 dark:text-gray-400 cursor-pointer hover:text-gray-700 dark:hover:text-gray-300"
@@ -3694,7 +3824,7 @@ export default function ContentCreate() {
                                   }}
                                 >
                                   Add tags
-                                </div>
+                        </div>
                               )}
                             </div>
 
@@ -3950,229 +4080,6 @@ export default function ContentCreate() {
         </Dialog>
       )}
 
-      {/* Full Size Image Modal */}
-      {fullSizeImageModal.isOpen && (
-        <Dialog open={fullSizeImageModal.isOpen} onOpenChange={(open) => setFullSizeImageModal(prev => ({ ...prev, isOpen: open }))}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg">
-                  <ZoomIn className="w-5 h-5 text-white" />
-                </div>
-                {fullSizeImageModal.imageName}
-              </DialogTitle>
-            </DialogHeader>
-            <div className="flex items-center justify-center">
-              <img
-                src={fullSizeImageModal.imageUrl}
-                alt={fullSizeImageModal.imageName}
-                className="w-full h-auto max-h-[70vh] object-contain rounded-lg shadow-lg"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  target.style.display = 'none';
-                }}
-              />
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
-
-      {/* Detailed Image Modal */}
-      {detailedImageModal.open && detailedImageModal.image && (
-        <Dialog open={detailedImageModal.open} onOpenChange={(open) => setDetailedImageModal({ open, image: null })}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg">
-                  <Image className="w-5 h-5 text-white" />
-                </div>
-                Image Details
-              </DialogTitle>
-            </DialogHeader>
-            <div className="space-y-6">
-              {/* Image Display */}
-              <div className="flex items-center justify-center">
-                <img
-                  src={`https://images.nymia.ai/cdn-cgi/image/w=800/${detailedImageModal.image.file_path}`}
-                  alt={detailedImageModal.image.system_filename}
-                  className="w-full h-auto max-h-[50vh] object-contain rounded-lg shadow-lg"
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement;
-                    target.style.display = 'none';
-                  }}
-                />
-              </div>
-
-              {/* Image Information */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <div>
-                    <h3 className="font-semibold mb-2">File Information</h3>
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Filename:</span>
-                        <span className="font-mono">{decodeName(detailedImageModal.image.system_filename)}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Created:</span>
-                        <span>{new Date(detailedImageModal.image.created_at).toLocaleString()}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">File Size:</span>
-                        <span>{(detailedImageModal.image.file_size_bytes / 1024 / 1024).toFixed(2)} MB</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Format:</span>
-                        <span>{detailedImageModal.image.image_format}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <h3 className="font-semibold mb-2">Generation Settings</h3>
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Seed:</span>
-                        <span>{detailedImageModal.image.seed}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Guidance:</span>
-                        <span>{detailedImageModal.image.guidance}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Steps:</span>
-                        <span>{detailedImageModal.image.steps}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Quality:</span>
-                        <span>{detailedImageModal.image.quality_setting}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <div>
-                    <h3 className="font-semibold mb-2">Prompts</h3>
-                    <div className="space-y-2 text-sm">
-                      <div>
-                        <span className="text-muted-foreground block mb-1">T5XXL Prompt:</span>
-                        <p className="text-xs bg-gray-100 dark:bg-gray-800 p-2 rounded">{detailedImageModal.image.t5xxl_prompt}</p>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground block mb-1">CLIP Prompt:</span>
-                        <p className="text-xs bg-gray-100 dark:bg-gray-800 p-2 rounded">{detailedImageModal.image.clip_l_prompt}</p>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground block mb-1">Negative Prompt:</span>
-                        <p className="text-xs bg-gray-100 dark:bg-gray-800 p-2 rounded">{detailedImageModal.image.negative_prompt}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <h3 className="font-semibold mb-2">Actions</h3>
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleDownload(detailedImageModal.image)}
-                      >
-                        <Download className="w-4 h-4 mr-2" />
-                        Download
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleShare(detailedImageModal.image.system_filename)}
-                      >
-                        <Share className="w-4 h-4 mr-2" />
-                        Share
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => {
-                          handleFileDelete(detailedImageModal.image);
-                          setDetailedImageModal({ open: false, image: null });
-                        }}
-                      >
-                        <Trash2 className="w-4 h-4 mr-2" />
-                        Delete
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
-
-      {/* Context Menu */}
-      {fileContextMenu && (
-        <div
-          className="fixed z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg py-1 min-w-[150px]"
-          style={{
-            left: fileContextMenu.x,
-            top: fileContextMenu.y,
-          }}
-          onMouseLeave={() => setFileContextMenu(null)}
-        >
-          <button
-            className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
-            onClick={() => {
-              setEditingFile(fileContextMenu.image.system_filename);
-              setEditingFileName(fileContextMenu.image.user_filename || fileContextMenu.image.system_filename);
-              setRenamingFile(fileContextMenu.image.system_filename);
-              setFileContextMenu(null);
-            }}
-          >
-            <Pencil className="w-4 h-4" />
-            Rename
-          </button>
-          <button
-            className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
-            onClick={() => {
-              handleDownload(fileContextMenu.image);
-              setFileContextMenu(null);
-            }}
-          >
-            <Download className="w-4 h-4" />
-            Download
-          </button>
-          <button
-            className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
-            onClick={() => {
-              handleShare(fileContextMenu.image.system_filename);
-              setFileContextMenu(null);
-            }}
-          >
-            <Share className="w-4 h-4" />
-            Share
-          </button>
-          <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>
-          <button
-            className="w-full px-4 py-2 text-left text-sm hover:bg-red-100 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 flex items-center gap-2"
-            onClick={() => {
-              handleFileDelete(fileContextMenu.image);
-              setFileContextMenu(null);
-            }}
-          >
-            <Trash2 className="w-4 h-4" />
-            Delete
-          </button>
-        </div>
-      )}
-
-      {/* Global click handler to close context menu */}
-      {fileContextMenu && (
-        <div
-          className="fixed inset-0 z-40"
-          onClick={() => setFileContextMenu(null)}
-        />
-      )}
-
       {/* Vault Selector Modal */}
       <VaultSelector
         open={showVaultSelector}
@@ -4182,6 +4089,15 @@ export default function ContentCreate() {
         description="Browse your vault and select an image to use as reference"
       />
 
+      {/* Vault Selector for Presets */}
+      <VaultSelector
+        open={showVaultSelectorForPreset}
+        onOpenChange={setShowVaultSelectorForPreset}
+        onImageSelect={handleVaultImageSelectForPreset}
+        title="Select Image for Preset"
+        description="Browse your vault and select an image to represent your preset"
+      />
+
       {/* My Presets Modal */}
       <Dialog open={showPresetModal} onOpenChange={setShowPresetModal}>
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
@@ -4189,7 +4105,7 @@ export default function ContentCreate() {
             <DialogTitle className="flex items-center gap-2">
               <div className="p-2 bg-gradient-to-br from-amber-500 to-orange-600 rounded-lg">
                 <BookOpen className="w-5 h-5 text-white" />
-              </div>
+    </div>
               My Presets
             </DialogTitle>
             <p className="text-sm text-muted-foreground">
@@ -4207,7 +4123,7 @@ export default function ContentCreate() {
               <Button
                 onClick={() => {
                   setShowPresetModal(false);
-                  toast.info('Save as Preset functionality coming soon');
+                  handleSavePreset();
                 }}
                 className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600"
               >
@@ -4364,13 +4280,257 @@ export default function ContentCreate() {
               <Button
                 onClick={() => {
                   setShowLibraryModal(false);
-                  toast.info('Save as Preset functionality coming soon');
+                  handleSavePreset();
                 }}
                 className="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600"
               >
                 <Save className="w-4 h-4 mr-2" />
                 Save Current Settings
               </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Save as Preset Modal */}
+      <Dialog open={showSavePresetModal} onOpenChange={setShowSavePresetModal}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <div className="p-2 bg-gradient-to-br from-emerald-500 to-green-600 rounded-lg">
+                <Save className="w-5 h-5 text-white" />
+              </div>
+              Save as Preset
+            </DialogTitle>
+            <p className="text-sm text-muted-foreground">
+              Save your current settings as a reusable preset with an image
+            </p>
+          </DialogHeader>
+          
+          <div className="space-y-6">
+            {/* Preset Name Input */}
+            <div className="space-y-2">
+              <Label htmlFor="preset-name" className="text-sm font-medium">
+                Preset Name
+              </Label>
+              <Input
+                id="preset-name"
+                value={presetName}
+                onChange={(e) => setPresetName(e.target.value)}
+                placeholder="Enter a descriptive name for your preset..."
+                className="w-full"
+              />
+            </div>
+
+            {/* Image Selection Section */}
+            <div className="space-y-4">
+              <Label className="text-sm font-medium">Preset Image</Label>
+              
+              {/* Selected Image Display */}
+              {selectedPresetImage && (
+                <div className="relative">
+                  <Card className="overflow-hidden">
+                    <CardContent className="p-0">
+                      <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
+                        <img
+                          src={`https://images.nymia.ai/cdn-cgi/image/w=400/${userData.id}/${selectedPresetImage.user_filename === "" ? "output" : "vault/" + selectedPresetImage.user_filename}/${selectedPresetImage.system_filename}`}
+                          alt="Selected preset image"
+                          className="absolute inset-0 w-full h-full object-cover"
+                        />
+                        <div className="absolute top-2 right-2">
+                          <Badge variant="secondary" className="bg-black/70 text-white">
+                            {presetImageSource}
+                          </Badge>
+                        </div>
+                      </div>
+                      <div className="p-4">
+                        <p className="text-sm font-medium truncate">
+                          {selectedPresetImage.system_filename || selectedPresetImage.name}
+                        </p>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setSelectedPresetImage(null)}
+                          className="mt-2"
+                        >
+                          <X className="w-4 h-4 mr-1" />
+                          Remove Image
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+
+              {/* Image Source Selection */}
+              {!selectedPresetImage && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <Card 
+                    className="group hover:shadow-lg transition-all duration-300 cursor-pointer border-2 border-dashed border-gray-300 hover:border-emerald-500"
+                    onClick={() => setShowVaultSelectorForPreset(true)}
+                  >
+                    <CardContent className="p-6 text-center">
+                      <div className="p-3 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg w-12 h-12 mx-auto mb-3 flex items-center justify-center">
+                        <FolderOpen className="w-6 h-6 text-white" />
+                      </div>
+                      <h3 className="font-semibold mb-2">From Vault</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Select from your saved images
+                      </p>
+                    </CardContent>
+                  </Card>
+
+                  <Card 
+                    className="group hover:shadow-lg transition-all duration-300 cursor-pointer border-2 border-dashed border-gray-300 hover:border-emerald-500"
+                    onClick={() => {
+                      // Handle upload functionality
+                      toast.info('Upload functionality coming soon');
+                    }}
+                  >
+                    <CardContent className="p-6 text-center">
+                      <div className="p-3 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg w-12 h-12 mx-auto mb-3 flex items-center justify-center">
+                        <Upload className="w-6 h-6 text-white" />
+                      </div>
+                      <h3 className="font-semibold mb-2">Upload Image</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Upload a new image
+                      </p>
+                    </CardContent>
+                  </Card>
+
+                  <Card 
+                    className="group hover:shadow-lg transition-all duration-300 cursor-pointer border-2 border-dashed border-gray-300 hover:border-emerald-500"
+                    onClick={() => {
+                      // Handle recent renders selection
+                      if (generatedImages.length > 0) {
+                        setShowImageSelector(true);
+                      } else {
+                        toast.error('No recent renders available');
+                      }
+                    }}
+                  >
+                    <CardContent className="p-6 text-center">
+                      <div className="p-3 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg w-12 h-12 mx-auto mb-3 flex items-center justify-center">
+                        <Image className="w-6 h-6 text-white" />
+                      </div>
+                      <h3 className="font-semibold mb-2">Recent Renders</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Select from recent generations
+                      </p>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-3 pt-4">
+              <Button
+                onClick={resetPresetForm}
+                variant="outline"
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSavePresetToDatabase}
+                disabled={!presetName.trim() || !selectedPresetImage || isSavingPreset}
+                className="flex-1 bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600"
+              >
+                {isSavingPreset ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4 mr-2" />
+                    Save Preset
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Image Selector Modal */}
+      <Dialog open={showImageSelector} onOpenChange={setShowImageSelector}>
+        <DialogContent className="max-w-6xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <div className="p-2 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg">
+                <Image className="w-5 h-5 text-white" />
+              </div>
+              Select Image for Preset
+            </DialogTitle>
+            <p className="text-sm text-muted-foreground">
+              Choose an image to represent your preset
+            </p>
+          </DialogHeader>
+          
+          <div className="space-y-6">
+            {/* Image Source Tabs */}
+            <div className="flex space-x-1 bg-muted p-1 rounded-lg">
+              <Button
+                variant={presetImageSource === 'vault' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setPresetImageSource('vault')}
+                className="flex-1"
+              >
+                <FolderOpen className="w-4 h-4 mr-2" />
+                Vault
+              </Button>
+              <Button
+                variant={presetImageSource === 'recent' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setPresetImageSource('recent')}
+                className="flex-1"
+              >
+                <Image className="w-4 h-4 mr-2" />
+                Recent Renders
+              </Button>
+            </div>
+
+            {/* Image Grid */}
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {presetImageSource === 'vault' && (
+                // Vault images would be fetched here
+                <div className="text-center py-8 col-span-full">
+                  <FolderOpen className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground">Vault images would be displayed here</p>
+                </div>
+              )}
+              
+              {presetImageSource === 'recent' && generatedImages.length > 0 && (
+                generatedImages.map((image) => (
+                  <Card
+                    key={image.id}
+                    className="group hover:shadow-lg transition-all duration-300 cursor-pointer"
+                    onClick={() => handlePresetImageSelect(image, 'recent')}
+                  >
+                    <CardContent className="p-4">
+                      <div className="relative w-full" style={{ paddingBottom: '100%' }}>
+                        <img
+                          src={`https://images.nymia.ai/cdn-cgi/image/w=400/${image.file_path}`}
+                          alt={image.system_filename}
+                          className="absolute inset-0 w-full h-full object-cover rounded-md"
+                        />
+                      </div>
+                      <p className="text-sm font-medium mt-2 truncate">
+                        {decodeName(image.system_filename)}
+                      </p>
+                    </CardContent>
+                  </Card>
+                ))
+              )}
+              
+              {presetImageSource === 'recent' && generatedImages.length === 0 && (
+                <div className="text-center py-8 col-span-full">
+                  <Image className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground">No recent renders available</p>
+                </div>
+              )}
             </div>
           </div>
         </DialogContent>

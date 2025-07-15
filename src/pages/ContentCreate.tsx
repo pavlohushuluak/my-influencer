@@ -3496,10 +3496,24 @@ export default function ContentCreate() {
                                   target.style.display = 'none';
                                 }}
                               />
-                              {/* Edit Overlay */}
+                              {/* Zoom Overlay */}
                               <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded-md flex items-end justify-end p-2">
-                                <div className="bg-white/90 dark:bg-black/90 rounded-full p-1.5 shadow-lg">
-                                  <Edit3 className="w-3 h-3 text-gray-700 dark:text-gray-300" />
+                                <div className="flex gap-1">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-8 w-8 p-0 bg-white/90 dark:bg-black/90 hover:bg-white dark:hover:bg-black shadow-lg hover:shadow-xl transition-all duration-200"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setFullSizeImageModal({
+                                        isOpen: true,
+                                        imageUrl: `https://images.nymia.ai/cdn-cgi/image/w=1200/${image.file_path}`,
+                                        imageName: decodeName(image.system_filename)
+                                      });
+                                    }}
+                                  >
+                                    <ZoomIn className="w-3 h-3 text-gray-700 dark:text-gray-300" />
+                                  </Button>
                                 </div>
                               </div>
                             </div>

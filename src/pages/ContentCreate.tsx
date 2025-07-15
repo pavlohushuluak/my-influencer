@@ -13,7 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
-import { Image, Wand2, Settings, Image as ImageIcon, Sparkles, Loader2, Camera, Search, X, Filter, Plus, RotateCcw, Download, Trash2, Calendar, Share, Pencil, Edit3, BookOpen, Save, FolderOpen, Upload, Edit, AlertTriangle, Eye } from 'lucide-react';
+import { Image, Wand2, Settings, Image as ImageIcon, Sparkles, Loader2, Camera, Search, X, Filter, Plus, RotateCcw, Download, Trash2, Calendar, Share, Pencil, Edit3, BookOpen, Save, FolderOpen, Upload, Edit, AlertTriangle, Eye, User, Monitor } from 'lucide-react';
 import { toast } from 'sonner';
 import { Command, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -500,7 +500,7 @@ export default function ContentCreate() {
           }
         });
         if (response.ok) {
-        const data = await response.json();
+          const data = await response.json();
           if (data && data.fieldoptions && Array.isArray(data.fieldoptions)) {
             const options = data.fieldoptions.map((item: any) => ({
               label: item.label,
@@ -524,9 +524,9 @@ export default function ContentCreate() {
     const fetchEngineOptions = async () => {
       try {
         const response = await fetch('https://api.nymia.ai/v1/fieldoptions?fieldtype=engine', {
-        headers: {
-          'Authorization': 'Bearer WeInfl3nc3withAI'
-        }
+          headers: {
+            'Authorization': 'Bearer WeInfl3nc3withAI'
+          }
         });
         if (response.ok) {
           const data = await response.json();
@@ -645,8 +645,8 @@ export default function ContentCreate() {
   const handleInputChange = (field: string, value: any) => {
     setFormData(prev => {
       const newFormData = {
-      ...prev,
-      [field]: value
+        ...prev,
+        [field]: value
       };
 
       // If usePromptOnly is being enabled, reset all form data to initial state
@@ -1046,10 +1046,10 @@ export default function ContentCreate() {
       console.log('📍 Location State:', location.state);
       console.log('📊 Regeneration Data:', regenerationData);
       console.log('🖼️ Original Image:', originalImage);
-      
+
       // Step 1: Populate form data from the JSON job
       console.log('📝 Step 1: Populating form data from JSON job');
-      
+
       if (regenerationData.task) {
         console.log('✅ Setting task type:', regenerationData.task);
         setFormData(prev => ({
@@ -1182,11 +1182,11 @@ export default function ContentCreate() {
       console.log('👤 Step 3: Processing model/influencer data');
       if (regenerationData.model) {
         console.log('🎭 Model data from JSON job:', regenerationData.model);
-        
+
         // Check if we have a model ID to fetch from database
         if (regenerationData.model.id) {
           console.log('🔍 Fetching influencer data from database with ID:', regenerationData.model.id);
-          
+
           // Fetch the influencer data from the database
           const fetchInfluencerData = async () => {
             try {
@@ -1206,10 +1206,10 @@ export default function ContentCreate() {
               if (influencerData && influencerData.length > 0) {
                 const influencer = influencerData[0];
                 console.log('✅ Found influencer in database:', influencer);
-                
+
                 // Set the model data with the complete influencer information
                 setModelData(influencer);
-                
+
                 // Populate model description with complete data
                 const modelDesc = {
                   appearance: `${influencer.name_first || ''} ${influencer.name_last || ''}, ${influencer.age_lifestyle || ''}`,
@@ -1233,7 +1233,7 @@ export default function ContentCreate() {
                   age: influencer.age || '',
                   lifestyle: influencer.lifestyle || ''
                 };
-                
+
                 console.log('📝 Setting model description:', modelDesc);
                 setModelDescription(modelDesc);
 
@@ -1641,15 +1641,15 @@ export default function ContentCreate() {
   const generateUniqueFilename = (originalFilename: string, existingFilenames: string[]): string => {
     const baseName = originalFilename.substring(0, originalFilename.lastIndexOf('.'));
     const extension = originalFilename.substring(originalFilename.lastIndexOf('.'));
-    
+
     let counter = 1;
     let testFilename = `${baseName}(${counter})${extension}`;
-    
+
     while (existingFilenames.includes(testFilename)) {
       counter++;
       testFilename = `${baseName}(${counter})${extension}`;
     }
-    
+
     return testFilename;
   };
 
@@ -1688,7 +1688,7 @@ export default function ContentCreate() {
           };
         }
       }
-      
+
       return { hasConflict: false, existingFilenames: [] };
     } catch (error) {
       console.error('Error checking file conflict:', error);
@@ -1720,7 +1720,7 @@ export default function ContentCreate() {
       if (isUpload && uploadedFile) {
         // Create a new file with the unique filename
         const file = new File([uploadedFile], filename, { type: uploadedFile.type });
-        
+
         const uploadResponse = await fetch(`https://api.nymia.ai/v1/uploadfile?user=${userData.id}&filename=presets/${filename}`, {
           method: 'POST',
           headers: {
@@ -1778,7 +1778,7 @@ export default function ContentCreate() {
       } else {
         toast.success(`Preset "${presetName}" saved successfully!`);
       }
-      
+
       // Reset form
       setPresetName('');
       setSelectedPresetImage(null);
@@ -1830,15 +1830,15 @@ export default function ContentCreate() {
     }
 
     setUploadedFile(file);
-    
+
     // Create preview URL
     const imageUrl = URL.createObjectURL(file);
     setUploadedImageUrl(imageUrl);
-    
+
     // Set default filename
     const filename = file.name.replace(/\.[^/.]+$/, ''); // Remove extension
     const systemFilename = `${filename}_${Date.now()}.${file.name.split('.').pop() || 'jpg'}`;
-    
+
     // Create a temporary image object that looks like a vault image
     const uploadedImage = {
       id: `upload_${Date.now()}`,
@@ -1900,8 +1900,8 @@ export default function ContentCreate() {
 
     try {
       // Determine the filename to use
-      const originalFilename = presetImageSource === 'upload' && uploadedFile 
-        ? uploadedFile.name 
+      const originalFilename = presetImageSource === 'upload' && uploadedFile
+        ? uploadedFile.name
         : selectedPresetImage.system_filename;
 
       // Check for file conflicts
@@ -1910,12 +1910,12 @@ export default function ContentCreate() {
       if (hasConflict) {
         // Generate unique filename
         const uniqueFilename = generateUniqueFilename(originalFilename, existingFilenames);
-        
+
         // Store conflict info and show dialog
         setConflictFilename(originalFilename);
         setFinalFilename(uniqueFilename);
         setShowOverwriteDialog(true);
-        
+
         // Prepare preset data for later use
         const jsonjob = {
           task: formData.task,
@@ -1980,7 +1980,7 @@ export default function ContentCreate() {
           presetData,
           isUpload: presetImageSource === 'upload'
         });
-        
+
         return; // Wait for user decision
       }
 
@@ -2066,21 +2066,43 @@ export default function ContentCreate() {
   // Fetch presets from database
   const fetchPresets = async () => {
     if (!userData?.id) return;
-    
+
     setIsLoadingPresets(true);
     try {
+      console.log('🔍 Fetching presets for user:', userData.id);
+      
       const response = await fetch(`https://db.nymia.ai/rest/v1/presets?user_id=eq.${userData.id}`, {
         headers: {
-          'Authorization': 'Bearer WeInfl3nc3withAI'
+          'Authorization': 'Bearer WeInfl3nc3withAI',
+          'Content-Type': 'application/json'
         }
       });
 
       if (response.ok) {
         const presetsData = await response.json();
-        setPresets(presetsData);
+        console.log('✅ Presets fetched successfully:', presetsData);
+        
+        // Transform the data to include additional computed fields
+        const transformedPresets = presetsData.map((preset: any) => ({
+          ...preset,
+          // Add computed fields for easier display
+          hasModel: !!preset.jsonjob?.model,
+          hasScene: !!preset.jsonjob?.scene,
+          sceneCount: preset.jsonjob?.scene ? Object.keys(preset.jsonjob.scene).filter(key => preset.jsonjob.scene[key]).length : 0,
+          createdDate: new Date(preset.created_at).toLocaleDateString(),
+          createdTime: new Date(preset.created_at).toLocaleTimeString(),
+          // Generate image URL if image_name exists
+          imageUrl: preset.image_name ? `https://storage.nymia.ai/generated_images/${preset.image_name}` : null
+        }));
+        
+        setPresets(transformedPresets);
+        console.log('📊 Transformed presets:', transformedPresets);
+      } else {
+        console.error('❌ Failed to fetch presets:', response.status, response.statusText);
+        toast.error('Failed to load presets');
       }
     } catch (error) {
-      console.error('Error fetching presets:', error);
+      console.error('❌ Error fetching presets:', error);
       toast.error('Failed to load presets');
     } finally {
       setIsLoadingPresets(false);
@@ -2097,7 +2119,7 @@ export default function ContentCreate() {
   const handleApplyPreset = (preset: any) => {
     try {
       const jsonjob = preset.jsonjob;
-      
+
       // Apply form data
       if (jsonjob.task) setFormData(prev => ({ ...prev, task: jsonjob.task }));
       if (jsonjob.lora) setFormData(prev => ({ ...prev, lora: jsonjob.lora }));
@@ -2183,7 +2205,7 @@ export default function ContentCreate() {
               {modelData ? `Creating content for ${modelData.name_first} ${modelData.name_last}` : 'Generate new content'}
             </p>
           </div>
-            </div>
+        </div>
 
         {/* Professional Preset and Library Buttons */}
         <div className="flex items-center gap-3">
@@ -2217,8 +2239,8 @@ export default function ContentCreate() {
               <Save className="w-4 h-4 mr-2" />
               Save as Preset
             </Button>
-            </div>
-            </div>
+          </div>
+        </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-1 gap-2">
           <Button
             onClick={handleGenerate}
@@ -4063,16 +4085,16 @@ export default function ContentCreate() {
 
                             {/* Image */}
                             <div className="relative w-full group mb-4" style={{ paddingBottom: '100%' }}>
-                            <img
-                              src={`https://images.nymia.ai/cdn-cgi/image/w=400/${image.file_path}`}
+                              <img
+                                src={`https://images.nymia.ai/cdn-cgi/image/w=400/${image.file_path}`}
                                 alt={image.system_filename}
                                 className="absolute inset-0 w-full h-full object-cover rounded-md shadow-sm cursor-pointer transition-all duration-200 hover:scale-105"
                                 onClick={() => setDetailedImageModal({ open: true, image })}
-                              onError={(e) => {
-                                const target = e.target as HTMLImageElement;
-                                target.style.display = 'none';
-                              }}
-                            />
+                                onError={(e) => {
+                                  const target = e.target as HTMLImageElement;
+                                  target.style.display = 'none';
+                                }}
+                              />
                               {/* Zoom Overlay */}
                               <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded-md flex items-end justify-end p-2">
                                 <div className="flex gap-1">
@@ -4091,7 +4113,7 @@ export default function ContentCreate() {
                                   >
                                     <ZoomIn className="w-3 h-3 text-gray-700 dark:text-gray-300" />
                                   </Button>
-                          </div>
+                                </div>
                               </div>
                             </div>
 
@@ -4116,8 +4138,8 @@ export default function ContentCreate() {
                                   autoFocus
                                 />
                                 <div className="flex gap-1">
-                              <Button
-                                size="sm"
+                                  <Button
+                                    size="sm"
                                     variant="outline"
                                     className="h-6 text-xs"
                                     onClick={() => {
@@ -4173,7 +4195,7 @@ export default function ContentCreate() {
                                 {image.user_tags.map((tag: string, index: number) => (
                                   <Badge
                                     key={index}
-                                variant="secondary"
+                                    variant="secondary"
                                     className="text-xs flex items-center gap-1 cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/20 transition-colors"
                                   >
                                     {tag.trim()}
@@ -4244,9 +4266,9 @@ export default function ContentCreate() {
                                       }}
                                     >
                                       Cancel
-                              </Button>
-                            </div>
-                          </div>
+                                    </Button>
+                                  </div>
+                                </div>
                               ) : (
                                 <div
                                   className="text-sm text-gray-500 dark:text-gray-400 cursor-pointer hover:text-gray-700 dark:hover:text-gray-300"
@@ -4256,7 +4278,7 @@ export default function ContentCreate() {
                                   }}
                                 >
                                   Add tags
-                        </div>
+                                </div>
                               )}
                             </div>
 
@@ -4537,32 +4559,184 @@ export default function ContentCreate() {
             <DialogTitle className="flex items-center gap-2">
               <div className="p-2 bg-gradient-to-br from-amber-500 to-orange-600 rounded-lg">
                 <BookOpen className="w-5 h-5 text-white" />
-    </div>
+              </div>
               My Presets
             </DialogTitle>
             <p className="text-sm text-muted-foreground">
               Browse and manage your saved content generation presets
             </p>
           </DialogHeader>
+          
           <div className="space-y-6">
-            {/* Placeholder content for presets */}
-            <div className="text-center py-12">
-              <BookOpen className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No Presets Yet</h3>
-              <p className="text-muted-foreground mb-4">
-                Save your current settings as a preset to reuse them later
-              </p>
-              <Button
-                onClick={() => {
-                  setShowPresetModal(false);
-                  handleSavePreset();
-                }}
-                className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600"
-              >
-                <Save className="w-4 h-4 mr-2" />
-                Create Your First Preset
-              </Button>
+            {/* Search Bar */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+              <Input
+                placeholder="Search presets..."
+                value={presetSearchTerm}
+                onChange={(e) => setPresetSearchTerm(e.target.value)}
+                className="pl-10"
+              />
             </div>
+
+            {/* Content based on loading and data state */}
+            {(() => {
+              if (isLoadingPresets) {
+                return (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="w-8 h-8 animate-spin text-amber-500" />
+                    <span className="ml-2 text-muted-foreground">Loading presets...</span>
+                  </div>
+                );
+              }
+
+              if (filteredPresets.length > 0) {
+                return (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {filteredPresets.map((preset) => (
+                      <Card key={preset.id} className="group hover:shadow-lg transition-all duration-300 cursor-pointer">
+                        <CardContent className="p-4">
+                          {/* Preset Image */}
+                          <div className="relative mb-4 aspect-square rounded-lg overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900">
+                            {preset.imageUrl ? (
+                              <img
+                                src={preset.imageUrl}
+                                alt={preset.name}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  e.currentTarget.style.display = 'none';
+                                  e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                                }}
+                              />
+                            ) : null}
+                            <div className={`${preset.imageUrl ? 'hidden' : ''} absolute inset-0 flex items-center justify-center`}>
+                              <Image className="w-12 h-12 text-muted-foreground" />
+                            </div>
+                          </div>
+
+                          {/* Preset Info */}
+                          <div className="space-y-3">
+                            <div>
+                              <h3 className="font-semibold text-lg mb-1 truncate">{preset.name}</h3>
+                              <p className="text-sm text-muted-foreground">
+                                Created {preset.createdDate} at {preset.createdTime}
+                              </p>
+                            </div>
+
+                            {/* Preset Details */}
+                            <div className="space-y-2">
+                              {preset.hasModel && (
+                                <div className="flex items-center gap-2 text-sm">
+                                  <User className="w-4 h-4 text-blue-500" />
+                                  <span className="text-muted-foreground">
+                                    {preset.jsonjob.model?.name_first} {preset.jsonjob.model?.name_last}
+                                  </span>
+                                </div>
+                              )}
+                              
+                              {preset.sceneCount > 0 && (
+                                <div className="flex items-center gap-2 text-sm">
+                                  <Camera className="w-4 h-4 text-green-500" />
+                                  <span className="text-muted-foreground">
+                                    {preset.sceneCount} scene settings
+                                  </span>
+                                </div>
+                              )}
+
+                              {preset.jsonjob?.format && (
+                                <div className="flex items-center gap-2 text-sm">
+                                  <Monitor className="w-4 h-4 text-purple-500" />
+                                  <span className="text-muted-foreground">
+                                    {preset.jsonjob.format}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Action Buttons */}
+                            <div className="flex gap-2 pt-2">
+                              <Button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleApplyPreset(preset);
+                                }}
+                                size="sm"
+                                className="flex-1 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white"
+                              >
+                                <Wand2 className="w-4 h-4 mr-1" />
+                                Apply
+                              </Button>
+                              
+                              <Button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleViewPresetDetails(preset);
+                                }}
+                                size="sm"
+                                variant="outline"
+                              >
+                                <Eye className="w-4 h-4" />
+                              </Button>
+                              
+                              <Button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeletePreset(preset);
+                                }}
+                                size="sm"
+                                variant="outline"
+                                className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                );
+              }
+
+              // Empty state
+              return (
+                <div className="text-center py-12">
+                  {presets.length === 0 ? (
+                    <div>
+                      <BookOpen className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold mb-2">No Presets Yet</h3>
+                      <p className="text-muted-foreground mb-4">
+                        Save your current settings as a preset to reuse them later
+                      </p>
+                      <Button
+                        onClick={() => {
+                          setShowPresetModal(false);
+                          handleSavePreset();
+                        }}
+                        className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600"
+                      >
+                        <Save className="w-4 h-4 mr-2" />
+                        Create Your First Preset
+                      </Button>
+                    </div>
+                  ) : (
+                    <div>
+                      <Search className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold mb-2">No Presets Found</h3>
+                      <p className="text-muted-foreground mb-4">
+                        Try adjusting your search terms
+                      </p>
+                      <Button
+                        onClick={() => setPresetSearchTerm('')}
+                        variant="outline"
+                      >
+                        Clear Search
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
           </div>
         </DialogContent>
       </Dialog>
@@ -4738,7 +4912,7 @@ export default function ContentCreate() {
               Save your current settings as a reusable preset with an image
             </p>
           </DialogHeader>
-          
+
           <div className="space-y-6">
             {/* Preset Name Input */}
             <div className="space-y-2">
@@ -4757,7 +4931,7 @@ export default function ContentCreate() {
             {/* Image Selection Section */}
             <div className="space-y-4">
               <Label className="text-sm font-medium">Preset Image</Label>
-              
+
               {/* Selected Image Display */}
               {selectedPresetImage && (
                 <div className="relative">
@@ -4914,7 +5088,7 @@ export default function ContentCreate() {
               {/* Image Source Selection */}
               {!selectedPresetImage && (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <Card 
+                  <Card
                     className="group hover:shadow-lg transition-all duration-300 cursor-pointer border-2 border-dashed border-gray-300 hover:border-emerald-500"
                     onClick={() => setShowVaultSelectorForPreset(true)}
                   >
@@ -4929,7 +5103,7 @@ export default function ContentCreate() {
                     </CardContent>
                   </Card>
 
-                  <Card 
+                  <Card
                     className="group hover:shadow-lg transition-all duration-300 cursor-pointer border-2 border-dashed border-gray-300 hover:border-emerald-500"
                     onClick={() => {
                       // Trigger file selection directly
@@ -4954,7 +5128,7 @@ export default function ContentCreate() {
                     </CardContent>
                   </Card>
 
-                  <Card 
+                  <Card
                     className="group hover:shadow-lg transition-all duration-300 cursor-pointer border-2 border-dashed border-gray-300 hover:border-emerald-500"
                     onClick={() => setShowRecentRendersModal(true)}
                   >
@@ -5017,7 +5191,7 @@ export default function ContentCreate() {
               Choose an image to represent your preset
             </p>
           </DialogHeader>
-          
+
           <div className="space-y-6">
             {/* Image Source Tabs */}
             <div className="flex space-x-1 bg-muted p-1 rounded-lg">
@@ -5050,7 +5224,7 @@ export default function ContentCreate() {
                   <p className="text-muted-foreground">Vault images would be displayed here</p>
                 </div>
               )}
-              
+
               {presetImageSource === 'recent' && generatedImages.length > 0 && (
                 generatedImages.map((image) => (
                   <Card
@@ -5073,7 +5247,7 @@ export default function ContentCreate() {
                   </Card>
                 ))
               )}
-              
+
               {presetImageSource === 'recent' && generatedImages.length === 0 && (
                 <div className="text-center py-8 col-span-full">
                   <Image className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
@@ -5099,7 +5273,7 @@ export default function ContentCreate() {
               Choose from your recent generated images
             </p>
           </DialogHeader>
-          
+
           <div className="space-y-6">
             {/* Recent Renders Grid */}
             {generatedImages.length > 0 ? (
@@ -5257,7 +5431,7 @@ export default function ContentCreate() {
               A file with the same name already exists in the presets folder.
             </p>
           </DialogHeader>
-          
+
           <div className="space-y-4">
             <div className="p-4 bg-orange-50 dark:bg-orange-950/20 rounded-lg border border-orange-200 dark:border-orange-800">
               <div className="flex items-start gap-3">
@@ -5311,7 +5485,7 @@ export default function ContentCreate() {
               View detailed information about this preset
             </p>
           </DialogHeader>
-          
+
           {selectedPreset && (
             <div className="space-y-6">
               {/* Header Info */}

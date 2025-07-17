@@ -46,6 +46,7 @@ interface PresetData {
   route: string;
   rating?: number;
   favorite?: boolean;
+  description?: string;
   // Computed properties added during transformation
   hasModel?: boolean;
   hasScene?: boolean;
@@ -2039,6 +2040,20 @@ export default function PresetsManager({ onClose, onApplyPreset }: {
                         <h3 className="font-semibold text-lg mb-1 text-gray-900 dark:text-gray-100 truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                           {preset.name}
                         </h3>
+                          <div className="mb-2 p-2 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-md border border-blue-200/50 dark:border-blue-800/50">
+                            <p className="text-sm text-gray-700 dark:text-gray-300 line-clamp-2 leading-relaxed">
+                              {
+                                preset.description?
+                                (
+                                  preset.description?.trim().substring(0, 100) + '...'
+                                )
+                                :
+                                (
+                                  'No description available'
+                                )
+                              }
+                            </p>
+                          </div>
                         <div className="space-y-1 text-sm text-muted-foreground">
                           <p className="flex items-center gap-1">
                             <Calendar className="w-3 h-3" />
@@ -2178,6 +2193,13 @@ export default function PresetsManager({ onClose, onApplyPreset }: {
                           <CardTitle className="text-xl font-bold text-gray-900 dark:text-white">
                             {detailedPresetModal.preset.name}
                           </CardTitle>
+                          {detailedPresetModal.preset.description && (
+                            <div className="mt-3 p-3 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-lg border border-blue-200/50 dark:border-blue-800/50 max-w-md mx-auto">
+                              <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed text-center">
+                                {detailedPresetModal.preset.description}
+                              </p>
+                            </div>
+                          )}
                         </CardHeader>
                         <CardContent className="space-y-4">
                           {/* Creation Info */}

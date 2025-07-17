@@ -1610,6 +1610,7 @@ export default function ContentCreate() {
   // Add new state for preset functionality
   const [showLibraryModal, setShowLibraryModal] = useState(false);
   const [presetName, setPresetName] = useState('');
+  const [presetDescription, setPresetDescription] = useState('');
   const [presets, setPresets] = useState<any[]>([]);
   const [isLoadingPresets, setIsLoadingPresets] = useState(false);
   const [presetSearchTerm, setPresetSearchTerm] = useState('');
@@ -1619,10 +1620,10 @@ export default function ContentCreate() {
   // Save as Preset functionality
   const [showSavePresetModal, setShowSavePresetModal] = useState(false);
   const [selectedPresetImage, setSelectedPresetImage] = useState<any>(null);
-  const [presetImageSource, setPresetImageSource] = useState<'vault' | 'upload' | 'recent' | null>(null);
+  const [presetImageSource, setPresetImageSource] = useState<'vault' | 'upload' | 'recent'>('vault');
+  const [showVaultSelectorForPreset, setShowVaultSelectorForPreset] = useState(false);
   const [showImageSelector, setShowImageSelector] = useState(false);
   const [isSavingPreset, setIsSavingPreset] = useState(false);
-  const [showVaultSelectorForPreset, setShowVaultSelectorForPreset] = useState(false);
 
   // Upload functionality for preset images
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
@@ -1808,6 +1809,7 @@ export default function ContentCreate() {
 
   const resetPresetForm = () => {
     setPresetName('');
+    setPresetDescription('');
     setSelectedPresetImage(null);
     setPresetImageSource(null);
     setShowSavePresetModal(false);
@@ -1973,6 +1975,7 @@ export default function ContentCreate() {
           user_id: userData.id,
           jsonjob: jsonjob,
           name: presetName,
+          description: presetDescription,
           image_name: originalFilename,
           route: '',
           rating: 0,
@@ -2043,6 +2046,7 @@ export default function ContentCreate() {
         user_id: userData.id,
         jsonjob: jsonjob,
         name: presetName,
+        description: presetDescription,
         image_name: originalFilename,
         route: '',
         rating: 0,
@@ -4747,6 +4751,30 @@ export default function ContentCreate() {
                 placeholder="Enter a descriptive name for your preset..."
                 className="w-full"
               />
+            </div>
+
+            {/* Preset Description Input */}
+            <div className="space-y-2">
+              <Label htmlFor="preset-description" className="text-sm font-medium flex items-center gap-2">
+                <div className="p-1 bg-gradient-to-br from-blue-500 to-purple-600 rounded-md">
+                  <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                Preset Description
+              </Label>
+              <Textarea
+                id="preset-description"
+                value={presetDescription}
+                onChange={(e) => setPresetDescription(e.target.value)}
+                placeholder="Describe your preset's purpose, style, or any special notes..."
+                className="w-full min-h-[80px] resize-none border-2 border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200"
+                maxLength={500}
+              />
+              <div className="flex justify-between items-center text-xs text-muted-foreground">
+                <span>Add context to help you remember what this preset is for</span>
+                <span>{presetDescription.length}/500</span>
+              </div>
             </div>
 
             {/* Image Selection Section */}

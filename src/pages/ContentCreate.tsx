@@ -502,7 +502,7 @@ export default function ContentCreate() {
           }
         });
         if (response.ok) {
-        const data = await response.json();
+          const data = await response.json();
           if (data && data.fieldoptions && Array.isArray(data.fieldoptions)) {
             const options = data.fieldoptions.map((item: any) => ({
               label: item.label,
@@ -526,9 +526,9 @@ export default function ContentCreate() {
     const fetchEngineOptions = async () => {
       try {
         const response = await fetch('https://api.nymia.ai/v1/fieldoptions?fieldtype=engine', {
-        headers: {
-          'Authorization': 'Bearer WeInfl3nc3withAI'
-        }
+          headers: {
+            'Authorization': 'Bearer WeInfl3nc3withAI'
+          }
         });
         if (response.ok) {
           const data = await response.json();
@@ -647,8 +647,8 @@ export default function ContentCreate() {
   const handleInputChange = (field: string, value: any) => {
     setFormData(prev => {
       const newFormData = {
-      ...prev,
-      [field]: value
+        ...prev,
+        [field]: value
       };
 
       // If usePromptOnly is being enabled, reset all form data to initial state
@@ -1048,10 +1048,10 @@ export default function ContentCreate() {
       console.log('📍 Location State:', location.state);
       console.log('📊 Regeneration Data:', regenerationData);
       console.log('🖼️ Original Image:', originalImage);
-      
+
       // Step 1: Populate form data from the JSON job
       console.log('📝 Step 1: Populating form data from JSON job');
-      
+
       if (regenerationData.task) {
         console.log('✅ Setting task type:', regenerationData.task);
         setFormData(prev => ({
@@ -1184,11 +1184,11 @@ export default function ContentCreate() {
       console.log('👤 Step 3: Processing model/influencer data');
       if (regenerationData.model) {
         console.log('🎭 Model data from JSON job:', regenerationData.model);
-        
+
         // Check if we have a model ID to fetch from database
         if (regenerationData.model.id) {
           console.log('🔍 Fetching influencer data from database with ID:', regenerationData.model.id);
-          
+
           // Fetch the influencer data from the database
           const fetchInfluencerData = async () => {
             try {
@@ -1208,10 +1208,10 @@ export default function ContentCreate() {
               if (influencerData && influencerData.length > 0) {
                 const influencer = influencerData[0];
                 console.log('✅ Found influencer in database:', influencer);
-                
+
                 // Set the model data with the complete influencer information
                 setModelData(influencer);
-                
+
                 // Populate model description with complete data
                 const modelDesc = {
                   appearance: `${influencer.name_first || ''} ${influencer.name_last || ''}, ${influencer.age_lifestyle || ''}`,
@@ -1235,7 +1235,7 @@ export default function ContentCreate() {
                   age: influencer.age || '',
                   lifestyle: influencer.lifestyle || ''
                 };
-                
+
                 console.log('📝 Setting model description:', modelDesc);
                 setModelDescription(modelDesc);
 
@@ -2079,7 +2079,7 @@ export default function ContentCreate() {
     setIsLoadingPresets(true);
     try {
       console.log('Fetching presets for user:', userData.id);
-      
+
       const response = await fetch(`https://db.nymia.ai/rest/v1/presets?user_id=eq.${userData.id}`, {
         headers: {
           'Authorization': 'Bearer WeInfl3nc3withAI',
@@ -2090,7 +2090,7 @@ export default function ContentCreate() {
       if (response.ok) {
         const presetsData = await response.json();
         console.log('Presets fetched successfully:', presetsData);
-        
+
         // Transform the data to include additional computed fields
         const transformedPresets = presetsData.map((preset: any) => ({
           ...preset,
@@ -2103,7 +2103,7 @@ export default function ContentCreate() {
           // Generate image URL if image_name exists
           imageUrl: preset.image_name ? `https://storage.nymia.ai/generated_images/${preset.image_name}` : null
         }));
-        
+
         setPresets(transformedPresets);
         console.log('Transformed presets:', transformedPresets);
       } else {
@@ -2204,6 +2204,25 @@ export default function ContentCreate() {
   // Preset modal state
   const [showPresetsManager, setShowPresetsManager] = useState(false);
 
+  // Mode toggle state
+  const [isAdvancedMode, setIsAdvancedMode] = useState(false);
+
+  // Handle mode toggle
+  const handleModeToggle = () => {
+    if (isAdvancedMode) {
+      // Switching to Easy mode - reset scene specifications
+      setSceneSpecs({
+        framing: '',
+        rotation: '',
+        lighting_preset: '',
+        scene_setting: '',
+        pose: '',
+        clothes: ''
+      });
+    }
+    setIsAdvancedMode(!isAdvancedMode);
+  };
+
   return (
     <div className="px-6 space-y-4">
       {/* Header */}
@@ -2217,11 +2236,11 @@ export default function ContentCreate() {
               {modelData ? `Creating content for ${modelData.name_first} ${modelData.name_last}` : 'Generate new content'}
             </p>
           </div>
-            </div>
+        </div>
 
         {/* Professional Preset and Library Buttons */}
         <div className="flex items-center gap-3">
-          <div className="items-center gap-2 hidden xl:grid xl:grid-cols-3">
+          <div className="items-center gap-2 hidden xl:grid xl:grid-cols-2 2xl:grid-cols-4">
             <Button
               onClick={handleOpenPresetModal}
               variant="outline"
@@ -2251,8 +2270,21 @@ export default function ContentCreate() {
               <Save className="w-4 h-4 mr-2" />
               Save as Preset
             </Button>
-            </div>
-            </div>
+
+            <Button
+              onClick={handleModeToggle}
+              variant="outline"
+              size="sm"
+              className={`h-10 px-4 font-medium shadow-sm hover:shadow-md transition-all duration-200 ${isAdvancedMode
+                  ? 'bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 border-purple-200 dark:border-purple-700 hover:from-purple-100 hover:to-pink-100 dark:hover:from-purple-800/30 dark:hover:to-pink-800/30 text-purple-700 dark:text-purple-300'
+                  : 'bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 border-blue-200 dark:border-blue-700 hover:from-blue-100 hover:to-cyan-100 dark:hover:from-blue-800/30 dark:hover:to-cyan-800/30 text-blue-700 dark:text-blue-300'
+                }`}
+            >
+              <Settings className="w-4 h-4 mr-2" />
+              {isAdvancedMode ? 'Advanced Mode' : 'Easy Mode'}
+            </Button>
+          </div>
+        </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-1 gap-2">
           <Button
             onClick={handleGenerate}
@@ -2285,7 +2317,7 @@ export default function ContentCreate() {
 
       {/* Professional Preset and Library Buttons */}
       <div className="flex w-full items-center gap-3 xl:hidden">
-        <div className="items-center gap-2 grid grid-cols-1 md:grid-cols-3 w-full">
+        <div className="items-center gap-2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 w-full">
           <Button
             onClick={() => setShowPresetsManager(true)}
             variant="outline"
@@ -2311,6 +2343,19 @@ export default function ContentCreate() {
           >
             <Save className="w-4 h-4 mr-2" />
             Save as Preset
+          </Button>
+
+          <Button
+            onClick={handleModeToggle}
+            variant="outline"
+            size="sm"
+            className={`h-10 px-4 font-medium shadow-sm hover:shadow-md transition-all duration-200 ${isAdvancedMode
+                ? 'bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 border-purple-200 dark:border-purple-700 hover:from-purple-100 hover:to-pink-100 dark:hover:from-purple-800/30 dark:hover:to-pink-800/30 text-purple-700 dark:text-purple-300'
+                : 'bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 border-blue-200 dark:border-blue-700 hover:from-blue-100 hover:to-cyan-100 dark:hover:from-blue-800/30 dark:hover:to-cyan-800/30 text-blue-700 dark:text-blue-300'
+              }`}
+          >
+            <Settings className="w-4 h-4 mr-2" />
+            {isAdvancedMode ? 'Advanced Mode' : 'Easy Mode'}
           </Button>
         </div>
       </div>
@@ -2840,9 +2885,18 @@ export default function ContentCreate() {
                       <Camera className="w-5 h-5 text-white" />
                     </div>
                     Scene Specifications
+                    <Badge variant={isAdvancedMode ? "default" : "secondary"} className={`ml-2 ${isAdvancedMode
+                        ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white'
+                        : 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white'
+                      }`}>
+                      {isAdvancedMode ? 'Advanced' : 'Easy'}
+                    </Badge>
                   </CardTitle>
                   <p className="text-sm text-muted-foreground">
-                    Just select some of the presets below or describe in the text input below what you want to see. Anything entered on prompt overrules settings on the model or in the presets.
+                    {isAdvancedMode
+                      ? "Just select some of the presets below or describe in the text input below what you want to see. Anything entered on prompt overrules settings on the model or in the presets."
+                      : "Easy mode: Only prompt input is available. Switch to Advanced mode for detailed scene specifications."
+                    }
                   </p>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -2868,19 +2922,6 @@ export default function ContentCreate() {
                         </svg>
                       </div>
                     </div>
-                    {/* <div className="space-y-2">
-                      <Label className="flex items-center gap-2">
-                        Rotation
-                      </Label>
-                      <div className="relative">
-                      <Input
-                          value={sceneSpecs.rotation}
-                          onChange={(e) => handleSceneSpecChange('rotation', e.target.value)}
-                          placeholder="e.g., Front view, Side view, Back view..."
-                          className="border-2 focus:border-blue-500/50 focus:ring-blue-500/20 transition-all duration-200"
-                      />
-                    </div>
-                    </div> */}
 
                     {/* Use Prompt Only Toggle */}
                     <div className="flex items-center justify-between">
@@ -2896,409 +2937,414 @@ export default function ContentCreate() {
                       />
                     </div>
 
-                    <div className="lg:hidden grid grid-cols-1 sm:grid-cols-3 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label>Framing</Label>
-                        <Select
-                          value={sceneSpecs.framing}
-                          onValueChange={(value) => handleSceneSpecChange('framing', value)}
-                          disabled={formData.usePromptOnly}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select framing" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {framingOptions.map((option) => (
-                              <SelectItem key={option.label} value={option.label}>{option.label}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <div
-                          onClick={formData.usePromptOnly ? undefined : () => setShowFramingSelector(true)}
-                          className={`flex items-center justify-center w-full ${formData.usePromptOnly ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-                        >
-                          {sceneSpecs.framing && framingOptions.find(option => option.label === sceneSpecs.framing)?.image ? (
-                            <Card className="relative w-full max-w-[250px]">
-                              <CardContent className="p-4">
-                                <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
-                                  <img
-                                    src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${framingOptions.find(option => option.label === sceneSpecs.framing)?.image}`}
-                                    className="absolute inset-0 w-full h-full object-cover rounded-md"
-                                  />
-                                  <Button
-                                    variant="destructive"
-                                    size="sm"
-                                    className="absolute bottom-2 right-2 w-8 h-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleSceneSpecChange('framing', '');
-                                    }}
-                                  >
-                                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                    </svg>
-                                  </Button>
-                                </div>
-                                <p className="text-sm text-center font-medium mt-2">{framingOptions.find(option => option.label === sceneSpecs.framing)?.label}</p>
-                              </CardContent>
-                            </Card>
-                          ) : (
-                            <Card className="relative w-full border max-w-[250px]">
-                              <CardContent className="p-4">
-                                <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
-                                  <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
-                                    Select framing style
-                                  </div>
-                                </div>
-                              </CardContent>
-                            </Card>
-                          )}
-                        </div>
-                        {showFramingSelector && (
-                          <OptionSelector
-                            options={framingOptions}
-                            onSelect={(label) => handleSceneSpecChange('framing', label)}
-                            onClose={() => setShowFramingSelector(false)}
-                            title="Select Framing Style"
-                          />
-                        )}
-                      </div>
+                    {/* Scene Specifications - Only show in Advanced Mode */}
+                    {isAdvancedMode && (
+                      <>
+                        <div className="lg:hidden grid grid-cols-1 sm:grid-cols-3 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label>Framing</Label>
+                            <Select
+                              value={sceneSpecs.framing}
+                              onValueChange={(value) => handleSceneSpecChange('framing', value)}
+                              disabled={formData.usePromptOnly}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select framing" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {framingOptions.map((option) => (
+                                  <SelectItem key={option.label} value={option.label}>{option.label}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <div
+                              onClick={formData.usePromptOnly ? undefined : () => setShowFramingSelector(true)}
+                              className={`flex items-center justify-center w-full ${formData.usePromptOnly ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                            >
+                              {sceneSpecs.framing && framingOptions.find(option => option.label === sceneSpecs.framing)?.image ? (
+                                <Card className="relative w-full max-w-[250px]">
+                                  <CardContent className="p-4">
+                                    <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
+                                      <img
+                                        src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${framingOptions.find(option => option.label === sceneSpecs.framing)?.image}`}
+                                        className="absolute inset-0 w-full h-full object-cover rounded-md"
+                                      />
+                                      <Button
+                                        variant="destructive"
+                                        size="sm"
+                                        className="absolute bottom-2 right-2 w-8 h-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleSceneSpecChange('framing', '');
+                                        }}
+                                      >
+                                        <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                        </svg>
+                                      </Button>
+                                    </div>
+                                    <p className="text-sm text-center font-medium mt-2">{framingOptions.find(option => option.label === sceneSpecs.framing)?.label}</p>
+                                  </CardContent>
+                                </Card>
+                              ) : (
+                                <Card className="relative w-full border max-w-[250px]">
+                                  <CardContent className="p-4">
+                                    <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
+                                      <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
+                                        Select framing style
+                                      </div>
+                                    </div>
+                                  </CardContent>
+                                </Card>
+                              )}
+                            </div>
+                            {showFramingSelector && (
+                              <OptionSelector
+                                options={framingOptions}
+                                onSelect={(label) => handleSceneSpecChange('framing', label)}
+                                onClose={() => setShowFramingSelector(false)}
+                                title="Select Framing Style"
+                              />
+                            )}
+                          </div>
 
-                      <div className="space-y-2">
-                        <Label>Rotation</Label>
-                        <Select
-                          value={sceneSpecs.rotation}
-                          onValueChange={(value) => handleSceneSpecChange('rotation', value)}
-                          disabled={formData.usePromptOnly}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select rotation" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {rotationOptions.map((option) => (
-                              <SelectItem key={option.label} value={option.label}>{option.label}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <div
-                          onClick={formData.usePromptOnly ? undefined : () => setShowRotationSelector(true)}
-                          className={`flex items-center justify-center w-full ${formData.usePromptOnly ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-                        >
-                          {sceneSpecs.rotation && rotationOptions.find(option => option.label === sceneSpecs.rotation)?.image ? (
-                            <Card className="relative w-full max-w-[250px]">
-                              <CardContent className="p-4">
-                                <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
-                                  <img
-                                    src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${rotationOptions.find(option => option.label === sceneSpecs.rotation)?.image}`}
-                                    className="absolute inset-0 w-full h-full object-cover rounded-md"
-                                  />
-                                  <Button
-                                    variant="destructive"
-                                    size="sm"
-                                    className="absolute bottom-2 right-2 w-8 h-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleSceneSpecChange('rotation', '');
-                                    }}
-                                  >
-                                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                    </svg>
-                                  </Button>
-                                </div>
-                                <p className="text-sm text-center font-medium mt-2">{rotationOptions.find(option => option.label === sceneSpecs.rotation)?.label}</p>
-                              </CardContent>
-                            </Card>
-                          ) : (
-                            <Card className="relative w-full border max-w-[250px]">
-                              <CardContent className="p-4">
-                                <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
-                                  <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
-                                    Select rotation style
-                                  </div>
-                                </div>
-                              </CardContent>
-                            </Card>
-                          )}
-                        </div>
-                        {showRotationSelector && (
-                          <OptionSelector
-                            options={rotationOptions}
-                            onSelect={(label) => handleSceneSpecChange('rotation', label)}
-                            onClose={() => setShowRotationSelector(false)}
-                            title="Select Rotation Style"
-                          />
-                        )}
-                      </div>
+                          <div className="space-y-2">
+                            <Label>Rotation</Label>
+                            <Select
+                              value={sceneSpecs.rotation}
+                              onValueChange={(value) => handleSceneSpecChange('rotation', value)}
+                              disabled={formData.usePromptOnly}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select rotation" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {rotationOptions.map((option) => (
+                                  <SelectItem key={option.label} value={option.label}>{option.label}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <div
+                              onClick={formData.usePromptOnly ? undefined : () => setShowRotationSelector(true)}
+                              className={`flex items-center justify-center w-full ${formData.usePromptOnly ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                            >
+                              {sceneSpecs.rotation && rotationOptions.find(option => option.label === sceneSpecs.rotation)?.image ? (
+                                <Card className="relative w-full max-w-[250px]">
+                                  <CardContent className="p-4">
+                                    <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
+                                      <img
+                                        src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${rotationOptions.find(option => option.label === sceneSpecs.rotation)?.image}`}
+                                        className="absolute inset-0 w-full h-full object-cover rounded-md"
+                                      />
+                                      <Button
+                                        variant="destructive"
+                                        size="sm"
+                                        className="absolute bottom-2 right-2 w-8 h-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleSceneSpecChange('rotation', '');
+                                        }}
+                                      >
+                                        <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                        </svg>
+                                      </Button>
+                                    </div>
+                                    <p className="text-sm text-center font-medium mt-2">{rotationOptions.find(option => option.label === sceneSpecs.rotation)?.label}</p>
+                                  </CardContent>
+                                </Card>
+                              ) : (
+                                <Card className="relative w-full border max-w-[250px]">
+                                  <CardContent className="p-4">
+                                    <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
+                                      <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
+                                        Select rotation style
+                                      </div>
+                                    </div>
+                                  </CardContent>
+                                </Card>
+                              )}
+                            </div>
+                            {showRotationSelector && (
+                              <OptionSelector
+                                options={rotationOptions}
+                                onSelect={(label) => handleSceneSpecChange('rotation', label)}
+                                onClose={() => setShowRotationSelector(false)}
+                                title="Select Rotation Style"
+                              />
+                            )}
+                          </div>
 
-                      <div className="space-y-2">
-                        <Label>Lighting Preset</Label>
-                        <Select
-                          value={sceneSpecs.lighting_preset}
-                          onValueChange={(value) => handleSceneSpecChange('lighting_preset', value)}
-                          disabled={formData.usePromptOnly}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select lighting preset" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {lightingOptions.map((option) => (
-                              <SelectItem key={option.label} value={option.label}>{option.label}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <div
-                          onClick={formData.usePromptOnly ? undefined : () => setShowLightingSelector(true)}
-                          className={`flex items-center justify-center w-full ${formData.usePromptOnly ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-                        >
-                          {sceneSpecs.lighting_preset && lightingOptions.find(option => option.label === sceneSpecs.lighting_preset)?.image ? (
-                            <Card className="relative w-full max-w-[250px]">
-                              <CardContent className="p-4">
-                                <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
-                                  <img
-                                    src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${lightingOptions.find(option => option.label === sceneSpecs.lighting_preset)?.image}`}
-                                    className="absolute inset-0 w-full h-full object-cover rounded-md"
-                                  />
-                                  <Button
-                                    variant="destructive"
-                                    size="sm"
-                                    className="absolute bottom-2 right-2 w-8 h-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleSceneSpecChange('lighting_preset', '');
-                                    }}
-                                  >
-                                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                    </svg>
-                                  </Button>
-                                </div>
-                                <p className="text-sm text-center font-medium mt-2">{lightingOptions.find(option => option.label === sceneSpecs.lighting_preset)?.label}</p>
-                              </CardContent>
-                            </Card>
-                          ) : (
-                            <Card className="relative w-full border max-w-[250px]">
-                              <CardContent className="p-4">
-                                <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
-                                  <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
-                                    Select lighting style
-                                  </div>
-                                </div>
-                              </CardContent>
-                            </Card>
-                          )}
-                        </div>
-                        {showLightingSelector && (
-                          <OptionSelector
-                            options={lightingOptions}
-                            onSelect={(label) => handleSceneSpecChange('lighting_preset', label)}
-                            onClose={() => setShowLightingSelector(false)}
-                            title="Select Lighting Style"
-                          />
-                        )}
-                      </div>
+                          <div className="space-y-2">
+                            <Label>Lighting Preset</Label>
+                            <Select
+                              value={sceneSpecs.lighting_preset}
+                              onValueChange={(value) => handleSceneSpecChange('lighting_preset', value)}
+                              disabled={formData.usePromptOnly}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select lighting preset" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {lightingOptions.map((option) => (
+                                  <SelectItem key={option.label} value={option.label}>{option.label}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <div
+                              onClick={formData.usePromptOnly ? undefined : () => setShowLightingSelector(true)}
+                              className={`flex items-center justify-center w-full ${formData.usePromptOnly ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                            >
+                              {sceneSpecs.lighting_preset && lightingOptions.find(option => option.label === sceneSpecs.lighting_preset)?.image ? (
+                                <Card className="relative w-full max-w-[250px]">
+                                  <CardContent className="p-4">
+                                    <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
+                                      <img
+                                        src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${lightingOptions.find(option => option.label === sceneSpecs.lighting_preset)?.image}`}
+                                        className="absolute inset-0 w-full h-full object-cover rounded-md"
+                                      />
+                                      <Button
+                                        variant="destructive"
+                                        size="sm"
+                                        className="absolute bottom-2 right-2 w-8 h-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleSceneSpecChange('lighting_preset', '');
+                                        }}
+                                      >
+                                        <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                        </svg>
+                                      </Button>
+                                    </div>
+                                    <p className="text-sm text-center font-medium mt-2">{lightingOptions.find(option => option.label === sceneSpecs.lighting_preset)?.label}</p>
+                                  </CardContent>
+                                </Card>
+                              ) : (
+                                <Card className="relative w-full border max-w-[250px]">
+                                  <CardContent className="p-4">
+                                    <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
+                                      <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
+                                        Select lighting style
+                                      </div>
+                                    </div>
+                                  </CardContent>
+                                </Card>
+                              )}
+                            </div>
+                            {showLightingSelector && (
+                              <OptionSelector
+                                options={lightingOptions}
+                                onSelect={(label) => handleSceneSpecChange('lighting_preset', label)}
+                                onClose={() => setShowLightingSelector(false)}
+                                title="Select Lighting Style"
+                              />
+                            )}
+                          </div>
 
-                      <div className="space-y-2">
-                        <Label>Scene Setting</Label>
-                        <Select
-                          value={sceneSpecs.scene_setting}
-                          onValueChange={(value) => handleSceneSpecChange('scene_setting', value)}
-                          disabled={formData.usePromptOnly}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select scene setting" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {sceneSettingsOptions.map((option) => (
-                              <SelectItem key={option.label} value={option.label}>{option.label}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <div
-                          onClick={formData.usePromptOnly ? undefined : () => setShowSceneSettingsSelector(true)}
-                          className={`flex items-center justify-center w-full ${formData.usePromptOnly ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-                        >
-                          {sceneSpecs.scene_setting && sceneSettingsOptions.find(option => option.label === sceneSpecs.scene_setting)?.image ? (
-                            <Card className="relative w-full max-w-[250px]">
-                              <CardContent className="p-4">
-                                <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
-                                  <img
-                                    src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${sceneSettingsOptions.find(option => option.label === sceneSpecs.scene_setting)?.image}`}
-                                    className="absolute inset-0 w-full h-full object-cover rounded-md"
-                                  />
-                                  <Button
-                                    variant="destructive"
-                                    size="sm"
-                                    className="absolute bottom-2 right-2 w-8 h-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleSceneSpecChange('scene_setting', '');
-                                    }}
-                                  >
-                                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                    </svg>
-                                  </Button>
-                                </div>
-                                <p className="text-sm text-center font-medium mt-2">{sceneSettingsOptions.find(option => option.label === sceneSpecs.scene_setting)?.label}</p>
-                              </CardContent>
-                            </Card>
-                          ) : (
-                            <Card className="relative w-full border max-w-[250px]">
-                              <CardContent className="p-4">
-                                <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
-                                  <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
-                                    Select scene setting
-                                  </div>
-                                </div>
-                              </CardContent>
-                            </Card>
-                          )}
-                        </div>
-                        {showSceneSettingsSelector && (
-                          <OptionSelector
-                            options={sceneSettingsOptions}
-                            onSelect={(label) => handleSceneSpecChange('scene_setting', label)}
-                            onClose={() => setShowSceneSettingsSelector(false)}
-                            title="Select Scene Setting"
-                          />
-                        )}
-                      </div>
+                          <div className="space-y-2">
+                            <Label>Scene Setting</Label>
+                            <Select
+                              value={sceneSpecs.scene_setting}
+                              onValueChange={(value) => handleSceneSpecChange('scene_setting', value)}
+                              disabled={formData.usePromptOnly}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select scene setting" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {sceneSettingsOptions.map((option) => (
+                                  <SelectItem key={option.label} value={option.label}>{option.label}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <div
+                              onClick={formData.usePromptOnly ? undefined : () => setShowSceneSettingsSelector(true)}
+                              className={`flex items-center justify-center w-full ${formData.usePromptOnly ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                            >
+                              {sceneSpecs.scene_setting && sceneSettingsOptions.find(option => option.label === sceneSpecs.scene_setting)?.image ? (
+                                <Card className="relative w-full max-w-[250px]">
+                                  <CardContent className="p-4">
+                                    <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
+                                      <img
+                                        src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${sceneSettingsOptions.find(option => option.label === sceneSpecs.scene_setting)?.image}`}
+                                        className="absolute inset-0 w-full h-full object-cover rounded-md"
+                                      />
+                                      <Button
+                                        variant="destructive"
+                                        size="sm"
+                                        className="absolute bottom-2 right-2 w-8 h-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleSceneSpecChange('scene_setting', '');
+                                        }}
+                                      >
+                                        <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                        </svg>
+                                      </Button>
+                                    </div>
+                                    <p className="text-sm text-center font-medium mt-2">{sceneSettingsOptions.find(option => option.label === sceneSpecs.scene_setting)?.label}</p>
+                                  </CardContent>
+                                </Card>
+                              ) : (
+                                <Card className="relative w-full border max-w-[250px]">
+                                  <CardContent className="p-4">
+                                    <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
+                                      <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
+                                        Select scene setting
+                                      </div>
+                                    </div>
+                                  </CardContent>
+                                </Card>
+                              )}
+                            </div>
+                            {showSceneSettingsSelector && (
+                              <OptionSelector
+                                options={sceneSettingsOptions}
+                                onSelect={(label) => handleSceneSpecChange('scene_setting', label)}
+                                onClose={() => setShowSceneSettingsSelector(false)}
+                                title="Select Scene Setting"
+                              />
+                            )}
+                          </div>
 
-                      <div className="space-y-2">
-                        <Label>Pose</Label>
-                        <Select
-                          value={sceneSpecs.pose}
-                          onValueChange={(value) => handleSceneSpecChange('pose', value)}
-                          disabled={formData.usePromptOnly}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select pose" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {poseOptions.map((option) => (
-                              <SelectItem key={option.label} value={option.label}>{option.label}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <div
-                          onClick={formData.usePromptOnly ? undefined : () => setShowPoseSelector(true)}
-                          className={`flex items-center justify-center w-full ${formData.usePromptOnly ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-                        >
-                          {sceneSpecs.pose && poseOptions.find(option => option.label === sceneSpecs.pose)?.image ? (
-                            <Card className="relative w-full max-w-[250px]">
-                              <CardContent className="p-4">
-                                <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
-                                  <img
-                                    src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${poseOptions.find(option => option.label === sceneSpecs.pose)?.image}`}
-                                    className="absolute inset-0 w-full h-full object-cover rounded-md"
-                                  />
-                                  <Button
-                                    variant="destructive"
-                                    size="sm"
-                                    className="absolute bottom-2 right-2 w-8 h-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleSceneSpecChange('pose', '');
-                                    }}
-                                  >
-                                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                    </svg>
-                                  </Button>
-                                </div>
-                                <p className="text-sm text-center font-medium mt-2">{poseOptions.find(option => option.label === sceneSpecs.pose)?.label}</p>
-                              </CardContent>
-                            </Card>
-                          ) : (
-                            <Card className="relative w-full border max-w-[250px]">
-                              <CardContent className="p-4">
-                                <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
-                                  <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
-                                    Select pose style
-                                  </div>
-                                </div>
-                              </CardContent>
-                            </Card>
-                          )}
-                        </div>
-                        {showPoseSelector && (
-                          <OptionSelector
-                            options={poseOptions}
-                            onSelect={(label) => handleSceneSpecChange('pose', label)}
-                            onClose={() => setShowPoseSelector(false)}
-                            title="Select Pose Style"
-                          />
-                        )}
-                      </div>
+                          <div className="space-y-2">
+                            <Label>Pose</Label>
+                            <Select
+                              value={sceneSpecs.pose}
+                              onValueChange={(value) => handleSceneSpecChange('pose', value)}
+                              disabled={formData.usePromptOnly}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select pose" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {poseOptions.map((option) => (
+                                  <SelectItem key={option.label} value={option.label}>{option.label}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <div
+                              onClick={formData.usePromptOnly ? undefined : () => setShowPoseSelector(true)}
+                              className={`flex items-center justify-center w-full ${formData.usePromptOnly ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                            >
+                              {sceneSpecs.pose && poseOptions.find(option => option.label === sceneSpecs.pose)?.image ? (
+                                <Card className="relative w-full max-w-[250px]">
+                                  <CardContent className="p-4">
+                                    <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
+                                      <img
+                                        src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${poseOptions.find(option => option.label === sceneSpecs.pose)?.image}`}
+                                        className="absolute inset-0 w-full h-full object-cover rounded-md"
+                                      />
+                                      <Button
+                                        variant="destructive"
+                                        size="sm"
+                                        className="absolute bottom-2 right-2 w-8 h-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleSceneSpecChange('pose', '');
+                                        }}
+                                      >
+                                        <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                        </svg>
+                                      </Button>
+                                    </div>
+                                    <p className="text-sm text-center font-medium mt-2">{poseOptions.find(option => option.label === sceneSpecs.pose)?.label}</p>
+                                  </CardContent>
+                                </Card>
+                              ) : (
+                                <Card className="relative w-full border max-w-[250px]">
+                                  <CardContent className="p-4">
+                                    <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
+                                      <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
+                                        Select pose style
+                                      </div>
+                                    </div>
+                                  </CardContent>
+                                </Card>
+                              )}
+                            </div>
+                            {showPoseSelector && (
+                              <OptionSelector
+                                options={poseOptions}
+                                onSelect={(label) => handleSceneSpecChange('pose', label)}
+                                onClose={() => setShowPoseSelector(false)}
+                                title="Select Pose Style"
+                              />
+                            )}
+                          </div>
 
-                      <div className="space-y-2">
-                        <Label>Outfits</Label>
-                        <Select
-                          value={sceneSpecs.clothes}
-                          onValueChange={(value) => handleSceneSpecChange('clothes', value)}
-                          disabled={formData.usePromptOnly}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select outfits" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {clothesOptions.map((option) => (
-                              <SelectItem key={option.label} value={option.label}>{option.label}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <div
-                          onClick={formData.usePromptOnly ? undefined : () => setShowClothesSelector(true)}
-                          className={`flex items-center justify-center w-full ${formData.usePromptOnly ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-                        >
-                          {sceneSpecs.clothes && clothesOptions.find(option => option.label === sceneSpecs.clothes)?.image ? (
-                            <Card className="relative w-full max-w-[250px]">
-                              <CardContent className="p-4">
-                                <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
-                                  <img
-                                    src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${clothesOptions.find(option => option.label === sceneSpecs.clothes)?.image}`}
-                                    className="absolute inset-0 w-full h-full object-cover rounded-md"
-                                  />
-                                  <Button
-                                    variant="destructive"
-                                    size="sm"
-                                    className="absolute bottom-2 right-2 w-8 h-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleSceneSpecChange('clothes', '');
-                                    }}
-                                  >
-                                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                    </svg>
-                                  </Button>
-                                </div>
-                                <p className="text-sm text-center font-medium mt-2">{clothesOptions.find(option => option.label === sceneSpecs.clothes)?.label}</p>
-                              </CardContent>
-                            </Card>
-                          ) : (
-                            <Card className="relative w-full border max-w-[250px]">
-                              <CardContent className="p-4">
-                                <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
-                                  <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
-                                    Select outfits style
-                                  </div>
-                                </div>
-                              </CardContent>
-                            </Card>
-                          )}
+                          <div className="space-y-2">
+                            <Label>Outfits</Label>
+                            <Select
+                              value={sceneSpecs.clothes}
+                              onValueChange={(value) => handleSceneSpecChange('clothes', value)}
+                              disabled={formData.usePromptOnly}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select outfits" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {clothesOptions.map((option) => (
+                                  <SelectItem key={option.label} value={option.label}>{option.label}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <div
+                              onClick={formData.usePromptOnly ? undefined : () => setShowClothesSelector(true)}
+                              className={`flex items-center justify-center w-full ${formData.usePromptOnly ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                            >
+                              {sceneSpecs.clothes && clothesOptions.find(option => option.label === sceneSpecs.clothes)?.image ? (
+                                <Card className="relative w-full max-w-[250px]">
+                                  <CardContent className="p-4">
+                                    <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
+                                      <img
+                                        src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${clothesOptions.find(option => option.label === sceneSpecs.clothes)?.image}`}
+                                        className="absolute inset-0 w-full h-full object-cover rounded-md"
+                                      />
+                                      <Button
+                                        variant="destructive"
+                                        size="sm"
+                                        className="absolute bottom-2 right-2 w-8 h-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleSceneSpecChange('clothes', '');
+                                        }}
+                                      >
+                                        <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                        </svg>
+                                      </Button>
+                                    </div>
+                                    <p className="text-sm text-center font-medium mt-2">{clothesOptions.find(option => option.label === sceneSpecs.clothes)?.label}</p>
+                                  </CardContent>
+                                </Card>
+                              ) : (
+                                <Card className="relative w-full border max-w-[250px]">
+                                  <CardContent className="p-4">
+                                    <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
+                                      <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
+                                        Select outfits style
+                                      </div>
+                                    </div>
+                                  </CardContent>
+                                </Card>
+                              )}
+                            </div>
+                            {showClothesSelector && (
+                              <OptionSelector
+                                options={clothesOptions}
+                                onSelect={(label) => handleSceneSpecChange('clothes', label)}
+                                onClose={() => setShowClothesSelector(false)}
+                                title="Select Outfits Style"
+                              />
+                            )}
+                          </div>
                         </div>
-                        {showClothesSelector && (
-                          <OptionSelector
-                            options={clothesOptions}
-                            onSelect={(label) => handleSceneSpecChange('clothes', label)}
-                            onClose={() => setShowClothesSelector(false)}
-                            title="Select Outfits Style"
-                          />
-                        )}
-                      </div>
-                    </div>
+                      </>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -3602,8 +3648,22 @@ export default function ContentCreate() {
       {activeTab === 'scene' && (
         <Card className='hidden lg:block'>
           <CardContent className='pt-2'>
+            {!isAdvancedMode && (
+              <div className="p-4 bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-950/20 dark:to-cyan-950/20 rounded-lg border border-blue-200/50 dark:border-blue-800/50">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="p-1 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-md">
+                    <Settings className="w-3.5 h-3.5 text-white" />
+                  </div>
+                  <span className="font-medium text-blue-700 dark:text-blue-300">Easy Mode Active</span>
+                </div>
+                <p className="text-sm text-blue-600 dark:text-blue-400">
+                  Scene specifications are hidden for simplicity. Switch to Advanced mode to access framing, rotation, lighting, pose, and clothing options.
+                </p>
+              </div>
+            )}
+            
             {/* Scene Presets - 2x3 Grid */}
-            <div className="hidden lg:grid grid-cols-3 xl:grid-cols-6 gap-4">
+            {isAdvancedMode && <div className="hidden lg:grid grid-cols-3 xl:grid-cols-6 gap-4">
               <div className="space-y-2">
                 <Label>Framing</Label>
                 <Select
@@ -4005,7 +4065,7 @@ export default function ContentCreate() {
                   />
                 )}
               </div>
-            </div>
+            </div>}
           </CardContent>
         </Card>
       )}
@@ -4097,16 +4157,16 @@ export default function ContentCreate() {
 
                             {/* Image */}
                             <div className="relative w-full group mb-4" style={{ paddingBottom: '100%' }}>
-                            <img
-                              src={`https://images.nymia.ai/cdn-cgi/image/w=400/${image.file_path}`}
+                              <img
+                                src={`https://images.nymia.ai/cdn-cgi/image/w=400/${image.file_path}`}
                                 alt={image.system_filename}
                                 className="absolute inset-0 w-full h-full object-cover rounded-md shadow-sm cursor-pointer transition-all duration-200 hover:scale-105"
                                 onClick={() => setDetailedImageModal({ open: true, image })}
-                              onError={(e) => {
-                                const target = e.target as HTMLImageElement;
-                                target.style.display = 'none';
-                              }}
-                            />
+                                onError={(e) => {
+                                  const target = e.target as HTMLImageElement;
+                                  target.style.display = 'none';
+                                }}
+                              />
                               {/* Zoom Overlay */}
                               <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded-md flex items-end justify-end p-2">
                                 <div className="flex gap-1">
@@ -4125,7 +4185,7 @@ export default function ContentCreate() {
                                   >
                                     <ZoomIn className="w-3 h-3 text-gray-700 dark:text-gray-300" />
                                   </Button>
-                          </div>
+                                </div>
                               </div>
                             </div>
 
@@ -4150,8 +4210,8 @@ export default function ContentCreate() {
                                   autoFocus
                                 />
                                 <div className="flex gap-1">
-                              <Button
-                                size="sm"
+                                  <Button
+                                    size="sm"
                                     variant="outline"
                                     className="h-6 text-xs"
                                     onClick={() => {
@@ -4207,7 +4267,7 @@ export default function ContentCreate() {
                                 {image.user_tags.map((tag: string, index: number) => (
                                   <Badge
                                     key={index}
-                                variant="secondary"
+                                    variant="secondary"
                                     className="text-xs flex items-center gap-1 cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/20 transition-colors"
                                   >
                                     {tag.trim()}
@@ -4278,9 +4338,9 @@ export default function ContentCreate() {
                                       }}
                                     >
                                       Cancel
-                              </Button>
-                            </div>
-                          </div>
+                                    </Button>
+                                  </div>
+                                </div>
                               ) : (
                                 <div
                                   className="text-sm text-gray-500 dark:text-gray-400 cursor-pointer hover:text-gray-700 dark:hover:text-gray-300"
@@ -4290,7 +4350,7 @@ export default function ContentCreate() {
                                   }}
                                 >
                                   Add tags
-                        </div>
+                                </div>
                               )}
                             </div>
 
@@ -5587,12 +5647,12 @@ export default function ContentCreate() {
 
       {/* PresetsManager Modal */}
       {showPresetsManager && (
-        <PresetsManager 
-          onClose={() => setShowPresetsManager(false)} 
+        <PresetsManager
+          onClose={() => setShowPresetsManager(false)}
           onApplyPreset={(preset) => {
             try {
               const jsonjob = preset.jsonjob;
-              
+
               // Apply form data
               if (jsonjob.task) setFormData(prev => ({ ...prev, task: jsonjob.task }));
               if (jsonjob.lora !== undefined) setFormData(prev => ({ ...prev, lora: jsonjob.lora }));
@@ -5625,11 +5685,11 @@ export default function ContentCreate() {
               if (jsonjob.model && jsonjob.model.id) {
                 // Find the influencer with the matching ID
                 const selectedInfluencer = influencers.find(inf => inf.id === jsonjob.model.id);
-                
+
                 if (selectedInfluencer) {
                   // Set the model data to the found influencer
                   setModelData(selectedInfluencer);
-                  
+
                   // Update model description with influencer data
                   setModelDescription({
                     appearance: `${selectedInfluencer.name_first} ${selectedInfluencer.name_last}, ${selectedInfluencer.age || ''}`,

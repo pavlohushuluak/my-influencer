@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/presetDialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Star, Search, Download, Share, Trash2, Filter, Calendar, Image, Video, SortAsc, SortDesc, ZoomIn, Folder, Plus, Upload, ChevronRight, Home, ArrowLeft, Pencil, Menu, X, File, User, RefreshCcw, Edit, BookOpen, Wand2, Eye, Monitor, Camera } from 'lucide-react';
+import { Star, Search, Download, Share, Trash2, Filter, Calendar, Image, Video, SortAsc, SortDesc, ZoomIn, Folder, Plus, Upload, ChevronRight, Home, ArrowLeft, Pencil, Menu, X, File, User, RefreshCcw, Edit, BookOpen, Wand2, Eye, Monitor, Camera, Clock, Settings, Zap, Target, FolderPlus } from 'lucide-react';
 import { toast } from 'sonner';
 
 // Interface for preset data from API
@@ -44,6 +44,8 @@ interface PresetData {
   name: string;
   image_name: string;
   route: string;
+  rating?: number;
+  favorite?: boolean;
   // Computed properties added during transformation
   hasModel?: boolean;
   hasScene?: boolean;
@@ -66,7 +68,10 @@ interface FolderData {
   Key: string;
 }
 
-export default function PresetsManager({ onClose }: { onClose: () => void }) {
+export default function PresetsManager({ onClose, onApplyPreset }: {
+  onClose: () => void;
+  onApplyPreset?: (preset: PresetData) => void;
+}) {
   const userData = useSelector((state: RootState) => state.user);
   const navigate = useNavigate();
   const [presets, setPresets] = useState<PresetData[]>([]);
@@ -76,8 +81,9 @@ export default function PresetsManager({ onClose }: { onClose: () => void }) {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [selectedPreset, setSelectedPreset] = useState<PresetData | null>(null);
   const [detailedPresetModal, setDetailedPresetModal] = useState<{ open: boolean; preset: PresetData | null }>({ open: false, preset: null });
+  const [loadingInfluencer, setLoadingInfluencer] = useState<boolean>(false);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
-
+  const [influencerData, setInfluencerData] = useState<any>(null);
   // Folder management state
   const [currentPath, setCurrentPath] = useState<string>('');
   const [folderStructure, setFolderStructure] = useState<FolderStructure[]>([]);
@@ -93,7 +99,7 @@ export default function PresetsManager({ onClose }: { onClose: () => void }) {
   const [editingFolder, setEditingFolder] = useState<string | null>(null);
   const [editingFolderName, setEditingFolderName] = useState<string>('');
   const [renamingFolder, setRenamingFolder] = useState<string | null>(null);
-  const [copyState, setCopyState] = useState<0|1|2>(0); // 0=none, 1=copy, 2=cut
+  const [copyState, setCopyState] = useState<0 | 1 | 2>(0); // 0=none, 1=copy, 2=cut
   const [copiedPath, setCopiedPath] = useState<string>('');
   const [isPasting, setIsPasting] = useState(false);
   const [fileCopyState, setFileCopyState] = useState(0); // 0: none, 1: copy, 2: cut
@@ -102,6 +108,21 @@ export default function PresetsManager({ onClose }: { onClose: () => void }) {
   const [dragOverFolder, setDragOverFolder] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [draggedFolder, setDraggedFolder] = useState<string | null>(null);
+
+  // --- File context menu and operations ---
+  const [fileContextMenu, setFileContextMenu] = useState<{ x: number; y: number; preset: PresetData } | null>(null);
+  const [editingFile, setEditingFile] = useState<string | null>(null);
+  const [editingFileName, setEditingFileName] = useState<string>('');
+  const [renamingFile, setRenamingFile] = useState<string | null>(null);
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [pendingRenameData, setPendingRenameData] = useState<any>(null);
+  const [conflictRenameFilename, setConflictRenameFilename] = useState('');
+  const [showRenameDialog, setShowRenameDialog] = useState(false);
+  const [showOverwriteDialog, setShowOverwriteDialog] = useState(false);
+  const [showNewFilenameDialog, setShowNewFilenameDialog] = useState(false);
+
+  // --- Confirmation modal for preset usage ---
+  const [usePresetConfirmation, setUsePresetConfirmation] = useState<{ open: boolean; preset: PresetData | null }>({ open: false, preset: null });
 
   // --- Folder copy/cut handlers ---
   const handleCopy = (folderPath: string) => {
@@ -122,8 +143,11 @@ export default function PresetsManager({ onClose }: { onClose: () => void }) {
       return;
     }
 
-    if (currentPath === copiedPath || copiedPath.includes(currentPath) || copiedPath.includes(currentPath + '/') || copiedPath.includes(currentPath + '/presets') || currentPath === 'presets') {
-      toast.error('Cannot paste into the same folder or a subfolder of the same folder');
+    // Prevent pasting into the same folder or its subfolders
+    if (currentPath === copiedPath ||
+      (currentPath && copiedPath.startsWith(currentPath + '/')) ||
+      (currentPath && currentPath.startsWith(copiedPath + '/'))) {
+      toast.error('Cannot paste into the same folder or a subfolder of the source folder');
       return;
     }
 
@@ -140,10 +164,12 @@ export default function PresetsManager({ onClose }: { onClose: () => void }) {
 
       console.log('currentPath', currentPath);
       console.log('copiedPath', copiedPath);
-      console.log('copiedPath.split(/).pop()', copiedPath.split('/').pop() || '');
+      console.log('sourceFolderName', sourceFolderName);
 
-      const newFolderName = copiedPath.split('/').pop() || '';
+      const newFolderName = sourceFolderName;
+      const targetPath = currentPath ? `${currentPath}/${newFolderName}` : newFolderName;
 
+      // Create the new folder
       const createResponse = await fetch('https://api.nymia.ai/v1/createfolder', {
         method: 'POST',
         headers: {
@@ -157,14 +183,13 @@ export default function PresetsManager({ onClose }: { onClose: () => void }) {
         })
       });
 
-      console.log('createResponse', createResponse);
-
       if (!createResponse.ok) {
         throw new Error('Failed to create new folder');
       }
 
       console.log('New folder created successfully');
 
+      // Get all files from the source folder
       const getFilesResponse = await fetch('https://api.nymia.ai/v1/getfilenames', {
         method: 'POST',
         headers: {
@@ -181,7 +206,7 @@ export default function PresetsManager({ onClose }: { onClose: () => void }) {
         const files = await getFilesResponse.json();
         console.log('Files to copy:', files);
 
-        // Step 3: Copy all files to the new folder
+        // Copy all files to the new folder
         if (files && files.length > 0 && files[0].Key) {
           const copyPromises = files.map(async (file: any) => {
             console.log("File:", file);
@@ -191,7 +216,7 @@ export default function PresetsManager({ onClose }: { onClose: () => void }) {
             console.log("File Name:", fileName);
 
             // Check if file already exists in destination folder
-            const fileExistsInDest = await checkFileExistsInFolder(fileName, `${currentPath}/${newFolderName}`);
+            const fileExistsInDest = await checkFileExistsInFolder(fileName, targetPath);
             if (fileExistsInDest) {
               console.warn(`File "${fileName}" already exists in destination folder. Skipping.`);
               toast.warning(`File "${fileName}" already exists in destination. Skipped.`, {
@@ -209,7 +234,7 @@ export default function PresetsManager({ onClose }: { onClose: () => void }) {
               body: JSON.stringify({
                 user: userData.id,
                 source: `presets/${copiedPath}/${fileName}`,
-                destination: `presets/${currentPath}/${newFolderName}/${fileName}`
+                destination: `presets/${targetPath}/${fileName}`
               })
             });
 
@@ -225,7 +250,7 @@ export default function PresetsManager({ onClose }: { onClose: () => void }) {
         }
       }
 
-      // Step 4: If it was a cut operation, delete the original folder
+      // If it was a cut operation, delete the original folder
       if (copyState === 2) {
         try {
           const deleteResponse = await fetch('https://api.nymia.ai/v1/deletefolder', {
@@ -252,7 +277,7 @@ export default function PresetsManager({ onClose }: { onClose: () => void }) {
         }
       }
 
-      // Step 5: Refresh folders and presets
+      // Refresh folders and presets
       await Promise.all([fetchFolders(), fetchPresets()]);
 
       setCopyState(0);
@@ -304,43 +329,49 @@ export default function PresetsManager({ onClose }: { onClose: () => void }) {
     setIsPastingFile(true);
 
     try {
-      const fileName = copiedFile.system_filename;
       const operationType = fileCopyState === 1 ? 'copying' : 'moving';
+      const fileName = copiedFile.name;
+      const sourceRoute = copiedFile.route;
 
-      toast.info(`${operationType.charAt(0).toUpperCase() + operationType.slice(1)} file...`, {
-        description: `Processing "${fileName}"`,
-        duration: 3000
-      });
+      // Fix the destination route construction
+      const destRoute = currentPath === '' ? '' : currentPath;
 
       // Check if file already exists in destination
-      const fileExistsInDest = await checkFileExistsInFolder(fileName, currentPath);
-      if (fileExistsInDest) {
-        toast.error(`File "${fileName}" already exists in this folder`);
-        setIsPastingFile(false);
+      const fileExists = presets.some(p => p.name === fileName && p.route === destRoute);
+      if (fileExists) {
+        toast.warning(`Preset "${fileName}" already exists in this location. Skipping paste operation.`, {
+          description: 'Please rename the existing preset or choose a different location.'
+        });
         return;
       }
 
-      const copyResponse = await fetch('https://api.nymia.ai/v1/copyfile', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer WeInfl3nc3withAI'
-        },
-        body: JSON.stringify({
-          user: userData.id,
-          source: `presets/${copiedFile.route}/${fileName}`,
-          destination: `presets/${currentPath}/${fileName}`
-        })
-      });
+      if (fileCopyState === 1) {
+        // Copy operation - create a new preset with the same data but different route
+        const newPresetData = {
+          user_id: copiedFile.user_id,
+          jsonjob: copiedFile.jsonjob,
+          name: fileName,
+          image_name: copiedFile.image_name,
+          route: destRoute,
+          rating: copiedFile.rating || 0,
+          favorite: copiedFile.favorite || false
+        };
 
-      if (!copyResponse.ok) {
-        throw new Error('Failed to copy file');
-      }
+        const response = await fetch('https://db.nymia.ai/rest/v1/presets', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer WeInfl3nc3withAI'
+          },
+          body: JSON.stringify(newPresetData)
+        });
 
-      // If it was a cut operation, delete the original file
-      if (fileCopyState === 2) {
-        try {
-          const deleteResponse = await fetch('https://api.nymia.ai/v1/deletefile', {
+        if (!response.ok) {
+          throw new Error('Failed to copy preset');
+        }
+        if (copiedFile.image_name) {
+          const extension = copiedFile.image_name.substring(copiedFile.image_name.lastIndexOf('.') + 1);
+          await fetch('https://api.nymia.ai/v1/copyfile', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -348,33 +379,64 @@ export default function PresetsManager({ onClose }: { onClose: () => void }) {
             },
             body: JSON.stringify({
               user: userData.id,
-              file: `presets/${copiedFile.route}/${fileName}`
+              sourcefilename: `presets/${copiedFile.route}/${copiedFile.image_name}`,
+              destinationfilename: `presets/${destRoute}/${copiedFile.image_name}`
             })
           });
-
-          if (!deleteResponse.ok) {
-            console.error('Failed to delete original file after move');
-            toast.error('File copied but failed to delete original file');
-          }
-        } catch (error) {
-          console.error('Error deleting original file:', error);
-          toast.error('File copied but failed to delete original file');
         }
+
+        const newPreset = await response.json();
+
+        // Add the new preset to local state with proper transformation
+        const transformedPreset = {
+          ...newPreset[0],
+          hasModel: copiedFile.hasModel,
+          hasScene: copiedFile.hasScene,
+          sceneCount: copiedFile.sceneCount,
+          createdDate: new Date(newPreset[0].created_at).toLocaleDateString(),
+          createdTime: new Date(newPreset[0].created_at).toLocaleTimeString(),
+          imageUrl: copiedFile.imageUrl
+        };
+
+        setPresets(prev => [...prev, transformedPreset]);
+        toast.success(`Preset "${fileName}" copied successfully`);
+
+      } else {
+        // Move operation - update the route of the existing preset
+        const response = await fetch(`https://db.nymia.ai/rest/v1/presets?id=eq.${copiedFile.id}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer WeInfl3nc3withAI'
+          },
+          body: JSON.stringify({
+            route: destRoute
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to move preset');
+        }
+
+        // Update local state
+        setPresets(prev => prev.map(preset =>
+          preset.id === copiedFile.id
+            ? { ...preset, route: destRoute }
+            : preset
+        ));
+
+        toast.success(`Preset "${fileName}" moved successfully`);
       }
 
-      // Refresh presets
-      await fetchPresets();
-
+      // Clear clipboard
       setFileCopyState(0);
       setCopiedFile(null);
-      setIsPastingFile(false);
-
-      const operationText = fileCopyState === 1 ? 'copied' : 'moved';
-      toast.success(`File "${fileName}" ${operationText} successfully`);
 
     } catch (error) {
       console.error('Error pasting file:', error);
-      toast.error('Failed to paste file. Please try again.');
+      const operationType = fileCopyState === 1 ? 'copy' : 'move';
+      toast.error(`Failed to ${operationType} preset`);
+    } finally {
       setIsPastingFile(false);
     }
   };
@@ -665,51 +727,51 @@ export default function PresetsManager({ onClose }: { onClose: () => void }) {
   // --- Context menu handler ---
   const handleContextMenu = (e: React.MouseEvent, folderPath: string) => {
     e.preventDefault();
-    
+
     // Get the dialog element to calculate relative positioning
     const dialogElement = document.querySelector('[role="dialog"]') as HTMLElement;
     if (!dialogElement) {
       // Fallback to mouse coordinates if dialog not found
-      setContextMenu({ 
-        x: e.clientX, 
-        y: e.clientY, 
-        folderPath 
+      setContextMenu({
+        x: e.clientX,
+        y: e.clientY,
+        folderPath
       });
       return;
     }
-    
+
     // Get dialog bounds
     const dialogRect = dialogElement.getBoundingClientRect();
-    
+
     // Calculate position relative to dialog
     const relativeX = e.clientX - dialogRect.left;
     const relativeY = e.clientY - dialogRect.top;
-    
+
     // Ensure menu doesn't go outside dialog bounds
     const menuWidth = 160; // min-w-[160px]
     const menuHeight = 200; // approximate height
-    
+
     let finalX = relativeX;
     let finalY = relativeY;
-    
+
     // Adjust if menu would go outside right edge
     if (relativeX + menuWidth > dialogRect.width) {
       finalX = relativeX - menuWidth;
     }
-    
+
     // Adjust if menu would go outside bottom edge
     if (relativeY + menuHeight > dialogRect.height) {
       finalY = relativeY - menuHeight;
     }
-    
+
     // Ensure menu doesn't go outside left/top edges
     finalX = Math.max(0, finalX);
     finalY = Math.max(0, finalY);
-    
-    setContextMenu({ 
-      x: finalX, 
-      y: finalY, 
-      folderPath 
+
+    setContextMenu({
+      x: finalX,
+      y: finalY,
+      folderPath
     });
   };
   useEffect(() => {
@@ -775,17 +837,38 @@ export default function PresetsManager({ onClose }: { onClose: () => void }) {
   // Navigation functions
   const navigateToFolder = (folderPath: string) => {
     setCurrentPath(folderPath);
+    // Reset data when navigating
+    setFileCopyState(0);
+    setCopiedFile(null);
+    setFileContextMenu(null);
+    setContextMenu(null);
+    setEditingFile(null);
+    setEditingFileName('');
   };
 
   const navigateToParent = () => {
-    const pathParts = currentPath.split('/');
-    pathParts.pop();
-    const parentPath = pathParts.join('/');
-    setCurrentPath(parentPath);
+    if (currentPath) {
+      const parentPath = currentPath.split('/').slice(0, -1).join('/');
+      setCurrentPath(parentPath);
+      // Reset data when navigating
+      setFileCopyState(0);
+      setCopiedFile(null);
+      setFileContextMenu(null);
+      setContextMenu(null);
+      setEditingFile(null);
+      setEditingFileName('');
+    }
   };
 
   const navigateToHome = () => {
     setCurrentPath('');
+    // Reset data when navigating
+    setFileCopyState(0);
+    setCopiedFile(null);
+    setFileContextMenu(null);
+    setContextMenu(null);
+    setEditingFile(null);
+    setEditingFileName('');
   };
 
   const getBreadcrumbItems = () => {
@@ -929,16 +1012,18 @@ export default function PresetsManager({ onClose }: { onClose: () => void }) {
       }
 
       const data: PresetData[] = await response.json();
-      
+
       // Transform the data to add computed properties
       const transformedPresets = data.map(preset => {
         const createdDate = new Date(preset.created_at);
         const hasModel = preset.jsonjob?.model && Object.keys(preset.jsonjob.model).length > 0;
         const hasScene = preset.jsonjob?.scene && Object.keys(preset.jsonjob.scene).length > 0;
         const sceneCount = hasScene ? Object.keys(preset.jsonjob.scene).filter(key => preset.jsonjob.scene[key]).length : 0;
-        
-        // Generate image URL from image_name
-        const imageUrl = preset.image_name ? `https://api.nymia.ai/v1/getfile?user=${userData.id}&filename=presets/${preset.image_name}` : null;
+
+        // Generate image URL from image_name and route
+        const presetImageUrl = preset.image_name ?
+          `https://images.nymia.ai/cdn-cgi/image/w=400/${userData.id}/presets/${preset.route ? preset.route + '/' : ''}${preset.image_name}` :
+          null;
 
         return {
           ...preset,
@@ -947,7 +1032,7 @@ export default function PresetsManager({ onClose }: { onClose: () => void }) {
           sceneCount,
           createdDate: createdDate.toLocaleDateString(),
           createdTime: createdDate.toLocaleTimeString(),
-          imageUrl
+          imageUrl: presetImageUrl
         };
       });
 
@@ -1055,24 +1140,269 @@ export default function PresetsManager({ onClose }: { onClose: () => void }) {
 
   // Handle apply preset
   const handleApplyPreset = (preset: PresetData) => {
-    // This would apply the preset to the main form
-    // You'll need to implement this based on your form structure
-    console.log('Applying preset:', preset);
-    toast.success(`Applied preset: ${preset.name}`);
+    // Show confirmation modal
+    setUsePresetConfirmation({ open: true, preset });
+  };
+
+  // Handle confirm preset usage
+  const handleConfirmPresetUsage = (preset: PresetData) => {
+    try {
+      // Apply the preset using the callback if provided
+      if (onApplyPreset) {
+        onApplyPreset(preset);
+      } else {
+        // Fallback: dispatch a custom event for backward compatibility
+        const presetApplyEvent = new CustomEvent('presetApplied', {
+          detail: {
+            preset: preset,
+            jsonjob: preset.jsonjob
+          }
+        });
+        window.dispatchEvent(presetApplyEvent);
+      }
+
+      toast.success(`Applied preset: ${preset.name}`);
+
+      // Close both modals
+      setUsePresetConfirmation({ open: false, preset: null });
+      setDetailedPresetModal({ open: false, preset: null });
+      onClose(); // Close the presets modal
+    } catch (error) {
+      console.error('Error applying preset:', error);
+      toast.error('Failed to apply preset');
+    }
   };
 
   // Handle view preset details
   const handleViewPresetDetails = (preset: PresetData) => {
     setDetailedPresetModal({ open: true, preset });
+
+    // Fetch influencer data if model has an ID
+    if (preset.jsonjob.model && preset.jsonjob.model.id) {
+      fetchInfluencerData(preset.jsonjob.model.id);
+    }
   };
 
-  // Filter and sort presets
+  const fetchInfluencerData = async (influencerId: string) => {
+    setLoadingInfluencer(true);
+    try {
+      const response = await fetch(`https://db.nymia.ai/rest/v1/influencer?id=eq.${influencerId}`, {
+        headers: {
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch influencer data');
+      }
+
+      const data = await response.json();
+      console.log(data);
+      if (data && data.length > 0) {
+        setInfluencerData(data[0]);
+      }
+    } catch (error) {
+      console.error('Error fetching influencer data:', error);
+      // Fallback to the model data from the preset
+      if (detailedPresetModal.preset?.jsonjob.model) {
+        setInfluencerData(detailedPresetModal.preset.jsonjob.model);
+      }
+    } finally {
+      setLoadingInfluencer(false);
+    }
+  };
+
+  // Update rating for preset
+  const updatePresetRating = async (presetId: number, rating: number) => {
+    try {
+      const response = await fetch(`https://db.nymia.ai/rest/v1/presets?id=eq.${presetId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          rating: rating
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update rating');
+      }
+
+      // Update local state
+      setPresets(prev => prev.map(preset =>
+        preset.id === presetId
+          ? { ...preset, rating: rating }
+          : preset
+      ));
+
+      // Update modal state if the preset is currently being viewed
+      setDetailedPresetModal(prev =>
+        prev.open && prev.preset?.id === presetId
+          ? { ...prev, preset: { ...prev.preset, rating: rating } }
+          : prev
+      );
+
+      toast.success(`Rating updated to ${rating} stars`);
+    } catch (error) {
+      console.error('Error updating rating:', error);
+      toast.error('Failed to update rating');
+    }
+  };
+
+  // Update favorite for preset
+  const updatePresetFavorite = async (presetId: number, favorite: boolean) => {
+    try {
+      const response = await fetch(`https://db.nymia.ai/rest/v1/presets?id=eq.${presetId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          favorite: favorite
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update favorite status');
+      }
+
+      // Update local state
+      setPresets(prev => prev.map(preset =>
+        preset.id === presetId
+          ? { ...preset, favorite: favorite }
+          : preset
+      ));
+
+      // Update modal state if the preset is currently being viewed
+      setDetailedPresetModal(prev =>
+        prev.open && prev.preset?.id === presetId
+          ? { ...prev, preset: { ...prev.preset, favorite: favorite } }
+          : prev
+      );
+
+      toast.success(favorite ? 'Added to favorites' : 'Removed from favorites');
+    } catch (error) {
+      console.error('Error updating favorite status:', error);
+      toast.error('Failed to update favorite status');
+    }
+  };
+
+  // --- File context menu handlers ---
+  const handlePresetCopy = (preset: PresetData) => {
+    setFileCopyState(1);
+    setCopiedFile(preset);
+    setFileContextMenu(null);
+    toast.success(`Preset "${preset.name}" copied to clipboard`);
+  };
+
+  const handlePresetCut = (preset: PresetData) => {
+    setFileCopyState(2);
+    setCopiedFile(preset);
+    setFileContextMenu(null);
+    toast.success(`Preset "${preset.name}" cut to clipboard`);
+  };
+
+  const handlePresetRename = async (oldName: string, newName: string, preset: PresetData) => {
+    if (!newName.trim()) {
+      toast.error('Please enter a valid name');
+      return;
+    }
+
+    setIsRenaming(true);
+    const loadingToast = toast.loading('Renaming preset...');
+
+    try {
+      // Check if new name already exists in the same route
+      const existingPreset = presets.find(p => p.name === newName && p.route === preset.route && p.id !== preset.id);
+      if (existingPreset) {
+        toast.error('A preset with this name already exists in this location');
+        setIsRenaming(false);
+        return;
+      }
+
+      // Update preset name in database
+      const response = await fetch(`https://db.nymia.ai/rest/v1/presets?id=eq.${preset.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          name: newName
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to rename preset');
+      }
+
+      // Update local state
+      setPresets(prev => prev.map(p =>
+        p.id === preset.id ? { ...p, name: newName } : p
+      ));
+
+      setEditingFile(null);
+      setEditingFileName('');
+      toast.success(`Preset renamed to "${newName}"`);
+    } catch (error) {
+      console.error('Error renaming preset:', error);
+      toast.error('Failed to rename preset');
+    } finally {
+      setIsRenaming(false);
+    }
+  };
+
+  const handlePresetContextMenu = (e: React.MouseEvent, preset: PresetData) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    // Get the dialog container to calculate relative position
+    const dialogContent = e.currentTarget.closest('[role="dialog"]') as HTMLElement;
+    if (dialogContent) {
+      const rect = dialogContent.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+
+      // Ensure the menu stays within the dialog bounds
+      const menuWidth = 160;
+      const menuHeight = 200;
+      const adjustedX = Math.min(x, rect.width - menuWidth - 10);
+      const adjustedY = Math.min(y, rect.height - menuHeight - 10);
+
+      setFileContextMenu({ x: adjustedX, y: adjustedY, preset });
+    } else {
+      // Fallback to original positioning
+      setFileContextMenu({ x: e.clientX, y: e.clientY, preset });
+    }
+  };
+
+  // Close file context menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => {
+      setFileContextMenu(null);
+    };
+
+    document.addEventListener('click', handleClickOutside);
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+    };
+  }, []);
+
+  // Filter and sort presets based on current route
   const filteredAndSortedPresets = presets
     .filter(preset => {
+      // Route-based filtering
+      const routeMatch = preset.route === `${currentPath}`;
+
+      // Search filtering
       const searchMatch = !searchTerm ||
         preset.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (preset.jsonjob?.prompt && preset.jsonjob.prompt.toLowerCase().includes(searchTerm.toLowerCase()));
-      return searchMatch;
+
+      return routeMatch && searchMatch;
     })
     .sort((a, b) => {
       let comparison = 0;
@@ -1103,6 +1433,16 @@ export default function PresetsManager({ onClose }: { onClose: () => void }) {
     fetchPresets();
     fetchFolders();
   }, [userData.id]);
+
+  // Refetch presets when route changes
+  useEffect(() => {
+    if (currentPath !== undefined) {
+      setPresetsLoading(true);
+      fetchPresets().finally(() => {
+        setPresetsLoading(false);
+      });
+    }
+  }, [currentPath]);
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
@@ -1244,7 +1584,7 @@ export default function PresetsManager({ onClose }: { onClose: () => void }) {
                   variant={copyState > 0 ? "default" : "outline"}
                   size="sm"
                   onClick={handlePaste}
-                  disabled={copyState === 0 || currentPath === '' || isPasting}
+                  disabled={copyState === 0 || isPasting}
                   className={`flex items-center gap-1.5 transition-all duration-200 ${copyState > 0
                     ? 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-md'
                     : 'text-muted-foreground'
@@ -1270,7 +1610,7 @@ export default function PresetsManager({ onClose }: { onClose: () => void }) {
                   variant={fileCopyState > 0 ? "default" : "outline"}
                   size="sm"
                   onClick={handleFilePaste}
-                  disabled={fileCopyState === 0 || isPastingFile || currentPath === ''}
+                  disabled={fileCopyState === 0 || isPastingFile}
                   className={`flex items-center gap-1.5 transition-all duration-200 ${fileCopyState > 0
                     ? 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-md'
                     : 'text-muted-foreground'
@@ -1436,108 +1776,258 @@ export default function PresetsManager({ onClose }: { onClose: () => void }) {
         {/* Presets Section */}
         <Card className="border-green-500/20 bg-gradient-to-r from-green-50/50 to-emerald-50/50 dark:from-green-950/20 dark:to-emerald-950/20 mb-6">
           <CardHeader className="pt-5 pb-2">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <BookOpen className="w-5 h-5" />
-              Presets
+            <CardTitle className="text-lg flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <BookOpen className="w-5 h-5" />
+                Presets
+                {currentPath && (
+                  <span className="text-sm font-normal text-muted-foreground">
+                    in "{decodeName(currentPath)}"
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                {presetsLoading ? (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
+                    Loading...
+                  </div>
+                ) : (
+                  <span className="text-sm text-muted-foreground">
+                    {filteredAndSortedPresets.length} preset{filteredAndSortedPresets.length !== 1 ? 's' : ''}
+                  </span>
+                )}
+              </div>
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {/* Presets Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {/* Presets */}
-              {filteredAndSortedPresets.map((preset) => (
-            <Card 
-              key={preset.id} 
-              className="group hover:shadow-lg transition-all duration-300 cursor-pointer relative"
-            >
-              <CardContent className="p-4">
-                {/* Preset Image */}
-                <div className="relative mb-4 aspect-square rounded-lg overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900">
-                  {preset.imageUrl ? (
-                    <img
-                      src={preset.imageUrl}
-                      alt={preset.name}
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        e.currentTarget.style.display = 'none';
-                        e.currentTarget.nextElementSibling?.classList.remove('hidden');
-                      }}
-                    />
-                  ) : null}
-                  <div className={`${preset.imageUrl ? 'hidden' : ''} absolute inset-0 flex items-center justify-center`}>
-                    <Image className="w-12 h-12 text-muted-foreground" />
-                  </div>
-                  
-                  {/* Overlay Actions */}
-                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-2">
-                    <Button
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleApplyPreset(preset);
-                      }}
-                      className="bg-green-600 hover:bg-green-700"
-                    >
-                      <Wand2 className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleViewPresetDetails(preset);
-                      }}
-                      variant="outline"
-                    >
-                      <Eye className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handlePresetDelete(preset);
-                      }}
-                      variant="outline"
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Preset Info */}
-                <div className="space-y-2">
-                  <div>
-                    <h3 className="font-semibold text-lg mb-1 truncate">{preset.name}</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Created {preset.createdDate} at {preset.createdTime}
-                    </p>
-                  </div>
-
-                  {/* Preset Details */}
-                  <div className="space-y-2">
-                    {preset.hasModel && (
-                      <div className="flex items-center gap-2 text-sm">
-                        <User className="w-4 h-4 text-blue-500" />
-                        <span className="text-muted-foreground">
-                          Model configured
-                        </span>
+            {/* Loading State for Presets */}
+            {presetsLoading && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {[...Array(8)].map((_, index) => (
+                  <Card key={index} className="animate-pulse">
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="w-8 h-8 bg-gray-200 dark:bg-gray-700 rounded-full"></div>
+                        <div className="flex gap-1">
+                          {[...Array(5)].map((_, i) => (
+                            <div key={i} className="w-4 h-4 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                          ))}
+                        </div>
+                        <div className="w-8 h-8 bg-gray-200 dark:bg-gray-700 rounded-full"></div>
                       </div>
-                    )}
-                    
-                    {preset.sceneCount > 0 && (
-                      <div className="flex items-center gap-2 text-sm">
-                        <Camera className="w-4 h-4 text-green-500" />
-                        <span className="text-muted-foreground">
-                          {preset.sceneCount} scene settings
-                        </span>
+                      <div className="w-full h-32 bg-gray-200 dark:bg-gray-700 rounded-lg mb-4"></div>
+                      <div className="space-y-2">
+                        <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4"></div>
+                        <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
+                        <div className="flex gap-2 mt-3">
+                          <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded flex-1"></div>
+                          <div className="w-8 h-8 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                        </div>
                       </div>
-                    )}
-                  </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+
+            {/* Empty State for Presets */}
+            {!presetsLoading && filteredAndSortedPresets.length === 0 && (
+              <div className="text-center py-16">
+                <div className="w-24 h-24 mx-auto mb-6 bg-gradient-to-br from-green-100 to-emerald-100 dark:from-green-900/20 dark:to-emerald-900/20 rounded-full flex items-center justify-center">
+                  <BookOpen className="w-12 h-12 text-green-600 dark:text-green-400" />
                 </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                <h3 className="text-xl font-semibold mb-3 text-gray-900 dark:text-gray-100">
+                  {searchTerm ? 'No presets found' : 'No presets in this folder'}
+                </h3>
+                <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+                  {searchTerm
+                    ? 'Try adjusting your search terms or browse a different folder.'
+                    : currentPath
+                      ? `This folder is empty. Create your first preset or copy presets from other folders.`
+                      : 'Get started by creating your first preset or importing from other sources.'
+                  }
+                </p>
+                {!searchTerm && (
+                  <div className="flex items-center justify-center gap-3">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowNewFolderModal(true)}
+                      className="flex items-center gap-2"
+                    >
+                      <FolderPlus className="w-4 h-4" />
+                      Create Folder
+                    </Button>
+                    <Button
+                      size="sm"
+                      className="flex items-center gap-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Create Preset
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Preset Cards */}
+            {!presetsLoading && filteredAndSortedPresets.length > 0 && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {filteredAndSortedPresets.map((preset) => (
+                  <Card key={preset.id} className="group hover:shadow-xl transition-all duration-300 border border-gray-200 dark:border-gray-700 bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 overflow-hidden">
+                    {/* Top Row: Ratings and Favorite */}
+                    <div className="flex items-center justify-between p-3 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-800 border-b border-gray-200 dark:border-gray-600">
+                      {/* Professional Mark */}
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center shadow-sm">
+                          <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                          </svg>
+                        </div>
+                      </div>
+
+                      {/* Rating Stars */}
+                      <div className="flex gap-1">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <svg
+                            key={star}
+                            className={`w-4 h-4 cursor-pointer hover:scale-110 transition-transform ${star <= (preset.rating || 0) ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
+                            viewBox="0 0 24 24"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              updatePresetRating(preset.id, star);
+                            }}
+                          >
+                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                          </svg>
+                        ))}
+                      </div>
+
+                      {/* Favorite Heart */}
+                      <div>
+                        {preset.favorite ? (
+                          <div
+                            className="bg-red-500 rounded-full w-7 h-7 flex items-center justify-center cursor-pointer hover:bg-red-600 transition-colors shadow-md"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              updatePresetFavorite(preset.id, false);
+                            }}
+                          >
+                            <svg className="w-4 h-4 text-white fill-current" viewBox="0 0 24 24">
+                              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                            </svg>
+                          </div>
+                        ) : (
+                          <div
+                            className="bg-gray-200 dark:bg-gray-700 rounded-full w-7 h-7 flex items-center justify-center cursor-pointer hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors shadow-md"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              updatePresetFavorite(preset.id, true);
+                            }}
+                          >
+                            <svg className="w-4 h-4 text-gray-600 dark:text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                            </svg>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Preset Image */}
+                    <div
+                      className="relative aspect-square overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 cursor-pointer"
+                      onClick={() => handleViewPresetDetails(preset)}
+                    >
+                      {preset.imageUrl ? (
+                        <img
+                          src={preset.imageUrl}
+                          alt={preset.name}
+                          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                            e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                          }}
+                        />
+                      ) : null}
+                      <div className={`${preset.imageUrl ? 'hidden' : ''} absolute inset-0 flex items-center justify-center`}>
+                        <Image className="w-16 h-16 text-muted-foreground" />
+                      </div>
+
+                      {/* Hover overlay */}
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-300 flex items-center justify-center">
+                        <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                          <Eye className="w-8 h-8 text-white drop-shadow-lg" />
+                        </div>
+                      </div>
+
+                      {/* Scene Count Badge */}
+                      {preset.hasScene && preset.sceneCount > 0 && (
+                        <div className="absolute top-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded-full backdrop-blur-sm">
+                          {preset.sceneCount} scene{preset.sceneCount !== 1 ? 's' : ''}
+                        </div>
+                      )}
+
+                      {/* Quality Badge */}
+                      {preset.jsonjob?.quality && (
+                        <div className="absolute top-2 left-2 bg-green-500/90 text-white text-xs px-2 py-1 rounded-full backdrop-blur-sm font-medium">
+                          {preset.jsonjob.quality}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Preset Info */}
+                    <div className="p-4 space-y-3">
+                      <div>
+                        <h3 className="font-semibold text-lg mb-1 text-gray-900 dark:text-gray-100 truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                          {preset.name}
+                        </h3>
+                        <div className="space-y-1 text-sm text-muted-foreground">
+                          <p className="flex items-center gap-1">
+                            <Calendar className="w-3 h-3" />
+                            {preset.createdDate} at {preset.createdTime}
+                          </p>
+                          {preset.jsonjob?.prompt && (
+                            <p className="line-clamp-2 text-xs">
+                              {preset.jsonjob.prompt.length > 50
+                                ? `${preset.jsonjob.prompt.substring(0, 50)}...`
+                                : preset.jsonjob.prompt
+                              }
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="flex gap-2 pt-2">
+                        <Button
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleApplyPreset(preset);
+                          }}
+                          className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-md hover:shadow-lg transition-all duration-200"
+                        >
+                          <Wand2 className="w-4 h-4 mr-2" />
+                          Use
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handlePresetDelete(preset);
+                          }}
+                          variant="outline"
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200 hover:border-red-300 transition-all duration-200"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -1554,9 +2044,21 @@ export default function PresetsManager({ onClose }: { onClose: () => void }) {
 
         {/* Loading State */}
         {(presetsLoading || foldersLoading) && (
-          <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-            <p className="text-muted-foreground mt-2">Loading presets...</p>
+          <div className="text-center py-16">
+            <div className="relative mx-auto w-16 h-16">
+              {/* Outer ring */}
+              <div className="absolute inset-0 border-4 border-gray-200 dark:border-gray-700 rounded-full"></div>
+              {/* Animated ring */}
+              <div className="absolute inset-0 border-4 border-transparent border-t-blue-500 border-r-purple-500 rounded-full animate-spin"></div>
+              {/* Inner gradient circle */}
+              <div className="absolute inset-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                <div className="w-6 h-6 bg-white rounded-full animate-pulse"></div>
+              </div>
+            </div>
+            <div className="mt-6 space-y-2">
+              <p className="text-lg font-semibold text-gray-900 dark:text-white">Loading Presets</p>
+              <p className="text-sm text-muted-foreground">Please wait while we fetch your presets...</p>
+            </div>
           </div>
         )}
 
@@ -1601,61 +2103,323 @@ export default function PresetsManager({ onClose }: { onClose: () => void }) {
 
         {/* Detailed Preset Modal */}
         {detailedPresetModal.open && detailedPresetModal.preset && (
-          <Dialog open={detailedPresetModal.open} onOpenChange={() => setDetailedPresetModal({ open: false, preset: null })}>
-            <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
-                  <BookOpen className="w-5 h-5" />
-                  Preset Details: {detailedPresetModal.preset.name}
+          <Dialog open={detailedPresetModal.open} onOpenChange={(open) => setDetailedPresetModal({ open, preset: null })}>
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader className="text-center">
+                <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                  Preset Details
                 </DialogTitle>
               </DialogHeader>
-              
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Preset Image */}
-                {detailedPresetModal.preset.imageUrl && (
-                  <div className="flex justify-center">
-                    <img
-                      src={detailedPresetModal.preset.imageUrl}
-                      alt={detailedPresetModal.preset.name}
-                      className="max-w-full max-h-[400px] object-contain rounded-lg shadow-lg"
-                    />
-                  </div>
-                )}
 
-                {/* Preset Information */}
-                <div className="space-y-4">
-                  <Card>
+              <div className="space-y-6">
+                {/* Header Section with Image and Basic Info */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Preset Image */}
+                  <div className="space-y-4">
+                    <div className="relative aspect-square rounded-xl overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 shadow-lg">
+                      {detailedPresetModal.preset.imageUrl ? (
+                        <img
+                          src={detailedPresetModal.preset.imageUrl}
+                          alt={detailedPresetModal.preset.name}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                            e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                          }}
+                        />
+                      ) : null}
+                      <div className={`${detailedPresetModal.preset.imageUrl ? 'hidden' : ''} absolute inset-0 flex items-center justify-center`}>
+                        <Image className="w-24 h-24 text-muted-foreground" />
+                      </div>
+                    </div>
+
+                    {/* Quick Stats */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 p-3 rounded-lg">
+                        <div className="text-sm font-medium text-blue-600 dark:text-blue-400">Engine</div>
+                        <div className="text-lg font-semibold">{detailedPresetModal.preset.jsonjob.engine}</div>
+                      </div>
+                      <div className="bg-gradient-to-r from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 p-3 rounded-lg">
+                        <div className="text-sm font-medium text-green-600 dark:text-green-400">Quality</div>
+                        <div className="text-lg font-semibold">{detailedPresetModal.preset.jsonjob.quality}</div>
+                      </div>
+                    </div>
+                    {/* Preset Information */}
+                    <div className="space-y-6">
+                      {/* Main Info Card */}
+                      <Card className="border-2 border-gradient-to-r from-blue-500/20 to-purple-500/20 bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-800">
+                        <CardHeader className="text-center pb-4">
+                          <CardTitle className="text-xl font-bold text-gray-900 dark:text-white">
+                            {detailedPresetModal.preset.name}
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                          {/* Creation Info */}
+                          <div className="text-center space-y-2">
+                            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                              <Calendar className="w-4 h-4" />
+                              <span>Created on {detailedPresetModal.preset.createdDate}</span>
+                            </div>
+                            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                              <Clock className="w-4 h-4" />
+                              <span>At {detailedPresetModal.preset.createdTime}</span>
+                            </div>
+                          </div>
+
+                          {/* Rating and Favorite */}
+                          <div className="flex items-center justify-center gap-8 pt-4">
+                            {/* Rating Stars */}
+                            <div className="flex items-center gap-3">
+                              <span className="text-sm font-medium text-muted-foreground">Rating:</span>
+                              <div className="flex gap-1">
+                                {[1, 2, 3, 4, 5].map((star) => (
+                                  <svg
+                                    key={star}
+                                    className={`w-6 h-6 cursor-pointer hover:scale-110 transition-transform ${star <= (detailedPresetModal.preset.rating || 0) ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
+                                    viewBox="0 0 24 24"
+                                    onClick={() => updatePresetRating(detailedPresetModal.preset.id, star)}
+                                  >
+                                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                                  </svg>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* Favorite Heart */}
+                            <div className="flex items-center gap-3">
+                              <span className="text-sm font-medium text-muted-foreground">Favorite:</span>
+                              {detailedPresetModal.preset.favorite ? (
+                                <div
+                                  className="bg-red-500 rounded-full w-10 h-10 flex items-center justify-center cursor-pointer hover:bg-red-600 transition-colors shadow-md"
+                                  onClick={() => updatePresetFavorite(detailedPresetModal.preset.id, false)}
+                                >
+                                  <svg className="w-5 h-5 text-white fill-current" viewBox="0 0 24 24">
+                                    <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                                  </svg>
+                                </div>
+                              ) : (
+                                <div
+                                  className="bg-gray-200 dark:bg-gray-700 rounded-full w-10 h-10 flex items-center justify-center cursor-pointer hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors shadow-md"
+                                  onClick={() => updatePresetFavorite(detailedPresetModal.preset.id, true)}
+                                >
+                                  <svg className="w-5 h-5 text-gray-600 dark:text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                                  </svg>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      {/* Action Buttons */}
+                      <div className="flex gap-3">
+                        <Button
+                          onClick={() => handleApplyPreset(detailedPresetModal.preset)}
+                          className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-medium py-3 shadow-lg hover:shadow-xl transition-all duration-200"
+                        >
+                          <Wand2 className="w-5 h-5 mr-2" />
+                          Use Preset
+                        </Button>
+                        <Button
+                          onClick={() => handlePresetDelete(detailedPresetModal.preset)}
+                          variant="outline"
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200 font-medium py-3"
+                        >
+                          <Trash2 className="w-5 h-5 mr-2" />
+                          Delete
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                  {/* Influencer Information */}
+                  {detailedPresetModal.preset.jsonjob.model && (
+                    <Card className="border border-gray-200 dark:border-gray-700 bg-gradient-to-br from-purple-50 via-pink-50 to-rose-50 dark:from-purple-950/30 dark:via-pink-950/30 dark:to-rose-950/30 shadow-lg">
+                      <CardHeader className="pb-4">
+                        <CardTitle className="flex items-center gap-3 text-xl font-bold text-purple-700 dark:text-purple-300">
+                          <div className="p-2 bg-purple-100 dark:bg-purple-900/50 rounded-lg">
+                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                            </svg>
+                          </div>
+                          <div>
+                            <span>Influencer Profile</span>
+                            <p className="text-sm font-normal text-purple-600 dark:text-purple-400 mt-1">
+                              Complete model specifications and characteristics
+                            </p>
+                          </div>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-6">
+                        {/* Influencer Card */}
+                        <Card className="group hover:shadow-lg transition-all duration-300 border-border/50 hover:border-ai-purple-500/20">
+                          <CardContent className="p-6 h-full">
+                            <div className="flex flex-col justify-between h-full space-y-4">
+                              <div className="w-full h-full bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg overflow-hidden">
+                                {influencerData.image_url ? (
+                                  <img
+                                    src={influencerData.image_url}
+                                    alt={`${influencerData.name || 'Influencer'}`}
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  <div className="flex flex-col w-full h-full items-center justify-center max-h-48 min-h-40">
+                                    <Image className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                                    <h3 className="text-lg font-semibold mb-2">No image found</h3>
+                                  </div>
+                                )}
+                              </div>
+
+                              <div>
+                                <div className="flex items-center justify-between mb-2">
+                                  <div className="flex items-center gap-2">
+                                    <h3 className="font-semibold text-lg group-hover:text-ai-purple-500 transition-colors">
+                                      {influencerData.name_first + ' ' + influencerData.name_last || 'Unknown Influencer'}
+                                    </h3>
+                                  </div>
+                                </div>
+
+                                <div className="flex flex-col gap-1 mb-3">
+                                  <div className="flex text-sm text-muted-foreground flex-col">
+                                    <span className="text-sm text-muted-foreground">
+                                      {influencerData.age} • {influencerData.gender || 'Unknown gender'}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
+
+                {/* Detailed Configuration Information */}
+                <div className="space-y-6">
+                  {/* Scene Settings */}
+                  {detailedPresetModal.preset.jsonjob.scene && (
+                    <Card className="border border-gray-200 dark:border-gray-700 bg-gradient-to-r from-green-50/50 to-emerald-50/50 dark:from-green-950/20 dark:to-emerald-950/20">
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2 text-lg text-green-700 dark:text-green-300">
+                          <Camera className="w-5 h-5" />
+                          Scene Configuration
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                          {detailedPresetModal.preset.jsonjob.scene.pose && (
+                            <div className="space-y-2">
+                              <label className="text-sm font-medium text-muted-foreground">Pose</label>
+                              <p className="text-sm font-semibold bg-white dark:bg-gray-800 px-3 py-2 rounded-lg border">{detailedPresetModal.preset.jsonjob.scene.pose}</p>
+                            </div>
+                          )}
+                          {detailedPresetModal.preset.jsonjob.scene.clothes && (
+                            <div className="space-y-2">
+                              <label className="text-sm font-medium text-muted-foreground">Clothes</label>
+                              <p className="text-sm font-semibold bg-white dark:bg-gray-800 px-3 py-2 rounded-lg border">{detailedPresetModal.preset.jsonjob.scene.clothes}</p>
+                            </div>
+                          )}
+                          {detailedPresetModal.preset.jsonjob.scene.framing && (
+                            <div className="space-y-2">
+                              <label className="text-sm font-medium text-muted-foreground">Framing</label>
+                              <p className="text-sm font-semibold bg-white dark:bg-gray-800 px-3 py-2 rounded-lg border">{detailedPresetModal.preset.jsonjob.scene.framing}</p>
+                            </div>
+                          )}
+                          {detailedPresetModal.preset.jsonjob.scene.rotation && (
+                            <div className="space-y-2">
+                              <label className="text-sm font-medium text-muted-foreground">Rotation</label>
+                              <p className="text-sm font-semibold bg-white dark:bg-gray-800 px-3 py-2 rounded-lg border">{detailedPresetModal.preset.jsonjob.scene.rotation}</p>
+                            </div>
+                          )}
+                          {detailedPresetModal.preset.jsonjob.scene.scene_setting && (
+                            <div className="space-y-2">
+                              <label className="text-sm font-medium text-muted-foreground">Scene Setting</label>
+                              <p className="text-sm font-semibold bg-white dark:bg-gray-800 px-3 py-2 rounded-lg border">{detailedPresetModal.preset.jsonjob.scene.scene_setting}</p>
+                            </div>
+                          )}
+                          {detailedPresetModal.preset.jsonjob.scene.lighting_preset && (
+                            <div className="space-y-2">
+                              <label className="text-sm font-medium text-muted-foreground">Lighting</label>
+                              <p className="text-sm font-semibold bg-white dark:bg-gray-800 px-3 py-2 rounded-lg border">{detailedPresetModal.preset.jsonjob.scene.lighting_preset}</p>
+                            </div>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Basic Settings */}
+                  <Card className="border border-gray-200 dark:border-gray-700 bg-gradient-to-r from-blue-50/50 to-indigo-50/50 dark:from-blue-950/20 dark:to-indigo-950/20">
                     <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Monitor className="w-4 h-4" />
-                        Settings
+                      <CardTitle className="flex items-center gap-2 text-lg text-blue-700 dark:text-blue-300">
+                        <Settings className="w-5 h-5" />
+                        Basic Settings
                       </CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-3">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="flex justify-between">
-                          <span className="text-sm text-muted-foreground">Task:</span>
-                          <span className="text-sm font-medium">{detailedPresetModal.preset.jsonjob.task}</span>
+                    <CardContent>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium text-muted-foreground">Task</label>
+                          <p className="text-sm font-semibold bg-white dark:bg-gray-800 px-3 py-2 rounded-lg border">{detailedPresetModal.preset.jsonjob.task}</p>
                         </div>
-                        <div className="flex justify-between">
-                          <span className="text-sm text-muted-foreground">Format:</span>
-                          <span className="text-sm font-medium">{detailedPresetModal.preset.jsonjob.format}</span>
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium text-muted-foreground">Format</label>
+                          <p className="text-sm font-semibold bg-white dark:bg-gray-800 px-3 py-2 rounded-lg border">{detailedPresetModal.preset.jsonjob.format}</p>
                         </div>
-                        <div className="flex justify-between">
-                          <span className="text-sm text-muted-foreground">Quality:</span>
-                          <span className="text-sm font-medium">{detailedPresetModal.preset.jsonjob.quality}</span>
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium text-muted-foreground">Quality</label>
+                          <p className="text-sm font-semibold bg-white dark:bg-gray-800 px-3 py-2 rounded-lg border">{detailedPresetModal.preset.jsonjob.quality}</p>
                         </div>
-                        <div className="flex justify-between">
-                          <span className="text-sm text-muted-foreground">Guidance:</span>
-                          <span className="text-sm font-medium">{detailedPresetModal.preset.jsonjob.guidance}</span>
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium text-muted-foreground">Engine</label>
+                          <p className="text-sm font-semibold bg-white dark:bg-gray-800 px-3 py-2 rounded-lg border">{detailedPresetModal.preset.jsonjob.engine}</p>
                         </div>
-                        <div className="flex justify-between">
-                          <span className="text-sm text-muted-foreground">Images:</span>
-                          <span className="text-sm font-medium">{detailedPresetModal.preset.jsonjob.number_of_images}</span>
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium text-muted-foreground">Number of Images</label>
+                          <p className="text-sm font-semibold bg-white dark:bg-gray-800 px-3 py-2 rounded-lg border">{detailedPresetModal.preset.jsonjob.number_of_images}</p>
                         </div>
-                        <div className="flex justify-between">
-                          <span className="text-sm text-muted-foreground">Seed:</span>
-                          <span className="text-sm font-medium">{detailedPresetModal.preset.jsonjob.seed}</span>
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium text-muted-foreground">Seed</label>
+                          <p className="text-sm font-semibold bg-white dark:bg-gray-800 px-3 py-2 rounded-lg border">{detailedPresetModal.preset.jsonjob.seed}</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Advanced Settings */}
+                  <Card className="border border-gray-200 dark:border-gray-700 bg-gradient-to-r from-purple-50/50 to-pink-50/50 dark:from-purple-950/20 dark:to-pink-950/20">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-lg text-purple-700 dark:text-purple-300">
+                        <Zap className="w-5 h-5" />
+                        Advanced Settings
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium text-muted-foreground">Guidance Scale</label>
+                          <p className="text-sm font-semibold bg-white dark:bg-gray-800 px-3 py-2 rounded-lg border">{detailedPresetModal.preset.jsonjob.guidance}</p>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium text-muted-foreground">LoRA Strength</label>
+                          <p className="text-sm font-semibold bg-white dark:bg-gray-800 px-3 py-2 rounded-lg border">{detailedPresetModal.preset.jsonjob.lora_strength}</p>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium text-muted-foreground">NSFW Strength</label>
+                          <p className="text-sm font-semibold bg-white dark:bg-gray-800 px-3 py-2 rounded-lg border">{detailedPresetModal.preset.jsonjob.nsfw_strength}</p>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium text-muted-foreground">LoRA Enabled</label>
+                          <p className="text-sm font-semibold bg-white dark:bg-gray-800 px-3 py-2 rounded-lg border">{detailedPresetModal.preset.jsonjob.lora ? 'Yes' : 'No'}</p>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium text-muted-foreground">No AI</label>
+                          <p className="text-sm font-semibold bg-white dark:bg-gray-800 px-3 py-2 rounded-lg border">{detailedPresetModal.preset.jsonjob.noAI ? 'Yes' : 'No'}</p>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium text-muted-foreground">Prompt Only</label>
+                          <p className="text-sm font-semibold bg-white dark:bg-gray-800 px-3 py-2 rounded-lg border">{detailedPresetModal.preset.jsonjob.usePromptOnly ? 'Yes' : 'No'}</p>
                         </div>
                       </div>
                     </CardContent>
@@ -1663,34 +2427,216 @@ export default function PresetsManager({ onClose }: { onClose: () => void }) {
 
                   {/* Prompts */}
                   {(detailedPresetModal.preset.jsonjob?.prompt || detailedPresetModal.preset.jsonjob?.negative_prompt) && (
-                    <Card>
+                    <Card className="border border-gray-200 dark:border-gray-700 bg-gradient-to-r from-orange-50/50 to-yellow-50/50 dark:from-orange-950/20 dark:to-yellow-950/20">
                       <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                          <Pencil className="w-4 h-4" />
+                        <CardTitle className="flex items-center gap-2 text-lg text-orange-700 dark:text-orange-300">
+                          <Pencil className="w-5 h-5" />
                           Prompts
                         </CardTitle>
                       </CardHeader>
                       <CardContent className="space-y-4">
                         {detailedPresetModal.preset.jsonjob.prompt && (
-                          <div>
-                            <label className="text-sm font-medium">Positive Prompt</label>
-                            <p className="text-sm text-muted-foreground mt-1 p-3 bg-muted rounded-md">
-                              {detailedPresetModal.preset.jsonjob.prompt}
-                            </p>
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium text-muted-foreground">Positive Prompt</label>
+                            <div className="p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
+                              <p className="text-sm leading-relaxed">{detailedPresetModal.preset.jsonjob.prompt}</p>
+                            </div>
                           </div>
                         )}
                         {detailedPresetModal.preset.jsonjob.negative_prompt && (
-                          <div>
-                            <label className="text-sm font-medium">Negative Prompt</label>
-                            <p className="text-sm text-muted-foreground mt-1 p-3 bg-muted rounded-md">
-                              {detailedPresetModal.preset.jsonjob.negative_prompt}
-                            </p>
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium text-muted-foreground">Negative Prompt</label>
+                            <div className="p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
+                              <p className="text-sm leading-relaxed">{detailedPresetModal.preset.jsonjob.negative_prompt}</p>
+                            </div>
                           </div>
-                        )}
+                          )}
                       </CardContent>
                     </Card>
                   )}
                 </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
+
+        {/* File Context Menu */}
+        {fileContextMenu && (
+          <div
+            className="absolute z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg py-1 min-w-[160px]"
+            style={{ left: fileContextMenu.x, top: fileContextMenu.y }}
+          >
+            <button
+              className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+              onClick={() => {
+                setDetailedPresetModal({ open: true, preset: fileContextMenu.preset });
+                setFileContextMenu(null);
+              }}
+            >
+              <Eye className="w-4 h-4" />
+              View Details
+            </button>
+            <button
+              className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+              onClick={() => {
+                setEditingFile(fileContextMenu.preset.name);
+                setEditingFileName(fileContextMenu.preset.name);
+                setFileContextMenu(null);
+              }}
+            >
+              <Pencil className="w-4 h-4" />
+              Rename
+            </button>
+            <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>
+            <button
+              className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+              onClick={() => handlePresetCopy(fileContextMenu.preset)}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+              Copy
+            </button>
+            <button
+              className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+              onClick={() => handlePresetCut(fileContextMenu.preset)}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+              Cut
+            </button>
+            <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>
+            <button
+              className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+              onClick={() => handleApplyPreset(fileContextMenu.preset)}
+            >
+              <Wand2 className="w-4 h-4" />
+              Use
+            </button>
+            <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>
+            <button
+              className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 text-red-600 dark:text-red-400"
+              onClick={() => {
+                handlePresetDelete(fileContextMenu.preset);
+                setFileContextMenu(null);
+              }}
+            >
+              <Trash2 className="w-4 h-4" />
+              Delete
+            </button>
+          </div>
+        )}
+
+        {/* Rename Dialog */}
+        {editingFile && (
+          <Dialog open={!!editingFile} onOpenChange={() => setEditingFile(null)}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Rename Preset</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium">New Name</label>
+                  <Input
+                    placeholder="Enter new name"
+                    value={editingFileName}
+                    onChange={(e) => setEditingFileName(e.target.value)}
+                    className="mt-1"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && editingFileName.trim()) {
+                        const preset = presets.find(p => p.name === editingFile);
+                        if (preset) {
+                          handlePresetRename(editingFile, editingFileName, preset);
+                        }
+                      }
+                    }}
+                    autoFocus
+                  />
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => setEditingFile(null)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      const preset = presets.find(p => p.name === editingFile);
+                      if (preset) {
+                        handlePresetRename(editingFile, editingFileName, preset);
+                      }
+                    }}
+                    disabled={!editingFileName.trim() || isRenaming}
+                  >
+                    {isRenaming ? 'Renaming...' : 'Rename'}
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
+
+        {/* Use Preset Confirmation Modal */}
+        {usePresetConfirmation.open && usePresetConfirmation.preset && (
+          <Dialog open={usePresetConfirmation.open} onOpenChange={() => setUsePresetConfirmation({ open: false, preset: null })}>
+            <DialogContent className="max-w-md">
+              <DialogHeader className="text-center">
+                <DialogTitle className="flex items-center justify-center gap-2 text-xl font-bold">
+                  <Wand2 className="w-6 h-6 text-green-600" />
+                  Use Preset
+                </DialogTitle>
+              </DialogHeader>
+
+              <div className="space-y-4 text-center">
+                <div className="space-y-2">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                    Apply "{usePresetConfirmation.preset.name}"?
+                  </h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    This will apply all the preset settings to your current form.
+                    <span className="font-semibold text-orange-600 dark:text-orange-400"> All your current selections will be reset</span> and replaced with the preset configuration.
+                  </p>
+                </div>
+
+                <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="w-6 h-6 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <svg className="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                    <div className="text-left">
+                      <p className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-1">
+                        What will be applied:
+                      </p>
+                      <ul className="text-xs text-blue-700 dark:text-blue-300 space-y-1">
+                        <li>• Task, format, and quality settings</li>
+                        <li>• Advanced parameters (guidance, LoRA, etc.)</li>
+                        <li>• Scene configuration (pose, clothes, framing)</li>
+                        <li>• Positive and negative prompts</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <Button
+                  variant="outline"
+                  onClick={() => setUsePresetConfirmation({ open: false, preset: null })}
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={() => handleConfirmPresetUsage(usePresetConfirmation.preset)}
+                  className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-medium"
+                >
+                  <Wand2 className="w-4 h-4 mr-2" />
+                  Apply Preset
+                </Button>
               </div>
             </DialogContent>
           </Dialog>

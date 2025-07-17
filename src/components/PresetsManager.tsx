@@ -1013,7 +1013,7 @@ export default function PresetsManager({ onClose, onApplyPreset }: {
     try {
       setPresetsLoading(true);
 
-      const response = await fetch('https://db.nymia.ai/rest/v1/presets', {
+      const response = await fetch(`https://db.nymia.ai/rest/v1/presets?user_id=eq.${userData.id}`, {
         headers: {
           'Authorization': 'Bearer WeInfl3nc3withAI'
         }
@@ -1452,6 +1452,104 @@ export default function PresetsManager({ onClose, onApplyPreset }: {
     }
   }, [currentPath]);
 
+  // --- Preset drag and drop state ---
+  const [draggedPreset, setDraggedPreset] = useState<PresetData | null>(null);
+  const [dragOverPreset, setDragOverPreset] = useState<string | null>(null);
+  const [isDraggingPreset, setIsDraggingPreset] = useState(false);
+
+  // --- Preset drag and drop handlers ---
+  const handlePresetDragStart = (e: React.DragEvent, preset: PresetData) => {
+    setDraggedPreset(preset);
+    setIsDraggingPreset(true);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', JSON.stringify(preset));
+  };
+
+  const handlePresetDragEnd = () => {
+    setDraggedPreset(null);
+    setDragOverPreset(null);
+    setIsDraggingPreset(false);
+  };
+
+  const handlePresetDragOver = (e: React.DragEvent, folderPath: string) => {
+    e.preventDefault();
+    if (draggedPreset && draggedPreset.route !== folderPath) {
+      setDragOverPreset(folderPath);
+    }
+  };
+
+  const handlePresetDragLeave = () => {
+    setDragOverPreset(null);
+  };
+
+  const handlePresetDrop = async (e: React.DragEvent, targetFolderPath: string) => {
+    e.preventDefault();
+    if (!draggedPreset || draggedPreset.route === targetFolderPath) {
+      setDragOverPreset(null);
+      return;
+    }
+
+    try {
+      toast.info('Moving preset...', {
+        description: `Processing "${draggedPreset.name}" - this may take a moment`,
+        duration: 3000
+      });
+
+      // Update the preset route in the database
+      const response = await fetch(`https://db.nymia.ai/rest/v1/presets?id=eq.${draggedPreset.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          route: targetFolderPath
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to move preset');
+      }
+
+      // Copy the file to the new location
+      await fetch('https://api.nymia.ai/v1/copyfile', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          user: userData.id,
+          sourcefilename: `presets/${draggedPreset.route}/${draggedPreset.image_name}`,
+          destinationfilename: `presets/${targetFolderPath}/${draggedPreset.image_name}`
+        })
+      });
+
+      // Delete the original file
+      await fetch('https://api.nymia.ai/v1/deletefile', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          user: userData.id,
+          filename: `presets/${draggedPreset.route}/${draggedPreset.image_name}`
+        })
+      });
+
+      // Refresh presets
+      await fetchPresets();
+
+      setDragOverPreset(null);
+      toast.success(`Preset "${draggedPreset.name}" moved successfully`);
+    } catch (error) {
+      console.error('Error moving preset:', error);
+      toast.error('Failed to move preset');
+      setDragOverPreset(null);
+    }
+  };
+
   return (
     <Dialog open={true} onOpenChange={onClose}>
       <DialogContent className="max-w-6xl max-h-[90vh] overflow-auto">
@@ -1516,9 +1614,18 @@ export default function PresetsManager({ onClose, onApplyPreset }: {
                 <div
                   className={`flex items-center gap-2 p-2 rounded-lg transition-all duration-200 ${dragOverFolder === '' ? 'ring-2 ring-blue-500 ring-opacity-50 bg-blue-100 dark:bg-blue-900/20 scale-105 shadow-lg' : 'hover:bg-gray-100 dark:hover:bg-gray-800'
                     }`}
-                  onDragOver={(e) => handleDragOver(e, '')}
-                  onDragLeave={handleDragLeave}
-                  onDrop={(e) => handleDrop(e, '')}
+                  onDragOver={(e) => {
+                    handleDragOver(e, '');
+                    handlePresetDragOver(e, '');
+                  }}
+                  onDragLeave={() => {
+                    handleDragLeave();
+                    handlePresetDragLeave();
+                  }}
+                  onDrop={(e) => {
+                    handleDrop(e, '');
+                    handlePresetDrop(e, '');
+                  }}
                 >
                   <Button
                     variant="ghost"
@@ -1820,6 +1927,11 @@ export default function PresetsManager({ onClose, onApplyPreset }: {
                     key={preset.id}
                     className="group hover:shadow-xl transition-all duration-300 border border-gray-200 dark:border-gray-700 bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 overflow-hidden"
                     onContextMenu={(e) => handlePresetContextMenu(e, preset)}
+                    onDragStart={(e) => handlePresetDragStart(e, preset)}
+                    onDragEnd={handlePresetDragEnd}
+                    onDragOver={(e) => handlePresetDragOver(e, preset.route)}
+                    onDragLeave={handlePresetDragLeave}
+                    onDrop={(e) => handlePresetDrop(e, preset.route)}
                   >
                     {/* Top Row: Ratings and Favorite */}
                     <div className="flex items-center justify-between p-3 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-800 border-b border-gray-200 dark:border-gray-600">
@@ -2138,7 +2250,7 @@ export default function PresetsManager({ onClose, onApplyPreset }: {
                         <Button
                           onClick={() => handlePresetDelete(detailedPresetModal.preset)}
                           variant="outline"
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200 font-medium py-3"
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200 hover:border-red-300 transition-all duration-200"
                         >
                           <Trash2 className="w-5 h-5 mr-2" />
                           Delete

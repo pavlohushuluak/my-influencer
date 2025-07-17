@@ -21,6 +21,7 @@ import { useDebounce } from '@/hooks/useDebounce';
 import { Influencer } from '@/store/slices/influencersSlice';
 import { setInfluencers, setLoading, setError } from '@/store/slices/influencersSlice';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { DialogZoom, DialogContentZoom } from '@/components/ui/zoomdialog';
 import { ZoomIn } from 'lucide-react';
 import VaultSelector from '@/components/VaultSelector';
 import { SortAsc, SortDesc } from 'lucide-react';
@@ -5685,6 +5686,23 @@ export default function ContentCreate() {
           }}
         />
       )}
+
+      {/* Zoom Modal for Generated Images */}
+      <DialogZoom open={fullSizeImageModal.isOpen} onOpenChange={() => setFullSizeImageModal({ isOpen: false, imageUrl: '', imageName: '' })}>
+        <DialogContentZoom className="max-w-90vw] max-h-[900overflow-hidden">
+          <div className="relative w-full h-full flex items-center justify-center">
+            <img
+              src={fullSizeImageModal.imageUrl}
+              alt={fullSizeImageModal.imageName}
+              className="max-w-full max-h-full object-contain"
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                target.style.display = 'none';
+              }}
+            />
+          </div>
+        </DialogContentZoom>
+      </DialogZoom>
     </div>
   );
 }

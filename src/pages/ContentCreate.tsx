@@ -1973,7 +1973,7 @@ export default function ContentCreate() {
           jsonjob: jsonjob,
           name: presetName,
           image_name: originalFilename,
-          route: '/presets',
+          route: '',
           rating: 0,
           favorite: false
         };
@@ -2043,7 +2043,7 @@ export default function ContentCreate() {
         jsonjob: jsonjob,
         name: presetName,
         image_name: originalFilename,
-        route: '/presets',
+        route: '',
         rating: 0,
         favorite: false
       };

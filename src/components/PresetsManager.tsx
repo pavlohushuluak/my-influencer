@@ -88,7 +88,6 @@ export default function PresetsManager({ onClose, onApplyPreset }: {
   const [currentPath, setCurrentPath] = useState<string>('');
   const [folderStructure, setFolderStructure] = useState<FolderStructure[]>([]);
   const [folders, setFolders] = useState<FolderData[]>([]);
-  const [foldersLoading, setFoldersLoading] = useState(true);
 
   // New folder modal state
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
@@ -123,6 +122,11 @@ export default function PresetsManager({ onClose, onApplyPreset }: {
 
   // --- Confirmation modal for preset usage ---
   const [usePresetConfirmation, setUsePresetConfirmation] = useState<{ open: boolean; preset: PresetData | null }>({ open: false, preset: null });
+
+  // --- Filename conflict handling for paste operations ---
+  const [filenameConflictModal, setFilenameConflictModal] = useState<{ open: boolean; originalName: string; suggestedName: string }>({ open: false, originalName: '', suggestedName: '' });
+  const [conflictNewFilename, setConflictNewFilename] = useState<string>('');
+  const [pendingPasteOperation, setPendingPasteOperation] = useState<{ operation: 'copy' | 'move'; preset: PresetData; destRoute: string } | null>(null);
 
   // --- Folder copy/cut handlers ---
   const handleCopy = (folderPath: string) => {
@@ -346,6 +350,24 @@ export default function PresetsManager({ onClose, onApplyPreset }: {
       }
 
       if (fileCopyState === 1) {
+
+        const copyResponse = await fetch('https://api.nymia.ai/v1/copyfile', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer WeInfl3nc3withAI'
+          },
+          body: JSON.stringify({
+            user: userData.id,
+            sourcefilename: `presets/${copiedFile.route}/${copiedFile.image_name}`,
+            destinationfilename: `presets/${destRoute}/${copiedFile.image_name}`
+          })
+        });
+
+        if (!copyResponse.ok) {
+          throw new Error('Failed to copy file');
+        }
+
         // Copy operation - create a new preset with the same data but different route
         const newPresetData = {
           user_id: copiedFile.user_id,
@@ -369,36 +391,9 @@ export default function PresetsManager({ onClose, onApplyPreset }: {
         if (!response.ok) {
           throw new Error('Failed to copy preset');
         }
-        if (copiedFile.image_name) {
-          const extension = copiedFile.image_name.substring(copiedFile.image_name.lastIndexOf('.') + 1);
-          await fetch('https://api.nymia.ai/v1/copyfile', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': 'Bearer WeInfl3nc3withAI'
-            },
-            body: JSON.stringify({
-              user: userData.id,
-              sourcefilename: `presets/${copiedFile.route}/${copiedFile.image_name}`,
-              destinationfilename: `presets/${destRoute}/${copiedFile.image_name}`
-            })
-          });
-        }
 
-        const newPreset = await response.json();
+        fetchPresets();
 
-        // Add the new preset to local state with proper transformation
-        const transformedPreset = {
-          ...newPreset[0],
-          hasModel: copiedFile.hasModel,
-          hasScene: copiedFile.hasScene,
-          sceneCount: copiedFile.sceneCount,
-          createdDate: new Date(newPreset[0].created_at).toLocaleDateString(),
-          createdTime: new Date(newPreset[0].created_at).toLocaleTimeString(),
-          imageUrl: copiedFile.imageUrl
-        };
-
-        setPresets(prev => [...prev, transformedPreset]);
         toast.success(`Preset "${fileName}" copied successfully`);
 
       } else {
@@ -418,6 +413,31 @@ export default function PresetsManager({ onClose, onApplyPreset }: {
           throw new Error('Failed to move preset');
         }
 
+        await fetch('https://api.nymia.ai/v1/copyfile', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer WeInfl3nc3withAI'
+          },
+          body: JSON.stringify({
+            user: userData.id,
+            sourcefilename: `presets/${copiedFile.route}/${copiedFile.image_name}`,
+            destinationfilename: `presets/${destRoute}/${copiedFile.image_name}`
+          })
+        });
+
+        await fetch('https://api.nymia.ai/v1/deletefile', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer WeInfl3nc3withAI'
+          },
+          body: JSON.stringify({
+            user: userData.id,
+            filename: `presets/${copiedFile.route}/${copiedFile.image_name}`
+          })
+        });
+
         // Update local state
         setPresets(prev => prev.map(preset =>
           preset.id === copiedFile.id
@@ -435,7 +455,7 @@ export default function PresetsManager({ onClose, onApplyPreset }: {
     } catch (error) {
       console.error('Error pasting file:', error);
       const operationType = fileCopyState === 1 ? 'copy' : 'move';
-      toast.error(`Failed to ${operationType} preset`);
+      toast.error(`Failed to ${operationType} preset: ${error.message}`);
     } finally {
       setIsPastingFile(false);
     }
@@ -837,9 +857,7 @@ export default function PresetsManager({ onClose, onApplyPreset }: {
   // Navigation functions
   const navigateToFolder = (folderPath: string) => {
     setCurrentPath(folderPath);
-    // Reset data when navigating
-    setFileCopyState(0);
-    setCopiedFile(null);
+    // Reset context menus and editing states when navigating
     setFileContextMenu(null);
     setContextMenu(null);
     setEditingFile(null);
@@ -850,9 +868,7 @@ export default function PresetsManager({ onClose, onApplyPreset }: {
     if (currentPath) {
       const parentPath = currentPath.split('/').slice(0, -1).join('/');
       setCurrentPath(parentPath);
-      // Reset data when navigating
-      setFileCopyState(0);
-      setCopiedFile(null);
+      // Reset context menus and editing states when navigating
       setFileContextMenu(null);
       setContextMenu(null);
       setEditingFile(null);
@@ -862,9 +878,7 @@ export default function PresetsManager({ onClose, onApplyPreset }: {
 
   const navigateToHome = () => {
     setCurrentPath('');
-    // Reset data when navigating
-    setFileCopyState(0);
-    setCopiedFile(null);
+    // Reset context menus and editing states when navigating
     setFileContextMenu(null);
     setContextMenu(null);
     setEditingFile(null);
@@ -952,7 +966,6 @@ export default function PresetsManager({ onClose, onApplyPreset }: {
   // Fetch folders from API
   const fetchFolders = async () => {
     try {
-      setFoldersLoading(true);
       const response = await fetch('https://api.nymia.ai/v1/getfoldernames', {
         method: 'POST',
         headers: {
@@ -992,8 +1005,6 @@ export default function PresetsManager({ onClose, onApplyPreset }: {
       console.error('Error fetching folders:', error);
       setFolders([]);
       setFolderStructure([]);
-    } finally {
-      setFoldersLoading(false);
     }
   };
 
@@ -1001,6 +1012,7 @@ export default function PresetsManager({ onClose, onApplyPreset }: {
   const fetchPresets = async () => {
     try {
       setPresetsLoading(true);
+
       const response = await fetch('https://db.nymia.ai/rest/v1/presets', {
         headers: {
           'Authorization': 'Bearer WeInfl3nc3withAI'
@@ -1776,82 +1788,27 @@ export default function PresetsManager({ onClose, onApplyPreset }: {
               <div className="flex items-center gap-2">
                 <BookOpen className="w-5 h-5" />
                 Presets
-                {currentPath && (
-                  <span className="text-sm font-normal text-muted-foreground">
-                    in "{decodeName(currentPath)}"
-                  </span>
-                )}
-              </div>
-              <div className="flex items-center gap-2">
-                {/* Empty State */}
-                {!presetsLoading && !foldersLoading && filteredAndSortedPresets.length === 0 && getCurrentPathFolders().length === 0 && (
-                  <div className="text-center py-12">
-                    <BookOpen className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold mb-2">No presets found</h3>
-                    <p className="text-muted-foreground">
-                      {searchTerm ? 'Try adjusting your search terms.' : 'Create your first preset to get started.'}
-                    </p>
-                  </div>
-                )}
-
-                {/* Loading State */}
-                {(presetsLoading || foldersLoading) && (
-                  <div className="text-center py-16">
-                    <div className="mt-6 space-y-2">
-                      <p className="text-lg font-semibold text-gray-900 dark:text-white">Loading Presets</p>
-                      <p className="text-sm text-muted-foreground">Please wait while we fetch your presets...</p>
-                    </div>
-                  </div>
-                )}
               </div>
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {/* Loading State for Presets */}
-            {presetsLoading && (
-              <div className="flex items-center justify-center py-4">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-600"></div>
-                <span className="text-sm text-muted-foreground">Loading presets...</span>
+            {/* Empty State */}
+            {!presetsLoading && filteredAndSortedPresets.length === 0 && (
+              <div className="text-center py-12">
+                <BookOpen className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-semibold mb-2">No presets found</h3>
+                <p className="text-muted-foreground">
+                  {searchTerm ? 'Try adjusting your search terms.' : 'Create your first preset to get started.'}
+                </p>
               </div>
             )}
 
-            {/* Empty State for Presets */}
-            {!presetsLoading && filteredAndSortedPresets.length === 0 && (
+            {/* Loading State */}
+            {(presetsLoading) && (
               <div className="text-center py-16">
-                <div className="w-24 h-24 mx-auto mb-6 bg-gradient-to-br from-green-100 to-emerald-100 dark:from-green-900/20 dark:to-emerald-900/20 rounded-full flex items-center justify-center">
-                  <BookOpen className="w-12 h-12 text-green-600 dark:text-green-400" />
-                </div>
-                <h3 className="text-xl font-semibold mb-3 text-gray-900 dark:text-gray-100">
-                  {searchTerm ? 'No presets found' : 'No presets in this folder'}
-                </h3>
-                <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-                  {searchTerm
-                    ? 'Try adjusting your search terms or browse a different folder.'
-                    : currentPath
-                      ? `This folder is empty. Create your first preset or copy presets from other folders.`
-                      : 'Get started by creating your first preset or importing from other sources.'
-                  }
-                </p>
-                {!searchTerm && (
-                  <div className="flex items-center justify-center gap-3">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setShowNewFolderModal(true)}
-                      className="flex items-center gap-2"
-                    >
-                      <FolderPlus className="w-4 h-4" />
-                      Create Folder
-                    </Button>
-                    <Button
-                      size="sm"
-                      className="flex items-center gap-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
-                    >
-                      <Plus className="w-4 h-4" />
-                      Create Preset
-                    </Button>
-                  </div>
-                )}
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 dark:border-white mx-auto mb-4"></div>
+                <p className="text-lg font-semibold text-gray-900 dark:text-white">Loading Presets</p>
+                <p className="text-sm text-muted-foreground">Please wait while we fetch your presets...</p>
               </div>
             )}
 

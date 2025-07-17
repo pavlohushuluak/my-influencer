@@ -1783,15 +1783,25 @@ export default function PresetsManager({ onClose, onApplyPreset }: {
                 )}
               </div>
               <div className="flex items-center gap-2">
-                {presetsLoading ? (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
-                    Loading...
+                {/* Empty State */}
+                {!presetsLoading && !foldersLoading && filteredAndSortedPresets.length === 0 && getCurrentPathFolders().length === 0 && (
+                  <div className="text-center py-12">
+                    <BookOpen className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">No presets found</h3>
+                    <p className="text-muted-foreground">
+                      {searchTerm ? 'Try adjusting your search terms.' : 'Create your first preset to get started.'}
+                    </p>
                   </div>
-                ) : (
-                  <span className="text-sm text-muted-foreground">
-                    {filteredAndSortedPresets.length} preset{filteredAndSortedPresets.length !== 1 ? 's' : ''}
-                  </span>
+                )}
+
+                {/* Loading State */}
+                {(presetsLoading || foldersLoading) && (
+                  <div className="text-center py-16">
+                    <div className="mt-6 space-y-2">
+                      <p className="text-lg font-semibold text-gray-900 dark:text-white">Loading Presets</p>
+                      <p className="text-sm text-muted-foreground">Please wait while we fetch your presets...</p>
+                    </div>
+                  </div>
                 )}
               </div>
             </CardTitle>
@@ -1799,31 +1809,9 @@ export default function PresetsManager({ onClose, onApplyPreset }: {
           <CardContent>
             {/* Loading State for Presets */}
             {presetsLoading && (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {[...Array(8)].map((_, index) => (
-                  <Card key={index} className="animate-pulse">
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="w-8 h-8 bg-gray-200 dark:bg-gray-700 rounded-full"></div>
-                        <div className="flex gap-1">
-                          {[...Array(5)].map((_, i) => (
-                            <div key={i} className="w-4 h-4 bg-gray-200 dark:bg-gray-700 rounded"></div>
-                          ))}
-                        </div>
-                        <div className="w-8 h-8 bg-gray-200 dark:bg-gray-700 rounded-full"></div>
-                      </div>
-                      <div className="w-full h-32 bg-gray-200 dark:bg-gray-700 rounded-lg mb-4"></div>
-                      <div className="space-y-2">
-                        <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4"></div>
-                        <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
-                        <div className="flex gap-2 mt-3">
-                          <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded flex-1"></div>
-                          <div className="w-8 h-8 bg-gray-200 dark:bg-gray-700 rounded"></div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+              <div className="flex items-center justify-center py-4">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-600"></div>
+                <span className="text-sm text-muted-foreground">Loading presets...</span>
               </div>
             )}
 
@@ -1871,7 +1859,11 @@ export default function PresetsManager({ onClose, onApplyPreset }: {
             {!presetsLoading && filteredAndSortedPresets.length > 0 && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {filteredAndSortedPresets.map((preset) => (
-                  <Card key={preset.id} className="group hover:shadow-xl transition-all duration-300 border border-gray-200 dark:border-gray-700 bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 overflow-hidden">
+                  <Card
+                    key={preset.id}
+                    className="group hover:shadow-xl transition-all duration-300 border border-gray-200 dark:border-gray-700 bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 overflow-hidden"
+                    onContextMenu={(e) => handlePresetContextMenu(e, preset)}
+                  >
                     {/* Top Row: Ratings and Favorite */}
                     <div className="flex items-center justify-between p-3 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-800 border-b border-gray-200 dark:border-gray-600">
                       {/* Professional Mark */}
@@ -2026,37 +2018,6 @@ export default function PresetsManager({ onClose, onApplyPreset }: {
             )}
           </CardContent>
         </Card>
-
-        {/* Empty State */}
-        {!presetsLoading && !foldersLoading && filteredAndSortedPresets.length === 0 && getCurrentPathFolders().length === 0 && (
-          <div className="text-center py-12">
-            <BookOpen className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No presets found</h3>
-            <p className="text-muted-foreground">
-              {searchTerm ? 'Try adjusting your search terms.' : 'Create your first preset to get started.'}
-            </p>
-          </div>
-        )}
-
-        {/* Loading State */}
-        {(presetsLoading || foldersLoading) && (
-          <div className="text-center py-16">
-            <div className="relative mx-auto w-16 h-16">
-              {/* Outer ring */}
-              <div className="absolute inset-0 border-4 border-gray-200 dark:border-gray-700 rounded-full"></div>
-              {/* Animated ring */}
-              <div className="absolute inset-0 border-4 border-transparent border-t-blue-500 border-r-purple-500 rounded-full animate-spin"></div>
-              {/* Inner gradient circle */}
-              <div className="absolute inset-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                <div className="w-6 h-6 bg-white rounded-full animate-pulse"></div>
-              </div>
-            </div>
-            <div className="mt-6 space-y-2">
-              <p className="text-lg font-semibold text-gray-900 dark:text-white">Loading Presets</p>
-              <p className="text-sm text-muted-foreground">Please wait while we fetch your presets...</p>
-            </div>
-          </div>
-        )}
 
         {/* New Folder Modal */}
         <Dialog open={showNewFolderModal} onOpenChange={setShowNewFolderModal}>
@@ -2240,9 +2201,6 @@ export default function PresetsManager({ onClose, onApplyPreset }: {
                           </div>
                           <div>
                             <span>Influencer Profile</span>
-                            <p className="text-sm font-normal text-purple-600 dark:text-purple-400 mt-1">
-                              Complete model specifications and characteristics
-                            </p>
                           </div>
                         </CardTitle>
                       </CardHeader>

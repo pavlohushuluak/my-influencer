@@ -2241,15 +2241,6 @@ export default function ContentCreate() {
         {/* Professional Preset and Library Buttons */}
         <div className="flex items-center gap-3">
           <div className="items-center gap-2 hidden xl:grid xl:grid-cols-2 2xl:grid-cols-4">
-            <Button
-              onClick={handleOpenPresetModal}
-              variant="outline"
-              size="sm"
-              className="h-10 px-4 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border-amber-200 dark:border-amber-700 hover:from-amber-100 hover:to-orange-100 dark:hover:from-amber-800/30 dark:hover:to-orange-800/30 text-amber-700 dark:text-amber-300 font-medium shadow-sm hover:shadow-md transition-all duration-200"
-            >
-              <BookOpen className="w-4 h-4 mr-2" />
-              My Presets
-            </Button>
 
             <Button
               onClick={() => setShowLibraryModal(true)}
@@ -2259,6 +2250,16 @@ export default function ContentCreate() {
             >
               <FolderOpen className="w-4 h-4 mr-2" />
               Library
+            </Button>
+
+            <Button
+              onClick={handleOpenPresetModal}
+              variant="outline"
+              size="sm"
+              className="h-10 px-4 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border-amber-200 dark:border-amber-700 hover:from-amber-100 hover:to-orange-100 dark:hover:from-amber-800/30 dark:hover:to-orange-800/30 text-amber-700 dark:text-amber-300 font-medium shadow-sm hover:shadow-md transition-all duration-200"
+            >
+              <BookOpen className="w-4 h-4 mr-2" />
+              My Presets
             </Button>
 
             <Button
@@ -2276,8 +2277,8 @@ export default function ContentCreate() {
               variant="outline"
               size="sm"
               className={`h-10 px-4 font-medium shadow-sm hover:shadow-md transition-all duration-200 ${isAdvancedMode
-                  ? 'bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 border-purple-200 dark:border-purple-700 hover:from-purple-100 hover:to-pink-100 dark:hover:from-purple-800/30 dark:hover:to-pink-800/30 text-purple-700 dark:text-purple-300'
-                  : 'bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 border-blue-200 dark:border-blue-700 hover:from-blue-100 hover:to-cyan-100 dark:hover:from-blue-800/30 dark:hover:to-cyan-800/30 text-blue-700 dark:text-blue-300'
+                ? 'bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 border-purple-200 dark:border-purple-700 hover:from-purple-100 hover:to-pink-100 dark:hover:from-purple-800/30 dark:hover:to-pink-800/30 text-purple-700 dark:text-purple-300'
+                : 'bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 border-blue-200 dark:border-blue-700 hover:from-blue-100 hover:to-cyan-100 dark:hover:from-blue-800/30 dark:hover:to-cyan-800/30 text-blue-700 dark:text-blue-300'
                 }`}
             >
               <Settings className="w-4 h-4 mr-2" />
@@ -2319,21 +2320,21 @@ export default function ContentCreate() {
       <div className="flex w-full items-center gap-3 xl:hidden">
         <div className="items-center gap-2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 w-full">
           <Button
-            onClick={() => setShowPresetsManager(true)}
-            variant="outline"
-            className="w-full h-10 px-4 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border-amber-200 dark:border-amber-700 hover:from-amber-100 hover:to-orange-100 dark:hover:from-amber-800/30 dark:hover:to-orange-800/30 text-amber-700 dark:text-amber-300 font-medium shadow-sm hover:shadow-md transition-all duration-200"
-          >
-            <BookOpen className="w-4 h-4 mr-2" />
-            My Presets
-          </Button>
-
-          <Button
             onClick={() => setShowLibraryModal(true)}
             variant="outline"
             className="h-10 px-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-blue-200 dark:border-blue-700 hover:from-blue-100 hover:to-indigo-100 dark:hover:from-blue-800/30 dark:hover:to-indigo-800/30 text-blue-700 dark:text-blue-300 font-medium shadow-sm hover:shadow-md transition-all duration-200"
           >
             <FolderOpen className="w-4 h-4 mr-2" />
             Library
+          </Button>
+
+          <Button
+            onClick={() => setShowPresetsManager(true)}
+            variant="outline"
+            className="w-full h-10 px-4 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border-amber-200 dark:border-amber-700 hover:from-amber-100 hover:to-orange-100 dark:hover:from-amber-800/30 dark:hover:to-orange-800/30 text-amber-700 dark:text-amber-300 font-medium shadow-sm hover:shadow-md transition-all duration-200"
+          >
+            <BookOpen className="w-4 h-4 mr-2" />
+            My Presets
           </Button>
 
           <Button
@@ -2350,8 +2351,8 @@ export default function ContentCreate() {
             variant="outline"
             size="sm"
             className={`h-10 px-4 font-medium shadow-sm hover:shadow-md transition-all duration-200 ${isAdvancedMode
-                ? 'bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 border-purple-200 dark:border-purple-700 hover:from-purple-100 hover:to-pink-100 dark:hover:from-purple-800/30 dark:hover:to-pink-800/30 text-purple-700 dark:text-purple-300'
-                : 'bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 border-blue-200 dark:border-blue-700 hover:from-blue-100 hover:to-cyan-100 dark:hover:from-blue-800/30 dark:hover:to-cyan-800/30 text-blue-700 dark:text-blue-300'
+              ? 'bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 border-purple-200 dark:border-purple-700 hover:from-purple-100 hover:to-pink-100 dark:hover:from-purple-800/30 dark:hover:to-pink-800/30 text-purple-700 dark:text-purple-300'
+              : 'bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 border-blue-200 dark:border-blue-700 hover:from-blue-100 hover:to-cyan-100 dark:hover:from-blue-800/30 dark:hover:to-cyan-800/30 text-blue-700 dark:text-blue-300'
               }`}
           >
             <Settings className="w-4 h-4 mr-2" />
@@ -2886,8 +2887,8 @@ export default function ContentCreate() {
                     </div>
                     Scene Specifications
                     <Badge variant={isAdvancedMode ? "default" : "secondary"} className={`ml-2 ${isAdvancedMode
-                        ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white'
-                        : 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white'
+                      ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white'
+                      : 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white'
                       }`}>
                       {isAdvancedMode ? 'Advanced' : 'Easy'}
                     </Badge>
@@ -3661,7 +3662,7 @@ export default function ContentCreate() {
                 </p>
               </div>
             )}
-            
+
             {/* Scene Presets - 2x3 Grid */}
             {isAdvancedMode && <div className="hidden lg:grid grid-cols-3 xl:grid-cols-6 gap-4">
               <div className="space-y-2">

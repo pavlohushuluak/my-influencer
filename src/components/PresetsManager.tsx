@@ -1521,10 +1521,13 @@ export default function PresetsManager({ onClose, onApplyPreset }: {
         },
         body: JSON.stringify({
           user: userData.id,
-          sourcefilename: `presets/${draggedPreset.route}/${draggedPreset.image_name}`,
-          destinationfilename: `presets/${targetFolderPath}/${draggedPreset.image_name}`
+          sourcefilename: draggedPreset.route === '' ? `presets/${draggedPreset.image_name}` : `presets/${draggedPreset.route}/${draggedPreset.image_name}`,
+          destinationfilename: targetFolderPath === '' ? `presets/${draggedPreset.image_name}` : `presets/${targetFolderPath}/${draggedPreset.image_name}`
         })
       });
+
+      console.log(`presets/${draggedPreset.route}/${draggedPreset.image_name}`);
+      console.log(`presets/${targetFolderPath}/${draggedPreset.image_name}`);
 
       // Delete the original file
       await fetch('https://api.nymia.ai/v1/deletefile', {
@@ -1642,11 +1645,20 @@ export default function PresetsManager({ onClose, onApplyPreset }: {
                   <div key={item.path} className="flex items-center gap-2">
                     <ChevronRight className="w-4 h-4 text-muted-foreground" />
                     <div
-                      className={`flex items-center gap-2 p-2 rounded-lg transition-all duration-200 ${dragOverFolder === item.path ? 'ring-2 ring-blue-500 ring-opacity-50 bg-blue-100 dark:bg-blue-900/20 scale-105 shadow-lg' : 'hover:bg-gray-100 dark:hover:bg-gray-800'
+                      className={`flex items-center gap-2 p-2 rounded-lg transition-all duration-200 ${dragOverFolder === item.path || dragOverPreset === item.path ? 'ring-2 ring-blue-500 ring-opacity-50 bg-blue-100 dark:bg-blue-900/20 scale-105 shadow-lg' : 'hover:bg-gray-100 dark:hover:bg-gray-800'
                         }`}
-                      onDragOver={(e) => handleDragOver(e, item.path)}
-                      onDragLeave={handleDragLeave}
-                      onDrop={(e) => handleDrop(e, item.path)}
+                      onDragOver={(e) => {
+                        handleDragOver(e, item.path);
+                        handlePresetDragOver(e, item.path);
+                      }}
+                      onDragLeave={() => {
+                        handleDragLeave();
+                        handlePresetDragLeave();
+                      }}
+                      onDrop={(e) => {
+                        handleDrop(e, item.path);
+                        handlePresetDrop(e, item.path);
+                      }}
                     >
                       <Button
                         variant="ghost"
@@ -1756,24 +1768,39 @@ export default function PresetsManager({ onClose, onApplyPreset }: {
               {getCurrentPathFolders().map((folder) => (
                 <div
                   key={folder.path}
-                  className={`group cursor-pointer ${renamingFolder === folder.path ? 'opacity-60 pointer-events-none' : ''} ${dragOverFolder === folder.path ? 'ring-2 ring-blue-500 ring-opacity-50 bg-blue-100 dark:bg-blue-900/20 scale-105 shadow-lg' : ''}`}
+                  className={`group cursor-pointer ${renamingFolder === folder.path ? 'opacity-60 pointer-events-none' : ''} ${dragOverFolder === folder.path || dragOverPreset === folder.path ? 'ring-2 ring-blue-500 ring-opacity-50 bg-blue-100 dark:bg-blue-900/20 scale-105 shadow-lg' : ''}`}
                   onDoubleClick={() => renamingFolder !== folder.path && navigateToFolder(folder.path)}
                   onContextMenu={(e) => renamingFolder !== folder.path && handleContextMenu(e, folder.path)}
                   draggable={renamingFolder !== folder.path}
                   onDragStart={(e) => handleDragStart(e, folder.path)}
                   onDragEnd={handleDragEnd}
-                  onDragOver={(e) => handleDragOver(e, folder.path)}
-                  onDragLeave={handleDragLeave}
-                  onDrop={(e) => handleDrop(e, folder.path)}
+                  onDragOver={(e) => {
+                    handleDragOver(e, folder.path);
+                    handlePresetDragOver(e, folder.path);
+                  }}
+                  onDragLeave={() => {
+                    handleDragLeave();
+                    handlePresetDragLeave();
+                  }}
+                  onDrop={(e) => {
+                    handleDrop(e, folder.path);
+                    handlePresetDrop(e, folder.path);
+                  }}
                 >
                   <div className={`flex flex-col items-center p-3 rounded-lg border-2 border-transparent transition-all duration-200 ${renamingFolder === folder.path
                     ? 'border-yellow-300 bg-yellow-50 dark:bg-yellow-950/20'
+                    : dragOverPreset === folder.path
+                    ? 'border-blue-300 bg-blue-50 dark:bg-blue-950/20'
                     : 'hover:border-blue-300 hover:bg-blue-50 dark:hover:bg-blue-950/20'
                     }`}>
-                    <div className={`w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center mb-2 transition-transform duration-200 ${renamingFolder === folder.path ? 'animate-pulse' : 'group-hover:scale-110'
+                    <div className={`w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center mb-2 transition-transform duration-200 ${renamingFolder === folder.path ? 'animate-pulse' : dragOverPreset === folder.path ? 'scale-110' : 'group-hover:scale-110'
                       }`}>
                       {renamingFolder === folder.path ? (
                         <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
+                      ) : dragOverPreset === folder.path ? (
+                        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+                        </svg>
                       ) : (
                         <Folder className="w-6 h-6 text-white" />
                       )}
@@ -1799,10 +1826,13 @@ export default function PresetsManager({ onClose, onApplyPreset }: {
                     ) : (
                       <span className={`text-xs font-medium text-center transition-colors ${renamingFolder === folder.path
                         ? 'text-yellow-700 dark:text-yellow-300'
+                        : dragOverPreset === folder.path
+                        ? 'text-blue-700 dark:text-blue-300'
                         : 'text-gray-700 dark:text-gray-300 group-hover:text-blue-600 dark:group-hover:text-blue-400'
                         }`}>
                         {decodeName(folder.name)}
                         {renamingFolder === folder.path && ' (Renaming...)'}
+                        {dragOverPreset === folder.path && ' (Drop here)'}
                       </span>
                     )}
                     <span className="text-xs text-muted-foreground mt-1">{folder.children.length} folders</span>
@@ -1922,17 +1952,49 @@ export default function PresetsManager({ onClose, onApplyPreset }: {
 
             {/* Preset Cards */}
             {!presetsLoading && filteredAndSortedPresets.length > 0 && (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              <div 
+                className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 p-4 rounded-lg transition-all duration-200 ${
+                  isDraggingPreset ? 'bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 border-2 border-dashed border-blue-300 dark:border-blue-700' : ''
+                }`}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  if (isDraggingPreset) {
+                    setDragOverPreset(currentPath);
+                  }
+                }}
+                onDragLeave={() => {
+                  if (isDraggingPreset) {
+                    setDragOverPreset(null);
+                  }
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  if (isDraggingPreset && draggedPreset) {
+                    handlePresetDrop(e, currentPath);
+                  }
+                }}
+              >
+                {/* Drag and Drop Instruction */}
+                {filteredAndSortedPresets.length > 0 && (
+                  <div className="col-span-full mb-4 p-3 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-lg border border-blue-200/50 dark:border-blue-800/50">
+                    <div className="flex items-center gap-2 text-sm text-blue-700 dark:text-blue-300">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
+                      </svg>
+                      <span>Drag presets to move them between folders. Drop on breadcrumb items or folder icons.</span>
+                    </div>
+                  </div>
+                )}
                 {filteredAndSortedPresets.map((preset) => (
                   <Card
                     key={preset.id}
-                    className="group hover:shadow-xl transition-all duration-300 border border-gray-200 dark:border-gray-700 bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 overflow-hidden"
+                    className={`group hover:shadow-xl transition-all duration-300 border border-gray-200 dark:border-gray-700 bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 overflow-hidden ${
+                      draggedPreset?.id === preset.id ? 'opacity-50 scale-95 shadow-lg' : ''
+                    }`}
                     onContextMenu={(e) => handlePresetContextMenu(e, preset)}
+                    draggable
                     onDragStart={(e) => handlePresetDragStart(e, preset)}
                     onDragEnd={handlePresetDragEnd}
-                    onDragOver={(e) => handlePresetDragOver(e, preset.route)}
-                    onDragLeave={handlePresetDragLeave}
-                    onDrop={(e) => handlePresetDrop(e, preset.route)}
                   >
                     {/* Top Row: Ratings and Favorite */}
                     <div className="flex items-center justify-between p-3 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-800 border-b border-gray-200 dark:border-gray-600">
@@ -1941,6 +2003,12 @@ export default function PresetsManager({ onClose, onApplyPreset }: {
                         <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center shadow-sm">
                           <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                          </svg>
+                        </div>
+                        {/* Drag Handle */}
+                        <div className="w-6 h-6 flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 cursor-grab active:cursor-grabbing">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
                           </svg>
                         </div>
                       </div>

@@ -1203,10 +1203,6 @@ export default function PresetsManager({ onClose, onApplyPreset }: {
       }
     } catch (error) {
       console.error('Error fetching influencer data:', error);
-      // Fallback to the model data from the preset
-      if (detailedPresetModal.preset?.jsonjob.model) {
-        setInfluencerData(detailedPresetModal.preset.jsonjob.model);
-      }
     } finally {
       setLoadingInfluencer(false);
     }
@@ -2113,7 +2109,7 @@ export default function PresetsManager({ onClose, onApplyPreset }: {
 
               <div className="space-y-6">
                 {/* Header Section with Image and Basic Info */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Preset Image */}
                   <div className="space-y-4">
                     <div className="relative aspect-square rounded-xl overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 shadow-lg">
@@ -2233,7 +2229,7 @@ export default function PresetsManager({ onClose, onApplyPreset }: {
                     </div>
                   </div>
                   {/* Influencer Information */}
-                  {detailedPresetModal.preset.jsonjob.model && (
+                  {influencerData && (
                     <Card className="border border-gray-200 dark:border-gray-700 bg-gradient-to-br from-purple-50 via-pink-50 to-rose-50 dark:from-purple-950/30 dark:via-pink-950/30 dark:to-rose-950/30 shadow-lg">
                       <CardHeader className="pb-4">
                         <CardTitle className="flex items-center gap-3 text-xl font-bold text-purple-700 dark:text-purple-300">
@@ -2282,10 +2278,104 @@ export default function PresetsManager({ onClose, onApplyPreset }: {
                                 <div className="flex flex-col gap-1 mb-3">
                                   <div className="flex text-sm text-muted-foreground flex-col">
                                     <span className="text-sm text-muted-foreground">
-                                      {influencerData.age} • {influencerData.gender || 'Unknown gender'}
+                                      {influencerData.sex ? influencerData.sex : 'Unknown Sex'} • {influencerData.age ? influencerData.age : 'Unknown Age'} • {influencerData.lifestyle ? influencerData.lifestyle : 'Unknown Lifestyle'}
                                     </span>
                                   </div>
                                 </div>
+                              </div>
+
+                              {/* Detailed Information Grid */}
+                              <div className="grid grid-cols-2 gap-3">
+
+                                <div className="space-y-2">
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-2-green-500ounded-full"></div>
+                                    <span className="text-xs font-medium text-muted-foreground">Cultural Background</span>
+                                  </div>
+                                  <p className="text-sm font-semibold bg-white dark:bg-gray-800 px-2 py-1 rounded border">
+                                    {influencerData?.cultural_background || 'N/A'}
+                                  </p>
+                                </div>
+
+                                <div className="space-y-2">
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-2 h-2 bg-orange-500ounded-full"></div>
+                                    <span className="text-xs font-medium text-muted-foreground">Hair Style</span>
+                                  </div>
+                                  <p className="text-sm font-semibold bg-white dark:bg-gray-800 px-2 py-1 rounded border">
+                                    {influencerData?.hair_style || 'N/A'}
+                                  </p>
+                                </div>
+
+                                <div className="space-y-2">
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-2g-pink-500ounded-full"></div>
+                                    <span className="text-xs font-medium text-muted-foreground">Face Shape</span>
+                                  </div>
+                                  <p className="text-sm font-semibold bg-white dark:bg-gray-800 px-2 py-1 rounded border">
+                                    {influencerData?.face_shape || 'N/A'}
+                                  </p>
+                                </div>
+
+                                <div className="space-y-2">
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-2 h-2 bg-yellow-500ounded-full"></div>
+                                    <span className="text-xs font-medium text-muted-foreground">Eye Shape</span>
+                                  </div>
+                                  <p className="text-sm font-semibold bg-white dark:bg-gray-800 px-2 py-1 rounded border">
+                                    {influencerData?.eye_shape || 'N/A'}
+                                  </p>
+                                </div>
+
+                                <div className="space-y-2">
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-2 h-2 bg-red-500ounded-full"></div>
+                                    <span className="text-xs font-medium text-muted-foreground">Lip Style</span>
+                                  </div>
+                                  <p className="text-sm font-semibold bg-white dark:bg-gray-800 px-2 py-1 rounded border">
+                                    {influencerData?.lip_style || 'N/A'}
+                                  </p>
+                                </div>
+
+                                <div className="space-y-2">
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-2 h-2 bg-red-500ounded-full"></div>
+                                    <span className="text-xs font-medium text-muted-foreground">Nose Style</span>
+                                  </div>
+                                  <p className="text-sm font-semibold bg-white dark:bg-gray-800 px-2 py-1 rounded border">
+                                    {influencerData?.nose_style || 'N/A'}
+                                  </p>
+                                </div>
+
+                                <div className="space-y-2">
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-2g-teal-500ounded-full"></div>
+                                    <span className="text-xs font-medium text-muted-foreground">Skin Tone</span>
+                                  </div>
+                                  <p className="text-sm font-semibold bg-white dark:bg-gray-800 px-2 py-1 rounded border">
+                                    {influencerData?.skin_tone || 'N/A'}
+                                  </p>
+                                </div>
+
+                                <div className="space-y-2">
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-2g-cyan-500ounded-full"></div>
+                                    <span className="text-xs font-medium text-muted-foreground">Body Type</span>
+                                  </div>
+                                  <p className="text-sm font-semibold bg-white dark:bg-gray-800 px-2 py-1 rounded border">
+                                    {influencerData?.body_type || 'N/A'}
+                                  </p>
+                                </div>
+
+                                {/* Loading State */}
+                                {loadingInfluencer && (
+                                  <div className="flex items-center justify-center py-4">
+                                    <div className="flex items-center gap-2">
+                                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-600"></div>
+                                      <span className="text-sm text-muted-foreground">Loading influencer data...</span>
+                                    </div>
+                                  </div>
+                                )}
                               </div>
                             </div>
                           </CardContent>
@@ -2450,7 +2540,7 @@ export default function PresetsManager({ onClose, onApplyPreset }: {
                               <p className="text-sm leading-relaxed">{detailedPresetModal.preset.jsonjob.negative_prompt}</p>
                             </div>
                           </div>
-                          )}
+                        )}
                       </CardContent>
                     </Card>
                   )}

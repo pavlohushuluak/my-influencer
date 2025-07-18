@@ -762,13 +762,23 @@ export default function ContentCreate() {
     }
 
     const fullDescription = parts.join(', ');
+    
+    // Check if influencer has LoRA status 2 (Ready) and automatically enable model consistency
+    const shouldEnableModelConsistency = influencer.lorastatus === 2;
+    
     setFormData(prev => ({
       ...prev,
       model: fullDescription,
-      prompt: influencer.prompt || '' // Automatically populate prompt with influencer's prompt
+      prompt: influencer.prompt || '', // Automatically populate prompt with influencer's prompt
+      lora: shouldEnableModelConsistency // Enable model consistency if LoRA is ready
     }));
 
-    toast.success(`Using ${influencer.name_first} ${influencer.name_last} for content generation`);
+    // Show toast message about model consistency if enabled
+    if (shouldEnableModelConsistency) {
+      toast.success(`Using ${influencer.name_first} ${influencer.name_last} for content generation - Model Consistency enabled (LoRA ready)`);
+    } else {
+      toast.success(`Using ${influencer.name_first} ${influencer.name_last} for content generation`);
+    }
   };
 
   const handleSearchChange = (value: string) => {

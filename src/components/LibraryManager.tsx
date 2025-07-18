@@ -523,7 +523,7 @@ export default function LibraryManager({ onClose, onApplyPreset }: {
           <DialogTitle className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <BookOpen className="w-5 h-5" />
-              My Presets
+              Library Manager
             </div>
             <div className="flex items-center gap-2">
               <Button
@@ -544,7 +544,7 @@ export default function LibraryManager({ onClose, onApplyPreset }: {
           <div className="relative flex-1 max-w-md">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
             <Input
-              placeholder="Search presets..."
+              placeholder="Search library..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10"
@@ -710,7 +710,7 @@ export default function LibraryManager({ onClose, onApplyPreset }: {
             <CardTitle className="text-lg flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <BookOpen className="w-5 h-5" />
-                Presets
+                Library
               </div>
             </CardTitle>
           </CardHeader>
@@ -719,9 +719,9 @@ export default function LibraryManager({ onClose, onApplyPreset }: {
             {!presetsLoading && filteredAndSortedPresets.length === 0 && (
               <div className="text-center py-12">
                 <BookOpen className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-semibold mb-2">No presets found</h3>
+                <h3 className="text-lg font-semibold mb-2">No library found</h3>
                 <p className="text-muted-foreground">
-                  {searchTerm ? 'Try adjusting your search terms.' : 'Create your first preset to get started.'}
+                  {searchTerm ? 'Try adjusting your search terms.' : 'Create your first library to get started.'}
                 </p>
               </div>
             )}
@@ -730,8 +730,8 @@ export default function LibraryManager({ onClose, onApplyPreset }: {
             {(presetsLoading) && (
               <div className="text-center py-16">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 dark:border-white mx-auto mb-4"></div>
-                <p className="text-lg font-semibold text-gray-900 dark:text-white">Loading Presets</p>
-                <p className="text-sm text-muted-foreground">Please wait while we fetch your presets...</p>
+                <p className="text-lg font-semibold text-gray-900 dark:text-white">Loading Library</p>
+                <p className="text-sm text-muted-foreground">Please wait while we fetch your library...</p>
               </div>
             )}
 
@@ -906,7 +906,7 @@ export default function LibraryManager({ onClose, onApplyPreset }: {
             <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
               <DialogHeader className="text-center">
                 <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                  Preset Details
+                  Library Details
                 </DialogTitle>
               </DialogHeader>
 
@@ -1022,7 +1022,7 @@ export default function LibraryManager({ onClose, onApplyPreset }: {
                           className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-medium py-3 shadow-lg hover:shadow-xl transition-all duration-200"
                         >
                           <Wand2 className="w-5 h-5 mr-2" />
-                          Use Preset
+                          Use Library
                         </Button>
                       </div>
                     </div>
@@ -1353,7 +1353,7 @@ export default function LibraryManager({ onClose, onApplyPreset }: {
               <DialogHeader className="text-center">
                 <DialogTitle className="flex items-center justify-center gap-2 text-xl font-bold">
                   <Wand2 className="w-6 h-6 text-green-600" />
-                  Use Preset
+                  Use Library
                 </DialogTitle>
               </DialogHeader>
 
@@ -1363,8 +1363,8 @@ export default function LibraryManager({ onClose, onApplyPreset }: {
                     Apply "{usePresetConfirmation.preset.name}"?
                   </h3>
                   <p className="text-sm text-muted-foreground leading-relaxed">
-                    This will apply all the preset settings to your current form.
-                    <span className="font-semibold text-orange-600 dark:text-orange-400"> All your current selections will be reset</span> and replaced with the preset configuration.
+                    This will apply all the library settings to your current form.
+                    <span className="font-semibold text-orange-600 dark:text-orange-400"> All your current selections will be reset</span> and replaced with the library configuration.
                   </p>
                 </div>
 
@@ -1403,7 +1403,7 @@ export default function LibraryManager({ onClose, onApplyPreset }: {
                   className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-medium"
                 >
                   <Wand2 className="w-4 h-4 mr-2" />
-                  Apply Preset
+                  Apply Library
                 </Button>
               </div>
             </DialogContent>

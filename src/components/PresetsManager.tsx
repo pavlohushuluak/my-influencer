@@ -351,6 +351,7 @@ export default function PresetsManager({ onClose, onApplyPreset }: {
       }
 
       if (fileCopyState === 1) {
+        const copiedFileRoute = copiedFile.route === '' ? '' : `${copiedFile.route}/`;
 
         const copyResponse = await fetch('https://api.nymia.ai/v1/copyfile', {
           method: 'POST',
@@ -360,7 +361,7 @@ export default function PresetsManager({ onClose, onApplyPreset }: {
           },
           body: JSON.stringify({
             user: userData.id,
-            sourcefilename: `presets/${copiedFile.route}/${copiedFile.image_name}`,
+            sourcefilename: `presets/${copiedFile.route}${copiedFile.image_name}`,
             destinationfilename: `presets/${destRoute}/${copiedFile.image_name}`
           })
         });

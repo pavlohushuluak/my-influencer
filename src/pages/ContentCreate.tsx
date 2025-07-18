@@ -4632,7 +4632,7 @@ export default function ContentCreate() {
       {showLibraryModal && (
         <LibraryManager
           onClose={() => setShowLibraryModal(false)}
-          onApplyPreset={(library) => {
+          onApplyPreset={async (library) => {
             try {
               const jsonjob = library.jsonjob;
 
@@ -4663,8 +4663,17 @@ export default function ContentCreate() {
               }
 
               // Apply model data if available
+              console.log(jsonjob.model);
               if (jsonjob.model) {
-                setModelData(jsonjob.model);
+                const response = await fetch(`https://db.nymia.ai/rest/v1/influencer?id=eq.${jsonjob.model.id}`, {
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer WeInfl3nc3withAI'
+                  }
+                });
+                const modelData = await response.json();
+                console.log(modelData);
+                setModelData(modelData[0]);
               }
 
               setShowLibraryModal(false);

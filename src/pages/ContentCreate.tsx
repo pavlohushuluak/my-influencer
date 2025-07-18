@@ -81,7 +81,7 @@ export default function ContentCreate() {
     guidance: 3.5,
     negative_prompt: '',
     nsfw_strength: 0,
-    lora_strength: 0.9,
+    lora_strength: 1.0,
     quality: 'Quality',
     engine: '',
     usePromptOnly: false
@@ -667,7 +667,7 @@ export default function ContentCreate() {
           guidance: 3.5,
           negative_prompt: '',
           nsfw_strength: 0,
-          lora_strength: 0.9,
+          lora_strength: 1.0,
           quality: 'Quality',
           engine: '',
           usePromptOnly: true
@@ -984,7 +984,7 @@ export default function ContentCreate() {
       guidance: 3.5,
       negative_prompt: '',
       nsfw_strength: 0,
-      lora_strength: 0.9,
+      lora_strength: 1.0,
       quality: 'Quality',
       engine: '',
       usePromptOnly: false
@@ -1816,7 +1816,7 @@ export default function ContentCreate() {
           else if (field === 'guidance') presetData.jsonjob[field] = 3.5;
           else if (field === 'number_of_images') presetData.jsonjob[field] = 1;
           else if (field === 'nsfw_strength') presetData.jsonjob[field] = 0;
-          else if (field === 'lora_strength') presetData.jsonjob[field] = 0.9;
+          else if (field === 'lora_strength') presetData.jsonjob[field] = 1.0;
           else if (field === 'lora') presetData.jsonjob[field] = false;
           else if (field === 'noAI') presetData.jsonjob[field] = true;
           else if (field === 'usePromptOnly') presetData.jsonjob[field] = false;
@@ -3566,17 +3566,17 @@ export default function ContentCreate() {
                     <div className="space-y-6">
                       <Label>LORA Strength</Label>
                       <Slider
-                        value={[formData.lora_strength || 0.9]}
+                        value={[formData.lora_strength || 1.0]}
                         onValueChange={([value]) => handleInputChange('lora_strength', value)}
-                        max={1}
-                        min={-1}
+                        max={1.5}
+                        min={-0.5}
                         step={0.1}
                         className="w-full"
                         disabled={formData.usePromptOnly}
                       />
                       <div className="flex justify-between text-xs text-muted-foreground">
-                        <span>Weak (-1)</span>
-                        <span>Strong (+1)</span>
+                        <span>Weak (-0.5)</span>
+                        <span>Strong (+1.5)</span>
                       </div>
                     </div>
 

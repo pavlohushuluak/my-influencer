@@ -177,6 +177,23 @@ export default function ContentCreate() {
   const [fileContextMenu, setFileContextMenu] = useState<{ x: number; y: number; image: any } | null>(null);
   const [regeneratingImages, setRegeneratingImages] = useState<Set<string>>(new Set());
 
+  // Status bar edit popup state
+  const [statusEditPopup, setStatusEditPopup] = useState<{
+    isOpen: boolean;
+    field: string;
+    currentValue: any;
+    fieldType: 'number' | 'boolean' | 'select' | 'text' | 'slider';
+    options?: { label: string; value: any }[];
+    position: { x: number; y: number };
+  }>({
+    isOpen: false,
+    field: '',
+    currentValue: null,
+    fieldType: 'text',
+    options: [],
+    position: { x: 0, y: 0 }
+  });
+
   // Defensive: ensure formatOptions is always an array
   const safeFormatOptions = Array.isArray(formatOptions) ? formatOptions : [];
 
@@ -762,10 +779,10 @@ export default function ContentCreate() {
     }
 
     const fullDescription = parts.join(', ');
-    
+
     // Check if influencer has LoRA status 2 (Ready) and automatically enable model consistency
     const shouldEnableModelConsistency = influencer.lorastatus === 2;
-    
+
     setFormData(prev => ({
       ...prev,
       model: fullDescription,
@@ -1176,7 +1193,7 @@ export default function ContentCreate() {
       }
 
       // Step 2: Populate scene specifications
-      console.log('�� Step 2: Populating scene specifications');
+      console.log(' Step 2: Populating scene specifications');
       if (regenerationData.scene) {
         console.log('📽️ Scene data:', regenerationData.scene);
         const sceneData = {
@@ -1734,7 +1751,7 @@ export default function ContentCreate() {
   const savePresetWithFilename = async (filename: string, isOverwrite: boolean = false, data?: any) => {
     // Use passed data or fall back to pendingPresetData state
     const presetDataToUse = data || pendingPresetData;
-    
+
     if (!presetDataToUse) {
       console.error('No data available for saving preset');
       return;
@@ -1860,7 +1877,7 @@ export default function ContentCreate() {
           if (!response.ok) {
             const errorText = await response.text();
             console.error('Database save failed:', response.status, errorText);
-            
+
             // If it's a server error (5xx), retry
             if (response.status >= 500 && retryCount < maxRetries - 1) {
               retryCount++;
@@ -1868,7 +1885,7 @@ export default function ContentCreate() {
               await new Promise(resolve => setTimeout(resolve, 1000 * retryCount)); // Exponential backoff
               continue;
             }
-            
+
             throw new Error(`Failed to save preset to database: ${response.status} ${errorText}`);
           }
 
@@ -1893,7 +1910,7 @@ export default function ContentCreate() {
       // Check if response has content before parsing JSON
       const responseText = await response.text();
       console.log('Database response text:', responseText);
-      
+
       let savedPreset;
       try {
         // If response is empty, consider it a success (some APIs return empty responses on success)
@@ -2303,7 +2320,7 @@ export default function ContentCreate() {
       if (jsonjob.negative_prompt) setFormData(prev => ({ ...prev, negative_prompt: jsonjob.negative_prompt }));
       if (jsonjob.nsfw_strength) setFormData(prev => ({ ...prev, nsfw_strength: jsonjob.nsfw_strength }));
       if (jsonjob.lora_strength) setFormData(prev => ({ ...prev, lora_strength: jsonjob.lora_strength }));
-      if (jsonjob.quality) setFormData(prev => ({ ...prev, quality: jsonjob.quality }));
+      if (jsonjob.quality) setFormData(prev => ({ ...prev, quality: typeof jsonjob.quality === 'string' ? jsonjob.quality : (Array.isArray(jsonjob.quality) ? jsonjob.quality[0] : 'Quality') }));
       if (jsonjob.seed) setFormData(prev => ({ ...prev, seed: jsonjob.seed.toString() }));
       if (jsonjob.guidance) setFormData(prev => ({ ...prev, guidance: jsonjob.guidance }));
       if (jsonjob.number_of_images) setFormData(prev => ({ ...prev, numberOfImages: jsonjob.number_of_images }));
@@ -2388,6 +2405,27 @@ export default function ContentCreate() {
     }
     setIsAdvancedMode(!isAdvancedMode);
   };
+
+  // Status bar edit handlers
+  const handleStatusBarEdit = (field: string, currentValue: any, fieldType: 'number' | 'boolean' | 'select' | 'text' | 'slider', event: React.MouseEvent, options?: { label: string; value: any }[]) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    setStatusEditPopup({
+      isOpen: true,
+      field,
+      currentValue,
+      fieldType,
+      options,
+      position: {
+        x: rect.left + rect.width / 2,
+        y: rect.bottom + 8
+      }
+    });
+  };
+
+  // Editable popup states
+  const [editingField, setEditingField] = useState<string | null>(null);
+  const [editingValue, setEditingValue] = useState<string>('');
+  const [showEditPopup, setShowEditPopup] = useState(false);
 
   return (
     <div className="px-6 space-y-4">
@@ -2527,77 +2565,156 @@ export default function ContentCreate() {
         </div>
       </div>
 
-      <div className="bg-gradient-to-r from-slate-50 to-blue-50 dark:from-slate-900/50 dark:to-blue-900/20 rounded-xl p-6">
+      <div className="bg-gradient-to-r from-slate-50 to-blue-50 dark:from-slate-900/50 dark:to-blue-900/20 rounded-xl p-6 shadow-sm border border-slate-200/50 dark:border-slate-700/50">
         <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-4">
-          <div className="flex flex-col space-y-2">
-            <span className="text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wide">
-              Task Type
-            </span>
-            <Badge variant="secondary" className="w-fit bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300">
-              {TASK_OPTIONS.find(opt => opt.value === formData.task)?.label}
-            </Badge>
-          </div>
-
-          <div className="flex flex-col space-y-2">
+          <div className="flex flex-col space-y-2 group">
             <span className="text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wide">
               Format
             </span>
-            <Badge variant="secondary" className="w-fit bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300">
-              {safeFormatOptions.find(opt => opt.label === formData.format)?.label || formData.format}
+            <Badge
+              variant="secondary"
+              className="w-fit bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 cursor-pointer hover:shadow-md hover:scale-105 transition-all duration-200 group-hover:border-blue-300 dark:group-hover:border-blue-600"
+              onClick={(e) => handleStatusBarEdit('format', formData.format, 'select', e, safeFormatOptions.map(opt => ({ label: opt.label, value: opt.label })))}
+            >
+              <div className="flex items-center gap-1">
+                {safeFormatOptions.find(opt => opt.label === formData.format)?.label || formData.format}
+                <Edit3 className="w-3 h-3 opacity-60 group-hover:opacity-100" />
+              </div>
             </Badge>
           </div>
 
-          <div className="flex flex-col space-y-2">
+          <div className="flex flex-col space-y-2 group">
             <span className="text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wide">
               Images
             </span>
-            <Badge variant="secondary" className="w-fit bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300">
-              {formData.numberOfImages}
+            <Badge
+              variant="secondary"
+              className="w-fit bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 cursor-pointer hover:shadow-md hover:scale-105 transition-all duration-200 group-hover:border-blue-300 dark:group-hover:border-blue-600"
+              onClick={(e) => handleStatusBarEdit('numberOfImages', formData.numberOfImages, 'slider', e)}
+            >
+              <div className="flex items-center gap-1">
+                {formData.numberOfImages}
+                <Edit3 className="w-3 h-3 opacity-60 group-hover:opacity-100" />
+              </div>
             </Badge>
           </div>
 
-          <div className="flex flex-col space-y-2">
+          <div className="flex flex-col space-y-2 group">
             <span className="text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wide">
               Guidance
             </span>
-            <Badge variant="secondary" className="w-fit bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300">
-              {formData.guidance}
+            <Badge
+              variant="secondary"
+              className="w-fit bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 cursor-pointer hover:shadow-md hover:scale-105 transition-all duration-200 group-hover:border-blue-300 dark:group-hover:border-blue-600"
+              onClick={(e) => handleStatusBarEdit('guidance', formData.guidance, 'slider', e)}
+            >
+              <div className="flex items-center gap-1">
+                {formData.guidance}
+                <Edit3 className="w-3 h-3 opacity-60 group-hover:opacity-100" />
+              </div>
             </Badge>
           </div>
 
-          <div className="flex flex-col space-y-2">
+          <div className="flex flex-col space-y-2 group">
             <span className="text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wide">
               CONSISTENCY
             </span>
-            <Badge variant={formData.lora ? "default" : "secondary"} className={`w-fit ${formData.lora ? 'bg-gradient-to-r from-purple-500 to-blue-500 text-white' : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300'}`}>
-              {formData.lora ? "Enabled" : "Disabled"}
-            </Badge>
+            <div className={formData.usePromptOnly ? "relative group/disabled" : undefined}>
+              <Badge 
+                variant={formData.lora ? "default" : "secondary"} 
+                className={`w-fit ${formData.lora ? 'bg-gradient-to-r from-purple-500 to-blue-500 text-white' : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300'} ${formData.usePromptOnly ? 'opacity-60 grayscale cursor-not-allowed pointer-events-none' : 'cursor-pointer hover:shadow-md hover:scale-105 transition-all duration-200 group-hover:border-purple-300 dark:group-hover:border-purple-600'}`}
+                onClick={formData.usePromptOnly ? undefined : (e) => handleStatusBarEdit('lora', formData.lora, 'boolean', e)}
+                tabIndex={formData.usePromptOnly ? -1 : 0}
+                aria-disabled={formData.usePromptOnly}
+              >
+                <div className="flex items-center gap-1">
+                  {formData.lora ? "Enabled" : "Disabled"}
+                  <Edit3 className="w-3 h-3 opacity-60 group-hover:opacity-100" />
+                </div>
+              </Badge>
+              {formData.usePromptOnly && (
+                <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 z-50 px-3 py-1 rounded bg-slate-800 text-xs text-white shadow-lg whitespace-nowrap opacity-0 group-hover/disabled:opacity-100 transition-opacity pointer-events-none">
+                  Disabled in current mode
+                </div>
+              )}
+            </div>
           </div>
 
-          <div className="flex flex-col space-y-2">
+          <div className="flex flex-col space-y-2 group">
             <span className="text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wide">
               AI OPTIMIZE
             </span>
-            <Badge variant={formData.noAI ? "default" : "secondary"} className={`w-fit ${formData.noAI ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white' : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300'}`}>
-              {formData.noAI ? "Enabled" : "Disabled"}
-            </Badge>
+            <div className={formData.usePromptOnly ? "relative group/disabled" : undefined}>
+              <Badge 
+                variant={formData.noAI ? "default" : "secondary"} 
+                className={`w-fit ${formData.noAI ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white' : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300'} ${formData.usePromptOnly ? 'opacity-60 grayscale cursor-not-allowed pointer-events-none' : 'cursor-pointer hover:shadow-md hover:scale-105 transition-all duration-200 group-hover:border-orange-300 dark:group-hover:border-orange-600'}`}
+                onClick={formData.usePromptOnly ? undefined : (e) => handleStatusBarEdit('noAI', formData.noAI, 'boolean', e)}
+                tabIndex={formData.usePromptOnly ? -1 : 0}
+                aria-disabled={formData.usePromptOnly}
+              >
+                <div className="flex items-center gap-1">
+                  {formData.noAI ? "Enabled" : "Disabled"}
+                  <Edit3 className="w-3 h-3 opacity-60 group-hover:opacity-100" />
+                </div>
+              </Badge>
+              {formData.usePromptOnly && (
+                <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 z-50 px-3 py-1 rounded bg-slate-800 text-xs text-white shadow-lg whitespace-nowrap opacity-0 group-hover/disabled:opacity-100 transition-opacity pointer-events-none">
+                  Disabled in current mode
+                </div>
+              )}
+            </div>
           </div>
 
-          <div className="flex flex-col space-y-2">
+          <div className="flex flex-col space-y-2 group">
             <span className="text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wide">
               QUALITY
             </span>
-            <Badge variant="secondary" className="w-fit bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300">
-              {formData.quality}
+            <Badge 
+              variant="secondary" 
+              className="w-fit bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 cursor-pointer hover:shadow-md hover:scale-105 transition-all duration-200 group-hover:border-blue-300 dark:group-hover:border-blue-600"
+              onClick={(e) => handleStatusBarEdit('quality', formData.quality || 'Quality', 'select', e, [
+                { label: 'Basic', value: 'Basic' },
+                { label: 'Quality', value: 'Quality' },
+                { label: 'Quality Plus', value: 'Quality Plus' },
+                { label: 'High End', value: 'High End' },
+              ])}
+            >
+              <div className="flex items-center gap-1">
+                {formData.quality || 'Quality'}
+                <Edit3 className="w-3 h-3 opacity-60 group-hover:opacity-100" />
+              </div>
             </Badge>
           </div>
 
-          <div className="flex flex-col space-y-2">
+          <div className="flex flex-col space-y-2 group">
             <span className="text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wide">
-              PROMPT ONLY
+              NSFW Strength
             </span>
-            <Badge variant={formData.usePromptOnly ? "default" : "secondary"} className={`w-fit ${formData.usePromptOnly ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white' : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300'}`}>
-              {formData.usePromptOnly ? "Enabled" : "Disabled"}
+            <Badge
+              variant="secondary"
+              className="w-fit bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 cursor-pointer hover:shadow-md hover:scale-105 transition-all duration-200 group-hover:border-blue-300 dark:group-hover:border-blue-600"
+              onClick={(e) => handleStatusBarEdit('nsfw_strength', formData.nsfw_strength || 0, 'slider', e)}
+            >
+              <div className="flex items-center gap-1">
+                {formData.nsfw_strength || 0}
+                <Edit3 className="w-3 h-3 opacity-60 group-hover:opacity-100" />
+              </div>
+            </Badge>
+          </div>
+
+          <div className="flex flex-col space-y-2 group">
+            <span className="text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wide">
+              LORA Strength
+            </span>
+            <Badge
+              variant="secondary"
+              className="w-fit bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 cursor-pointer hover:shadow-md hover:scale-105 transition-all duration-200 group-hover:border-blue-300 dark:group-hover:border-blue-600"
+              onClick={(e) => handleStatusBarEdit('lora_strength', formData.lora_strength, 'slider', e)}
+            >
+              <div className="flex items-center gap-1">
+                {formData.lora_strength}
+                <Edit3 className="w-3 h-3 opacity-60 group-hover:opacity-100" />
+              </div>
             </Badge>
           </div>
         </div>
@@ -4707,8 +4824,8 @@ export default function ContentCreate() {
                         <div className="relative w-full h-full bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg overflow-hidden">
                           {/* LoraStatusIndicator positioned at top right */}
                           <div className="absolute right-[-15px] top-[-15px] z-10">
-                            <LoraStatusIndicator 
-                              status={influencer.lorastatus || 0} 
+                            <LoraStatusIndicator
+                              status={influencer.lorastatus || 0}
                               className="flex-shrink-0"
                             />
                           </div>
@@ -4816,7 +4933,7 @@ export default function ContentCreate() {
               if (jsonjob.negative_prompt) setFormData(prev => ({ ...prev, negative_prompt: jsonjob.negative_prompt }));
               if (jsonjob.nsfw_strength !== undefined) setFormData(prev => ({ ...prev, nsfw_strength: jsonjob.nsfw_strength }));
               if (jsonjob.lora_strength !== undefined) setFormData(prev => ({ ...prev, lora_strength: jsonjob.lora_strength }));
-              if (jsonjob.quality) setFormData(prev => ({ ...prev, quality: jsonjob.quality }));
+              if (jsonjob.quality) setFormData(prev => ({ ...prev, quality: typeof jsonjob.quality === 'string' ? jsonjob.quality : (Array.isArray(jsonjob.quality) ? jsonjob.quality[0] : 'Quality') }));
               if (jsonjob.seed !== undefined) setFormData(prev => ({ ...prev, seed: jsonjob.seed.toString() }));
               if (jsonjob.guidance !== undefined) setFormData(prev => ({ ...prev, guidance: jsonjob.guidance }));
               if (jsonjob.number_of_images !== undefined) setFormData(prev => ({ ...prev, numberOfImages: jsonjob.number_of_images }));
@@ -5839,6 +5956,219 @@ export default function ContentCreate() {
             }
           }}
         />
+      )}
+
+      {/* Status Bar Edit Popup */}
+      {statusEditPopup.isOpen && (
+        <div
+          className="fixed z-50 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl p-5 min-w-[320px] max-w-[360px] backdrop-blur-sm"
+          style={{
+            left: `${statusEditPopup.position.x}px`,
+            top: `${statusEditPopup.position.y}px`,
+            transform: 'translateX(-50%)'
+          }}
+        >
+          <div className="space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 pb-3">
+              <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                <Edit3 className="w-4 h-4 text-slate-500" />
+                Edit {statusEditPopup.field.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
+              </h3>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setStatusEditPopup(prev => ({ ...prev, isOpen: false }))}
+                className="h-6 w-6 p-0 hover:bg-slate-100 dark:hover:bg-slate-700"
+              >
+                <X className="w-3 h-3" />
+              </Button>
+            </div>
+
+            {statusEditPopup.fieldType === 'boolean' && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-medium text-slate-700 dark:text-slate-300">Status</Label>
+                  <div className="text-sm font-semibold text-slate-900 dark:text-slate-100 bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded">
+                    {statusEditPopup.currentValue ? 'Enabled' : 'Disabled'}
+                  </div>
+                </div>
+                <div className="flex items-center justify-center space-x-3">
+                  <Switch
+                    checked={statusEditPopup.currentValue}
+                    onCheckedChange={(checked) => {
+                      setFormData(prev => ({
+                        ...prev,
+                        [statusEditPopup.field]: checked
+                      }));
+                      setStatusEditPopup(prev => ({ ...prev, isOpen: false }));
+                    }}
+                    className="data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-purple-500 data-[state=checked]:to-blue-500 data-[state=unchecked]:bg-slate-200 data-[state=unchecked]:dark:bg-slate-700"
+                  />
+                  <span className="text-sm text-slate-600 dark:text-slate-400">
+                    {statusEditPopup.currentValue ? 'Enabled' : 'Disabled'}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {statusEditPopup.fieldType === 'slider' && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                    {statusEditPopup.field === 'numberOfImages' && 'Number of Images'}
+                    {statusEditPopup.field === 'guidance' && 'Guidance Scale'}
+                    {statusEditPopup.field === 'lora_strength' && 'LORA Strength'}
+                    {statusEditPopup.field === 'nsfw_strength' && 'NSFW Strength'}
+                  </Label>
+                  <div className="text-sm font-semibold text-slate-900 dark:text-slate-100 bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded">
+                    {statusEditPopup.currentValue}
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <Slider
+                    value={[statusEditPopup.currentValue]}
+                    onValueChange={([value]) => {
+                      setStatusEditPopup(prev => ({ ...prev, currentValue: value }));
+                    }}
+                    onValueCommit={([value]) => {
+                      setFormData(prev => ({
+                        ...prev,
+                        [statusEditPopup.field]: value
+                      }));
+                      setStatusEditPopup(prev => ({ ...prev, isOpen: false }));
+                    }}
+                    max={
+                      statusEditPopup.field === 'numberOfImages' ? 20 :
+                        statusEditPopup.field === 'guidance' ? 8.0 :
+                          statusEditPopup.field === 'lora_strength' ? 1.5 :
+                            statusEditPopup.field === 'nsfw_strength' ? 1 : 10
+                    }
+                    min={
+                      statusEditPopup.field === 'numberOfImages' ? 1 :
+                        statusEditPopup.field === 'guidance' ? 1.0 :
+                          statusEditPopup.field === 'lora_strength' ? -0.5 :
+                            statusEditPopup.field === 'nsfw_strength' ? -1 : 0
+                    }
+                    step={
+                      statusEditPopup.field === 'guidance' ? 0.1 :
+                        statusEditPopup.field === 'lora_strength' ? 0.1 :
+                          statusEditPopup.field === 'nsfw_strength' ? 0.1 : 1
+                    }
+                    className="w-full"
+                  />
+
+                  <div className="flex justify-between text-xs text-slate-500 dark:text-slate-400">
+                    {statusEditPopup.field === 'numberOfImages' && (
+                      <>
+                        <span className="font-medium">1</span>
+                        <span className="font-medium">20</span>
+                      </>
+                    )}
+                    {statusEditPopup.field === 'guidance' && (
+                      <>
+                        <span className="font-medium">1.0</span>
+                        <span className="font-medium">8.0</span>
+                      </>
+                    )}
+                    {statusEditPopup.field === 'lora_strength' && (
+                      <>
+                        <span className="font-medium">Weak (-0.5)</span>
+                        <span className="font-medium">Strong (+1.5)</span>
+                      </>
+                    )}
+                    {statusEditPopup.field === 'nsfw_strength' && (
+                      <>
+                        <span className="font-medium">SFW (-1)</span>
+                        <span className="font-medium">NSFW (+1)</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {statusEditPopup.fieldType === 'number' && (
+              <div className="space-y-2">
+                <Label className="text-xs font-medium text-slate-600 dark:text-slate-400">Value</Label>
+                <Input
+                  type="number"
+                  value={statusEditPopup.currentValue}
+                  onChange={(e) => {
+                    const value = parseFloat(e.target.value);
+                    if (!isNaN(value)) {
+                      setStatusEditPopup(prev => ({ ...prev, currentValue: value }));
+                    }
+                  }}
+                  className="w-full h-8 text-sm"
+                  step={statusEditPopup.field === 'guidance' ? 0.1 : 1}
+                  min={statusEditPopup.field === 'numberOfImages' ? 1 : statusEditPopup.field === 'guidance' ? 1.0 : 0}
+                  max={statusEditPopup.field === 'numberOfImages' ? 20 : statusEditPopup.field === 'guidance' ? 8.0 : 10}
+                />
+                {statusEditPopup.field === 'guidance' && (
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Range: 1.0 - 8.0 (Recommended: 3.5)
+                  </p>
+                )}
+                {statusEditPopup.field === 'numberOfImages' && (
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Range: 1 - 20 images
+                  </p>
+                )}
+                {statusEditPopup.field === 'lora_strength' && (
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Range: 0.0 - 2.0 (Recommended: 1.0)
+                  </p>
+                )}
+              </div>
+            )}
+
+            {statusEditPopup.fieldType === 'text' && (
+              <div className="space-y-2">
+                <Label className="text-xs font-medium text-slate-600 dark:text-slate-400">Value</Label>
+                <Input
+                  type="text"
+                  value={statusEditPopup.currentValue}
+                  onChange={(e) => setStatusEditPopup(prev => ({ ...prev, currentValue: e.target.value }))}
+                  className="w-full h-8 text-sm"
+                  placeholder={`Enter ${statusEditPopup.field.toLowerCase()}`}
+                />
+              </div>
+            )}
+
+            {statusEditPopup.fieldType === 'select' && statusEditPopup.options && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-medium text-slate-700 dark:text-slate-300">Select Option</Label>
+                  <div className="text-sm font-semibold text-slate-900 dark:text-slate-100 bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded">
+                    {statusEditPopup.currentValue}
+                  </div>
+                </div>
+                <Select
+                  value={statusEditPopup.currentValue}
+                  onValueChange={(value) => {
+                    setFormData(prev => ({
+                      ...prev,
+                      [statusEditPopup.field]: value
+                    }));
+                    setStatusEditPopup(prev => ({ ...prev, isOpen: false }));
+                  }}
+                >
+                  <SelectTrigger className="w-full h-9 text-sm">
+                    <SelectValue placeholder="Select an option" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {statusEditPopup.options.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
+        </div>
       )}
 
       {/* Zoom Modal for Generated Images */}

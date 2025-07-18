@@ -91,10 +91,6 @@ export default function LibraryManager({ onClose, onApplyPreset }: {
   const [folderStructure, setFolderStructure] = useState<FolderStructure[]>([]);
   const [folders, setFolders] = useState<FolderData[]>([]);
 
-  // New folder modal state
-  const [showNewFolderModal, setShowNewFolderModal] = useState(false);
-  const [newFolderName, setNewFolderName] = useState('');
-
   // --- Folder context menu and copy/cut state ---
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; folderPath: string } | null>(null);
   const [editingFolder, setEditingFolder] = useState<string | null>(null);
@@ -129,673 +125,6 @@ export default function LibraryManager({ onClose, onApplyPreset }: {
   const [filenameConflictModal, setFilenameConflictModal] = useState<{ open: boolean; originalName: string; suggestedName: string }>({ open: false, originalName: '', suggestedName: '' });
   const [conflictNewFilename, setConflictNewFilename] = useState<string>('');
   const [pendingPasteOperation, setPendingPasteOperation] = useState<{ operation: 'copy' | 'move'; preset: PresetData; destRoute: string } | null>(null);
-
-  // --- Folder copy/cut handlers ---
-  const handleCopy = (folderPath: string) => {
-    setCopyState(1);
-    setCopiedPath(folderPath);
-    setContextMenu(null);
-    toast.success(`Folder "${folderPath.split('/').pop()}" copied`);
-  };
-  const handleCut = (folderPath: string) => {
-    setCopyState(2);
-    setCopiedPath(folderPath);
-    setContextMenu(null);
-    toast.success(`Folder "${folderPath.split('/').pop()}" cut`);
-  };
-  const handlePaste = async () => {
-    if (copyState === 0 || !copiedPath) {
-      toast.error('No folder to paste');
-      return;
-    }
-
-    // Prevent pasting into the same folder or its subfolders
-    if (currentPath === copiedPath ||
-      (currentPath && copiedPath.startsWith(currentPath + '/')) ||
-      (currentPath && currentPath.startsWith(copiedPath + '/'))) {
-      toast.error('Cannot paste into the same folder or a subfolder of the source folder');
-      return;
-    }
-
-    setIsPasting(true);
-
-    try {
-      const sourceFolderName = copiedPath.split('/').pop() || '';
-      const operationType = copyState === 1 ? 'copying' : 'moving';
-
-      toast.info(`${operationType.charAt(0).toUpperCase() + operationType.slice(1)} folder...`, {
-        description: `Processing "${sourceFolderName}" - this may take a moment depending on the folder contents`,
-        duration: 5000
-      });
-
-      console.log('currentPath', currentPath);
-      console.log('copiedPath', copiedPath);
-      console.log('sourceFolderName', sourceFolderName);
-
-      const newFolderName = sourceFolderName;
-      const targetPath = currentPath ? `${currentPath}/${newFolderName}` : newFolderName;
-
-      // Create the new folder
-      const createResponse = await fetch('https://api.nymia.ai/v1/createfolder', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer WeInfl3nc3withAI'
-        },
-        body: JSON.stringify({
-          user: LIBRARY_USER_ID,
-          parentfolder: `presets/${currentPath ? currentPath + '/' : ''}`,
-          folder: newFolderName
-        })
-      });
-
-      if (!createResponse.ok) {
-        throw new Error('Failed to create new folder');
-      }
-
-      console.log('New folder created successfully');
-
-      // Get all files from the source folder
-      const getFilesResponse = await fetch('https://api.nymia.ai/v1/getfilenames', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer WeInfl3nc3withAI'
-        },
-        body: JSON.stringify({
-          user: LIBRARY_USER_ID,
-          folder: `presets/${copiedPath}`
-        })
-      });
-
-      if (getFilesResponse.ok) {
-        const files = await getFilesResponse.json();
-        console.log('Files to copy:', files);
-
-        // Copy all files to the new folder
-        if (files && files.length > 0 && files[0].Key) {
-          const copyPromises = files.map(async (file: any) => {
-            console.log("File:", file);
-            const fileKey = file.Key;
-            const re = new RegExp(`^.*?presets/${copiedPath}/`);
-            const fileName = fileKey.replace(re, "");
-            console.log("File Name:", fileName);
-
-            // Check if file already exists in destination folder
-            const fileExistsInDest = await checkFileExistsInFolder(fileName, targetPath);
-            if (fileExistsInDest) {
-              console.warn(`File "${fileName}" already exists in destination folder. Skipping.`);
-              toast.warning(`File "${fileName}" already exists in destination. Skipped.`, {
-                duration: 3000
-              });
-              return; // Skip this file
-            }
-
-            const copyResponse = await fetch('https://api.nymia.ai/v1/copyfile', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': 'Bearer WeInfl3nc3withAI'
-              },
-              body: JSON.stringify({
-                user: LIBRARY_USER_ID,
-                source: `presets/${copiedPath}/${fileName}`,
-                destination: `presets/${targetPath}/${fileName}`
-              })
-            });
-
-            if (!copyResponse.ok) {
-              console.error(`Failed to copy file: ${fileName}`);
-              toast.error(`Failed to copy file: ${fileName}`);
-            } else {
-              console.log(`Successfully copied file: ${fileName}`);
-            }
-          });
-
-          await Promise.all(copyPromises);
-        }
-      }
-
-      // If it was a cut operation, delete the original folder
-      if (copyState === 2) {
-        try {
-          const deleteResponse = await fetch('https://api.nymia.ai/v1/deletefolder', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': 'Bearer WeInfl3nc3withAI'
-            },
-            body: JSON.stringify({
-              user: LIBRARY_USER_ID,
-              folder: `presets/${copiedPath}`
-            })
-          });
-
-          if (!deleteResponse.ok) {
-            console.error('Failed to delete original folder after move');
-            toast.error('Folder copied but failed to delete original folder');
-          } else {
-            console.log('Successfully deleted original folder after move');
-          }
-        } catch (error) {
-          console.error('Error deleting original folder:', error);
-          toast.error('Folder copied but failed to delete original folder');
-        }
-      }
-
-      // Refresh folders and presets
-      await Promise.all([fetchFolders(), fetchPresets()]);
-
-      setCopyState(0);
-      setCopiedPath(null);
-      setIsPasting(false);
-
-      const operationText = copyState === 1 ? 'copied' : 'moved';
-      toast.success(`Folder "${sourceFolderName}" ${operationText} successfully`);
-
-    } catch (error) {
-      console.error('Error pasting folder:', error);
-      toast.error('Failed to paste folder. Please try again.');
-      setIsPasting(false);
-    }
-  };
-
-  const checkFileExistsInFolder = async (fileName: string, folderPath: string): Promise<boolean> => {
-    try {
-      const response = await fetch('https://api.nymia.ai/v1/getfilenames', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer WeInfl3nc3withAI'
-        },
-        body: JSON.stringify({
-          user: LIBRARY_USER_ID,
-          folder: `presets/${folderPath}`
-        })
-      });
-
-      if (!response.ok) {
-        return false;
-      }
-
-      const files = await response.json();
-      return files.some((file: any) => file.Key && file.Key.includes(fileName));
-    } catch (error) {
-      console.error('Error checking file existence:', error);
-      return false;
-    }
-  };
-
-  const handleFilePaste = async () => {
-    if (fileCopyState === 0 || !copiedFile) {
-      toast.error('No file to paste');
-      return;
-    }
-
-    setIsPastingFile(true);
-
-    try {
-      const operationType = fileCopyState === 1 ? 'copying' : 'moving';
-      const fileName = copiedFile.name;
-      const sourceRoute = copiedFile.route;
-
-      // Fix the destination route construction
-      const destRoute = currentPath === '' ? '' : currentPath;
-
-      // Check if file already exists in destination
-      const fileExists = presets.some(p => p.name === fileName && p.route === destRoute);
-      if (fileExists) {
-        toast.warning(`Preset "${fileName}" already exists in this location. Skipping paste operation.`, {
-          description: 'Please rename the existing preset or choose a different location.'
-        });
-        return;
-      }
-
-      if (fileCopyState === 1) {
-
-        const copyResponse = await fetch('https://api.nymia.ai/v1/copyfile', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer WeInfl3nc3withAI'
-          },
-          body: JSON.stringify({
-            user: LIBRARY_USER_ID,
-            sourcefilename: `presets/${copiedFile.route}/${copiedFile.image_name}`,
-            destinationfilename: `presets/${destRoute}/${copiedFile.image_name}`
-          })
-        });
-
-        if (!copyResponse.ok) {
-          throw new Error('Failed to copy file');
-        }
-
-        // Copy operation - create a new preset with the same data but different route
-        const newPresetData = {
-          user_id: copiedFile.user_id,
-          jsonjob: copiedFile.jsonjob,
-          name: fileName,
-          image_name: copiedFile.image_name,
-          route: destRoute,
-          rating: copiedFile.rating || 0,
-          favorite: copiedFile.favorite || false
-        };
-
-        const response = await fetch('https://db.nymia.ai/rest/v1/presets', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer WeInfl3nc3withAI'
-          },
-          body: JSON.stringify(newPresetData)
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to copy preset');
-        }
-
-        fetchPresets();
-
-        toast.success(`Preset "${fileName}" copied successfully`);
-
-      } else {
-        // Move operation - update the route of the existing preset
-        const response = await fetch(`https://db.nymia.ai/rest/v1/presets?id=eq.${copiedFile.id}`, {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer WeInfl3nc3withAI'
-          },
-          body: JSON.stringify({
-            route: destRoute
-          })
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to move preset');
-        }
-
-        await fetch('https://api.nymia.ai/v1/copyfile', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer WeInfl3nc3withAI'
-          },
-          body: JSON.stringify({
-            user: LIBRARY_USER_ID,
-            sourcefilename: `presets/${copiedFile.route}/${copiedFile.image_name}`,
-            destinationfilename: `presets/${destRoute}/${copiedFile.image_name}`
-          })
-        });
-
-        await fetch('https://api.nymia.ai/v1/deletefile', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer WeInfl3nc3withAI'
-          },
-          body: JSON.stringify({
-            user: LIBRARY_USER_ID,
-            filename: `presets/${copiedFile.route}/${copiedFile.image_name}`
-          })
-        });
-
-        // Update local state
-        setPresets(prev => prev.map(preset =>
-          preset.id === copiedFile.id
-            ? { ...preset, route: destRoute }
-            : preset
-        ));
-
-        toast.success(`Preset "${fileName}" moved successfully`);
-      }
-
-      // Clear clipboard
-      setFileCopyState(0);
-      setCopiedFile(null);
-
-    } catch (error) {
-      console.error('Error pasting file:', error);
-      const operationType = fileCopyState === 1 ? 'copy' : 'move';
-      toast.error(`Failed to ${operationType} preset: ${error.message}`);
-    } finally {
-      setIsPastingFile(false);
-    }
-  };
-
-  const handleDeleteFolder = async (folderPath: string) => {
-    try {
-      toast.info('Deleting folder...', {
-        description: 'This may take a moment depending on the folder contents'
-      });
-
-      // Delete folder from storage
-      const response = await fetch('https://api.nymia.ai/v1/deletefolder', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer WeInfl3nc3withAI'
-        },
-        body: JSON.stringify({
-          user: LIBRARY_USER_ID,
-          folder: `presets/${folderPath}`
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to delete folder');
-      }
-
-      // Refresh folders from API
-      await fetchFolders();
-
-      // If we're currently in the deleted folder or one of its subfolders, navigate to parent
-      if (currentPath === folderPath || currentPath.startsWith(folderPath + '/')) {
-        const pathParts = folderPath.split('/');
-        pathParts.pop();
-        const parentPath = pathParts.join('/');
-        setCurrentPath(parentPath);
-      }
-
-      setContextMenu(null);
-      toast.success(`Folder "${folderPath.split('/').pop()}" deleted successfully`);
-    } catch (error) {
-      console.error('Error deleting folder:', error);
-      toast.error('Failed to delete folder. Please try again.');
-      setContextMenu(null);
-    }
-  };
-
-  // --- Folder rename functionality ---
-  const handleFolderRename = async (oldPath: string, newName: string) => {
-    try {
-      // Get the old folder name from the path
-      const oldFolderName = oldPath.split('/').pop() || '';
-      const enNewName = encodeName(newName);
-
-      // Check if the new name is the same as the old name
-      if (oldFolderName === enNewName) {
-        console.log('Folder name unchanged, cancelling rename operation');
-        setEditingFolder(null);
-        setEditingFolderName('');
-        return;
-      }
-
-      // Show warning toast before starting the operation
-      toast.warning('Folder rename in progress...', {
-        description: 'This operation may take some time depending on the folder contents. Please wait.',
-        duration: 3000
-      });
-
-      // Set loading state
-      setRenamingFolder(oldPath);
-      toast.info('Renaming folder...', {
-        description: 'This may take a moment depending on the folder contents'
-      });
-
-      console.log('Renaming folder:', oldPath, 'to:', enNewName);
-
-      // Get the parent path and construct the new path
-      const pathParts = oldPath.split('/');
-      const oldFolderNameFromPath = pathParts.pop() || '';
-      const parentPath = pathParts.join('/');
-      const newPath = parentPath ? `${parentPath}/${enNewName}` : enNewName;
-
-      console.log('Parent path:', parentPath);
-      console.log('New path:', newPath);
-
-      // Step 1: Create the new folder
-      const createResponse = await fetch('https://api.nymia.ai/v1/createfolder', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer WeInfl3nc3withAI'
-        },
-        body: JSON.stringify({
-          user: LIBRARY_USER_ID,
-          parentfolder: `presets/${parentPath ? parentPath + '/' : ''}`,
-          folder: enNewName
-        })
-      });
-
-      if (!createResponse.ok) {
-        throw new Error('Failed to create new folder');
-      }
-
-      console.log('New folder created successfully');
-
-      // Step 2: Get all files from the old folder
-      const getFilesResponse = await fetch('https://api.nymia.ai/v1/getfilenames', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer WeInfl3nc3withAI'
-        },
-        body: JSON.stringify({
-          user: LIBRARY_USER_ID,
-          folder: `presets/${oldPath}`
-        })
-      });
-
-      if (getFilesResponse.ok) {
-        const files = await getFilesResponse.json();
-        console.log('Files to copy:', files);
-
-        // Step 3: Copy all files to the new folder
-        if (files && files.length > 0 && files[0].Key) {
-          const copyPromises = files.map(async (file: any) => {
-            console.log("File:", file);
-            const fileKey = file.Key;
-            const re = new RegExp(`^.*?presets/${oldPath}/`);
-            const fileName = fileKey.replace(re, "");
-            console.log("File Name:", fileName);
-
-            const copyResponse = await fetch('https://api.nymia.ai/v1/copyfile', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': 'Bearer WeInfl3nc3withAI'
-              },
-              body: JSON.stringify({
-                user: LIBRARY_USER_ID,
-                sourcefilename: `presets/${oldPath}/${fileName}`,
-                destinationfilename: `presets/${newPath}/${fileName}`
-              })
-            });
-
-            if (!copyResponse.ok) {
-              console.warn(`Failed to copy file ${file}`);
-              throw new Error(`Failed to copy file ${file}`);
-            }
-          });
-
-          await Promise.all(copyPromises);
-          console.log('All files copied successfully');
-        }
-      }
-
-      // Step 4: Delete the old folder
-      await handleDeleteFolder(oldPath);
-
-      // Reset form
-      setEditingFolder(null);
-      setEditingFolderName('');
-      setRenamingFolder(null);
-
-      toast.success(`Folder renamed to "${newName}" successfully`);
-    } catch (error) {
-      console.error('Error renaming folder:', error);
-      toast.error('Failed to rename folder');
-      setRenamingFolder(null);
-      setEditingFolder(null);
-      setEditingFolderName('');
-    }
-  };
-
-  // --- Drag & drop state ---
-  const handleDragStart = (e: React.DragEvent, folderPath: string) => {
-    setDraggedFolder(folderPath);
-    setIsDragging(true);
-    e.dataTransfer.effectAllowed = 'move';
-  };
-
-  const handleDragEnd = () => {
-    setDraggedFolder(null);
-    setDragOverFolder(null);
-    setIsDragging(false);
-  };
-
-  const handleDragOver = (e: React.DragEvent, folderPath: string) => {
-    e.preventDefault();
-    if (draggedFolder && draggedFolder !== folderPath) {
-      setDragOverFolder(folderPath);
-    }
-  };
-
-  const handleDragLeave = () => {
-    setDragOverFolder(null);
-  };
-
-  const handleDrop = async (e: React.DragEvent, targetFolderPath: string) => {
-    e.preventDefault();
-    if (!draggedFolder || draggedFolder === targetFolderPath) {
-      setDragOverFolder(null);
-      return;
-    }
-
-    try {
-      const sourceFolderName = draggedFolder.split('/').pop() || '';
-      toast.info('Moving folder...', {
-        description: `Processing "${sourceFolderName}" - this may take a moment`,
-        duration: 5000
-      });
-
-      // Create new folder in destination
-      const createResponse = await fetch('https://api.nymia.ai/v1/createfolder', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer WeInfl3nc3withAI'
-        },
-        body: JSON.stringify({
-          user: LIBRARY_USER_ID,
-          parentfolder: `presets/${targetFolderPath ? targetFolderPath + '/' : ''}`,
-          folder: sourceFolderName
-        })
-      });
-
-      if (!createResponse.ok) {
-        throw new Error('Failed to create new folder');
-      }
-
-      // Copy all files from source to destination
-      const getFilesResponse = await fetch('https://api.nymia.ai/v1/getfilenames', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer WeInfl3nc3withAI'
-        },
-        body: JSON.stringify({
-          user: LIBRARY_USER_ID,
-          folder: `presets/${draggedFolder}`
-        })
-      });
-
-      if (getFilesResponse.ok) {
-        const files = await getFilesResponse.json();
-        if (files && files.length > 0 && files[0].Key) {
-          const copyPromises = files.map(async (file: any) => {
-            const fileKey = file.Key;
-            const re = new RegExp(`^.*?presets/${draggedFolder}/`);
-            const fileName = fileKey.replace(re, "");
-
-            const copyResponse = await fetch('https://api.nymia.ai/v1/copyfile', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': 'Bearer WeInfl3nc3withAI'
-              },
-              body: JSON.stringify({
-                user: LIBRARY_USER_ID,
-                sourcefilename: `presets/${draggedFolder}/${fileName}`,
-                destinationfilename: `presets/${targetFolderPath ? targetFolderPath + '/' : ''}${sourceFolderName}/${fileName}`
-              })
-            });
-
-            if (!copyResponse.ok) {
-              console.warn(`Failed to copy file ${fileName}`);
-            }
-          });
-
-          await Promise.all(copyPromises);
-        }
-      }
-
-      // Delete the original folder
-      await handleDeleteFolder(draggedFolder);
-
-      // Refresh folders
-      await fetchFolders();
-
-      setDragOverFolder(null);
-      toast.success(`Folder "${sourceFolderName}" moved successfully`);
-    } catch (error) {
-      console.error('Error moving folder:', error);
-      toast.error('Failed to move folder');
-      setDragOverFolder(null);
-    }
-  };
-
-  // --- Context menu handler ---
-  const handleContextMenu = (e: React.MouseEvent, folderPath: string) => {
-    e.preventDefault();
-
-    // Get the dialog element to calculate relative positioning
-    const dialogElement = document.querySelector('[role="dialog"]') as HTMLElement;
-    if (!dialogElement) {
-      // Fallback to mouse coordinates if dialog not found
-      setContextMenu({
-        x: e.clientX,
-        y: e.clientY,
-        folderPath
-      });
-      return;
-    }
-
-    // Get dialog bounds
-    const dialogRect = dialogElement.getBoundingClientRect();
-
-    // Calculate position relative to dialog
-    const relativeX = e.clientX - dialogRect.left;
-    const relativeY = e.clientY - dialogRect.top;
-
-    // Ensure menu doesn't go outside dialog bounds
-    const menuWidth = 160; // min-w-[160px]
-    const menuHeight = 200; // approximate height
-
-    let finalX = relativeX;
-    let finalY = relativeY;
-
-    // Adjust if menu would go outside right edge
-    if (relativeX + menuWidth > dialogRect.width) {
-      finalX = relativeX - menuWidth;
-    }
-
-    // Adjust if menu would go outside bottom edge
-    if (relativeY + menuHeight > dialogRect.height) {
-      finalY = relativeY - menuHeight;
-    }
-
-    // Ensure menu doesn't go outside left/top edges
-    finalX = Math.max(0, finalX);
-    finalY = Math.max(0, finalY);
-
-    setContextMenu({
-      x: finalX,
-      y: finalY,
-      folderPath
-    });
-  };
   useEffect(() => {
     const handleClickOutside = () => setContextMenu(null);
     document.addEventListener('click', handleClickOutside);
@@ -1059,99 +388,6 @@ export default function LibraryManager({ onClose, onApplyPreset }: {
     }
   };
 
-  // Handle create folder
-  const handleCreateFolder = async () => {
-    if (!newFolderName.trim()) {
-      toast.error('Please enter a folder name');
-      return;
-    }
-
-    const enFolderName = encodeName(newFolderName);
-
-    try {
-      const folderPath = currentPath ? `${currentPath}/${enFolderName}` : enFolderName;
-
-      // Create folder in storage
-      const response = await fetch('https://api.nymia.ai/v1/createfolder', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer WeInfl3nc3withAI'
-        },
-        body: JSON.stringify({
-          user: LIBRARY_USER_ID,
-          parentfolder: `presets/${currentPath ? currentPath + '/' : ''}`,
-          folder: enFolderName
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to create folder');
-      }
-
-      // Add the new folder to the structure
-      const newFolder: FolderStructure = {
-        name: enFolderName,
-        path: folderPath,
-        children: [],
-        isFolder: true
-      };
-
-      if (currentPath) {
-        // Add to current folder's children
-        setFolderStructure(prev => {
-          const updated = [...prev];
-          const updateFolder = (folders: FolderStructure[]): FolderStructure[] => {
-            return folders.map(folder => {
-              if (folder.path === currentPath) {
-                return { ...folder, children: [...folder.children, newFolder] };
-              }
-              if (folder.children.length > 0) {
-                return { ...folder, children: updateFolder(folder.children) };
-              }
-              return folder;
-            });
-          };
-          return updateFolder(updated);
-        });
-      } else {
-        // Add to root level
-        setFolderStructure(prev => [...prev, newFolder]);
-      }
-
-      // Reset form
-      setNewFolderName('');
-      setShowNewFolderModal(false);
-
-      toast.success(`Folder "${newFolderName}" created successfully`);
-    } catch (error) {
-      console.error('Error creating folder:', error);
-      toast.error('Failed to create folder');
-    }
-  };
-
-  // Handle preset delete
-  const handlePresetDelete = async (preset: PresetData) => {
-    try {
-      const response = await fetch(`https://db.nymia.ai/rest/v1/presets?id=eq.${preset.id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': 'Bearer WeInfl3nc3withAI'
-        }
-      });
-
-      if (response.ok) {
-        setPresets(prev => prev.filter(p => p.id !== preset.id));
-        toast.success(`Deleted preset: ${preset.name}`);
-      } else {
-        throw new Error('Failed to delete preset');
-      }
-    } catch (error) {
-      console.error('Error deleting preset:', error);
-      toast.error('Failed to delete preset');
-    }
-  };
-
   // Handle apply preset
   const handleApplyPreset = (preset: PresetData) => {
     // Show confirmation modal
@@ -1222,185 +458,6 @@ export default function LibraryManager({ onClose, onApplyPreset }: {
     }
   };
 
-  // Update rating for preset
-  const updatePresetRating = async (presetId: number, rating: number) => {
-    try {
-      const response = await fetch(`https://db.nymia.ai/rest/v1/presets?id=eq.${presetId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer WeInfl3nc3withAI'
-        },
-        body: JSON.stringify({
-          rating: rating
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to update rating');
-      }
-
-      // Update local state
-      setPresets(prev => prev.map(preset =>
-        preset.id === presetId
-          ? { ...preset, rating: rating }
-          : preset
-      ));
-
-      // Update modal state if the preset is currently being viewed
-      setDetailedPresetModal(prev =>
-        prev.open && prev.preset?.id === presetId
-          ? { ...prev, preset: { ...prev.preset, rating: rating } }
-          : prev
-      );
-
-      toast.success(`Rating updated to ${rating} stars`);
-    } catch (error) {
-      console.error('Error updating rating:', error);
-      toast.error('Failed to update rating');
-    }
-  };
-
-  // Update favorite for preset
-  const updatePresetFavorite = async (presetId: number, favorite: boolean) => {
-    try {
-      const response = await fetch(`https://db.nymia.ai/rest/v1/presets?id=eq.${presetId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer WeInfl3nc3withAI'
-        },
-        body: JSON.stringify({
-          favorite: favorite
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to update favorite status');
-      }
-
-      // Update local state
-      setPresets(prev => prev.map(preset =>
-        preset.id === presetId
-          ? { ...preset, favorite: favorite }
-          : preset
-      ));
-
-      // Update modal state if the preset is currently being viewed
-      setDetailedPresetModal(prev =>
-        prev.open && prev.preset?.id === presetId
-          ? { ...prev, preset: { ...prev.preset, favorite: favorite } }
-          : prev
-      );
-
-      toast.success(favorite ? 'Added to favorites' : 'Removed from favorites');
-    } catch (error) {
-      console.error('Error updating favorite status:', error);
-      toast.error('Failed to update favorite status');
-    }
-  };
-
-  // --- File context menu handlers ---
-  const handlePresetCopy = (preset: PresetData) => {
-    setFileCopyState(1);
-    setCopiedFile(preset);
-    setFileContextMenu(null);
-    toast.success(`Preset "${preset.name}" copied to clipboard`);
-  };
-
-  const handlePresetCut = (preset: PresetData) => {
-    setFileCopyState(2);
-    setCopiedFile(preset);
-    setFileContextMenu(null);
-    toast.success(`Preset "${preset.name}" cut to clipboard`);
-  };
-
-  const handlePresetRename = async (oldName: string, newName: string, preset: PresetData) => {
-    if (!newName.trim()) {
-      toast.error('Please enter a valid name');
-      return;
-    }
-
-    setIsRenaming(true);
-    const loadingToast = toast.loading('Renaming preset...');
-
-    try {
-      // Check if new name already exists in the same route
-      const existingPreset = presets.find(p => p.name === newName && p.route === preset.route && p.id !== preset.id);
-      if (existingPreset) {
-        toast.error('A preset with this name already exists in this location');
-        setIsRenaming(false);
-        return;
-      }
-
-      // Update preset name in database
-      const response = await fetch(`https://db.nymia.ai/rest/v1/presets?id=eq.${preset.id}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer WeInfl3nc3withAI'
-        },
-        body: JSON.stringify({
-          name: newName
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to rename preset');
-      }
-
-      // Update local state
-      setPresets(prev => prev.map(p =>
-        p.id === preset.id ? { ...p, name: newName } : p
-      ));
-
-      setEditingFile(null);
-      setEditingFileName('');
-      toast.success(`Preset renamed to "${newName}"`);
-    } catch (error) {
-      console.error('Error renaming preset:', error);
-      toast.error('Failed to rename preset');
-    } finally {
-      setIsRenaming(false);
-    }
-  };
-
-  const handlePresetContextMenu = (e: React.MouseEvent, preset: PresetData) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    // Get the dialog container to calculate relative position
-    const dialogContent = e.currentTarget.closest('[role="dialog"]') as HTMLElement;
-    if (dialogContent) {
-      const rect = dialogContent.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-
-      // Ensure the menu stays within the dialog bounds
-      const menuWidth = 160;
-      const menuHeight = 200;
-      const adjustedX = Math.min(x, rect.width - menuWidth - 10);
-      const adjustedY = Math.min(y, rect.height - menuHeight - 10);
-
-      setFileContextMenu({ x: adjustedX, y: adjustedY, preset });
-    } else {
-      // Fallback to original positioning
-      setFileContextMenu({ x: e.clientX, y: e.clientY, preset });
-    }
-  };
-
-  // Close file context menu when clicking outside
-  useEffect(() => {
-    const handleClickOutside = () => {
-      setFileContextMenu(null);
-    };
-
-    document.addEventListener('click', handleClickOutside);
-    return () => {
-      document.removeEventListener('click', handleClickOutside);
-    };
-  }, []);
-
   // Filter and sort presets based on current route
   const filteredAndSortedPresets = presets
     .filter(preset => {
@@ -1458,102 +515,6 @@ export default function LibraryManager({ onClose, onApplyPreset }: {
   const [draggedPreset, setDraggedPreset] = useState<PresetData | null>(null);
   const [dragOverPreset, setDragOverPreset] = useState<string | null>(null);
   const [isDraggingPreset, setIsDraggingPreset] = useState(false);
-
-  // --- Preset drag and drop handlers ---
-  const handlePresetDragStart = (e: React.DragEvent, preset: PresetData) => {
-    setDraggedPreset(preset);
-    setIsDraggingPreset(true);
-    e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/plain', JSON.stringify(preset));
-  };
-
-  const handlePresetDragEnd = () => {
-    setDraggedPreset(null);
-    setDragOverPreset(null);
-    setIsDraggingPreset(false);
-  };
-
-  const handlePresetDragOver = (e: React.DragEvent, folderPath: string) => {
-    e.preventDefault();
-    if (draggedPreset && draggedPreset.route !== folderPath) {
-      setDragOverPreset(folderPath);
-    }
-  };
-
-  const handlePresetDragLeave = () => {
-    setDragOverPreset(null);
-  };
-
-  const handlePresetDrop = async (e: React.DragEvent, targetFolderPath: string) => {
-    e.preventDefault();
-    if (!draggedPreset || draggedPreset.route === targetFolderPath) {
-      setDragOverPreset(null);
-      return;
-    }
-
-    try {
-      toast.info('Moving preset...', {
-        description: `Processing "${draggedPreset.name}" - this may take a moment`,
-        duration: 3000
-      });
-
-      // Update the preset route in the database
-      const response = await fetch(`https://db.nymia.ai/rest/v1/presets?id=eq.${draggedPreset.id}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer WeInfl3nc3withAI'
-        },
-        body: JSON.stringify({
-          route: targetFolderPath
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to move preset');
-      }
-
-      // Copy the file to the new location
-      await fetch('https://api.nymia.ai/v1/copyfile', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer WeInfl3nc3withAI'
-        },
-        body: JSON.stringify({
-          user: LIBRARY_USER_ID,
-          sourcefilename: draggedPreset.route === '' ? `presets/${draggedPreset.image_name}` : `presets/${draggedPreset.route}/${draggedPreset.image_name}`,
-          destinationfilename: targetFolderPath === '' ? `presets/${draggedPreset.image_name}` : `presets/${targetFolderPath}/${draggedPreset.image_name}`
-        })
-      });
-
-      console.log(`presets/${draggedPreset.route}/${draggedPreset.image_name}`);
-      console.log(`presets/${targetFolderPath}/${draggedPreset.image_name}`);
-
-      // Delete the original file
-      await fetch('https://api.nymia.ai/v1/deletefile', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer WeInfl3nc3withAI'
-        },
-        body: JSON.stringify({
-          user: LIBRARY_USER_ID,
-          filename: `presets/${draggedPreset.route}/${draggedPreset.image_name}`
-        })
-      });
-
-      // Refresh presets
-      await fetchPresets();
-
-      setDragOverPreset(null);
-      toast.success(`Preset "${draggedPreset.name}" moved successfully`);
-    } catch (error) {
-      console.error('Error moving preset:', error);
-      toast.error('Failed to move preset');
-      setDragOverPreset(null);
-    }
-  };
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
@@ -1619,18 +580,6 @@ export default function LibraryManager({ onClose, onApplyPreset }: {
                 <div
                   className={`flex items-center gap-2 p-2 rounded-lg transition-all duration-200 ${dragOverFolder === '' ? 'ring-2 ring-blue-500 ring-opacity-50 bg-blue-100 dark:bg-blue-900/20 scale-105 shadow-lg' : 'hover:bg-gray-100 dark:hover:bg-gray-800'
                     }`}
-                  onDragOver={(e) => {
-                    handleDragOver(e, '');
-                    handlePresetDragOver(e, '');
-                  }}
-                  onDragLeave={() => {
-                    handleDragLeave();
-                    handlePresetDragLeave();
-                  }}
-                  onDrop={(e) => {
-                    handleDrop(e, '');
-                    handlePresetDrop(e, '');
-                  }}
                 >
                   <Button
                     variant="ghost"
@@ -1648,18 +597,6 @@ export default function LibraryManager({ onClose, onApplyPreset }: {
                     <div
                       className={`flex items-center gap-2 p-2 rounded-lg transition-all duration-200 ${dragOverFolder === item.path || dragOverPreset === item.path ? 'ring-2 ring-blue-500 ring-opacity-50 bg-blue-100 dark:bg-blue-900/20 scale-105 shadow-lg' : 'hover:bg-gray-100 dark:hover:bg-gray-800'
                         }`}
-                      onDragOver={(e) => {
-                        handleDragOver(e, item.path);
-                        handlePresetDragOver(e, item.path);
-                      }}
-                      onDragLeave={() => {
-                        handleDragLeave();
-                        handlePresetDragLeave();
-                      }}
-                      onDrop={(e) => {
-                        handleDrop(e, item.path);
-                        handlePresetDrop(e, item.path);
-                      }}
                     >
                       <Button
                         variant="ghost"
@@ -1708,58 +645,6 @@ export default function LibraryManager({ onClose, onApplyPreset }: {
                   Back
                 </Button>
               </CardTitle>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant={copyState > 0 ? "default" : "outline"}
-                  size="sm"
-                  onClick={handlePaste}
-                  disabled={copyState === 0 || isPasting}
-                  className={`flex items-center gap-1.5 transition-all duration-200 ${copyState > 0
-                    ? 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-md'
-                    : 'text-muted-foreground'
-                    }`}
-                >
-                  {isPasting ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                      Processing...
-                    </>
-                  ) : (
-                    <>
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                      {copyState === 1 ? 'Paste Copy' : copyState === 2 ? 'Paste Move' : 'Paste'}
-                    </>
-                  )}
-                </Button>
-
-                {/* File Paste Button */}
-                <Button
-                  variant={fileCopyState > 0 ? "default" : "outline"}
-                  size="sm"
-                  onClick={handleFilePaste}
-                  disabled={fileCopyState === 0 || isPastingFile}
-                  className={`flex items-center gap-1.5 transition-all duration-200 ${fileCopyState > 0
-                    ? 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-md'
-                    : 'text-muted-foreground'
-                    }`}
-                >
-                  {isPastingFile ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                      Processing...
-                    </>
-                  ) : (
-                    <>
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
-                      </svg>
-                      {fileCopyState === 1 ? 'Paste File Copy' : fileCopyState === 2 ? 'Paste File Move' : 'Paste File'}
-                    </>
-                  )}
-                </Button>
-              </div>
             </div>
           </CardHeader>
           <CardContent>
@@ -1771,22 +656,6 @@ export default function LibraryManager({ onClose, onApplyPreset }: {
                   key={folder.path}
                   className={`group cursor-pointer ${renamingFolder === folder.path ? 'opacity-60 pointer-events-none' : ''} ${dragOverFolder === folder.path || dragOverPreset === folder.path ? 'ring-2 ring-blue-500 ring-opacity-50 bg-blue-100 dark:bg-blue-900/20 scale-105 shadow-lg' : ''}`}
                   onDoubleClick={() => renamingFolder !== folder.path && navigateToFolder(folder.path)}
-                  onContextMenu={(e) => renamingFolder !== folder.path && handleContextMenu(e, folder.path)}
-                  draggable={renamingFolder !== folder.path}
-                  onDragStart={(e) => handleDragStart(e, folder.path)}
-                  onDragEnd={handleDragEnd}
-                  onDragOver={(e) => {
-                    handleDragOver(e, folder.path);
-                    handlePresetDragOver(e, folder.path);
-                  }}
-                  onDragLeave={() => {
-                    handleDragLeave();
-                    handlePresetDragLeave();
-                  }}
-                  onDrop={(e) => {
-                    handleDrop(e, folder.path);
-                    handlePresetDrop(e, folder.path);
-                  }}
                 >
                   <div className={`flex flex-col items-center p-3 rounded-lg border-2 border-transparent transition-all duration-200 ${renamingFolder === folder.path
                     ? 'border-yellow-300 bg-yellow-50 dark:bg-yellow-950/20'
@@ -1811,15 +680,6 @@ export default function LibraryManager({ onClose, onApplyPreset }: {
                         <Input
                           value={editingFolderName}
                           onChange={(e) => setEditingFolderName(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              handleFolderRename(folder.path, editingFolderName);
-                            } else if (e.key === 'Escape') {
-                              setEditingFolder(null);
-                              setEditingFolderName('');
-                            }
-                          }}
-                          onBlur={() => handleFolderRename(folder.path, editingFolderName)}
                           className="text-xs h-6 text-center"
                           autoFocus
                         />
@@ -1840,85 +700,9 @@ export default function LibraryManager({ onClose, onApplyPreset }: {
                   </div>
                 </div>
               ))}
-
-              {/* Add New Folder Button */}
-              <div
-                className="group cursor-pointer"
-                onClick={() => setShowNewFolderModal(true)}
-              >
-                <div className="flex flex-col items-center p-3 rounded-lg border-2 border-dashed border-gray-300 hover:border-green-400 hover:bg-green-50 dark:hover:bg-green-950/20 transition-all duration-200">
-                  <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex items-center justify-center mb-2 group-hover:scale-110 transition-transform duration-200">
-                    <Plus className="w-6 h-6 text-white" />
-                  </div>
-                  <span className="text-xs font-medium text-center text-gray-700 dark:text-gray-300 group-hover:text-green-600 dark:group-hover:text-green-400 transition-colors">
-                    New Folder
-                  </span>
-                </div>
-              </div>
             </div>
           </CardContent>
         </Card>
-
-        {/* Context Menu for Folders */}
-        {contextMenu && (
-          <div
-            className="fixed z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg py-1 min-w-[160px]"
-            style={{ left: contextMenu.x, top: contextMenu.y }}
-          >
-            <button
-              className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
-              onClick={() => {
-                // Navigate to folder
-                navigateToFolder(contextMenu.folderPath);
-                setContextMenu(null);
-              }}
-            >
-              <Folder className="w-4 h-4" />
-              Open
-            </button>
-            <button
-              className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
-              onClick={() => {
-                setEditingFolder(contextMenu.folderPath);
-                setEditingFolderName(decodeName(contextMenu.folderPath.split('/').pop() || ''));
-                setContextMenu(null);
-              }}
-            >
-              <Pencil className="w-4 h-4" />
-              Rename
-            </button>
-            <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>
-            <button
-              className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
-              onClick={() => handleCopy(contextMenu.folderPath)}
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-              </svg>
-              Copy
-            </button>
-            <button
-              className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
-              onClick={() => handleCut(contextMenu.folderPath)}
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-              Cut
-            </button>
-            <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>
-            <button
-              className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 text-red-600 dark:text-red-400"
-              onClick={() => {
-                // Delete folder functionality would go here
-                handleDeleteFolder(contextMenu.folderPath);
-              }}
-            >
-              <Trash2 className="w-4 h-4" />
-              Delete
-            </button>
-          </div>
-        )}
 
         {/* Presets Section */}
         <Card className="border-green-500/20 bg-gradient-to-r from-green-50/50 to-emerald-50/50 dark:from-green-950/20 dark:to-emerald-950/20 mb-6">
@@ -1954,48 +738,12 @@ export default function LibraryManager({ onClose, onApplyPreset }: {
             {/* Preset Cards */}
             {!presetsLoading && filteredAndSortedPresets.length > 0 && (
               <div 
-                className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 p-4 rounded-lg transition-all duration-200 ${
-                  isDraggingPreset ? 'bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 border-2 border-dashed border-blue-300 dark:border-blue-700' : ''
-                }`}
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  if (isDraggingPreset) {
-                    setDragOverPreset(currentPath);
-                  }
-                }}
-                onDragLeave={() => {
-                  if (isDraggingPreset) {
-                    setDragOverPreset(null);
-                  }
-                }}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  if (isDraggingPreset && draggedPreset) {
-                    handlePresetDrop(e, currentPath);
-                  }
-                }}
+                className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 p-4 rounded-lg transition-all duration-200`}
               >
-                {/* Drag and Drop Instruction */}
-                {filteredAndSortedPresets.length > 0 && (
-                  <div className="col-span-full mb-4 p-3 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-lg border border-blue-200/50 dark:border-blue-800/50">
-                    <div className="flex items-center gap-2 text-sm text-blue-700 dark:text-blue-300">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
-                      </svg>
-                      <span>Drag presets to move them between folders. Drop on breadcrumb items or folder icons.</span>
-                    </div>
-                  </div>
-                )}
                 {filteredAndSortedPresets.map((preset) => (
                   <Card
                     key={preset.id}
-                    className={`group hover:shadow-xl transition-all duration-300 border border-gray-200 dark:border-gray-700 bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 overflow-hidden ${
-                      draggedPreset?.id === preset.id ? 'opacity-50 scale-95 shadow-lg' : ''
-                    }`}
-                    onContextMenu={(e) => handlePresetContextMenu(e, preset)}
-                    draggable
-                    onDragStart={(e) => handlePresetDragStart(e, preset)}
-                    onDragEnd={handlePresetDragEnd}
+                    className={`group hover:shadow-xl transition-all duration-300 border border-gray-200 dark:border-gray-700 bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 overflow-hidden`}
                   >
                     {/* Top Row: Ratings and Favorite */}
                     <div className="flex items-center justify-between p-3 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-800 border-b border-gray-200 dark:border-gray-600">
@@ -2006,12 +754,6 @@ export default function LibraryManager({ onClose, onApplyPreset }: {
                             <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
                           </svg>
                         </div>
-                        {/* Drag Handle */}
-                        <div className="w-6 h-6 flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 cursor-grab active:cursor-grabbing">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
-                          </svg>
-                        </div>
                       </div>
 
                       {/* Rating Stars */}
@@ -2019,11 +761,10 @@ export default function LibraryManager({ onClose, onApplyPreset }: {
                         {[1, 2, 3, 4, 5].map((star) => (
                           <svg
                             key={star}
-                            className={`w-4 h-4 cursor-pointer hover:scale-110 transition-transform ${star <= (preset.rating || 0) ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
+                            className={`w-4 h-4 hover:scale-110 transition-transform ${star <= (preset.rating || 0) ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
                             viewBox="0 0 24 24"
                             onClick={(e) => {
                               e.stopPropagation();
-                              updatePresetRating(preset.id, star);
                             }}
                           >
                             <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
@@ -2035,10 +776,9 @@ export default function LibraryManager({ onClose, onApplyPreset }: {
                       <div>
                         {preset.favorite ? (
                           <div
-                            className="bg-red-500 rounded-full w-7 h-7 flex items-center justify-center cursor-pointer hover:bg-red-600 transition-colors shadow-md"
+                            className="bg-red-500 rounded-full w-7 h-7 flex items-center justify-center hover:bg-red-600 transition-colors shadow-md"
                             onClick={(e) => {
                               e.stopPropagation();
-                              updatePresetFavorite(preset.id, false);
                             }}
                           >
                             <svg className="w-4 h-4 text-white fill-current" viewBox="0 0 24 24">
@@ -2050,7 +790,6 @@ export default function LibraryManager({ onClose, onApplyPreset }: {
                             className="bg-gray-200 dark:bg-gray-700 rounded-full w-7 h-7 flex items-center justify-center cursor-pointer hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors shadow-md"
                             onClick={(e) => {
                               e.stopPropagation();
-                              updatePresetFavorite(preset.id, true);
                             }}
                           >
                             <svg className="w-4 h-4 text-gray-600 dark:text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -2152,17 +891,6 @@ export default function LibraryManager({ onClose, onApplyPreset }: {
                           <Wand2 className="w-4 h-4 mr-2" />
                           Use
                         </Button>
-                        <Button
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handlePresetDelete(preset);
-                          }}
-                          variant="outline"
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200 hover:border-red-300 transition-all duration-200"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
                       </div>
                     </div>
                   </Card>
@@ -2171,45 +899,6 @@ export default function LibraryManager({ onClose, onApplyPreset }: {
             )}
           </CardContent>
         </Card>
-
-        {/* New Folder Modal */}
-        <Dialog open={showNewFolderModal} onOpenChange={setShowNewFolderModal}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Create New Folder</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm font-medium">Folder Name</label>
-                <Input
-                  placeholder="Enter folder name"
-                  value={newFolderName}
-                  onChange={(e) => setNewFolderName(e.target.value)}
-                  className="mt-1"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && newFolderName.trim()) {
-                      handleCreateFolder();
-                    }
-                  }}
-                />
-              </div>
-              <div className="flex justify-end gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => setShowNewFolderModal(false)}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleCreateFolder}
-                  disabled={!newFolderName.trim()}
-                >
-                  Create Folder
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
 
         {/* Detailed Preset Modal */}
         {detailedPresetModal.open && detailedPresetModal.preset && (
@@ -2292,9 +981,8 @@ export default function LibraryManager({ onClose, onApplyPreset }: {
                                 {[1, 2, 3, 4, 5].map((star) => (
                                   <svg
                                     key={star}
-                                    className={`w-6 h-6 cursor-pointer hover:scale-110 transition-transform ${star <= (detailedPresetModal.preset.rating || 0) ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
+                                    className={`w-6 h-6 hover:scale-110 transition-transform ${star <= (detailedPresetModal.preset.rating || 0) ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
                                     viewBox="0 0 24 24"
-                                    onClick={() => updatePresetRating(detailedPresetModal.preset.id, star)}
                                   >
                                     <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
                                   </svg>
@@ -2307,8 +995,7 @@ export default function LibraryManager({ onClose, onApplyPreset }: {
                               <span className="text-sm font-medium text-muted-foreground">Favorite:</span>
                               {detailedPresetModal.preset.favorite ? (
                                 <div
-                                  className="bg-red-500 rounded-full w-10 h-10 flex items-center justify-center cursor-pointer hover:bg-red-600 transition-colors shadow-md"
-                                  onClick={() => updatePresetFavorite(detailedPresetModal.preset.id, false)}
+                                  className="bg-red-500 rounded-full w-10 h-10 flex items-center justify-center hover:bg-red-600 transition-colors shadow-md"
                                 >
                                   <svg className="w-5 h-5 text-white fill-current" viewBox="0 0 24 24">
                                     <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
@@ -2316,8 +1003,7 @@ export default function LibraryManager({ onClose, onApplyPreset }: {
                                 </div>
                               ) : (
                                 <div
-                                  className="bg-gray-200 dark:bg-gray-700 rounded-full w-10 h-10 flex items-center justify-center cursor-pointer hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors shadow-md"
-                                  onClick={() => updatePresetFavorite(detailedPresetModal.preset.id, true)}
+                                  className="bg-gray-200 dark:bg-gray-700 rounded-full w-10 h-10 flex items-center justify-center hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors shadow-md"
                                 >
                                   <svg className="w-5 h-5 text-gray-600 dark:text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                     <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
@@ -2337,14 +1023,6 @@ export default function LibraryManager({ onClose, onApplyPreset }: {
                         >
                           <Wand2 className="w-5 h-5 mr-2" />
                           Use Preset
-                        </Button>
-                        <Button
-                          onClick={() => handlePresetDelete(detailedPresetModal.preset)}
-                          variant="outline"
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200 hover:border-red-300 transition-all duration-200"
-                        >
-                          <Trash2 className="w-5 h-5 mr-2" />
-                          Delete
                         </Button>
                       </div>
                     </div>
@@ -2662,124 +1340,6 @@ export default function LibraryManager({ onClose, onApplyPreset }: {
                       </CardContent>
                     </Card>
                   )}
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
-        )}
-
-        {/* File Context Menu */}
-        {fileContextMenu && (
-          <div
-            className="absolute z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg py-1 min-w-[160px]"
-            style={{ left: fileContextMenu.x, top: fileContextMenu.y }}
-          >
-            <button
-              className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
-              onClick={() => {
-                setDetailedPresetModal({ open: true, preset: fileContextMenu.preset });
-                setFileContextMenu(null);
-              }}
-            >
-              <Eye className="w-4 h-4" />
-              View Details
-            </button>
-            <button
-              className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
-              onClick={() => {
-                setEditingFile(fileContextMenu.preset.name);
-                setEditingFileName(fileContextMenu.preset.name);
-                setFileContextMenu(null);
-              }}
-            >
-              <Pencil className="w-4 h-4" />
-              Rename
-            </button>
-            <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>
-            <button
-              className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
-              onClick={() => handlePresetCopy(fileContextMenu.preset)}
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-              </svg>
-              Copy
-            </button>
-            <button
-              className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
-              onClick={() => handlePresetCut(fileContextMenu.preset)}
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-              Cut
-            </button>
-            <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>
-            <button
-              className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
-              onClick={() => handleApplyPreset(fileContextMenu.preset)}
-            >
-              <Wand2 className="w-4 h-4" />
-              Use
-            </button>
-            <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>
-            <button
-              className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 text-red-600 dark:text-red-400"
-              onClick={() => {
-                handlePresetDelete(fileContextMenu.preset);
-                setFileContextMenu(null);
-              }}
-            >
-              <Trash2 className="w-4 h-4" />
-              Delete
-            </button>
-          </div>
-        )}
-
-        {/* Rename Dialog */}
-        {editingFile && (
-          <Dialog open={!!editingFile} onOpenChange={() => setEditingFile(null)}>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Rename Preset</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium">New Name</label>
-                  <Input
-                    placeholder="Enter new name"
-                    value={editingFileName}
-                    onChange={(e) => setEditingFileName(e.target.value)}
-                    className="mt-1"
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && editingFileName.trim()) {
-                        const preset = presets.find(p => p.name === editingFile);
-                        if (preset) {
-                          handlePresetRename(editingFile, editingFileName, preset);
-                        }
-                      }
-                    }}
-                    autoFocus
-                  />
-                </div>
-                <div className="flex justify-end gap-2">
-                  <Button
-                    variant="outline"
-                    onClick={() => setEditingFile(null)}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    onClick={() => {
-                      const preset = presets.find(p => p.name === editingFile);
-                      if (preset) {
-                        handlePresetRename(editingFile, editingFileName, preset);
-                      }
-                    }}
-                    disabled={!editingFileName.trim() || isRenaming}
-                  >
-                    {isRenaming ? 'Renaming...' : 'Rename'}
-                  </Button>
                 </div>
               </div>
             </DialogContent>

@@ -1626,6 +1626,12 @@ export default function ContentCreate() {
   const [showImageSelector, setShowImageSelector] = useState(false);
   const [isSavingPreset, setIsSavingPreset] = useState(false);
 
+  // File conflict resolution state
+  const [showOverwriteDialog, setShowOverwriteDialog] = useState(false);
+  const [conflictFilename, setConflictFilename] = useState('');
+  const [finalFilename, setFinalFilename] = useState('');
+  const [pendingPresetData, setPendingPresetData] = useState<any>(null);
+
   // Upload functionality for preset images
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
@@ -1702,25 +1708,37 @@ export default function ContentCreate() {
   // Handle overwrite confirmation
   const handleOverwriteConfirm = async () => {
     setShowOverwriteDialog(false);
-    await savePresetWithFilename(conflictFilename, true);
+    if (pendingPresetData) {
+      await savePresetWithFilename(conflictFilename, true, pendingPresetData);
+    }
   };
 
   // Handle new filename confirmation
   const handleNewFilenameConfirm = async () => {
     setShowOverwriteDialog(false);
-    await savePresetWithFilename(finalFilename, false);
+    if (pendingPresetData) {
+      await savePresetWithFilename(finalFilename, false, pendingPresetData);
+    }
   };
 
-  // Save preset with specific filename
-  const savePresetWithFilename = async (filename: string, isOverwrite: boolean = false) => {
-    if (!pendingPresetData) return;
+  const savePresetWithFilename = async (filename: string, isOverwrite: boolean = false, data?: any) => {
+    // Use passed data or fall back to pendingPresetData state
+    const presetDataToUse = data || pendingPresetData;
+    
+    if (!presetDataToUse) {
+      console.error('No data available for saving preset');
+      return;
+    }
 
     try {
-      const { presetData, isUpload } = pendingPresetData;
+      const { presetData, isUpload } = presetDataToUse;
+      console.log('Saving preset with data:', presetData);
 
       if (isUpload && uploadedFile) {
         // Create a new file with the unique filename
         const file = new File([uploadedFile], filename, { type: uploadedFile.type });
+
+        console.log('Uploading file:', filename, 'Size:', file.size, 'Type:', file.type);
 
         const uploadResponse = await fetch(`https://api.nymia.ai/v1/uploadfile?user=${userData.id}&filename=presets/${filename}`, {
           method: 'POST',
@@ -1732,43 +1750,161 @@ export default function ContentCreate() {
         });
 
         if (!uploadResponse.ok) {
-          throw new Error('Failed to upload file');
+          const errorText = await uploadResponse.text();
+          console.error('Upload failed:', uploadResponse.status, errorText);
+          throw new Error(`Failed to upload file: ${uploadResponse.status} ${errorText}`);
         }
+
+        console.log('File upload successful');
       } else {
         const oldPath = selectedPresetImage.user_filename === "" ? "output" : `vault/${selectedPresetImage.user_filename}`;
+        const copyRequest = {
+          user: userData.id,
+          sourcefilename: `${oldPath}/${selectedPresetImage.system_filename}`,
+          destinationfilename: `presets/${filename}`
+        };
+
+        console.log('Copying file:', copyRequest);
+
         const copyResponse = await fetch('https://api.nymia.ai/v1/copyfile', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Authorization': 'Bearer WeInfl3nc3withAI'
           },
-          body: JSON.stringify({
-            user: userData.id,
-            sourcefilename: `${oldPath}/${selectedPresetImage.system_filename}`,
-            destinationfilename: `presets/${filename}`
-          })
+          body: JSON.stringify(copyRequest)
         });
 
         if (!copyResponse.ok) {
-          throw new Error('Failed to copy file');
+          const errorText = await copyResponse.text();
+          console.error('Copy failed:', copyResponse.status, errorText);
+          throw new Error(`Failed to copy file: ${copyResponse.status} ${errorText}`);
         }
+
+        console.log('File copy successful');
       }
 
       // Update preset data with the final filename
       presetData.image_name = filename;
 
-      // Save to database
-      const response = await fetch('https://db.nymia.ai/rest/v1/presets', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer WeInfl3nc3withAI'
-        },
-        body: JSON.stringify(presetData)
-      });
+      // Validate preset data before saving
+      if (!presetData.user_id) {
+        throw new Error('User ID is required');
+      }
+      if (!presetData.name || presetData.name.trim() === '') {
+        throw new Error('Preset name is required');
+      }
+      if (!presetData.jsonjob) {
+        throw new Error('Preset configuration is required');
+      }
+
+      // Ensure all required fields are present
+      const requiredFields = ['user_id', 'name', 'jsonjob', 'image_name'];
+      const missingFields = requiredFields.filter(field => !presetData[field]);
+      if (missingFields.length > 0) {
+        throw new Error(`Missing required fields: ${missingFields.join(', ')}`);
+      }
+
+      // Ensure jsonjob has all required fields
+      const requiredJsonJobFields = ['task', 'lora', 'noAI', 'prompt', 'negative_prompt', 'nsfw_strength', 'lora_strength', 'quality', 'seed', 'guidance', 'number_of_images', 'format', 'engine', 'usePromptOnly'];
+      const missingJsonJobFields = requiredJsonJobFields.filter(field => presetData.jsonjob[field] === undefined);
+      if (missingJsonJobFields.length > 0) {
+        console.warn('Missing jsonjob fields:', missingJsonJobFields);
+        // Set default values for missing fields
+        missingJsonJobFields.forEach(field => {
+          if (field === 'seed') presetData.jsonjob[field] = -1;
+          else if (field === 'guidance') presetData.jsonjob[field] = 3.5;
+          else if (field === 'number_of_images') presetData.jsonjob[field] = 1;
+          else if (field === 'nsfw_strength') presetData.jsonjob[field] = 0;
+          else if (field === 'lora_strength') presetData.jsonjob[field] = 0.9;
+          else if (field === 'lora') presetData.jsonjob[field] = false;
+          else if (field === 'noAI') presetData.jsonjob[field] = true;
+          else if (field === 'usePromptOnly') presetData.jsonjob[field] = false;
+          else presetData.jsonjob[field] = '';
+        });
+      }
+
+      console.log('Saving preset to database:', JSON.stringify(presetData, null, 2));
+      console.log('Database URL:', 'https://db.nymia.ai/rest/v1/presets');
+      console.log('User ID:', userData.id);
+
+      // Save to database with retry mechanism
+      let response;
+      let retryCount = 0;
+      const maxRetries = 3;
+
+      while (retryCount < maxRetries) {
+        try {
+          response = await fetch('https://db.nymia.ai/rest/v1/presets', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer WeInfl3nc3withAI'
+            },
+            body: JSON.stringify(presetData)
+          });
+
+          console.log(`Database response status (attempt ${retryCount + 1}):`, response.status);
+          console.log('Database response headers:', Object.fromEntries(response.headers.entries()));
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Database save failed:', response.status, errorText);
+            
+            // If it's a server error (5xx), retry
+            if (response.status >= 500 && retryCount < maxRetries - 1) {
+              retryCount++;
+              console.log(`Retrying database save (attempt ${retryCount + 1}/${maxRetries})...`);
+              await new Promise(resolve => setTimeout(resolve, 1000 * retryCount)); // Exponential backoff
+              continue;
+            }
+            
+            throw new Error(`Failed to save preset to database: ${response.status} ${errorText}`);
+          }
+
+          break; // Success, exit retry loop
+        } catch (error) {
+          if (retryCount < maxRetries - 1) {
+            retryCount++;
+            console.log(`Retrying database save due to error (attempt ${retryCount + 1}/${maxRetries}):`, error);
+            await new Promise(resolve => setTimeout(resolve, 1000 * retryCount)); // Exponential backoff
+            continue;
+          }
+          throw error; // Re-throw if all retries failed
+        }
+      }
 
       if (!response.ok) {
-        throw new Error('Failed to save preset');
+        const errorText = await response.text();
+        console.error('Database save failed:', response.status, errorText);
+        throw new Error(`Failed to save preset to database: ${response.status} ${errorText}`);
+      }
+
+      // Check if response has content before parsing JSON
+      const responseText = await response.text();
+      console.log('Database response text:', responseText);
+      
+      let savedPreset;
+      try {
+        // If response is empty, consider it a success (some APIs return empty responses on success)
+        if (!responseText || responseText.trim() === '') {
+          console.log('Empty response from database - considering success');
+          savedPreset = { success: true, id: Date.now() }; // Generate a temporary ID
+        } else {
+          savedPreset = JSON.parse(responseText);
+          console.log('Preset saved successfully:', savedPreset);
+        }
+      } catch (parseError) {
+        console.error('Failed to parse database response:', parseError);
+        console.log('Raw response text:', responseText);
+        // If the response is empty or invalid JSON, but the status was OK, 
+        // we can still consider it a success
+        if (response.ok) {
+          console.log('Database operation succeeded despite invalid JSON response');
+          savedPreset = { success: true, id: Date.now() }; // Generate a temporary ID
+        } else {
+          throw new Error(`Invalid response from database: ${responseText}`);
+        }
       }
 
       // Show appropriate success message
@@ -1797,7 +1933,7 @@ export default function ContentCreate() {
 
     } catch (error) {
       console.error('Error saving preset:', error);
-      toast.error('Failed to save preset. Please try again.');
+      toast.error(`Failed to save preset: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setPendingPresetData(null);
       setConflictFilename('');
@@ -1888,17 +2024,16 @@ export default function ContentCreate() {
     toast.success(`Selected recent render: ${decodeName(image.system_filename)}`);
   };
 
-  // File conflict resolution state
-  const [showOverwriteDialog, setShowOverwriteDialog] = useState(false);
-  const [conflictFilename, setConflictFilename] = useState('');
-  const [finalFilename, setFinalFilename] = useState('');
-  const [pendingPresetData, setPendingPresetData] = useState<any>(null);
-
   const handleSavePresetToDatabase = async () => {
     if (!presetName.trim() || !selectedPresetImage) {
       toast.error('Please provide a preset name and select an image');
       return;
     }
+
+    console.log('Starting preset save process...');
+    console.log('Preset name:', presetName);
+    console.log('Selected image:', selectedPresetImage);
+    console.log('Image source:', presetImageSource);
 
     setIsSavingPreset(true);
 
@@ -1908,12 +2043,16 @@ export default function ContentCreate() {
         ? uploadedFile.name
         : selectedPresetImage.system_filename;
 
+      console.log('Original filename:', originalFilename);
+
       // Check for file conflicts
       const { hasConflict, existingFilenames } = await checkFileConflict(originalFilename);
+      console.log('File conflict check:', { hasConflict, existingFilenames });
 
       if (hasConflict) {
         // Generate unique filename
         const uniqueFilename = generateUniqueFilename(originalFilename, existingFilenames);
+        console.log('Generated unique filename:', uniqueFilename);
 
         // Store conflict info and show dialog
         setConflictFilename(originalFilename);
@@ -1975,18 +2114,23 @@ export default function ContentCreate() {
         const presetData = {
           user_id: userData.id,
           jsonjob: jsonjob,
-          name: presetName,
-          description: presetDescription,
+          name: presetName.trim(),
+          description: presetDescription.trim(),
           image_name: originalFilename,
           route: '',
           rating: 0,
-          favorite: false
+          favorite: false,
+          created_at: new Date().toISOString()
         };
+
+        console.log('Prepared preset data for conflict resolution:', presetData);
 
         setPendingPresetData({
           presetData,
           isUpload: presetImageSource === 'upload'
         });
+
+        console.log('Set pendingPresetData for conflict resolution');
 
         return; // Wait for user decision
       }
@@ -2046,25 +2190,36 @@ export default function ContentCreate() {
       const presetData = {
         user_id: userData.id,
         jsonjob: jsonjob,
-        name: presetName,
-        description: presetDescription,
+        name: presetName.trim(),
+        description: presetDescription.trim(),
         image_name: originalFilename,
         route: '',
         rating: 0,
-        favorite: false
+        favorite: false,
+        created_at: new Date().toISOString()
       };
 
+      console.log('Prepared preset data for direct save:', presetData);
+
+      // Set pending data for potential conflict resolution
       setPendingPresetData({
         presetData,
         isUpload: presetImageSource === 'upload'
       });
 
-      // Save with original filename
-      await savePresetWithFilename(originalFilename, false);
+      console.log('Set pendingPresetData for direct save');
+
+      // Save with original filename - pass data directly instead of relying on state
+      await savePresetWithFilename(originalFilename, false, {
+        presetData,
+        isUpload: presetImageSource === 'upload'
+      });
 
     } catch (error) {
-      console.error('Error saving preset:', error);
-      toast.error('Failed to save preset. Please try again.');
+      console.error('Error in handleSavePresetToDatabase:', error);
+      toast.error(`Failed to save preset: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsSavingPreset(false);
     }
   };
 
@@ -4632,7 +4787,7 @@ export default function ContentCreate() {
       {showLibraryModal && (
         <LibraryManager
           onClose={() => setShowLibraryModal(false)}
-          onApplyPreset={async (library) => {
+          onApplyPreset={(library) => {
             try {
               const jsonjob = library.jsonjob;
 
@@ -4663,17 +4818,8 @@ export default function ContentCreate() {
               }
 
               // Apply model data if available
-              console.log(jsonjob.model);
               if (jsonjob.model) {
-                const response = await fetch(`https://db.nymia.ai/rest/v1/influencer?id=eq.${jsonjob.model.id}`, {
-                  headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Bearer WeInfl3nc3withAI'
-                  }
-                });
-                const modelData = await response.json();
-                console.log(modelData);
-                setModelData(modelData[0]);
+                setModelData(jsonjob.model);
               }
 
               setShowLibraryModal(false);

@@ -206,6 +206,11 @@ export default function Vault() {
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [regeneratingImages, setRegeneratingImages] = useState<Set<string>>(new Set());
 
+  // Multi-select state
+  const [selectedImages, setSelectedImages] = useState<Set<string>>(new Set());
+  const [isMultiSelectMode, setIsMultiSelectMode] = useState<boolean>(false);
+  const [multiSelectContextMenu, setMultiSelectContextMenu] = useState<{ x: number; y: number } | null>(null);
+
   // Load copy state from localStorage on component mount
   useEffect(() => {
     const savedCopyState = localStorage.getItem('copystate');
@@ -1364,6 +1369,7 @@ export default function Vault() {
 
   // Handle F2 key press
   const handleKeyDown = (e: KeyboardEvent) => {
+    // Existing F2 and Escape functionality
     if (e.key === 'F2' && contextMenu) {
       e.preventDefault();
       setEditingFolder(contextMenu.folderPath);
@@ -1376,6 +1382,56 @@ export default function Vault() {
       e.preventDefault();
       setFilterMenuOpen(false);
     }
+
+    // Multi-select keyboard shortcuts
+    if (e.ctrlKey || e.metaKey) {
+      switch (e.key) {
+        case 'c':
+          e.preventDefault();
+          if (selectedImages.size > 0) {
+            handleMultiCopy();
+          } else if (fileCopyState > 0) {
+            // Existing single file copy logic
+          }
+          break;
+        case 'x':
+          e.preventDefault();
+          if (selectedImages.size > 0) {
+            handleMultiCut();
+          } else if (fileCopyState > 0) {
+            // Existing single file cut logic
+          }
+          break;
+        case 'v':
+          e.preventDefault();
+          if (selectedImages.size > 0 || fileCopyState > 0) {
+            handleMultiPaste();
+          }
+          break;
+        case 'a':
+          e.preventDefault();
+          if (isMultiSelectMode) {
+            selectAllImages();
+          }
+          break;
+        case 'd':
+          e.preventDefault();
+          if (selectedImages.size > 0) {
+            handleMultiDownload();
+          }
+          break;
+        case 'Delete':
+        case 'Backspace':
+          e.preventDefault();
+          if (selectedImages.size > 0) {
+            handleMultiDelete();
+          }
+          break;
+      }
+    } else if (e.key === 'Escape') {
+      clearSelection();
+      setIsMultiSelectMode(false);
+    }
   };
 
   // Add keyboard event listener
@@ -1384,7 +1440,7 @@ export default function Vault() {
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [contextMenu, filterMenuOpen]);
+  }, [contextMenu, filterMenuOpen, selectedImages, fileCopyState, isMultiSelectMode]);
 
   // Handle right-click context menu
   const handleContextMenu = (e: React.MouseEvent, folderPath: string) => {
@@ -1396,6 +1452,7 @@ export default function Vault() {
   useEffect(() => {
     const handleClickOutside = () => {
       setContextMenu(null);
+      setMultiSelectContextMenu(null);
     };
 
     document.addEventListener('click', handleClickOutside);
@@ -2431,7 +2488,14 @@ export default function Vault() {
   // File context menu handler
   const handleFileContextMenu = (e: React.MouseEvent, image: GeneratedImageData) => {
     e.preventDefault();
-    e.stopPropagation();
+
+    // If in multi-select mode and there are selected files, show multi-select context menu
+    if (isMultiSelectMode && selectedImages.size > 0) {
+      setMultiSelectContextMenu({ x: e.clientX, y: e.clientY });
+      return;
+    }
+
+    // Otherwise show single file context menu
     setFileContextMenu({ x: e.clientX, y: e.clientY, image });
   };
 
@@ -2439,6 +2503,7 @@ export default function Vault() {
   useEffect(() => {
     const handleClickOutside = () => {
       setFileContextMenu(null);
+      setMultiSelectContextMenu(null);
     };
 
     document.addEventListener('click', handleClickOutside);
@@ -3035,17 +3100,17 @@ export default function Vault() {
       // Step 3: Parse the JSON job data
       const jsonjob = JSON.parse(originalTask.jsonjob);
       console.log("Parsed JSON job:", jsonjob);
-      if(jsonjob.seed === -1){
+      if (jsonjob.seed === -1) {
         jsonjob.seed = null;
       }
 
       // Step 4: Navigate to ContentCreate with the JSON job data
-      navigate('/content/create', { 
-        state: { 
+      navigate('/content/create', {
+        state: {
           jsonjobData: jsonjob,
           isRegeneration: true,
           originalImage: image
-        } 
+        }
       });
 
       toast.success('Redirecting to ContentCreate for regeneration');
@@ -3062,6 +3127,192 @@ export default function Vault() {
         return newSet;
       });
     }
+  };
+
+  // Multi-select functions
+  const toggleImageSelection = (imageId: string) => {
+    setSelectedImages(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(imageId)) {
+        newSet.delete(imageId);
+      } else {
+        newSet.add(imageId);
+      }
+      return newSet;
+    });
+  };
+
+  const selectAllImages = () => {
+    const allImageIds = filteredAndSortedGeneratedImages.map(img => img.id);
+    setSelectedImages(new Set(allImageIds));
+  };
+
+  const clearSelection = () => {
+    setSelectedImages(new Set());
+  };
+
+  const getSelectedImages = () => {
+    return filteredAndSortedGeneratedImages.filter(img => selectedImages.has(img.id));
+  };
+
+  const handleMultiCopy = () => {
+    const selected = getSelectedImages();
+    if (selected.length === 0) return;
+
+    // Store multiple files for copy operation
+    localStorage.setItem('multiCopiedFiles', JSON.stringify(selected));
+    setFileCopyState(1); // Copy mode
+    setCopiedFile(selected[0]); // Show indicator for first file
+    toast.success(`Copied ${selected.length} file${selected.length > 1 ? 's' : ''}`);
+  };
+
+  const handleMultiCut = () => {
+    const selected = getSelectedImages();
+    if (selected.length === 0) return;
+
+    // Store multiple files for cut operation
+    localStorage.setItem('multiCopiedFiles', JSON.stringify(selected));
+    setFileCopyState(2); // Cut mode
+    setCopiedFile(selected[0]); // Show indicator for first file
+    toast.success(`Cut ${selected.length} file${selected.length > 1 ? 's' : ''}`);
+  };
+
+  const handleMultiPaste = async () => {
+    const multiCopiedFiles = localStorage.getItem('multiCopiedFiles');
+    if (!multiCopiedFiles) return;
+
+    try {
+      const files = JSON.parse(multiCopiedFiles) as GeneratedImageData[];
+      setIsPastingFile(true);
+
+      for (const file of files) {
+        await handleFilePasteOperation(file);
+      }
+
+      // Clear the multi-copy state
+      localStorage.removeItem('multiCopiedFiles');
+      setFileCopyState(0);
+      setCopiedFile(null);
+      clearSelection();
+
+      toast.success(`Pasted ${files.length} file${files.length > 1 ? 's' : ''}`);
+    } catch (error) {
+      console.error('Multi-paste error:', error);
+      toast.error('Failed to paste files');
+    } finally {
+      setIsPastingFile(false);
+    }
+  };
+
+  const handleMultiDownload = async () => {
+    const selected = getSelectedImages();
+    if (selected.length === 0) return;
+
+    try {
+      for (const image of selected) {
+        await handleDownload(image.system_filename);
+      }
+      toast.success(`Downloaded ${selected.length} file${selected.length > 1 ? 's' : ''}`);
+    } catch (error) {
+      console.error('Multi-download error:', error);
+      toast.error('Failed to download some files');
+    }
+  };
+
+  const handleMultiDelete = async () => {
+    const selected = getSelectedImages();
+    if (selected.length === 0) return;
+
+    if (confirm(`Are you sure you want to delete ${selected.length} file${selected.length > 1 ? 's' : ''}?`)) {
+      try {
+        for (const image of selected) {
+          await handleFileDelete(image);
+        }
+        clearSelection();
+        toast.success(`Deleted ${selected.length} file${selected.length > 1 ? 's' : ''}`);
+      } catch (error) {
+        console.error('Multi-delete error:', error);
+        toast.error('Failed to delete some files');
+      }
+    }
+  };
+
+  // Helper function for paste operations
+  const handleFilePasteOperation = async (file: GeneratedImageData) => {
+    const operationType = fileCopyState === 1 ? 'copying' : 'moving';
+    const fileName = file.system_filename;
+    const route = file.user_filename === "" ? "output" : "vault/" + file.user_filename;
+    const newRoute = 'vault/' + currentPath;
+
+    // Check if file already exists in destination
+    const fileExists = await checkFileExists(fileName);
+    const fileExistsInDb = await checkFileExistsInDatabase(fileName);
+
+    if (fileExists || fileExistsInDb) {
+      toast.warning(`File "${fileName}" already exists in this location. Skipping paste operation.`, {
+        description: 'Please rename the existing file or choose a different location.',
+        duration: 5000
+      });
+      return;
+    }
+
+    console.log("Copied File:", `${route}/${fileName}`);
+    console.log("New Route:", `${newRoute}/${fileName}`);
+
+    await fetch('https://api.nymia.ai/v1/copyfile', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer WeInfl3nc3withAI'
+      },
+      body: JSON.stringify({
+        user: userData.id,
+        sourcefilename: `${route}/${fileName}`,
+        destinationfilename: `${newRoute}/${fileName}`
+      })
+    });
+
+    const postFile = {
+      ...file,
+      user_filename: `${currentPath}`
+    };
+
+    delete postFile.id;
+
+    await fetch(`https://db.nymia.ai/rest/v1/generated_images`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer WeInfl3nc3withAI'
+      },
+      body: JSON.stringify(postFile)
+    });
+
+    // Simulate API call
+    if (fileCopyState === 2) {
+      // Remove from current location if it's a cut operation
+      await fetch(`https://api.nymia.ai/v1/deletefile`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          user: userData.id,
+          filename: `${route}/${fileName}`
+        })
+      });
+
+      await fetch(`https://db.nymia.ai/rest/v1/generated_images?id=eq.${file.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        }
+      });
+    }
+
+    setGeneratedImages(prev => [...prev, { ...file, user_filename: `${currentPath}` }]);
   };
 
   if (foldersLoading) {
@@ -3408,66 +3659,66 @@ export default function Vault() {
         <CardHeader className="pt-5 pb-2">
           {/* Breadcrumb Navigation */}
           <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div
-              className={`flex items-center gap-2 p-2 rounded-lg transition-all duration-200 ${dragOverFolder === '' ? 'ring-2 ring-blue-500 ring-opacity-50 bg-blue-100 dark:bg-blue-900/20 scale-105 shadow-lg' : 'hover:bg-gray-100 dark:hover:bg-gray-800'
-                }`}
-              onDragOver={(e) => handleDragOver(e, '')}
-              onDragLeave={handleDragLeave}
-              onDrop={(e) => handleDrop(e, '')}
-            >
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={navigateToHome}
-                className="h-8 px-2 text-sm font-medium"
+            <div className="flex items-center gap-2">
+              <div
+                className={`flex items-center gap-2 p-2 rounded-lg transition-all duration-200 ${dragOverFolder === '' ? 'ring-2 ring-blue-500 ring-opacity-50 bg-blue-100 dark:bg-blue-900/20 scale-105 shadow-lg' : 'hover:bg-gray-100 dark:hover:bg-gray-800'
+                  }`}
+                onDragOver={(e) => handleDragOver(e, '')}
+                onDragLeave={handleDragLeave}
+                onDrop={(e) => handleDrop(e, '')}
               >
-                <Home className="w-4 h-4 mr-1" />
-                Home
-              </Button>
-            </div>
-            {getBreadcrumbItems().map((item, index) => (
-              <div key={item.path} className="flex items-center gap-2">
-                <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                <div
-                  className={`flex items-center gap-2 p-2 rounded-lg transition-all duration-200 ${dragOverFolder === item.path ? 'ring-2 ring-blue-500 ring-opacity-50 bg-blue-100 dark:bg-blue-900/20 scale-105 shadow-lg' : 'hover:bg-gray-100 dark:hover:bg-gray-800'
-                    }`}
-                  onDragOver={(e) => handleDragOver(e, item.path)}
-                  onDragLeave={handleDragLeave}
-                  onDrop={(e) => handleDrop(e, item.path)}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={navigateToHome}
+                  className="h-8 px-2 text-sm font-medium"
                 >
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => navigateToFolder(item.path)}
-                    className="h-8 px-2 text-sm font-medium"
-                  >
-                    {decodeName(item.name)}
-                  </Button>
-                </div>
+                  <Home className="w-4 h-4 mr-1" />
+                  Home
+                </Button>
               </div>
-            ))}
-          </div>
-          {/* Refresh Button */}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleRefresh}
-            disabled={isRefreshing}
-            className="flex items-center gap-1.5 transition-all duration-200 bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 dark:from-blue-950/20 dark:to-indigo-950/20 dark:hover:from-blue-900/30 dark:hover:to-indigo-900/30 border-blue-200 dark:border-blue-800 hover:border-blue-300 dark:hover:border-blue-700 text-blue-700 dark:text-blue-300 hover:text-blue-800 dark:hover:text-blue-200 shadow-sm hover:shadow-md"
-          >
-            {isRefreshing ? (
-              <>
-                <RefreshCcw className="w-4 h-4 animate-spin" />
-                Refreshing...
-              </>
-            ) : (
-              <>
-                <RefreshCcw className="w-4 h-4" />
-                Refresh
-              </>
-            )}
-          </Button>
+              {getBreadcrumbItems().map((item, index) => (
+                <div key={item.path} className="flex items-center gap-2">
+                  <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                  <div
+                    className={`flex items-center gap-2 p-2 rounded-lg transition-all duration-200 ${dragOverFolder === item.path ? 'ring-2 ring-blue-500 ring-opacity-50 bg-blue-100 dark:bg-blue-900/20 scale-105 shadow-lg' : 'hover:bg-gray-100 dark:hover:bg-gray-800'
+                      }`}
+                    onDragOver={(e) => handleDragOver(e, item.path)}
+                    onDragLeave={handleDragLeave}
+                    onDrop={(e) => handleDrop(e, item.path)}
+                  >
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => navigateToFolder(item.path)}
+                      className="h-8 px-2 text-sm font-medium"
+                    >
+                      {decodeName(item.name)}
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {/* Refresh Button */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              className="flex items-center gap-1.5 transition-all duration-200 bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 dark:from-blue-950/20 dark:to-indigo-950/20 dark:hover:from-blue-900/30 dark:hover:to-indigo-900/30 border-blue-200 dark:border-blue-800 hover:border-blue-300 dark:hover:border-blue-700 text-blue-700 dark:text-blue-300 hover:text-blue-800 dark:hover:text-blue-200 shadow-sm hover:shadow-md"
+            >
+              {isRefreshing ? (
+                <>
+                  <RefreshCcw className="w-4 h-4 animate-spin" />
+                  Refreshing...
+                </>
+              ) : (
+                <>
+                  <RefreshCcw className="w-4 h-4" />
+                  Refresh
+                </>
+              )}
+            </Button>
           </div>
 
           <div className="flex items-center justify-between">
@@ -3750,9 +4001,104 @@ export default function Vault() {
           </div>
         </CardContent>
       </Card>
+      {/* Multi-select Actions Bar */}
+      {isMultiSelectMode && (
+        <div className="flex items-center justify-between gap-4 mb-4 p-3 bg-gradient-to-r from-blue-50/50 to-purple-50/50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-lg border border-blue-200/50 dark:border-blue-800/50">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
+              {selectedImages.size} file{selectedImages.size !== 1 ? 's' : ''} selected
+            </span>
+            {selectedImages.size > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={clearSelection}
+                className="h-6 text-xs"
+              >
+                Clear
+              </Button>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleMultiCopy}
+              disabled={selectedImages.size === 0}
+              className="h-8 text-xs"
+            >
+              <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+              Copy
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleMultiCut}
+              disabled={selectedImages.size === 0}
+              className="h-8 text-xs"
+            >
+              <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+              Cut
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleMultiPaste}
+              disabled={fileCopyState === 0}
+              className="h-8 text-xs"
+            >
+              <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
+              Paste
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleMultiDownload}
+              disabled={selectedImages.size === 0}
+              className="h-8 text-xs"
+            >
+              <Download className="w-3 h-3 mr-1" />
+              Download
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={handleMultiDelete}
+              disabled={selectedImages.size === 0}
+              className="h-8 text-xs"
+            >
+              <Trash2 className="w-3 h-3 mr-1" />
+              Delete
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Results Summary */}
       <div className="flex justify-between items-center mb-6">
+        {/* Multi-select Mode Toggle */}
+        <Button
+          variant={isMultiSelectMode ? "default" : "outline"}
+          size="sm"
+          onClick={() => {
+            setIsMultiSelectMode(!isMultiSelectMode);
+            if (!isMultiSelectMode) {
+              clearSelection();
+            }
+          }}
+          className="flex items-center gap-2"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+          </svg>
+          <span className="hidden sm:inline">Multi-select</span>
+        </Button>
         <div className="flex items-center gap-4">
           <p className="text-sm text-muted-foreground">
             {currentPath === '' ? (
@@ -3830,17 +4176,17 @@ export default function Vault() {
 
                     {/* Image Preview Window */}
                     <div className={`w-full h-32 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center mb-4 transition-all duration-200 ${dragOverUpload
-                        ? 'border-purple-400 dark:border-purple-500 bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30 scale-105'
-                        : 'group-hover:border-purple-400 dark:group-hover:border-purple-500'
+                      ? 'border-purple-400 dark:border-purple-500 bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30 scale-105'
+                      : 'group-hover:border-purple-400 dark:group-hover:border-purple-500'
                       }`}>
                       <div className="text-center">
                         <Upload className={`w-6 h-6 mx-auto mb-2 transition-colors ${dragOverUpload
-                            ? 'text-purple-500 dark:text-purple-400'
-                            : 'text-gray-400 dark:text-gray-500'
+                          ? 'text-purple-500 dark:text-purple-400'
+                          : 'text-gray-400 dark:text-gray-500'
                           }`} />
                         <p className={`text-xs transition-colors ${dragOverUpload
-                            ? 'text-purple-600 dark:text-purple-400'
-                            : 'text-gray-500 dark:text-gray-400'
+                          ? 'text-purple-600 dark:text-purple-400'
+                          : 'text-gray-500 dark:text-gray-400'
                           }`}>
                           {dragOverUpload ? 'Drop file here!' : 'Drop file here or click to upload'}
                         </p>
@@ -3862,13 +4208,41 @@ export default function Vault() {
                   ? 'bg-gradient-to-br from-purple-50/20 to-pink-50/20 dark:from-purple-950/5 dark:to-pink-950/5 hover:border-purple-500/30'
                   : 'bg-gradient-to-br from-yellow-50/20 to-orange-50/20 dark:from-yellow-950/5 dark:to-orange-950/5'
                   } ${renamingFile === image.system_filename ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'
-                  } ${isDragging && draggedImage?.id === image.id ? 'opacity-50 scale-95' : ''}`}
+                  } ${isDragging && draggedImage?.id === image.id ? 'opacity-50 scale-95' : ''}
+                  ${selectedImages.has(image.id) ? 'ring-2 ring-blue-500 ring-opacity-70 bg-blue-50/50 dark:bg-blue-950/20' : ''}`}
                 onContextMenu={(e) => renamingFile !== image.system_filename && handleFileContextMenu(e, image)}
                 draggable={renamingFile !== image.system_filename}
                 onDragStart={(e) => renamingFile !== image.system_filename && handleDragStart(e, image)}
                 onDragEnd={handleDragEnd}
+                onClick={() => {
+                  if (isMultiSelectMode && !renamingFile) {
+                    toggleImageSelection(image.id);
+                  }
+                }}
               >
                 <CardContent className="p-4">
+                  {/* Selection Checkbox - Only visible in multi-select mode */}
+                  {isMultiSelectMode && (
+                    <div className="absolute top-2 left-2 z-20">
+                      <div
+                        className={`w-5 h-5 rounded border-2 flex items-center justify-center cursor-pointer transition-all duration-200 ${selectedImages.has(image.id)
+                          ? 'bg-blue-500 border-blue-500 text-white'
+                          : 'bg-white/90 dark:bg-gray-800/90 border-gray-300 dark:border-gray-600 hover:border-blue-400'
+                          }`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleImageSelection(image.id);
+                        }}
+                      >
+                        {selectedImages.has(image.id) && (
+                          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
+                          </svg>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Top Row: File Type, Ratings, Favorite */}
                   <div className="flex items-center justify-between mb-3">
                     {/* File Type Icon */}
@@ -3965,10 +4339,10 @@ export default function Vault() {
                       src={`https://images.nymia.ai/cdn-cgi/image/w=400/${userData.id}/${image.user_filename === "" ? "output" : "vault/" + image.user_filename}/${image.system_filename}`}
                       alt={image.system_filename}
                       className={`absolute inset-0 w-full h-full object-cover rounded-md shadow-sm cursor-pointer transition-all duration-200 ${isDragging && draggedImage?.id === image.id
-                          ? 'opacity-50 scale-95 ring-2 ring-blue-500 ring-opacity-50'
-                          : isDragging
-                            ? 'opacity-30 scale-98'
-                            : 'hover:scale-105'
+                        ? 'opacity-50 scale-95 ring-2 ring-blue-500 ring-opacity-50'
+                        : isDragging
+                          ? 'opacity-30 scale-98'
+                          : 'hover:scale-105'
                         }`}
                       onClick={(e) => {
                         // Only open modal if not dragging
@@ -5311,8 +5685,8 @@ export default function Vault() {
                               )}
                               {influencer.notes ? (
                                 <span className="text-xs text-muted-foreground">
-                                  {influencer.notes.length > 80 
-                                    ? `${influencer.notes.substring(0, 80)}...` 
+                                  {influencer.notes.length > 80
+                                    ? `${influencer.notes.substring(0, 80)}...`
                                     : influencer.notes
                                   }
                                 </span>
@@ -5406,6 +5780,77 @@ export default function Vault() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Multi-select Context Menu */}
+      {multiSelectContextMenu && selectedImages.size > 0 && (
+        <div
+          className="fixed z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg py-1 min-w-[160px]"
+          style={{ left: multiSelectContextMenu.x, top: multiSelectContextMenu.y }}
+        >
+          <div className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 border-b border-gray-200 dark:border-gray-700">
+            {selectedImages.size} file{selectedImages.size !== 1 ? 's' : ''} selected
+          </div>
+          <button
+            className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+            onClick={() => {
+              handleMultiCopy();
+              setMultiSelectContextMenu(null);
+            }}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
+            Copy Selected
+          </button>
+          <button
+            className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+            onClick={() => {
+              handleMultiCut();
+              setMultiSelectContextMenu(null);
+            }}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+            Cut Selected
+          </button>
+          <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>
+          <button
+            className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+            onClick={() => {
+              handleMultiDownload();
+              setMultiSelectContextMenu(null);
+            }}
+          >
+            <Download className="w-4 h-4" />
+            Download Selected
+          </button>
+          <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>
+          <button
+            className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+            onClick={() => {
+              clearSelection();
+              setMultiSelectContextMenu(null);
+            }}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+            Clear Selection
+          </button>
+          <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>
+          <button
+            className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 text-red-600 dark:text-red-400"
+            onClick={() => {
+              handleMultiDelete();
+              setMultiSelectContextMenu(null);
+            }}
+          >
+            <Trash2 className="w-4 h-4" />
+            Delete Selected
+          </button>
+        </div>
+      )}
     </div>
   );
 }

@@ -129,6 +129,11 @@ export default function PresetsManager({ onClose, onApplyPreset }: {
   const [conflictNewFilename, setConflictNewFilename] = useState<string>('');
   const [pendingPasteOperation, setPendingPasteOperation] = useState<{ operation: 'copy' | 'move'; preset: PresetData; destRoute: string } | null>(null);
 
+  // Multi-select state
+  const [selectedPresets, setSelectedPresets] = useState<Set<number>>(new Set());
+  const [isMultiSelectMode, setIsMultiSelectMode] = useState<boolean>(false);
+  const [multiSelectContextMenu, setMultiSelectContextMenu] = useState<{ x: number; y: number } | null>(null);
+
   // --- Folder copy/cut handlers ---
   const handleCopy = (folderPath: string) => {
     setCopyState(1);
@@ -378,7 +383,8 @@ export default function PresetsManager({ onClose, onApplyPreset }: {
           image_name: copiedFile.image_name,
           route: destRoute,
           rating: copiedFile.rating || 0,
-          favorite: copiedFile.favorite || false
+          favorite: copiedFile.favorite || false,
+          description: copiedFile.description || ''
         };
 
         const response = await fetch('https://db.nymia.ai/rest/v1/presets', {
@@ -1369,6 +1375,12 @@ export default function PresetsManager({ onClose, onApplyPreset }: {
     e.preventDefault();
     e.stopPropagation();
 
+    // If in multi-select mode and there are selected presets, show multi-select context menu
+    if (isMultiSelectMode && selectedPresets.size > 0) {
+      setMultiSelectContextMenu({ x: e.clientX, y: e.clientY });
+      return;
+    }
+
     // Get the dialog container to calculate relative position
     const dialogContent = e.currentTarget.closest('[role="dialog"]') as HTMLElement;
     if (dialogContent) {
@@ -1393,6 +1405,7 @@ export default function PresetsManager({ onClose, onApplyPreset }: {
   useEffect(() => {
     const handleClickOutside = () => {
       setFileContextMenu(null);
+      setMultiSelectContextMenu(null);
     };
 
     document.addEventListener('click', handleClickOutside);
@@ -1554,6 +1567,325 @@ export default function PresetsManager({ onClose, onApplyPreset }: {
       setDragOverPreset(null);
     }
   };
+
+  // Multi-select functions
+  const togglePresetSelection = (presetId: number) => {
+    setSelectedPresets(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(presetId)) {
+        newSet.delete(presetId);
+      } else {
+        newSet.add(presetId);
+      }
+      return newSet;
+    });
+  };
+
+  const selectAllPresets = () => {
+    const allPresetIds = filteredAndSortedPresets.map(preset => preset.id);
+    setSelectedPresets(new Set(allPresetIds));
+  };
+
+  const clearSelection = () => {
+    setSelectedPresets(new Set());
+  };
+
+  const getSelectedPresets = () => {
+    return filteredAndSortedPresets.filter(preset => selectedPresets.has(preset.id));
+  };
+
+  // Helper function to check if there are presets available to paste
+  const hasPresetsToPaste = () => {
+    const multiCopiedPresets = localStorage.getItem('multiCopiedPresets');
+    return multiCopiedPresets && JSON.parse(multiCopiedPresets).length > 0;
+  };
+
+  const handleMultiCopy = () => {
+    const selected = getSelectedPresets();
+    if (selected.length === 0) return;
+
+    // Store multiple presets for copy operation
+    localStorage.setItem('multiCopiedPresets', JSON.stringify(selected));
+    setFileCopyState(1); // Copy mode
+    setCopiedFile(selected[0]); // Show indicator for first preset
+    toast.success(`Copied ${selected.length} preset${selected.length > 1 ? 's' : ''}`);
+  };
+
+  const handleMultiCut = () => {
+    const selected = getSelectedPresets();
+    if (selected.length === 0) return;
+
+    // Store multiple presets for cut operation
+    localStorage.setItem('multiCopiedPresets', JSON.stringify(selected));
+    setFileCopyState(2); // Cut mode
+    setCopiedFile(selected[0]); // Show indicator for first preset
+
+    // Don't remove from current view immediately - they will be removed when pasted
+    // This prevents UI flickering and allows for cancellation
+
+    toast.success(`Cut ${selected.length} preset${selected.length > 1 ? 's' : ''}`);
+  };
+
+  const handleMultiPaste = async () => {
+    const multiCopiedPresets = localStorage.getItem('multiCopiedPresets');
+    if (!multiCopiedPresets) return;
+
+    try {
+      const presets = JSON.parse(multiCopiedPresets) as PresetData[];
+      const operationType = fileCopyState === 1 ? 'copying' : 'moving';
+      setIsPastingFile(true);
+
+      let successCount = 0;
+      let failedCount = 0;
+
+      for (const preset of presets) {
+        try {
+          await handlePresetPasteOperation(preset);
+          successCount++;
+        } catch (error) {
+          console.error(`Failed to paste preset ${preset.name}:`, error);
+          failedCount++;
+        }
+      }
+
+      // Clear the multi-copy state
+      localStorage.removeItem('multiCopiedPresets');
+      setFileCopyState(0);
+      setCopiedFile(null);
+      clearSelection();
+
+      // Refresh presets list
+      await fetchPresets();
+
+      // Show appropriate success/error message
+      if (successCount > 0) {
+        toast.success(`${operationType.charAt(0).toUpperCase() + operationType.slice(1)} ${successCount} preset${successCount > 1 ? 's' : ''} successfully`);
+      }
+      if (failedCount > 0) {
+        toast.error(`Failed to ${operationType} ${failedCount} preset${failedCount > 1 ? 's' : ''}`);
+      }
+    } catch (error) {
+      console.error('Multi-paste error:', error);
+      toast.error('Failed to paste presets');
+    } finally {
+      setIsPastingFile(false);
+    }
+  };
+
+  const handleMultiDelete = async () => {
+    const selected = getSelectedPresets();
+    if (selected.length === 0) return;
+
+    if (confirm(`Are you sure you want to delete ${selected.length} preset${selected.length > 1 ? 's' : ''}?`)) {
+      try {
+        for (const preset of selected) {
+          await handlePresetDelete(preset);
+        }
+        clearSelection();
+        toast.success(`Deleted ${selected.length} preset${selected.length > 1 ? 's' : ''}`);
+      } catch (error) {
+        console.error('Multi-delete error:', error);
+        toast.error('Failed to delete some presets');
+      }
+    }
+  };
+
+  // Helper function for preset paste operations
+  const handlePresetPasteOperation = async (preset: PresetData) => {
+    const operationType = fileCopyState === 1 ? 'copying' : 'moving';
+    const fileName = preset.image_name;
+    const route = preset.route;
+    const newRoute = `${currentPath}`;
+
+    // Check if file already exists in destination
+    const fileExists = await checkFileExistsInFolder(fileName, currentPath);
+
+    if (fileExists) {
+      throw new Error(`Preset "${fileName}" already exists in this location`);
+    }
+
+    console.log("Copied Preset:", `${route}/${fileName}`);
+    console.log("New Route:", `${newRoute}/${fileName}`);
+
+    // Copy the file
+    const copiedFileRoute = preset.route === '' ? '' : `${preset.route}/`;
+
+    const copyResponse = await fetch('https://api.nymia.ai/v1/copyfile', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer WeInfl3nc3withAI'
+      },
+      body: JSON.stringify({
+        user: userData.id,
+        sourcefilename: `presets/${copiedFileRoute}${fileName}`,
+        destinationfilename: `presets/${newRoute}/${fileName}`
+      })
+    });
+
+    if (!copyResponse.ok) {
+      throw new Error(`Failed to copy file: ${fileName}`);
+    }
+
+    // Create new preset record
+    const newPresetData = {
+      user_id: userData.id,
+      jsonjob: preset.jsonjob,
+      name: preset.name,
+      image_name: preset.image_name,
+      route: newRoute,
+      rating: preset.rating || 0,
+      favorite: preset.favorite || false,
+      description: preset.description || ''
+    };
+
+    const createResponse = await fetch(`https://db.nymia.ai/rest/v1/presets`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer WeInfl3nc3withAI'
+      },
+      body: JSON.stringify(newPresetData)
+    });
+
+    if (!createResponse.ok) {
+      throw new Error(`Failed to create preset record: ${fileName}`);
+    }
+
+    // If it's a cut operation, remove from original location
+    if (fileCopyState === 2) {
+      try {
+        // Delete file from original location
+        const deleteFileResponse = await fetch(`https://api.nymia.ai/v1/deletefile`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer WeInfl3nc3withAI'
+          },
+          body: JSON.stringify({
+            user: userData.id,
+            filename: `presets/${copiedFileRoute}${fileName}`
+          })
+        });
+
+        if (!deleteFileResponse.ok) {
+          console.warn(`Failed to delete original file: ${fileName}`);
+        }
+
+        // Delete from database
+        const deleteDbResponse = await fetch(`https://db.nymia.ai/rest/v1/presets?id=eq.${preset.id}`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer WeInfl3nc3withAI'
+          }
+        });
+
+        if (!deleteDbResponse.ok) {
+          console.warn(`Failed to delete original preset record: ${preset.id}`);
+        }
+      } catch (error) {
+        console.warn(`Failed to clean up original preset ${preset.name}:`, error);
+      }
+    }
+
+    // Update local state
+    setPresets(prev => {
+      if (fileCopyState === 2) {
+        // Remove the original preset for cut operations
+        return prev.filter(p => p.id !== preset.id);
+      } else {
+        // Add the new preset for copy operations
+        return [...prev, { ...preset, route: newRoute }];
+      }
+    });
+  };
+
+  // Enhanced keyboard shortcuts
+  const handleKeyDown = (e: KeyboardEvent) => {
+    // Multi-select keyboard shortcuts
+    if (e.ctrlKey || e.metaKey) {
+      switch (e.key) {
+        case 'c':
+          e.preventDefault();
+          if (selectedPresets.size > 0) {
+            handleMultiCopy();
+          } else if (fileCopyState > 0 && copiedFile) {
+            // Single preset copy - trigger paste
+            handleMultiPaste();
+          }
+          break;
+        case 'x':
+          e.preventDefault();
+          if (selectedPresets.size > 0) {
+            handleMultiCut();
+          } else if (fileCopyState > 0 && copiedFile) {
+            // Single preset cut - trigger paste
+            handleMultiPaste();
+          }
+          break;
+        case 'v':
+          e.preventDefault();
+          if (hasPresetsToPaste()) {
+            handleMultiPaste();
+          }
+          break;
+        case 'a':
+          e.preventDefault();
+          if (isMultiSelectMode) {
+            selectAllPresets();
+          }
+          break;
+        case 'Delete':
+        case 'Backspace':
+          e.preventDefault();
+          if (selectedPresets.size > 0) {
+            handleMultiDelete();
+          }
+          break;
+      }
+    } else if (e.key === 'Escape') {
+      clearSelection();
+      setIsMultiSelectMode(false);
+    }
+  };
+
+  // Keyboard event listener for multi-select shortcuts
+  useEffect(() => {
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [selectedPresets, isMultiSelectMode, fileCopyState]);
+
+  // Add click handler for multi-select context menu
+  useEffect(() => {
+    const handleMultiSelectContextMenu = (e: MouseEvent) => {
+      // Only show multi-select context menu if we're in multi-select mode and have selected presets
+      if (isMultiSelectMode && selectedPresets.size > 0) {
+        // Don't show multi-select context menu if clicking on a preset card or its children
+        const target = e.target as Element;
+        if (!target?.closest('.preset-card') && !target?.closest('[data-context-menu]')) {
+          e.preventDefault();
+          setMultiSelectContextMenu({ x: e.clientX, y: e.clientY });
+        }
+      }
+    };
+
+    document.addEventListener('contextmenu', handleMultiSelectContextMenu);
+    return () => {
+      document.removeEventListener('contextmenu', handleMultiSelectContextMenu);
+    };
+  }, [selectedPresets, isMultiSelectMode]);
+
+  // Handle multi-select mode changes
+  useEffect(() => {
+    // Close context menus when switching modes
+    if (!isMultiSelectMode) {
+      setMultiSelectContextMenu(null);
+      setFileContextMenu(null);
+    }
+  }, [isMultiSelectMode]);
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
@@ -1791,8 +2123,8 @@ export default function PresetsManager({ onClose, onApplyPreset }: {
                   <div className={`flex flex-col items-center p-3 rounded-lg border-2 border-transparent transition-all duration-200 ${renamingFolder === folder.path
                     ? 'border-yellow-300 bg-yellow-50 dark:bg-yellow-950/20'
                     : dragOverPreset === folder.path
-                    ? 'border-blue-300 bg-blue-50 dark:bg-blue-950/20'
-                    : 'hover:border-blue-300 hover:bg-blue-50 dark:hover:bg-blue-950/20'
+                      ? 'border-blue-300 bg-blue-50 dark:bg-blue-950/20'
+                      : 'hover:border-blue-300 hover:bg-blue-50 dark:hover:bg-blue-950/20'
                     }`}>
                     <div className={`w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center mb-2 transition-transform duration-200 ${renamingFolder === folder.path ? 'animate-pulse' : dragOverPreset === folder.path ? 'scale-110' : 'group-hover:scale-110'
                       }`}>
@@ -1828,8 +2160,8 @@ export default function PresetsManager({ onClose, onApplyPreset }: {
                       <span className={`text-xs font-medium text-center transition-colors ${renamingFolder === folder.path
                         ? 'text-yellow-700 dark:text-yellow-300'
                         : dragOverPreset === folder.path
-                        ? 'text-blue-700 dark:text-blue-300'
-                        : 'text-gray-700 dark:text-gray-300 group-hover:text-blue-600 dark:group-hover:text-blue-400'
+                          ? 'text-blue-700 dark:text-blue-300'
+                          : 'text-gray-700 dark:text-gray-300 group-hover:text-blue-600 dark:group-hover:text-blue-400'
                         }`}>
                         {decodeName(folder.name)}
                         {renamingFolder === folder.path && ' (Renaming...)'}
@@ -1921,14 +2253,123 @@ export default function PresetsManager({ onClose, onApplyPreset }: {
         )}
 
         {/* Presets Section */}
-        <Card className="border-green-500/20 bg-gradient-to-r from-green-50/50 to-emerald-50/50 dark:from-green-950/20 dark:to-emerald-950/20 mb-6">
+        <Card className={`border-green-500/20 bg-gradient-to-r from-green-50/50 to-emerald-50/50 dark:from-green-950/20 dark:to-emerald-950/20 mb-6 ${isMultiSelectMode ? 'ring-2 ring-blue-500 ring-opacity-50' : ''}`}>
           <CardHeader className="pt-5 pb-2">
             <CardTitle className="text-lg flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <BookOpen className="w-5 h-5" />
                 Presets
+                {isMultiSelectMode && (
+                  <span className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 px-2 py-1 rounded-full">
+                    Multi-select Mode
+                  </span>
+                )}
               </div>
+              {/* Multi-select Mode Toggle */}
+              <Button
+                variant={isMultiSelectMode ? "default" : "outline"}
+                size="sm"
+                onClick={() => {
+                  if (isMultiSelectMode) {
+                    // Turning off multi-select mode - clear selection
+                    clearSelection();
+                    setIsMultiSelectMode(false);
+                  } else {
+                    // Turning on multi-select mode
+                    setIsMultiSelectMode(true);
+                  }
+                }}
+                className="flex items-center gap-2"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                </svg>
+                <span className="hidden sm:inline">
+                  {isMultiSelectMode ? 'Exit Multi-select' : 'Multi-select'}
+                </span>
+              </Button>
             </CardTitle>
+            {/* Multi-select Actions Bar */}
+            {isMultiSelectMode && (
+              <div className="flex items-center justify-between gap-4 mb-4 p-3 bg-gradient-to-r from-blue-50/50 to-purple-50/50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-lg border border-blue-200/50 dark:border-blue-800/50">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                    {selectedPresets.size} preset{selectedPresets.size !== 1 ? 's' : ''} selected
+                  </span>
+                  {selectedPresets.size > 0 && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={clearSelection}
+                      className="h-6 text-xs"
+                    >
+                      Clear
+                    </Button>
+                  )}
+                  {selectedPresets.size < filteredAndSortedPresets.length && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={selectAllPresets}
+                      className="h-6 text-xs"
+                    >
+                      Select All
+                    </Button>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground hidden sm:inline">
+                    Ctrl+C/X/V, Del, Esc
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleMultiCopy}
+                    disabled={selectedPresets.size === 0}
+                    className="h-8 text-xs"
+                  >
+                    <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                    Copy
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleMultiCut}
+                    disabled={selectedPresets.size === 0}
+                    className="h-8 text-xs"
+                  >
+                    <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                    Cut
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleMultiPaste}
+                    disabled={!hasPresetsToPaste()}
+                    className="h-8 text-xs"
+                  >
+                    <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    </svg>
+                    Paste
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={handleMultiDelete}
+                    disabled={selectedPresets.size === 0}
+                    className="h-8 text-xs"
+                  >
+                    <Trash2 className="w-3 h-3 mr-1" />
+                    Delete
+                  </Button>
+                </div>
+              </div>
+            )}
           </CardHeader>
           <CardContent>
             {/* Empty State */}
@@ -1953,10 +2394,9 @@ export default function PresetsManager({ onClose, onApplyPreset }: {
 
             {/* Preset Cards */}
             {!presetsLoading && filteredAndSortedPresets.length > 0 && (
-              <div 
-                className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 p-4 rounded-lg transition-all duration-200 ${
-                  isDraggingPreset ? 'bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 border-2 border-dashed border-blue-300 dark:border-blue-700' : ''
-                }`}
+              <div
+                className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 p-4 rounded-lg transition-all duration-200 ${isDraggingPreset ? 'bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 border-2 border-dashed border-blue-300 dark:border-blue-700' : ''
+                  }`}
                 onDragOver={(e) => {
                   e.preventDefault();
                   if (isDraggingPreset) {
@@ -1989,14 +2429,46 @@ export default function PresetsManager({ onClose, onApplyPreset }: {
                 {filteredAndSortedPresets.map((preset) => (
                   <Card
                     key={preset.id}
-                    className={`group hover:shadow-xl transition-all duration-300 border border-gray-200 dark:border-gray-700 bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 overflow-hidden ${
-                      draggedPreset?.id === preset.id ? 'opacity-50 scale-95 shadow-lg' : ''
-                    }`}
+                    className={`preset-card group hover:shadow-xl transition-all duration-300 border border-gray-200 dark:border-gray-700 bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 overflow-hidden relative ${draggedPreset?.id === preset.id ? 'opacity-50 scale-95 shadow-lg' : ''
+                      } ${selectedPresets.has(preset.id) ? 'ring-2 ring-blue-500 ring-opacity-50 bg-blue-50/30 dark:bg-blue-950/20' : ''}`}
                     onContextMenu={(e) => handlePresetContextMenu(e, preset)}
+                    onClick={(e) => {
+                      // Prevent click when clicking on interactive elements
+                      if ((e.target as Element)?.closest('button') ||
+                        (e.target as Element)?.closest('input') ||
+                        (e.target as Element)?.closest('.checkbox-container')) {
+                        return;
+                      }
+
+                      if (isMultiSelectMode) {
+                        togglePresetSelection(preset.id);
+                      }
+                    }}
                     draggable
                     onDragStart={(e) => handlePresetDragStart(e, preset)}
                     onDragEnd={handlePresetDragEnd}
                   >
+                    {/* Selection Checkbox */}
+                    {isMultiSelectMode && (
+                      <div className="absolute top-2 left-2 z-20 checkbox-container">
+                        <div
+                          className={`w-5 h-5 rounded border-2 flex items-center justify-center cursor-pointer transition-all duration-200 ${selectedPresets.has(preset.id)
+                              ? 'bg-blue-500 border-blue-500 text-white'
+                              : 'bg-white/90 dark:bg-gray-800/90 border-gray-300 dark:border-gray-600 hover:border-blue-400'
+                            }`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            togglePresetSelection(preset.id);
+                          }}
+                        >
+                          {selectedPresets.has(preset.id) && (
+                            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
+                            </svg>
+                          )}
+                        </div>
+                      </div>
+                    )}
                     {/* Top Row: Ratings and Favorite */}
                     <div className="flex items-center justify-between p-3 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-800 border-b border-gray-200 dark:border-gray-600">
                       {/* Professional Mark */}
@@ -2109,10 +2581,10 @@ export default function PresetsManager({ onClose, onApplyPreset }: {
                         <h3 className="font-semibold text-lg mb-1 text-gray-900 dark:text-gray-100 truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                           {preset.name}
                         </h3>
-                          <div className="mb-2 p-2 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-md border border-blue-200/50 dark:border-blue-800/50">
-                            <p className="text-sm text-gray-700 dark:text-gray-300 line-clamp-2 leading-relaxed">
-                              {
-                                preset.description?
+                        <div className="mb-2 p-2 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-md border border-blue-200/50 dark:border-blue-800/50">
+                          <p className="text-sm text-gray-700 dark:text-gray-300 line-clamp-2 leading-relaxed">
+                            {
+                              preset.description ?
                                 (
                                   preset.description?.trim().substring(0, 100) + '...'
                                 )
@@ -2120,9 +2592,9 @@ export default function PresetsManager({ onClose, onApplyPreset }: {
                                 (
                                   'No description available'
                                 )
-                              }
-                            </p>
-                          </div>
+                            }
+                          </p>
+                        </div>
                         <div className="space-y-1 text-sm text-muted-foreground">
                           <p className="flex items-center gap-1">
                             <Calendar className="w-3 h-3" />
@@ -2671,6 +3143,7 @@ export default function PresetsManager({ onClose, onApplyPreset }: {
         {/* File Context Menu */}
         {fileContextMenu && (
           <div
+            data-context-menu="single-preset"
             className="absolute z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg py-1 min-w-[160px]"
             style={{ left: fileContextMenu.x, top: fileContextMenu.y }}
           >
@@ -2848,6 +3321,67 @@ export default function PresetsManager({ onClose, onApplyPreset }: {
               </div>
             </DialogContent>
           </Dialog>
+        )}
+
+        {/* Multi-select Context Menu */}
+        {multiSelectContextMenu && selectedPresets.size > 0 && (
+          <div
+            data-context-menu="multi-select"
+            className="fixed z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg py-1 min-w-[160px]"
+            style={{ left: multiSelectContextMenu.x, top: multiSelectContextMenu.y }}
+          >
+            <div className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 border-b border-gray-200 dark:border-gray-700">
+              {selectedPresets.size} preset{selectedPresets.size !== 1 ? 's' : ''} selected
+            </div>
+            <button
+              className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+              onClick={() => {
+                handleMultiCopy();
+                setMultiSelectContextMenu(null);
+              }}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+              Copy Selected
+            </button>
+            <button
+              className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+              onClick={() => {
+                handleMultiCut();
+                setMultiSelectContextMenu(null);
+              }}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+              Cut Selected
+            </button>
+            <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>
+            <button
+              className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+              onClick={() => {
+                clearSelection();
+                setMultiSelectContextMenu(null);
+              }}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+              Clear Selection
+            </button>
+            <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>
+            <button
+              className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 text-red-600 dark:text-red-400"
+              onClick={() => {
+                handleMultiDelete();
+                setMultiSelectContextMenu(null);
+              }}
+            >
+              <Trash2 className="w-4 h-4" />
+              Delete Selected
+            </button>
+          </div>
         )}
       </DialogContent>
     </Dialog>

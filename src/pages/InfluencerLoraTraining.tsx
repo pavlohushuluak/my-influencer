@@ -43,6 +43,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { setInfluencers, setLoading, setError } from '@/store/slices/influencersSlice';
+import { LoraStatusIndicator } from '@/components/Influencers/LoraStatusIndicator';
 
 interface TrainingImage {
   id: string;
@@ -604,7 +605,14 @@ export default function InfluencerLoraTraining() {
             <Card key={influencer.id} className="group hover:shadow-lg transition-all duration-300 border-border/50 hover:border-ai-purple-500/20">
               <CardContent className="p-6 h-full">
                 <div className="flex flex-col justify-between h-full space-y-4">
-                  <div className="w-full h-full bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg overflow-hidden">
+                  <div className="relative w-full h-full bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg overflow-hidden">
+                    {/* LoraStatusIndicator positioned at top right */}
+                    <div className="absolute right-[-15px] top-[-15px] z-10">
+                      <LoraStatusIndicator 
+                        status={influencer.lorastatus || 0} 
+                        className="flex-shrink-0"
+                      />
+                    </div>
                     {
                       influencer.image_url ? (
                         <img

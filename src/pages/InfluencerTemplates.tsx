@@ -7,6 +7,7 @@ import { RootState } from '@/store/store';
 import { fetchTemplateInfluencers, TemplateInfluencer } from '@/store/slices/templateInfluencerSlice';
 import { useEffect, useState } from 'react';
 import { AppDispatch } from '@/store/store';
+import { LoraStatusIndicator } from '@/components/Influencers/LoraStatusIndicator';
 
 export default function InfluencerTemplates() {
   const userData = useSelector((state: RootState) => state.user);
@@ -221,7 +222,14 @@ export default function InfluencerTemplates() {
           <Card key={template.id} className="group hover:shadow-lg transition-all duration-300">
             <CardContent className="p-6 h-full">
               <div className="flex flex-col justify-between h-full space-y-4">
-                <div className="w-full h-full bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg flex items-center justify-center">
+                <div className="relative w-full h-full bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg overflow-hidden">
+                  {/* LoraStatusIndicator positioned at top right */}
+                  <div className="absolute right-[-15px] top-[-15px] z-10">
+                    <LoraStatusIndicator 
+                      status={template.lorastatus || 0} 
+                      className="flex-shrink-0"
+                    />
+                  </div>
                   {
                     template.image_url && (
                       <img src={template.image_url} alt={template.id} className="w-full h-full object-cover rounded-lg" />

@@ -26,6 +26,7 @@ import { ZoomIn } from 'lucide-react';
 import VaultSelector from '@/components/VaultSelector';
 import { SortAsc, SortDesc } from 'lucide-react';
 import PresetsManager from '@/components/PresetsManager';
+import LibraryManager from '@/components/LibraryManager';
 
 const TASK_OPTIONS = [
   { value: 'generate_image', label: 'Generate Image', description: 'Generate a single image' },
@@ -1714,8 +1715,6 @@ export default function ContentCreate() {
   const savePresetWithFilename = async (filename: string, isOverwrite: boolean = false) => {
     if (!pendingPresetData) return;
 
-    setIsSavingPreset(true);
-
     try {
       const { presetData, isUpload } = pendingPresetData;
 
@@ -1800,10 +1799,10 @@ export default function ContentCreate() {
       console.error('Error saving preset:', error);
       toast.error('Failed to save preset. Please try again.');
     } finally {
-      setIsSavingPreset(false);
       setPendingPresetData(null);
       setConflictFilename('');
       setFinalFilename('');
+      setIsSavingPreset(false);
     }
   };
 
@@ -1900,6 +1899,8 @@ export default function ContentCreate() {
       toast.error('Please provide a preset name and select an image');
       return;
     }
+
+    setIsSavingPreset(true);
 
     try {
       // Determine the filename to use
@@ -2205,7 +2206,7 @@ export default function ContentCreate() {
   const [showPresetsManager, setShowPresetsManager] = useState(false);
 
   // Mode toggle state
-  const [isAdvancedMode, setIsAdvancedMode] = useState(false);
+  const [isAdvancedMode, setIsAdvancedMode] = useState(true);
 
   // Handle mode toggle
   const handleModeToggle = () => {
@@ -4628,161 +4629,53 @@ export default function ContentCreate() {
       {/* My Presets Modal - REMOVED - Now using PresetsManager component */}
 
       {/* Library Modal */}
-      <Dialog open={showLibraryModal} onOpenChange={setShowLibraryModal}>
-        <DialogContent className="max-w-6xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <div className="p-2 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg">
-                <FolderOpen className="w-5 h-5 text-white" />
-              </div>
-              Content Library
-            </DialogTitle>
-            <p className="text-sm text-muted-foreground">
-              Browse your saved content templates and configurations
-            </p>
-          </DialogHeader>
-          <div className="space-y-6">
-            {/* Search and Filter Section */}
-            <div className="flex gap-4">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                <Input
-                  placeholder="Search library items..."
-                  className="pl-10"
-                />
-              </div>
-              <Button variant="outline" className="gap-2">
-                <Filter className="w-4 h-4" />
-                Filter
-              </Button>
-            </div>
+      {showLibraryModal && (
+        <LibraryManager
+          onClose={() => setShowLibraryModal(false)}
+          onApplyPreset={(library) => {
+            try {
+              const jsonjob = library.jsonjob;
 
-            {/* Library Categories */}
-            {/* <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <Card className="group hover:shadow-lg transition-all duration-300 cursor-pointer">
-                <CardContent className="p-6">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="p-2 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg">
-                      <Camera className="w-5 h-5 text-white" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold">Scene Presets</h3>
-                      <p className="text-sm text-muted-foreground">0 items</p>
-                    </div>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    Saved scene configurations and lighting setups
-                  </p>
-                </CardContent>
-              </Card>
+              // Apply form data
+              if (jsonjob.task) setFormData(prev => ({ ...prev, task: jsonjob.task }));
+              if (jsonjob.lora !== undefined) setFormData(prev => ({ ...prev, lora: jsonjob.lora }));
+              if (jsonjob.noAI !== undefined) setFormData(prev => ({ ...prev, noAI: jsonjob.noAI }));
+              if (jsonjob.prompt) setFormData(prev => ({ ...prev, prompt: jsonjob.prompt }));
+              if (jsonjob.negative_prompt) setFormData(prev => ({ ...prev, negative_prompt: jsonjob.negative_prompt }));
+              if (jsonjob.nsfw_strength !== undefined) setFormData(prev => ({ ...prev, nsfw_strength: jsonjob.nsfw_strength }));
+              if (jsonjob.lora_strength !== undefined) setFormData(prev => ({ ...prev, lora_strength: jsonjob.lora_strength }));
+              if (jsonjob.quality) setFormData(prev => ({ ...prev, quality: jsonjob.quality }));
+              if (jsonjob.seed !== undefined) setFormData(prev => ({ ...prev, seed: jsonjob.seed.toString() }));
+              if (jsonjob.guidance !== undefined) setFormData(prev => ({ ...prev, guidance: jsonjob.guidance }));
+              if (jsonjob.number_of_images !== undefined) setFormData(prev => ({ ...prev, numberOfImages: jsonjob.number_of_images }));
+              if (jsonjob.format) setFormData(prev => ({ ...prev, format: jsonjob.format }));
+              if (jsonjob.engine) setFormData(prev => ({ ...prev, engine: jsonjob.engine }));
+              if (jsonjob.usePromptOnly !== undefined) setFormData(prev => ({ ...prev, usePromptOnly: jsonjob.usePromptOnly }));
 
-              <Card className="group hover:shadow-lg transition-all duration-300 cursor-pointer">
-                <CardContent className="p-6">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="p-2 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg">
-                      <Sparkles className="w-5 h-5 text-white" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold">Style Presets</h3>
-                      <p className="text-sm text-muted-foreground">0 items</p>
-                    </div>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    Saved style configurations and artistic presets
-                  </p>
-                </CardContent>
-              </Card>
+              // Apply scene specs
+              if (jsonjob.scene) {
+                if (jsonjob.scene.framing) setSceneSpecs(prev => ({ ...prev, framing: jsonjob.scene.framing }));
+                if (jsonjob.scene.rotation) setSceneSpecs(prev => ({ ...prev, rotation: jsonjob.scene.rotation }));
+                if (jsonjob.scene.lighting_preset) setSceneSpecs(prev => ({ ...prev, lighting_preset: jsonjob.scene.lighting_preset }));
+                if (jsonjob.scene.scene_setting) setSceneSpecs(prev => ({ ...prev, scene_setting: jsonjob.scene.scene_setting }));
+                if (jsonjob.scene.pose) setSceneSpecs(prev => ({ ...prev, pose: jsonjob.scene.pose }));
+                if (jsonjob.scene.clothes) setSceneSpecs(prev => ({ ...prev, clothes: jsonjob.scene.clothes }));
+              }
 
-              <Card className="group hover:shadow-lg transition-all duration-300 cursor-pointer">
-                <CardContent className="p-6">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="p-2 bg-gradient-to-br from-orange-500 to-red-600 rounded-lg">
-                      <Settings className="w-5 h-5 text-white" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold">Generation Settings</h3>
-                      <p className="text-sm text-muted-foreground">0 items</p>
-                    </div>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    Saved generation parameters and configurations
-                  </p>
-                </CardContent>
-              </Card>
+              // Apply model data if available
+              if (jsonjob.model) {
+                setModelData(jsonjob.model);
+              }
 
-              <Card className="group hover:shadow-lg transition-all duration-300 cursor-pointer">
-                <CardContent className="p-6">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="p-2 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-lg">
-                      <Image className="w-5 h-5 text-white" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold">Model Configurations</h3>
-                      <p className="text-sm text-muted-foreground">0 items</p>
-                    </div>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    Saved model settings and character configurations
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card className="group hover:shadow-lg transition-all duration-300 cursor-pointer">
-                <CardContent className="p-6">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="p-2 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg">
-                      <Wand2 className="w-5 h-5 text-white" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold">Prompt Templates</h3>
-                      <p className="text-sm text-muted-foreground">0 items</p>
-                    </div>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    Saved prompt templates and text configurations
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card className="group hover:shadow-lg transition-all duration-300 cursor-pointer">
-                <CardContent className="p-6">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="p-2 bg-gradient-to-br from-yellow-500 to-orange-600 rounded-lg">
-                      <Plus className="w-5 h-5 text-white" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold">Create New</h3>
-                      <p className="text-sm text-muted-foreground">Add new item</p>
-                    </div>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    Create a new library item from current settings
-                  </p>
-                </CardContent>
-              </Card>
-            </div> */}
-
-            {/* Empty State */}
-            <div className="text-center py-8">
-              <FolderOpen className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Library is Empty</h3>
-              <p className="text-muted-foreground mb-4">
-                Start building your content library by saving your first preset
-              </p>
-              <Button
-                onClick={() => {
-                  setShowLibraryModal(false);
-                  handleSavePreset();
-                }}
-                className="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600"
-              >
-                <Save className="w-4 h-4 mr-2" />
-                Save Current Settings
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+              setShowLibraryModal(false);
+              toast.success(`Applied library item: ${library.name}`);
+            } catch (error) {
+              console.error('Error applying library item:', error);
+              toast.error('Failed to apply library item');
+            }
+          }}
+        />
+      )}
 
       {/* Save as Preset Modal */}
       <Dialog open={showSavePresetModal} onOpenChange={setShowSavePresetModal}>

@@ -449,32 +449,32 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
   const fetchFacialFeaturesOptions = async (ethnic?: string) => {
     try {
       setIsLoadingFacialFeatures(true);
-      
+
       // Fetch templates from ethnic-specific API
       const templatesResponse = await fetch(`https://db.nymia.ai/rest/v1/facial_templates_global?ethnics_stereotype=eq.${ethnic}`, {
         headers: {
           'Authorization': 'Bearer WeInfl3nc3withAI'
         }
       });
-      
+
       // Fetch images from original API
       const imagesResponse = await fetch('https://api.nymia.ai/v1/fieldoptions?fieldtype=wizard_facial_features', {
         headers: {
           'Authorization': 'Bearer WeInfl3nc3withAI'
         }
       });
-      
+
       if (templatesResponse.ok && imagesResponse.ok) {
         const templatesData = await templatesResponse.json();
         const imagesData = await imagesResponse.json();
-        
+
         if (Array.isArray(templatesData) && imagesData && imagesData.fieldoptions && Array.isArray(imagesData.fieldoptions)) {
           // Match templates with images by label === template_name
           const matchedOptions = templatesData.map((template: any) => {
-            const matchingImage = imagesData.fieldoptions.find((imageItem: any) => 
+            const matchingImage = imagesData.fieldoptions.find((imageItem: any) =>
               imageItem.label === template.template_name
             );
-            
+
             return {
               label: template.template_name || template.label,
               image: matchingImage ? matchingImage.image : template.image || template.template_image,
@@ -483,7 +483,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
           });
 
           // console.log(matchedOptions);
-          
+
           setFacialFeaturesOptions(matchedOptions);
         }
       }
@@ -567,7 +567,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
           'Authorization': 'Bearer WeInfl3nc3withAI'
         }
       });
-      
+
       const imageResponse = await fetch('https://api.nymia.ai/v1/fieldoptions?fieldtype=wizard_cultural_background', {
         headers: {
           'Authorization': 'Bearer WeInfl3nc3withAI'
@@ -579,14 +579,14 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
 
         // console.log(templatesData);
         // console.log(imagesData);
-        
+
         if (Array.isArray(templatesData) && imagesData && imagesData.fieldoptions && Array.isArray(imagesData.fieldoptions)) {
           // Match templates with images by label === template_name
           const matchedOptions = templatesData.map((template: any) => {
-            const matchingImage = imagesData.fieldoptions.find((imageItem: any) => 
+            const matchingImage = imagesData.fieldoptions.find((imageItem: any) =>
               imageItem.label === template.property
             );
-            
+
             return {
               label: template.property || template.label,
               image: matchingImage ? matchingImage.image : template.image || template.template_image,
@@ -595,7 +595,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
           });
 
           // console.log(matchedOptions);
-          
+
           setCulturalBackgroundOptions(matchedOptions);
         }
       }
@@ -1687,7 +1687,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
             <div className="text-center space-y-6">
               <div className="space-y-3">
                 <h2 className="text-2xl font-bold">
-                  Choose Your Influencer's Sex
+                  Select Your Influencer's Gender
                 </h2>
                 <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto text-lg leading-relaxed">
                   As a first step, please select the desired sex of your influencer.
@@ -1695,7 +1695,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
               </div>
             </div>
 
-            <div className="max-w-4xl mx-auto">
+            <div className="max-w-3xl mx-auto">
               {isLoadingSexOptions ? (
                 <div className="flex justify-center items-center py-12">
                   <div className="text-center space-y-4">
@@ -1704,7 +1704,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                   </div>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-2xl mx-auto">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-2xl mx-auto">
                   {sexOptions.map((option) => (
                     <Card
                       key={option.label}
@@ -1762,7 +1762,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
               </div>
             </div>
 
-            <div className="mx-auto">
+            <div className="mx-auto max-w-4xl">
               {isLoadingAge ? (
                 <div className="flex justify-center items-center py-12">
                   <div className="text-center space-y-4">
@@ -1772,30 +1772,9 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                 </div>
               ) : (
                 <div className="space-y-6">
-                  {/* Items per page control */}
-                  <div className="flex justify-between items-center">
-                    {/* Items per page selector */}
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-gray-600 dark:text-gray-400">Show:</span>
-                      <select
-                        value={itemsPerPage}
-                        onChange={(e) => handleItemsPerPageChange(Number(e.target.value))}
-                        className="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                      >
-                        <option value={5}>5</option>
-                        <option value={10}>10</option>
-                        <option value={15}>15</option>
-                        <option value={-1}>All</option>
-                      </select>
-                      <span className="text-sm text-gray-600 dark:text-gray-400">per page</span>
-                    </div>
-                    <div className="text-sm text-gray-600 dark:text-gray-400">
-                      Showing {startIndex + 1}-{Math.min(endIndex, ageOptions.length)} of {ageOptions.length} age options
-                    </div>
-                  </div>
 
                   {/* Age Options Grid */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {ageOptions.slice(startIndex, endIndex).map((option) => (
                       <Card
                         key={option.label}
@@ -1936,7 +1915,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
               </div>
             </div>
 
-            <div className="mx-auto">
+            <div className="mx-auto max-w-6xl">
               {isLoadingEthnics ? (
                 <div className="flex justify-center items-center py-12">
                   <div className="text-center space-y-4">
@@ -1947,7 +1926,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
               ) : (
                 <div className="space-y-6">
                   {/* Ethnics Grid */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                     {ethnicsOptions.map((option) => (
                       <Card
                         key={option.label}
@@ -3789,6 +3768,66 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
         return (
           <div className="space-y-8">
             <div className="text-center space-y-6">
+              <div className="w-20 h-20 mx-auto bg-gradient-to-br from-orange-500 via-red-600 to-pink-600 rounded-full flex items-center justify-center shadow-2xl">
+                <Settings className="w-10 h-10 text-white" />
+              </div>
+              <div className="space-y-3">
+                <h2 className="text-3xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
+                  Preview Your Influencer
+                </h2>
+                <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto text-lg leading-relaxed">
+                  See how your influencer will look before creating the final version.<br />
+                  You can add more details on Influencer → Edit page after creation.
+                </p>
+              </div>
+            </div>
+
+            <div className="max-w-2xl mx-auto">
+              <Card className="border-2 border-gray-200 dark:border-gray-700 shadow-xl bg-gradient-to-br from-gray-50 to-white dark:from-gray-900 dark:to-gray-800">
+                <CardContent className="p-8">
+                  <div className="text-center space-y-6">
+                    <div className="space-y-4">
+                      <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                        Ready to see your influencer?
+                      </h3>
+                      <p className="text-gray-600 dark:text-gray-400">
+                        Click the button below to generate a preview of your influencer based on all the selections you've made.
+                      </p>
+                    </div>
+
+                    <Button
+                      onClick={handlePreview}
+                      disabled={isPreviewLoading}
+                      className="flex items-center gap-2 px-8 py-4 text-lg font-medium bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 mx-auto"
+                    >
+                      {isPreviewLoading ? (
+                        <>
+                          <Loader2 className="w-6 h-6 animate-spin" />
+                          Generating Preview...
+                        </>
+                      ) : (
+                        <>
+                          Click Here to Render a Preview
+                          <Sparkles className="w-6 h-6" />
+                        </>
+                      )}
+                    </Button>
+
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      💡 This will create a temporary preview that will be deleted after you close it.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        );
+
+
+      case 16:
+        return (
+          <div className="space-y-8">
+            <div className="text-center space-y-6">
               <div className="w-20 h-20 mx-auto bg-gradient-to-br from-green-500 via-emerald-600 to-teal-600 rounded-full flex items-center justify-center shadow-2xl">
                 <User className="w-10 h-10 text-white" />
               </div>
@@ -3955,64 +3994,6 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
           </div>
         );
 
-      case 16:
-        return (
-          <div className="space-y-8">
-            <div className="text-center space-y-6">
-              <div className="w-20 h-20 mx-auto bg-gradient-to-br from-orange-500 via-red-600 to-pink-600 rounded-full flex items-center justify-center shadow-2xl">
-                <Settings className="w-10 h-10 text-white" />
-              </div>
-              <div className="space-y-3">
-                <h2 className="text-3xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
-                  Preview Your Influencer
-                </h2>
-                <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto text-lg leading-relaxed">
-                  See how your influencer will look before creating the final version.<br />
-                  You can add more details on Influencer → Edit page after creation.
-                </p>
-              </div>
-            </div>
-
-            <div className="max-w-2xl mx-auto">
-              <Card className="border-2 border-gray-200 dark:border-gray-700 shadow-xl bg-gradient-to-br from-gray-50 to-white dark:from-gray-900 dark:to-gray-800">
-                <CardContent className="p-8">
-                  <div className="text-center space-y-6">
-                    <div className="space-y-4">
-                      <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-                        Ready to see your influencer?
-                      </h3>
-                      <p className="text-gray-600 dark:text-gray-400">
-                        Click the button below to generate a preview of your influencer based on all the selections you've made.
-                      </p>
-                    </div>
-
-                    <Button
-                      onClick={handlePreview}
-                      disabled={isPreviewLoading}
-                      className="flex items-center gap-2 px-8 py-4 text-lg font-medium bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 mx-auto"
-                    >
-                      {isPreviewLoading ? (
-                        <>
-                          <Loader2 className="w-6 h-6 animate-spin" />
-                          Generating Preview...
-                        </>
-                      ) : (
-                        <>
-                          Click Here to Render a Preview
-                          <Sparkles className="w-6 h-6" />
-                        </>
-                      )}
-                    </Button>
-
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                      💡 This will create a temporary preview that will be deleted after you close it.
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        );
 
       default:
         return null;

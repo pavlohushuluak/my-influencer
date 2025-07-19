@@ -2405,7 +2405,7 @@ export default function ContentCreate() {
   const [showPresetsManager, setShowPresetsManager] = useState(false);
 
   // Mode toggle state
-  const [isAdvancedMode, setIsAdvancedMode] = useState(true);
+  const [isAdvancedMode, setIsAdvancedMode] = useState(false);
 
   // Handle mode toggle
   const handleModeToggle = () => {

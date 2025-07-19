@@ -7,18 +7,19 @@ import { useNavigate } from 'react-router-dom';
 export function CreateInfluencer() {
   const [showSteps, setShowSteps] = useState(false);
   const navigate = useNavigate();
-  
+
   if (showSteps) {
     return <CreateInfluencerSteps onComplete={() => setShowSteps(false)} />;
   }
 
   return (
     <div className="container mx-auto py-8">
-      <h1 className="text-3xl font-bold mb-8">Create New Influencer</h1>
+      <h1 className="text-3xl font-bold tracking-tight bg-ai-gradient bg-clip-text text-transparent mb-5">Create New Influencer</h1>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
-          <CardContent className="pt-6">
-            <h2 className="text-xl font-semibold mb-4">Create from Scratch</h2>
+          <CardContent className="pt-6 text-center justify-center flex flex-col items-center">
+            <img src="/tool.png" alt="Create from Scratch" className="w-20 h-16 mb-8 mt-4" />
+            <h2 className="text-xl font-semibold mb-4">Build from Scratch</h2>
             <p className="text-muted-foreground mb-4">
               Start with a blank slate and customize every aspect of your influencer.
             </p>
@@ -27,17 +28,19 @@ export function CreateInfluencer() {
         </Card>
 
         <Card>
-          <CardContent className="pt-6">
-            <h2 className="text-xl font-semibold mb-4">Create by Wizard</h2>
+          <CardContent className="pt-6 text-center justify-center flex flex-col items-center">
+            <img src="/brain.png" alt="Create from Scratch" className="w-24 h-24 mb-4" />
+            <h2 className="text-xl font-semibold mb-4">Guided Wizard</h2>
             <p className="text-muted-foreground mb-4">
-              Follow a step-by-step wizard to create your influencer profile.
+              Let us walk you through the process of creating your influencer profile.
             </p>
             <Button onClick={() => navigate('/influencers/wizard')}>Start Wizard</Button>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="pt-6">
+          <CardContent className="pt-6 text-center justify-center flex flex-col items-center">
+            <img src="/template.png" alt="Create from Scratch" className="w-30 h-24 mb-4" />
             <h2 className="text-xl font-semibold mb-4">Use a Template</h2>
             <p className="text-muted-foreground mb-4">
               Choose from pre-designed templates and customize as needed.

@@ -3,6 +3,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { CreateInfluencerSteps } from '@/components/Influencers/CreateInfluencerSteps';
 import { useNavigate } from 'react-router-dom';
+import { Badge } from '@/components/ui/badge';
 
 export function CreateInfluencer() {
   const [showSteps, setShowSteps] = useState(false);
@@ -15,7 +16,7 @@ export function CreateInfluencer() {
   return (
     <div className="container mx-auto py-8">
       <h1 className="text-3xl font-bold tracking-tight bg-ai-gradient bg-clip-text text-transparent mb-5">Create New Influencer</h1>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <Card>
           <CardContent className="pt-6 text-center justify-center flex flex-col items-center">
             <img src="/tool.png" alt="Create from Scratch" className="w-20 h-16 mb-8 mt-4" />
@@ -28,7 +29,9 @@ export function CreateInfluencer() {
         </Card>
 
         <Card>
-          <CardContent className="pt-6 text-center justify-center flex flex-col items-center">
+          <CardContent className="pt-6 text-center justify-center flex flex-col items-center relative">
+            {/* Recommend Badge */}
+            <Badge className="absolute top-3 right-3 bg-blue-600 text-white z-10">RECOMMENDED</Badge>
             <img src="/brain.png" alt="Create from Scratch" className="w-24 h-24 mb-4" />
             <h2 className="text-xl font-semibold mb-4">Guided Wizard</h2>
             <p className="text-muted-foreground mb-4">

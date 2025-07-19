@@ -1279,7 +1279,8 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
     if (currentStep < steps.length) {
       // Special handling for step 3 - show modal instead of proceeding
       if (currentStep === 3) {
-        setShowStep3Modal(true);
+        // setShowStep3Modal(true);
+        handleStep3ModalOption('templates');
         return;
       }
 

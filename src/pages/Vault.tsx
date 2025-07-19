@@ -3104,7 +3104,10 @@ export default function Vault() {
         jsonjob.seed = null;
       }
 
-      // Step 4: Navigate to ContentCreate with the JSON job data
+      // Step 4: Set the regenerated_from field to the original image ID
+      jsonjob.regenerated_from = image.id || '12345678-1111-2222-3333-caffebabe0123';
+
+      // Step 5: Navigate to ContentCreate with the JSON job data
       navigate('/content/create', {
         state: {
           jsonjobData: jsonjob,

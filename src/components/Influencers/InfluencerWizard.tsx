@@ -402,7 +402,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
     const fetchSexOptions = async () => {
       try {
         setIsLoadingSexOptions(true);
-        const response = await fetch('https://api.nymia.ai/v1/fieldoptions?fieldtype=sex', {
+        const response = await fetch('https://api.nymia.ai/v1/fieldoptions?fieldtype=wizard_sex', {
           headers: {
             'Authorization': 'Bearer WeInfl3nc3withAI'
           }
@@ -458,7 +458,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
       });
       
       // Fetch images from original API
-      const imagesResponse = await fetch('https://api.nymia.ai/v1/fieldoptions?fieldtype=facial_features', {
+      const imagesResponse = await fetch('https://api.nymia.ai/v1/fieldoptions?fieldtype=wizard_facial_features', {
         headers: {
           'Authorization': 'Bearer WeInfl3nc3withAI'
         }
@@ -503,7 +503,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
     const fetchAgeOptions = async () => {
       try {
         setIsLoadingAge(true);
-        const response = await fetch('https://api.nymia.ai/v1/fieldoptions?fieldtype=age', {
+        const response = await fetch('https://api.nymia.ai/v1/fieldoptions?fieldtype=wizard_age', {
           headers: {
             'Authorization': 'Bearer WeInfl3nc3withAI'
           }
@@ -533,7 +533,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
     const fetchLifestyleOptions = async () => {
       try {
         setIsLoadingLifestyle(true);
-        const response = await fetch('https://api.nymia.ai/v1/fieldoptions?fieldtype=lifestyle', {
+        const response = await fetch('https://api.nymia.ai/v1/fieldoptions?fieldtype=wizard_lifestyle', {
           headers: {
             'Authorization': 'Bearer WeInfl3nc3withAI'
           }
@@ -568,7 +568,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
         }
       });
       
-      const imageResponse = await fetch('https://api.nymia.ai/v1/fieldoptions?fieldtype=cultural_background', {
+      const imageResponse = await fetch('https://api.nymia.ai/v1/fieldoptions?fieldtype=wizard_cultural_background', {
         headers: {
           'Authorization': 'Bearer WeInfl3nc3withAI'
         }
@@ -615,7 +615,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
     const fetchHairLengthOptions = async () => {
       try {
         setIsLoadingHairLength(true);
-        const response = await fetch('https://api.nymia.ai/v1/fieldoptions?fieldtype=hair_length', {
+        const response = await fetch('https://api.nymia.ai/v1/fieldoptions?fieldtype=wizard_hair_length', {
           headers: {
             'Authorization': 'Bearer WeInfl3nc3withAI'
           }
@@ -645,7 +645,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
     const fetchHairStyleOptions = async () => {
       try {
         setIsLoadingHairStyle(true);
-        const response = await fetch('https://api.nymia.ai/v1/fieldoptions?fieldtype=hair_style', {
+        const response = await fetch('https://api.nymia.ai/v1/fieldoptions?fieldtype=wizard_hair_style', {
           headers: {
             'Authorization': 'Bearer WeInfl3nc3withAI'
           }
@@ -675,7 +675,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
     const fetchHairColorOptions = async () => {
       try {
         setIsLoadingHairColor(true);
-        const response = await fetch('https://api.nymia.ai/v1/fieldoptions?fieldtype=hair_color', {
+        const response = await fetch('https://api.nymia.ai/v1/fieldoptions?fieldtype=wizard_hair_color', {
           headers: {
             'Authorization': 'Bearer WeInfl3nc3withAI'
           }
@@ -705,7 +705,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
     const fetchFaceShapeOptions = async () => {
       try {
         setIsLoadingFaceShape(true);
-        const response = await fetch('https://api.nymia.ai/v1/fieldoptions?fieldtype=face_shape', {
+        const response = await fetch('https://api.nymia.ai/v1/fieldoptions?fieldtype=wizard_face_shape', {
           headers: {
             'Authorization': 'Bearer WeInfl3nc3withAI'
           }
@@ -735,7 +735,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
     const fetchEyeColorOptions = async () => {
       try {
         setIsLoadingEyeColor(true);
-        const response = await fetch('https://api.nymia.ai/v1/fieldoptions?fieldtype=eye_color', {
+        const response = await fetch('https://api.nymia.ai/v1/fieldoptions?fieldtype=wizard_eye_color', {
           headers: {
             'Authorization': 'Bearer WeInfl3nc3withAI'
           }
@@ -765,7 +765,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
     const fetchEyeShapeOptions = async () => {
       try {
         setIsLoadingEyeShape(true);
-        const response = await fetch('https://api.nymia.ai/v1/fieldoptions?fieldtype=eye_shape', {
+        const response = await fetch('https://api.nymia.ai/v1/fieldoptions?fieldtype=wizard_eye_shape', {
           headers: {
             'Authorization': 'Bearer WeInfl3nc3withAI'
           }
@@ -795,7 +795,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
     const fetchLipStyleOptions = async () => {
       try {
         setIsLoadingLipStyle(true);
-        const response = await fetch('https://api.nymia.ai/v1/fieldoptions?fieldtype=lip_style', {
+        const response = await fetch('https://api.nymia.ai/v1/fieldoptions?fieldtype=wizard_lip_style', {
           headers: {
             'Authorization': 'Bearer WeInfl3nc3withAI'
           }
@@ -825,7 +825,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
     const fetchNoseStyleOptions = async () => {
       try {
         setIsLoadingNoseStyle(true);
-        const response = await fetch('https://api.nymia.ai/v1/fieldoptions?fieldtype=nose_style', {
+        const response = await fetch('https://api.nymia.ai/v1/fieldoptions?fieldtype=wizard_nose_style', {
           headers: {
             'Authorization': 'Bearer WeInfl3nc3withAI'
           }
@@ -855,7 +855,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
     const fetchEyebrowStyleOptions = async () => {
       try {
         setIsLoadingEyebrowStyle(true);
-        const response = await fetch('https://api.nymia.ai/v1/fieldoptions?fieldtype=eyebrow_style', {
+        const response = await fetch('https://api.nymia.ai/v1/fieldoptions?fieldtype=wizard_eyebrow_style', {
           headers: {
             'Authorization': 'Bearer WeInfl3nc3withAI'
           }
@@ -885,7 +885,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
     const fetchSkinToneOptions = async () => {
       try {
         setIsLoadingSkinTone(true);
-        const response = await fetch('https://api.nymia.ai/v1/fieldoptions?fieldtype=skin_tone', {
+        const response = await fetch('https://api.nymia.ai/v1/fieldoptions?fieldtype=wizard_skin_tone', {
           headers: {
             'Authorization': 'Bearer WeInfl3nc3withAI'
           }
@@ -915,7 +915,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
     const fetchBodyTypeOptions = async () => {
       try {
         setIsLoadingBodyType(true);
-        const response = await fetch('https://api.nymia.ai/v1/fieldoptions?fieldtype=body_type', {
+        const response = await fetch('https://api.nymia.ai/v1/fieldoptions?fieldtype=wizard_body_type', {
           headers: {
             'Authorization': 'Bearer WeInfl3nc3withAI'
           }
@@ -945,7 +945,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
     const fetchBustSizeOptions = async () => {
       try {
         setIsLoadingBustSize(true);
-        const response = await fetch('https://api.nymia.ai/v1/fieldoptions?fieldtype=bust', {
+        const response = await fetch('https://api.nymia.ai/v1/fieldoptions?fieldtype=wizard_bust', {
           headers: {
             'Authorization': 'Bearer WeInfl3nc3withAI'
           }
@@ -975,7 +975,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
     const fetchEthnicsOptions = async () => {
       try {
         setIsLoadingEthnics(true);
-        const response = await fetch('https://api.nymia.ai/v1/fieldoptions?fieldtype=ethnics_stereotype', {
+        const response = await fetch('https://api.nymia.ai/v1/fieldoptions?fieldtype=wizard_ethnics_stereotype', {
           headers: {
             'Authorization': 'Bearer WeInfl3nc3withAI'
           }

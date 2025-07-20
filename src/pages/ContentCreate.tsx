@@ -27,6 +27,7 @@ import VaultSelector from '@/components/VaultSelector';
 import PresetsManager from '@/components/PresetsManager';
 import LibraryManager from '@/components/LibraryManager';
 import { Image, Wand2, Settings, Image as ImageIcon, Sparkles, Loader2, Camera, Search, X, Filter, Plus, RotateCcw, Download, Trash2, Calendar, Share, Pencil, Edit3, BookOpen, Save, FolderOpen, Upload, Edit, AlertTriangle, Eye, User, Monitor, ZoomIn, SortAsc, SortDesc } from 'lucide-react';
+import HistoryCard from '@/components/HistoryCard';
 
 const TASK_OPTIONS = [
   { value: 'generate_image', label: 'Generate Image', description: 'Generate a single image' },
@@ -66,6 +67,7 @@ export default function ContentCreate() {
   const [selectedSearchField, setSelectedSearchField] = useState(SEARCH_FIELDS[0]);
   const [openFilter, setOpenFilter] = useState(false);
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
+  const [showHistory, setShowHistory] = useState(false);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -696,22 +698,22 @@ export default function ContentCreate() {
     });
 
     // If usePromptOnly is being enabled, also reset scene specifications
-    // if (field === 'usePromptOnly' && value === true) {
-    setSceneSpecs({
-      framing: '',
-      rotation: '',
-      lighting_preset: '',
-      scene_setting: '',
-      pose: '',
-      clothes: ''
-    });
+    if (field === 'usePromptOnly' && value === true) {
+      setSceneSpecs({
+        framing: '',
+        rotation: '',
+        lighting_preset: '',
+        scene_setting: '',
+        pose: '',
+        clothes: ''
+      });
 
-    // Reset model description makeup to default
-    setModelDescription(prev => ({
-      ...prev,
-      makeup: 'Natural / No-Makeup Look'
-    }));
-    // }
+      // Reset model description makeup to default
+      setModelDescription(prev => ({
+        ...prev,
+        makeup: 'Natural / No-Makeup Look'
+      }));
+    }
   };
 
   const handleSceneSpecChange = (field: string, value: any) => {
@@ -3965,6 +3967,13 @@ export default function ContentCreate() {
               )}
             </CardContent>
           </Card>
+          <Button
+            variant="outline"
+            className="w-full mt-4 mb-8 font-semibold text-md bg-gradient-to-r from-blue-700 to-purple-700 text-white shadow-lg hover:from-blue-800 hover:to-purple-800"
+            onClick={() => setShowHistory(v => !v)}
+          >
+            {showHistory ? 'Hide history' : 'Show history'}
+          </Button>
         </div>
       </div>
       {activeTab === 'scene' && isAdvancedMode && (
@@ -6204,6 +6213,7 @@ export default function ContentCreate() {
           </div>
         </DialogContentZoom>
       </DialogZoom>
+      {showHistory && <HistoryCard userId={userData.id} />}
     </div>
   );
 }

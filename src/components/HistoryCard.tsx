@@ -5,10 +5,16 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, RefreshCw, Calendar, ZoomIn, Download, Share, Trash2, Edit3, RotateCcw } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { Loader2, RefreshCw, Calendar as CalendarIcon, ZoomIn, Download, Share, Trash2, Edit3, RotateCcw, Search, Filter, X, SortAsc, SortDesc } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/store/store';
+import { format } from 'date-fns';
+import { DateRange } from 'react-day-picker';
 
 export default function HistoryCard({ userId }: { userId: string }) {
   const navigate = useNavigate();
@@ -27,6 +33,15 @@ export default function HistoryCard({ userId }: { userId: string }) {
   const [zoomModal, setZoomModal] = useState<{ open: boolean; imageUrl: string; imageName: string }>({ open: false, imageUrl: '', imageName: '' });
   const [regeneratingImages, setRegeneratingImages] = useState<Set<string>>(new Set());
   const [shareModal, setShareModal] = useState<{ open: boolean; itemId: string | null; itemPath: string | null }>({ open: false, itemId: null, itemPath: null });
+
+  // Search and filter state
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'filename'>('newest');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [showFilters, setShowFilters] = useState(false);
+  const [activeFilters, setActiveFilters] = useState<string[]>([]);
 
   useEffect(() => {
     setIsLoading(true);
@@ -74,11 +89,59 @@ export default function HistoryCard({ userId }: { userId: string }) {
     }))
   );
 
+  // Apply search and filters
+  const filteredImages = allImages.filter(image => {
+    // Search by filename
+    if (searchTerm && !image.system_filename.toLowerCase().includes(searchTerm.toLowerCase())) {
+      return false;
+    }
+
+    // Date range filter
+    if (dateRange?.from || dateRange?.to) {
+      const imageDate = new Date(image.created_at);
+      if (dateRange.from && imageDate < dateRange.from) return false;
+      if (dateRange.to && imageDate > dateRange.to) return false;
+    }
+
+    // Status filter
+    if (statusFilter !== 'all' && image.generation_status !== statusFilter) {
+      return false;
+    }
+
+    return true;
+  });
+
+  // Apply sorting
+  const sortedImages = [...filteredImages].sort((a, b) => {
+    let comparison = 0;
+    
+    switch (sortBy) {
+      case 'newest':
+      case 'oldest':
+        comparison = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+        break;
+      case 'filename':
+        comparison = a.system_filename.localeCompare(b.system_filename);
+        break;
+    }
+    
+    return sortOrder === 'asc' ? comparison : -comparison;
+  });
+
+  // Update active filters
+  useEffect(() => {
+    const filters = [];
+    if (searchTerm) filters.push(`Search: "${searchTerm}"`);
+    if (dateRange?.from || dateRange?.to) filters.push('Date Range');
+    if (statusFilter !== 'all') filters.push(`Status: ${statusFilter}`);
+    setActiveFilters(filters);
+  }, [searchTerm, dateRange, statusFilter]);
+
   // Paginate images instead of tasks
   const start = pageSize === -1 ? 0 : (page - 1) * pageSize;
-  const end = pageSize === -1 ? allImages.length : start + pageSize;
-  const pageImages = allImages.slice(start, end);
-  const pageCount = pageSize === -1 ? 1 : Math.ceil(allImages.length / pageSize);
+  const end = pageSize === -1 ? sortedImages.length : start + pageSize;
+  const pageImages = sortedImages.slice(start, end);
+  const pageCount = pageSize === -1 ? 1 : Math.ceil(sortedImages.length / pageSize);
 
   const handleRefresh = () => {
     setImagesByTask({});
@@ -90,6 +153,30 @@ export default function HistoryCard({ userId }: { userId: string }) {
     const num = parseInt(jumpPage, 10);
     if (!isNaN(num) && num >= 1 && num <= pageCount) setPage(num);
     setJumpPage('');
+  };
+
+  const clearFilters = () => {
+    setSearchTerm('');
+    setDateRange(undefined);
+    setStatusFilter('all');
+    setSortBy('newest');
+    setSortOrder('desc');
+    setPage(1);
+  };
+
+  const removeFilter = (filterType: string) => {
+    switch (filterType) {
+      case 'search':
+        setSearchTerm('');
+        break;
+      case 'date':
+        setDateRange(undefined);
+        break;
+      case 'status':
+        setStatusFilter('all');
+        break;
+    }
+    setPage(1);
   };
 
   const handleDownload = async (image: any) => {
@@ -397,6 +484,98 @@ export default function HistoryCard({ userId }: { userId: string }) {
           )}
         </div>
       </div>
+
+      {/* Search and Filter Section */}
+      <div className="mb-6 space-y-4">
+        {/* Search Bar */}
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
+            <Input
+              placeholder="Search by filename..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 bg-slate-800 border-slate-700 text-white placeholder:text-slate-400"
+            />
+            {searchTerm && (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setSearchTerm('')}
+                className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
+              >
+                <X className="w-3 h-3" />
+              </Button>
+            )}
+          </div>
+          
+          <div className="flex gap-2">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="bg-slate-800 border-slate-700 text-white hover:bg-slate-700">
+                  <CalendarIcon className="w-4 h-4 mr-2" />
+                  Date Range
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  initialFocus
+                  mode="range"
+                  selected={dateRange}
+                  onSelect={setDateRange}
+                  numberOfMonths={2}
+                />
+              </PopoverContent>
+            </Popover>
+
+            <Button
+              variant="outline"
+              onClick={() => setSortOrder(order => order === 'asc' ? 'desc' : 'asc')}
+              className="bg-slate-800 border-slate-700 text-white hover:bg-slate-700"
+            >
+              {sortOrder === 'asc' ? <SortAsc className="w-4 h-4" /> : <SortDesc className="w-4 h-4" />}
+            </Button>
+
+            <Button
+              variant="outline"
+              onClick={clearFilters}
+              className="bg-slate-800 border-slate-700 text-white hover:bg-slate-700"
+            >
+              Clear All
+            </Button>
+          </div>
+        </div>
+
+        {/* Active Filters */}
+        {activeFilters.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {activeFilters.map((filter, index) => (
+              <Badge
+                key={index}
+                variant="secondary"
+                className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+              >
+                {filter}
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => removeFilter(filter.toLowerCase().includes('search') ? 'search' : filter.toLowerCase().includes('date') ? 'date' : 'status')}
+                  className="ml-1 h-4 w-4 p-0 hover:bg-blue-200 dark:hover:bg-blue-800"
+                >
+                  <X className="w-2 h-2" />
+                </Button>
+              </Badge>
+            ))}
+          </div>
+        )}
+
+        {/* Results Summary */}
+        <div className="text-sm text-slate-400">
+          Showing {pageImages.length} of {sortedImages.length} images
+          {searchTerm && ` matching "${searchTerm}"`}
+        </div>
+      </div>
+
       {error && <div className="text-center py-8 text-red-400">{error}</div>}
       {isLoading ? (
         <div className="flex flex-col items-center justify-center py-12">
@@ -408,151 +587,152 @@ export default function HistoryCard({ userId }: { userId: string }) {
           <div className="text-slate-400 text-lg mb-2">No generation history found.</div>
           <div className="text-slate-500 text-sm">Your generated images will appear here.</div>
         </div>
+      ) : sortedImages.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-12">
+          <div className="text-slate-400 text-lg mb-2">No images match your filters.</div>
+          <div className="text-slate-500 text-sm">Try adjusting your search criteria.</div>
+        </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
           {pageImages.map(image => (
-              <Card
-                key={image.id}
-                className="group hover:shadow-xl transition-all duration-300 border-border/50 hover:border-blue-500/50 backdrop-blur-sm bg-gradient-to-br from-yellow-50/20 to-orange-50/20 dark:from-yellow-950/5 dark:to-orange-950/5 hover:from-blue-50/30 hover:to-purple-50/30 dark:hover:from-blue-950/10 dark:hover:to-purple-950/10 cursor-pointer"
-              >
-                <CardContent className="p-4">
-                  {/* Top Row: File Type, Static Stars, Static Heart */}
-                  <div className="flex items-center justify-between mb-3">
-                    {/* File Type Icon */}
-                    <div className="rounded-full w-8 h-8 flex items-center justify-center shadow-md bg-gradient-to-br from-blue-500 to-purple-600">
-                      <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z" />
-                        <circle cx="8.5" cy="8.5" r="1.5" opacity="0.8" />
+            <Card
+              key={image.id}
+              className="group hover:shadow-xl transition-all duration-300 border-border/50 hover:border-blue-500/50 backdrop-blur-sm bg-gradient-to-br from-yellow-50/20 to-orange-50/20 dark:from-yellow-950/5 dark:to-orange-950/5 hover:from-blue-50/30 hover:to-purple-50/30 dark:hover:from-blue-950/10 dark:hover:to-purple-950/10 cursor-pointer"
+            >
+              <CardContent className="p-4">
+                {/* Top Row: File Type, Static Stars, Static Heart */}
+                <div className="flex items-center justify-between mb-3">
+                  {/* File Type Icon */}
+                  <div className="rounded-full w-8 h-8 flex items-center justify-center shadow-md bg-gradient-to-br from-blue-500 to-purple-600">
+                    <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z" />
+                      <circle cx="8.5" cy="8.5" r="1.5" opacity="0.8" />
+                    </svg>
+                  </div>
+                  {/* Static 5 gray stars */}
+                  <div className="flex gap-1">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <svg
+                        key={star}
+                        className="w-4 h-4 text-gray-300"
+                        viewBox="0 0 24 24"
+                      >
+                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                      </svg>
+                    ))}
+                  </div>
+                  {/* Static gray heart */}
+                  <div>
+                    <div className="bg-black/50 rounded-full w-8 h-8 flex items-center justify-center">
+                      <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
                       </svg>
                     </div>
-                    {/* Static 5 gray stars */}
+                  </div>
+                </div>
+                {/* Image */}
+                <div className="relative w-full group mb-4" style={{ paddingBottom: '100%' }}>
+                  <img
+                    src={`https://images.nymia.ai/cdn-cgi/image/w=400/${image.file_path}`}
+                    alt={image.system_filename}
+                    className="absolute inset-0 w-full h-full object-cover rounded-md shadow-sm cursor-pointer transition-all duration-200 hover:scale-105"
+                    onClick={() => setZoomModal({ open: true, imageUrl: `https://images.nymia.ai/cdn-cgi/image/w=1200/${image.file_path}`, imageName: image.system_filename })}
+                    onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                  />
+                  {/* Zoom Overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded-md flex items-end justify-end p-2">
                     <div className="flex gap-1">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <svg
-                          key={star}
-                          className="w-4 h-4 text-gray-300"
-                          viewBox="0 0 24 24"
-                        >
-                          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                        </svg>
-                      ))}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-8 w-8 p-0 bg-white/90 dark:bg-black/90 hover:bg-white dark:hover:bg-black shadow-lg hover:shadow-xl transition-all duration-200"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setZoomModal({ open: true, imageUrl: `https://images.nymia.ai/cdn-cgi/image/w=1200/${image.file_path}`, imageName: image.system_filename });
+                        }}
+                      >
+                        <ZoomIn className="w-3 h-3 text-gray-700 dark:text-gray-300" />
+                      </Button>
                     </div>
-                    {/* Static gray heart */}
-                    <div>
-                      <div className="bg-black/50 rounded-full w-8 h-8 flex items-center justify-center">
-                        <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-                        </svg>
+                  </div>
+                </div>
+                {/* Filename and Date */}
+                <div className="space-y-2 mb-2">
+                  <h3 className="font-medium text-sm text-gray-800 dark:text-gray-200 truncate">
+                    {image.system_filename}
+                  </h3>
+                </div>
+                {/* Prompt and Task ID */}
+                <div className="space-y-1 mb-3">
+                  <div className="text-xs text-slate-500 dark:text-slate-400">
+                    <span className="font-semibold">Task ID:</span> {image.task.id}
+                  </div>
+                </div>
+                {/* Action Buttons */}
+                <div className="flex gap-1.5 mt-3">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex-1 h-8 text-xs font-medium hover:bg-purple-700 hover:border-purple-500 transition-colors"
+                    onClick={() => handleDownload(image)}
+                  >
+                    <Download className="w-3 h-3 mr-1.5" />
+                    <span className="hidden sm:inline">Download</span>
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 w-8 p-0 hover:bg-green-50 hover:bg-green-700 hover:border-green-500 transition-colors"
+                    onClick={() => handleShare(image.system_filename)}
+                  >
+                    <Share className="w-3 h-3" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-amber-500 hover:border-amber-300 transition-colors"
+                    onClick={() => handleDelete(image)}
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </Button>
+                </div>
+                <div className="flex gap-1.5 mt-3">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex-1 h-8 text-xs font-medium bg-gradient-to-r from-blue-500 to-purple-600 text-white border-blue-500 hover:from-blue-600 hover:to-purple-700 hover:border-blue-600 transition-all duration-200 shadow-sm"
+                    onClick={() => handleEdit(image)}
+                    title="Edit this image with professional tools"
+                  >
+                    <Edit3 className="w-3 h-3 mr-1.5" />
+                    <span className="hidden sm:inline">Edit</span>
+                  </Button>
+                </div>
+                {/* Regenerate Button */}
+                <div className="mt-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="w-full h-8 text-xs font-medium bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white border-0 shadow-md hover:shadow-lg transition-all duration-300"
+                    onClick={() => handleRegenerate(image)}
+                    disabled={regeneratingImages.has(image.system_filename)}
+                  >
+                    {regeneratingImages.has(image.system_filename) ? (
+                      <div className="flex items-center gap-2">
+                        <RotateCcw className="w-3 h-3 animate-spin" />
+                        <span>Regenerating...</span>
                       </div>
-                    </div>
-                  </div>
-                  {/* Image */}
-                  <div className="relative w-full group mb-4" style={{ paddingBottom: '100%' }}>
-                    <img
-                      src={`https://images.nymia.ai/cdn-cgi/image/w=400/${image.file_path}`}
-                      alt={image.system_filename}
-                      className="absolute inset-0 w-full h-full object-cover rounded-md shadow-sm cursor-pointer transition-all duration-200 hover:scale-105"
-                      onClick={() => setZoomModal({ open: true, imageUrl: `https://images.nymia.ai/cdn-cgi/image/w=1200/${image.file_path}`, imageName: image.system_filename })}
-                      onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                    />
-                    {/* Zoom Overlay */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded-md flex items-end justify-end p-2">
-                      <div className="flex gap-1">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="h-8 w-8 p-0 bg-white/90 dark:bg-black/90 hover:bg-white dark:hover:bg-black shadow-lg hover:shadow-xl transition-all duration-200"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setZoomModal({ open: true, imageUrl: `https://images.nymia.ai/cdn-cgi/image/w=1200/${image.file_path}`, imageName: image.system_filename });
-                          }}
-                        >
-                          <ZoomIn className="w-3 h-3 text-gray-700 dark:text-gray-300" />
-                        </Button>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <RotateCcw className="w-3 h-3" />
+                        <span>Regenerate</span>
                       </div>
-                    </div>
-                  </div>
-                  {/* Filename and Date */}
-                  <div className="space-y-2 mb-2">
-                    <h3 className="font-medium text-sm text-gray-800 dark:text-gray-200 truncate">
-                      {image.system_filename}
-                    </h3>
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <Calendar className="w-3 h-3" />
-                      {new Date(image.created_at).toLocaleDateString()}
-                    </div>
-                  </div>
-                  {/* Prompt and Task ID */}
-                  <div className="space-y-1 mb-3">
-                    <div className="text-xs text-slate-500 dark:text-slate-400">
-                      <span className="font-semibold">Task ID:</span> {image.task.id}
-                    </div>
-                  </div>
-                  {/* Action Buttons */}
-                  <div className="flex gap-1.5 mt-3">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="flex-1 h-8 text-xs font-medium hover:bg-purple-700 hover:border-purple-500 transition-colors"
-                      onClick={() => handleDownload(image)}
-                    >
-                      <Download className="w-3 h-3 mr-1.5" />
-                      <span className="hidden sm:inline">Download</span>
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-8 w-8 p-0 hover:bg-green-50 hover:bg-green-700 hover:border-green-500 transition-colors"
-                      onClick={() => handleShare(image.system_filename)}
-                    >
-                      <Share className="w-3 h-3" />
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-amber-500 hover:border-amber-300 transition-colors"
-                      onClick={() => handleDelete(image)}
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </Button>
-                  </div>
-                  <div className="flex gap-1.5 mt-3">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="flex-1 h-8 text-xs font-medium bg-gradient-to-r from-blue-500 to-purple-600 text-white border-blue-500 hover:from-blue-600 hover:to-purple-700 hover:border-blue-600 transition-all duration-200 shadow-sm"
-                      onClick={() => handleEdit(image)}
-                      title="Edit this image with professional tools"
-                    >
-                      <Edit3 className="w-3 h-3 mr-1.5" />
-                      <span className="hidden sm:inline">Edit</span>
-                    </Button>
-                  </div>
-                  {/* Regenerate Button */}
-                  <div className="mt-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="w-full h-8 text-xs font-medium bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white border-0 shadow-md hover:shadow-lg transition-all duration-300"
-                      onClick={() => handleRegenerate(image)}
-                      disabled={regeneratingImages.has(image.system_filename)}
-                    >
-                      {regeneratingImages.has(image.system_filename) ? (
-                        <div className="flex items-center gap-2">
-                          <RotateCcw className="w-3 h-3 animate-spin" />
-                          <span>Regenerating...</span>
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-2">
-                          <RotateCcw className="w-3 h-3" />
-                          <span>Regenerate</span>
-                        </div>
-                      )}
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                    )}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
         </div>
       )}
       {/* Zoom Modal */}

@@ -787,13 +787,10 @@ export default function InfluencerEdit() {
 
       const pollForImages = async () => {
         try {
-          const imagesResponse = await fetch('https://api.nymia.ai/v1/get-images-by-task', {
-            method: 'POST',
+          const imagesResponse = await fetch(`https://db.nymia.ai/rest/v1/generated_images?task_id=eq.${taskId}`, {
             headers: {
-              'Content-Type': 'application/json',
               'Authorization': 'Bearer WeInfl3nc3withAI'
-            },
-            body: JSON.stringify({ task_id: taskId })
+            }
           });
 
           // if (!imagesResponse.ok) {
@@ -801,19 +798,22 @@ export default function InfluencerEdit() {
           // }
 
           const imagesData = await imagesResponse.json();
+          console.log(imagesData);
 
-          if (imagesData.success && imagesData.images && imagesData.images.length > 0) {
+          if (imagesData.length > 0 && imagesData[0].generation_status && imagesData[0].generation_status === 'completed' && imagesData[0].file_path) {
             // Check if any image is completed
-            const completedImage = imagesData.images.find((img: any) => img.status === 'completed');
+            const completedImage = imagesData[0];
+
+            setProfileImageId(completedImage.system_filename);
 
             if (completedImage) {
               // Show the generated image
               const imageUrl = `https://images.nymia.ai/cdn-cgi/image/w=800/${completedImage.file_path}`;
               setPreviewImage(imageUrl);
 
-              // Store the generated image data for the "Use as profile picture" functionality
+              // Store the generated image data
               setGeneratedImageData({
-                image_id: completedImage.image_id,
+                image_id: completedImage.id,
                 system_filename: completedImage.system_filename
               });
 
@@ -858,6 +858,8 @@ export default function InfluencerEdit() {
       return;
     }
 
+    console.log(generatedImageData);
+
     try {
       // Copy the generated image to the profile picture location
       const taskFilename = await fetch(`https://db.nymia.ai/rest/v1/generated_images?id=eq.${generatedImageData.image_id}`, {
@@ -876,7 +878,7 @@ export default function InfluencerEdit() {
         body: JSON.stringify({
           user: userData.id,
           sourcefilename: `output/${taskFilenameData[0].system_filename}`,
-          destinationfilename: `models/${influencerData.id}/profilepic/profilepic${influencerData.image_num}.png`
+          destinationfilename: `models/${influencerData.id}/profilepic/profilepic${influencerData.image_num === null ? 0 : influencerData.image_num}.png`
         })
       });
 

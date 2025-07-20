@@ -64,6 +64,7 @@ interface InfluencerData {
   background_elements: string[];
   prompt: string;
   notes: string;
+  image_num: number;
 }
 
 interface Option {
@@ -345,7 +346,8 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
     current_goals: [],
     background_elements: [],
     prompt: '',
-    notes: ''
+    notes: '',
+    image_num: 0
   });
 
   const [nameWizardResponse, setNameWizardResponse] = useState<NameWizardResponse | null>(null);
@@ -360,6 +362,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [generatedImageData, setGeneratedImageData] = useState<{ image_id: string; system_filename: string } | null>(null);
   const [ethnic, setEthnic] = useState<string | null>(null);
+  const [profileImageId, setProfileImageId] = useState<string | null>(null);
 
   // console.log(influencerData);
 
@@ -458,7 +461,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
       });
 
       // Fetch images from original API
-      const imagesResponse = await fetch('https://api.nymia.ai/v1/fieldoptions?fieldtype=wizard_facial_features', {
+      const imagesResponse = await fetch('https://api.nymia.ai/v1/fieldoptions?fieldtype=facial_features', {
         headers: {
           'Authorization': 'Bearer WeInfl3nc3withAI'
         }
@@ -1355,6 +1358,8 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
 
   const handleSubmit = async () => {
     setIsLoading(true);
+    console.log(profileImageId);
+
     try {
       // Create the influencer in the database
       const response = await fetch('https://db.nymia.ai/rest/v1/influencer', {
@@ -1374,6 +1379,25 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
       });
 
       const data = await responseId.json();
+
+      if (profileImageId) {
+        const extension = profileImageId.split('.').pop();
+        await fetch('https://api.nymia.ai/v1/copyfile', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer WeInfl3nc3withAI'
+          },
+          body: JSON.stringify({
+            user: userData.id,
+            sourcefilename: `output/${profileImageId}`,
+            destinationfilename: `models/${data[0].id}/profilepic/profilepic${data[0].image_num}.${extension}`
+          })
+        });
+  
+        influencerData.image_url = `https://images.nymia.ai/cdn-cgi/image/w=400/${userData.id}/models/${data[0].id}/profilepic/profilepic${influencerData.image_num}.${extension}`;
+        influencerData.image_num = data[0].image_num + 1;
+      }
 
       await fetch('https://api.nymia.ai/v1/createfolder', {
         method: 'POST',
@@ -1608,13 +1632,10 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
 
       const pollForImages = async () => {
         try {
-          const imagesResponse = await fetch('https://api.nymia.ai/v1/get-images-by-task', {
-            method: 'POST',
+          const imagesResponse = await fetch(`https://db.nymia.ai/rest/v1/generated_images?task_id=eq.${taskId}`, {
             headers: {
-              'Content-Type': 'application/json',
               'Authorization': 'Bearer WeInfl3nc3withAI'
-            },
-            body: JSON.stringify({ task_id: taskId })
+            }
           });
 
           // if (!imagesResponse.ok) {
@@ -1622,10 +1643,13 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
           // }
 
           const imagesData = await imagesResponse.json();
+          console.log(imagesData);
 
-          if (imagesData.success && imagesData.images && imagesData.images.length > 0) {
+          if (imagesData.length > 0 && imagesData[0].generation_status && imagesData[0].generation_status === 'completed' && imagesData[0].file_path) {
             // Check if any image is completed
-            const completedImage = imagesData.images.find((img: any) => img.status === 'completed');
+            const completedImage = imagesData[0];
+
+            setProfileImageId(completedImage.system_filename);
 
             if (completedImage) {
               // Show the generated image
@@ -3399,9 +3423,9 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
               ) : (
                 <div className="space-y-6">
                   {/* Items per page control */}
-                  <div className="flex justify-between items-center">
+                  {/* <div className="flex justify-between items-center"> */}
                     {/* Items per page selector */}
-                    <div className="flex items-center gap-2">
+                    {/* <div className="flex items-center gap-2">
                       <span className="text-sm text-gray-600 dark:text-gray-400">Show:</span>
                       <select
                         value={itemsPerPage}
@@ -3418,7 +3442,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                     <div className="text-sm text-gray-600 dark:text-gray-400">
                       Showing {startIndex + 1}-{Math.min(endIndex, bodyTypeOptions.length)} of {bodyTypeOptions.length} body type options
                     </div>
-                  </div>
+                  </div> */}
 
                   {/* Body Type Options Grid */}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
@@ -3468,7 +3492,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                   </div>
 
                   {/* Pagination */}
-                  {Math.ceil(bodyTypeOptions.length / (itemsPerPage === -1 ? bodyTypeOptions.length : itemsPerPage)) > 1 && (
+                  {/* {Math.ceil(bodyTypeOptions.length / (itemsPerPage === -1 ? bodyTypeOptions.length : itemsPerPage)) > 1 && ( */}
                     <div className="flex flex-col sm:flex-row justify-between items-center gap-4 py-6 border-t border-gray-200 dark:border-gray-700">
                       <div className="text-sm text-gray-600 dark:text-gray-400">
                         Showing {startIndex + 1}-{Math.min(endIndex, bodyTypeOptions.length)} of {bodyTypeOptions.length} body type options
@@ -3541,7 +3565,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                         </Button>
                       </div>
                     </div>
-                  )}
+                  {/* )} */}
                 </div>
               )}
             </div>
@@ -3572,28 +3596,6 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                 </div>
               ) : (
                 <div className="space-y-6">
-                  {/* Items per page control */}
-                  <div className="flex justify-between items-center">
-                    {/* Items per page selector */}
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-gray-600 dark:text-gray-400">Show:</span>
-                      <select
-                        value={itemsPerPage}
-                        onChange={(e) => handleItemsPerPageChange(Number(e.target.value))}
-                        className="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                      >
-                        <option value={5}>5</option>
-                        <option value={10}>10</option>
-                        <option value={15}>15</option>
-                        <option value={-1}>All</option>
-                      </select>
-                      <span className="text-sm text-gray-600 dark:text-gray-400">per page</span>
-                    </div>
-                    <div className="text-sm text-gray-600 dark:text-gray-400">
-                      Showing {startIndex + 1}-{Math.min(endIndex, bustSizeOptions.length)} of {bustSizeOptions.length} bust size options
-                    </div>
-                  </div>
-
                   {/* Bust Size Options Grid */}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
                     {bustSizeOptions.slice(startIndex, endIndex).map((option) => (
@@ -4340,7 +4342,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
         <DialogContent className="max-w-5xl max-h-[90vh] p-0 overflow-hidden">
           <div className="relative h-full">
             {previewImageUrl ? (
-              <div className="space-y-0">
+              <div className="space-y-0 overflow-y-auto h-[90vh]">
                 {/* Header */}
                 <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white p-6">
                   <div className="flex items-center justify-between">
@@ -4373,105 +4375,25 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                   </div>
                 </div>
 
-                {/* Influencer Details */}
-                <div className="bg-white dark:bg-gray-800 p-6 border-t border-gray-200 dark:border-gray-700">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    <div className="space-y-3">
-                      <h4 className="font-semibold text-gray-900 dark:text-gray-100 text-lg">Basic Information</h4>
-                      <div className="space-y-2 text-sm">
-                        <div className="flex justify-between">
-                          <span className="text-gray-500">Name:</span>
-                          <span className="font-medium">{influencerData.name_first} {influencerData.name_last}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-500">Sex:</span>
-                          <span className="font-medium">{influencerData.sex}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-500">Age:</span>
-                          <span className="font-medium">{influencerData.age}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-500">Origin:</span>
-                          <span className="font-medium">{influencerData.origin_residence}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="space-y-3">
-                      <h4 className="font-semibold text-gray-900 dark:text-gray-100 text-lg">Physical Features</h4>
-                      <div className="space-y-2 text-sm">
-                        <div className="flex justify-between">
-                          <span className="text-gray-500">Hair:</span>
-                          <span className="font-medium">{influencerData.hair_color} {influencerData.hair_length}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-500">Eyes:</span>
-                          <span className="font-medium">{influencerData.eye_color}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-500">Skin Tone:</span>
-                          <span className="font-medium">{influencerData.skin_tone}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-500">Body Type:</span>
-                          <span className="font-medium">{influencerData.body_type}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="space-y-3">
-                      <h4 className="font-semibold text-gray-900 dark:text-gray-100 text-lg">Background</h4>
-                      <div className="space-y-2 text-sm">
-                        <div className="flex justify-between">
-                          <span className="text-gray-500">Cultural:</span>
-                          <span className="font-medium">{influencerData.cultural_background}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-500">Facial Features:</span>
-                          <span className="font-medium">{influencerData.facial_features}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-500">Face Shape:</span>
-                          <span className="font-medium">{influencerData.face_shape}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-500">Type:</span>
-                          <span className="font-medium">{influencerData.influencer_type}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
                 {/* Action Buttons */}
-                <div className="bg-gray-50 dark:bg-gray-900 p-6 border-t border-gray-200 dark:border-gray-700">
-                  <div className="flex justify-between items-center">
-                    <Button
-                      variant="outline"
-                      onClick={handleClosePreview}
-                      className="px-6 py-3 text-base font-medium"
-                    >
-                      Close Preview
-                    </Button>
-                    <Button
-                      onClick={handleSubmit}
-                      disabled={isLoading}
-                      className="px-8 py-3 text-base font-medium bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
-                    >
-                      {isLoading ? (
-                        <div className="flex items-center gap-2">
-                          <Loader2 className="w-5 h-5 animate-spin" />
-                          <span>Creating...</span>
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-2">
-                          <span>Create Final Influencer</span>
-                          <ArrowRight className="w-5 h-5" />
-                        </div>
-                      )}
-                    </Button>
-                  </div>
+                <div className="bg-gray-50 dark:bg-gray-900 p-6 border-t border-gray-200 dark:border-gray-700 flex justify-between items-center">
+                  <Button
+                    variant="outline"
+                    onClick={handlePreview}
+                    className="px-6 py-3 text-base font-medium"
+                    disabled={isPreviewLoading}
+                  >
+                    {isPreviewLoading ? 'Regenerating...' : 'Regenerate'}
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      setShowPreviewModal(false);
+                      setCurrentStep(16);
+                    }}
+                    className="px-8 py-3 text-base font-medium bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
+                  >
+                    Use this image
+                  </Button>
                 </div>
               </div>
             ) : (

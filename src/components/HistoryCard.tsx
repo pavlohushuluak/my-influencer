@@ -46,14 +46,13 @@ export default function HistoryCard({ userId }: { userId: string }) {
   useEffect(() => {
     if (!tasks.length) return;
     setIsImagesLoading(true);
-    const start = pageSize === -1 ? 0 : (page - 1) * pageSize;
-    const end = pageSize === -1 ? tasks.length : start + pageSize;
-    const pageTasks = tasks.slice(start, end);
+    
+    // Fetch images for all tasks if not already loaded
     Promise.all(
-      pageTasks.map(task =>
+      tasks.map(task =>
         imagesByTask[task.id]
           ? Promise.resolve()
-          : fetch(`https://db.nymia.ai/rest/v1/generated_images?task_id=eq.${task.id}`, {
+          : fetch(`https://db.nymia.ai/rest/v1/generated_images?task_id=eq.${task.id}&generation_status=eq.completed`, {
               headers: {
                 'Content-Type': 'application/json',
                 'Authorization': 'Bearer WeInfl3nc3withAI'
@@ -65,12 +64,21 @@ export default function HistoryCard({ userId }: { userId: string }) {
       )
     ).finally(() => setIsImagesLoading(false));
     // eslint-disable-next-line
-  }, [tasks, page, pageSize]);
+  }, [tasks, imagesByTask]);
 
+  // Get all images from all tasks
+  const allImages = tasks.flatMap(task => 
+    (imagesByTask[task.id] || []).map(image => ({
+      ...image,
+      task: task // Include task info for display
+    }))
+  );
+
+  // Paginate images instead of tasks
   const start = pageSize === -1 ? 0 : (page - 1) * pageSize;
-  const end = pageSize === -1 ? tasks.length : start + pageSize;
-  const pageTasks = tasks.slice(start, end);
-  const pageCount = pageSize === -1 ? 1 : Math.ceil(tasks.length / pageSize);
+  const end = pageSize === -1 ? allImages.length : start + pageSize;
+  const pageImages = allImages.slice(start, end);
+  const pageCount = pageSize === -1 ? 1 : Math.ceil(allImages.length / pageSize);
 
   const handleRefresh = () => {
     setImagesByTask({});
@@ -346,7 +354,7 @@ export default function HistoryCard({ userId }: { userId: string }) {
   };
 
   return (
-    <div className="mt-12 mb-8 w-full max-w-6xl mx-auto bg-gradient-to-br from-slate-900/90 to-slate-800/90 rounded-2xl shadow-2xl p-6">
+    <div className="mt-12 mb-8 w-full mx-auto bg-gradient-to-br from-slate-900/90 to-slate-800/90 rounded-2xl shadow-2xl p-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
         <div className="flex items-center gap-3">
           <h3 className="text-xl font-bold text-white">Generation History</h3>
@@ -402,8 +410,7 @@ export default function HistoryCard({ userId }: { userId: string }) {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
-          {pageTasks.map(task => (
-            (imagesByTask[task.id] || []).map(image => (
+          {pageImages.map(image => (
               <Card
                 key={image.id}
                 className="group hover:shadow-xl transition-all duration-300 border-border/50 hover:border-blue-500/50 backdrop-blur-sm bg-gradient-to-br from-yellow-50/20 to-orange-50/20 dark:from-yellow-950/5 dark:to-orange-950/5 hover:from-blue-50/30 hover:to-purple-50/30 dark:hover:from-blue-950/10 dark:hover:to-purple-950/10 cursor-pointer"
@@ -477,11 +484,8 @@ export default function HistoryCard({ userId }: { userId: string }) {
                   </div>
                   {/* Prompt and Task ID */}
                   <div className="space-y-1 mb-3">
-                    <div className="text-xs text-slate-500 dark:text-slate-400 truncate">
-                      <span className="font-semibold">Prompt:</span> {image.prompt || <em>None</em>}
-                    </div>
                     <div className="text-xs text-slate-500 dark:text-slate-400">
-                      <span className="font-semibold">Task ID:</span> {task.id}
+                      <span className="font-semibold">Task ID:</span> {image.task.id}
                     </div>
                   </div>
                   {/* Action Buttons */}
@@ -548,8 +552,7 @@ export default function HistoryCard({ userId }: { userId: string }) {
                   </div>
                 </CardContent>
               </Card>
-            ))
-          ))}
+            ))}
         </div>
       )}
       {/* Zoom Modal */}

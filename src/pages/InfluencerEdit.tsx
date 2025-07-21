@@ -329,7 +329,9 @@ export default function InfluencerEdit() {
   const [showWeaknessSelector, setShowWeaknessSelector] = useState(false);
 
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [previewImages, setPreviewImages] = useState<Array<{ imageUrl: string; negativePrompt: string; isRecommended?: boolean; isLoading?: boolean; taskId?: string }>>([]);
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [generatedImageData, setGeneratedImageData] = useState<{ image_id: string; system_filename: string } | null>(null);
 
   const [humorOptions, setHumorOptions] = useState<Option[]>([]);
@@ -748,15 +750,29 @@ export default function InfluencerEdit() {
     }
 
     setIsPreviewLoading(true);
+    
+    // Initialize preview images with loading states
+    const initialPreviewImages = [
+      { imageUrl: '', negativePrompt: '2', isRecommended: false, isLoading: true, taskId: '' },
+      { imageUrl: '', negativePrompt: '1', isRecommended: true, isLoading: true, taskId: '' },
+      { imageUrl: '', negativePrompt: '3', isRecommended: false, isLoading: true, taskId: '' }
+    ];
+    
+    setPreviewImages(initialPreviewImages);
+    setShowPreviewModal(true);
 
     try {
-      // Simulate preview generation
-      toast.info('Generating preview...', {
-        description: 'Creating a preview of your influencer with current settings'
+      const useridResponse = await fetch(`https://db.nymia.ai/rest/v1/user?uuid=eq.${userData.id}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        }
       });
 
-      // Create the JSON data structure
-      const requestData = {
+      const useridData = await useridResponse.json();
+
+      // Create base request data
+      const baseRequestData = {
         task: "generate_preview",
         number_of_images: 1,
         quality: 'Quality',
@@ -764,7 +780,6 @@ export default function InfluencerEdit() {
         lora: "",
         noAI: false,
         prompt: "",
-        negative_prompt: "",
         lora_strength: 0,
         seed: -1,
         guidance: 7,
@@ -782,12 +797,12 @@ export default function InfluencerEdit() {
           face_shape: influencerData.face_shape,
           facial_features: influencerData.facial_features,
           skin_tone: influencerData.skin_tone,
-          bust: influencerData.bust_size, // Default value since not in Influencer type
+          bust: influencerData.bust_size,
           body_type: influencerData.body_type,
           color_palette: influencerData.color_palette || [],
           clothing_style_everyday: influencerData.clothing_style_everyday,
-          eyebrow_style: influencerData.eyebrow_style, // Default value since not in Influencer type
-          makeup_style: influencerData.makeup, // Use from modelDescription or default
+          eyebrow_style: influencerData.eyebrow_style,
+          makeup_style: influencerData.makeup,
           name_first: influencerData.name_first,
           name_last: influencerData.name_last,
           visual_only: influencerData.visual_only,
@@ -804,89 +819,91 @@ export default function InfluencerEdit() {
         }
       };
 
-      const useridResponse = await fetch(`https://db.nymia.ai/rest/v1/user?uuid=eq.${userData.id}`, {
-        method: 'GET',
-        headers: {
-          'Authorization': 'Bearer WeInfl3nc3withAI'
+      // Send 3 requests with different negative prompts
+      const requests = [
+        { negative_prompt: "1", order: 0, displayIndex: 1 }, // First displayed (recommended)
+        { negative_prompt: "2", order: 1, displayIndex: 0 }, // Second displayed
+        { negative_prompt: "3", order: 2, displayIndex: 2 }  // Third displayed
+      ];
+
+      const taskPromises = requests.map(async (request) => {
+        const requestData = {
+          ...baseRequestData,
+          negative_prompt: request.negative_prompt
+        };
+
+        const response = await fetch(`https://api.nymia.ai/v1/createtask?userid=${useridData[0].userid}&type=createimage`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer WeInfl3nc3withAI'
+          },
+          body: JSON.stringify(requestData)
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
         }
+
+        const result = await response.json();
+        console.log(result.id, ": ", request.negative_prompt);
+        return { 
+          taskId: result.id, 
+          order: request.order, 
+          displayIndex: request.displayIndex,
+          negativePrompt: request.negative_prompt 
+        };
       });
 
-      const useridData = await useridResponse.json();
+      const taskResults = await Promise.all(taskPromises);
 
-      // Send the request to create task
-      const response = await fetch(`https://api.nymia.ai/v1/createtask?userid=${useridData[0].userid}&type=createimage`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer WeInfl3nc3withAI'
-        },
-        body: JSON.stringify(requestData)
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const result = await response.json();
-      const taskId = result.id;
-
-      // Poll for the generated images
-      let attempts = 0;
-      const maxAttempts = 120; // 120 seconds max
-
+      // Poll for images individually and update as they complete
       const pollForImages = async () => {
         try {
-          const imagesResponse = await fetch(`https://db.nymia.ai/rest/v1/generated_images?task_id=eq.${taskId}`, {
-            headers: {
-              'Authorization': 'Bearer WeInfl3nc3withAI'
-            }
-          });
+          let allCompleted = true;
 
-          // if (!imagesResponse.ok) {
-          //   throw new Error('Failed to fetch images');
-          // }
-
-          const imagesData = await imagesResponse.json();
-          console.log(imagesData);
-
-          if (imagesData.length > 0 && imagesData[0].generation_status && imagesData[0].generation_status === 'completed' && imagesData[0].file_path) {
-            // Check if any image is completed
-            const completedImage = imagesData[0];
-
-            setProfileImageId(completedImage.system_filename);
-
-            if (completedImage) {
-              // Show the generated image
-              const imageUrl = `https://images.nymia.ai/cdn-cgi/image/w=800/${completedImage.file_path}`;
-              setPreviewImage(imageUrl);
-
-              // Store the generated image data
-              setGeneratedImageData({
-                image_id: completedImage.id,
-                system_filename: completedImage.system_filename
-              });
-
-              toast.success('Preview generated successfully!', {
-                description: 'Your influencer preview is ready to view'
-              });
-              setIsPreviewLoading(false);
-              return;
-            }
-          }
-
-          // If no completed images yet, continue polling
-          attempts++;
-          if (attempts < maxAttempts) {
-            setTimeout(pollForImages, 1000); // Poll every second
-          } else {
-            toast.error('Preview generation timeout', {
-              description: 'The preview is taking longer than expected. Please try again.'
+          for (const taskResult of taskResults) {
+            const imagesResponse = await fetch(`https://db.nymia.ai/rest/v1/generated_images?task_id=eq.${taskResult.taskId}`, {
+              headers: {
+                'Authorization': 'Bearer WeInfl3nc3withAI'
+              }
             });
-            setIsPreviewLoading(false);
+
+            const imagesData = await imagesResponse.json();
+
+            if (imagesData.length > 0 && imagesData[0].generation_status === 'completed' && imagesData[0].file_path) {
+              const completedImage = imagesData[0];
+              const imageUrl = `https://images.nymia.ai/cdn-cgi/image/w=800/${completedImage.file_path}`;
+              
+              // Update the specific image in the array
+              setPreviewImages(prev => prev.map((img, index) => 
+                index === taskResult.displayIndex 
+                  ? { 
+                      ...img, 
+                      imageUrl, 
+                      isLoading: false,
+                      taskId: taskResult.taskId 
+                    }
+                  : img
+              ));
+            } else {
+              allCompleted = false;
+            }
           }
+
+          if (allCompleted) {
+            setIsPreviewLoading(false);
+            toast.success('All preview images generated successfully!', {
+              description: 'Your influencer preview variations are ready to view'
+            });
+            return;
+          }
+
+          // Continue polling if not all images are ready
+          setTimeout(pollForImages, 2000); // Poll every 2 seconds
         } catch (error) {
           console.error('Error polling for images:', error);
-          toast.error('Failed to fetch preview image');
+          toast.error('Failed to fetch preview images');
           setIsPreviewLoading(false);
         }
       };
@@ -896,7 +913,7 @@ export default function InfluencerEdit() {
 
     } catch (error) {
       console.error('Preview error:', error);
-      toast.error('Failed to generate preview');
+      toast.error('Failed to generate preview images');
       setIsPreviewLoading(false);
     }
   };
@@ -910,14 +927,7 @@ export default function InfluencerEdit() {
     console.log(generatedImageData);
 
     try {
-      // Copy the generated image to the profile picture location
-      const taskFilename = await fetch(`https://db.nymia.ai/rest/v1/generated_images?id=eq.${generatedImageData.image_id}`, {
-        method: 'GET',
-        headers: {
-          'Authorization': 'Bearer WeInfl3nc3withAI'
-        }
-      });
-      const taskFilenameData = await taskFilename.json();
+      const num = influencerData.image_num === null || influencerData.image_num === undefined ? 0 : influencerData.image_num;
       const copyResponse = await fetch('https://api.nymia.ai/v1/copyfile', {
         method: 'POST',
         headers: {
@@ -926,8 +936,8 @@ export default function InfluencerEdit() {
         },
         body: JSON.stringify({
           user: userData.id,
-          sourcefilename: `output/${taskFilenameData[0].system_filename}`,
-          destinationfilename: `models/${influencerData.id}/profilepic/profilepic${influencerData.image_num === null ? 0 : influencerData.image_num}.png`
+          sourcefilename: `output/${generatedImageData.system_filename}`,
+          destinationfilename: `models/${influencerData.id}/profilepic/profilepic${num}.png`
         })
       });
 
@@ -941,7 +951,7 @@ export default function InfluencerEdit() {
       setInfluencerData(prev => ({
         ...prev,
         image_url: newImageUrl,
-        image_num: prev.image_num + 1
+        image_num: num + 1
       }));
 
       await fetch(`https://db.nymia.ai/rest/v1/influencer?id=eq.${influencerData.id}`, {
@@ -4086,6 +4096,163 @@ export default function InfluencerEdit() {
           field="content_focus_areas"
         />
       )}
+      {/* Professional Preview Images Dialog */}
+      <Dialog open={showPreviewModal} onOpenChange={setShowPreviewModal}>
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Image className="w-5 h-5 text-blue-500" />
+              Generating Preview Images
+            </DialogTitle>
+            <DialogDescription>
+              Creating 3 preview variations of your influencer. Images will appear as they complete.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {previewImages.map((preview, index) => (
+              <Card key={index} className="group hover:shadow-xl transition-all duration-300 border-border/50 hover:border-blue-500/30 backdrop-blur-sm">
+                <CardContent className="p-4">
+                  <div className="relative">
+                    {preview.isRecommended && !preview.isLoading && (
+                      <Badge className="absolute top-2 left-2 z-10 bg-gradient-to-r from-green-500 to-emerald-500 text-white font-semibold">
+                        Recommended
+                      </Badge>
+                    )}
+                    
+                    {preview.isLoading ? (
+                      <div className="w-full h-64 bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-700 rounded-lg shadow-lg flex items-center justify-center">
+                        <div className="text-center">
+                          <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                          <p className="text-sm text-muted-foreground">Generating...</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <img
+                          src={preview.imageUrl}
+                          alt={`Preview ${index + 1}`}
+                          className="w-full h-full object-cover rounded-lg shadow-lg"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                          }}
+                        />
+                        <div className="mt-4 text-center">
+                          <div className="flex gap-2 mt-2">
+                            <Button
+                              variant="outline"
+                              className="flex-1"
+                              onClick={() => {
+                                setPreviewImage(preview.imageUrl);
+                                setGeneratedImageData({
+                                  image_id: preview.imageUrl.split('/').pop() || '',
+                                  system_filename: preview.imageUrl.split('/').pop() || ''
+                                });
+                              }}
+                            >
+                              View Full Size
+                            </Button>
+                            <Button
+                              className="flex-1"
+                              onClick={async () => {
+                                try {
+                                  // Use the taskId from the preview data to get the correct image
+                                  if (!preview.taskId) {
+                                    throw new Error('No task ID found for the selected image');
+                                  }
+                                  
+                                  // Find the generated image data using the taskId
+                                  const imageResponse = await fetch(`https://db.nymia.ai/rest/v1/generated_images?task_id=eq.${preview.taskId}`, {
+                                    method: 'GET',
+                                    headers: {
+                                      'Authorization': 'Bearer WeInfl3nc3withAI'
+                                    }
+                                  });
+                                  
+                                  const imageData = await imageResponse.json();
+                                  
+                                  if (imageData.length > 0) {
+                                    const generatedImage = imageData[0];
+                                    console.log(generatedImage);
+                                    const num = influencerData.image_num === null || influencerData.image_num === undefined || isNaN(influencerData.image_num) ? 0 : influencerData.image_num;
+                                    
+                                    // Copy the generated image to the profile picture location
+                                    const copyResponse = await fetch('https://api.nymia.ai/v1/copyfile', {
+                                      method: 'POST',
+                                      headers: {
+                                        'Content-Type': 'application/json',
+                                        'Authorization': 'Bearer WeInfl3nc3withAI'
+                                      },
+                                      body: JSON.stringify({
+                                        user: userData.id,
+                                        sourcefilename: `output/${generatedImage.system_filename}`,
+                                        destinationfilename: `models/${influencerData.id}/profilepic/profilepic${num}.png`
+                                      })
+                                    });
+
+                                    if (!copyResponse.ok) {
+                                      throw new Error('Failed to copy image to profile picture');
+                                    }
+
+                                    // Update the influencer data with the new profile picture URL
+                                    const newImageUrl = `https://images.nymia.ai/cdn-cgi/image/w=400/${userData.id}/models/${influencerData.id}/profilepic/profilepic${num}.png`;
+
+                                    setInfluencerData(prev => ({
+                                      ...prev,
+                                      image_url: newImageUrl,
+                                      image_num: num + 1
+                                    }));
+
+                                    // Update the database
+                                    await fetch(`https://db.nymia.ai/rest/v1/influencer?id=eq.${influencerData.id}`, {
+                                      method: 'PATCH',
+                                      headers: {
+                                        'Content-Type': 'application/json',
+                                        'Authorization': 'Bearer WeInfl3nc3withAI'
+                                      },
+                                      body: JSON.stringify({
+                                        image_num: num + 1
+                                      })
+                                    });
+
+                                    setShowPreviewModal(false);
+                                    setPreviewImages([]);
+
+                                    toast.success('Profile picture updated successfully!', {
+                                      description: 'The selected image has been set as your influencer\'s profile picture'
+                                    });
+                                  } else {
+                                    throw new Error('Image data not found');
+                                  }
+                                } catch (error) {
+                                  console.error('Error setting profile picture:', error);
+                                  toast.error('Failed to set profile picture');
+                                }
+                              }}
+                            >
+                              Use as Profile Picture
+                            </Button>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {isPreviewLoading && (
+            <div className="text-center mt-6">
+              <p className="text-sm text-muted-foreground">
+                Generating preview images... This may take a few moments.
+              </p>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
       {previewImage && (
         <ImagePreviewDialog
           imageUrl={previewImage}

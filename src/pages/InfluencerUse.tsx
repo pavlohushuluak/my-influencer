@@ -12,6 +12,7 @@ import { useDebounce } from '@/hooks/useDebounce';
 import { useNavigate } from 'react-router-dom';
 import { Influencer } from '@/store/slices/influencersSlice';
 import { setInfluencers, setLoading, setError } from '@/store/slices/influencersSlice';
+import { setUser } from '@/store/slices/userSlice';
 import { toast } from 'sonner';
 import { LoraStatusIndicator } from '@/components/Influencers/LoraStatusIndicator';
 import { InfluencerUseModal } from '@/components/Influencers/InfluencerUseModal';
@@ -122,7 +123,11 @@ export default function InfluencerUse() {
   const handleCharacterConsistency = () => {
     if (selectedInfluencerData) {
       // Get the latest profile picture URL with correct format
-      const latestImageNum = selectedInfluencerData.image_num - 1;
+      let latestImageNum = selectedInfluencerData.image_num - 1;
+      if (latestImageNum === -1) {
+        latestImageNum = 0;
+      }
+      console.log(selectedInfluencerData.image_num);
       const profileImageUrl = `https://images.nymia.ai/cdn-cgi/image/w=400/${userData.id}/models/${selectedInfluencerData.id}/profilepic/profilepic${latestImageNum}.png`;
 
       setSelectedProfileImage(profileImageUrl);
@@ -206,6 +211,25 @@ export default function InfluencerUse() {
         });
 
         toast.success('Profile image selected successfully for LoRA training');
+      }
+
+      // Update guide_step if it's currently 2
+      if (userData.guide_step === 2) {
+        try {
+          const guideStepResponse = await fetch(`https://db.nymia.ai/rest/v1/user?uuid=eq.${userData.id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer WeInfl3nc3withAI' },
+            body: JSON.stringify({ guide_step: 3 })
+          });
+          if (guideStepResponse.ok) {
+            // Update Redux store
+            dispatch(setUser({ guide_step: 3 }));
+            toast.success('Progress updated! Moving to Phase 3...');
+            navigate('/start');
+          }
+        } catch (error) {
+          console.error('Failed to update guide_step:', error);
+        }
       }
 
       setShowCharacterConsistencyModal(false);
@@ -561,7 +585,7 @@ export default function InfluencerUse() {
                         {selectedInfluencerData.name_first} {selectedInfluencerData.name_last}
                       </h3>
                       <p className="text-gray-600 dark:text-gray-300 mb-2">
-                        Latest profile picture • Version {selectedInfluencerData.image_num - 1}
+                        Latest profile picture • Version {selectedInfluencerData.image_num === null || selectedInfluencerData.image_num === undefined || isNaN(selectedInfluencerData.image_num) ? 0 : selectedInfluencerData.image_num - 1}
                       </p>
                       <div className="flex flex-wrap gap-2">
                         <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
@@ -609,7 +633,7 @@ export default function InfluencerUse() {
                             Latest Profile Picture
                           </h4>
                           <p className="text-sm text-gray-600 dark:text-gray-300">
-                            Version {selectedInfluencerData.image_num - 1} • High Quality
+                            Version {selectedInfluencerData.image_num === null || selectedInfluencerData.image_num === undefined || isNaN(selectedInfluencerData.image_num) || selectedInfluencerData.image_num === 0 ? 0 : selectedInfluencerData.image_num - 1} • High Quality
                           </p>
                           <div className="flex items-center justify-center gap-2 text-xs text-green-600 dark:text-green-400">
                             <div className="w-2 h-2 bg-green-500 rounded-full"></div>

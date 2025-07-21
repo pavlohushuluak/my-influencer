@@ -19,6 +19,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import { Influencer } from '@/store/slices/influencersSlice';
 import { setInfluencers, setLoading, setError } from '@/store/slices/influencersSlice';
+import { setUser } from '@/store/slices/userSlice';
 import { toast } from 'sonner';
 import { LoraStatusIndicator } from '@/components/Influencers/LoraStatusIndicator';
 import { useDebounce } from '@/hooks/useDebounce';
@@ -47,7 +48,7 @@ interface Option {
   description: string;
 }
 
-export default function ContentCreate() {
+function ContentCreate() {
   const location = useLocation();
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -911,6 +912,29 @@ export default function ContentCreate() {
       // Add new task ID to the list
       setGeneratedTaskIds(prev => [...prev, result.id]);
       toast.success('Content generation started successfully');
+
+      // Update guide_step if it's currently 3
+      if (userData.guide_step === 3) {
+        try {
+          const guideStepResponse = await fetch(`https://db.nymia.ai/rest/v1/user?uuid=eq.${userData.id}`, {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer WeInfl3nc3withAI'
+            },
+            body: JSON.stringify({
+              guide_step: 4
+            })
+          });
+
+          if (guideStepResponse.ok) {
+            dispatch(setUser({ guide_step: 4 }));
+            toast.success('Content generation started! Progress updated to Phase 4.');
+          }
+        } catch (error) {
+          console.error('Failed to update guide_step:', error);
+        }
+      }
 
       setActiveTab('scene');
 
@@ -6341,3 +6365,5 @@ export default function ContentCreate() {
     </div>
   );
 }
+
+export default ContentCreate;

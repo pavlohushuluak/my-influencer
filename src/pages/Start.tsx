@@ -5,7 +5,8 @@ import { RootState } from '@/store/store';
 import { setUser } from '@/store/slices/userSlice';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, Circle, Play, Star } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { CheckCircle, Circle, Play, Star, AlertTriangle } from 'lucide-react';
 import InstructionVideo from '@/components/InstructionVideo';
 import { getInstructionVideoConfig } from '@/config/instructionVideos';
 import { toast } from 'sonner';
@@ -15,6 +16,7 @@ export default function Start() {
   const dispatch = useDispatch();
   const userData = useSelector((state: RootState) => state.user);
   const currentPhase = userData.guide_step;
+  const [showWarningModal, setShowWarningModal] = useState(false);
 
   const phases = [
     {
@@ -67,9 +69,9 @@ export default function Start() {
     }
   ];
 
-  const handleCreateInfluencer = () => {
+  const handleCreateInfluencer = async () => {
     if (currentPhase === 0) {
-      navigate('/influencers/create');
+      navigate('/dashboard');
     } else if (currentPhase === 1) {
       navigate('/influencers/create');
     } else if (currentPhase === 2) {
@@ -77,7 +79,34 @@ export default function Start() {
     } else if (currentPhase === 3) {
       navigate('/content/create');
     } else if (currentPhase === 4) {
+      // Update guide_step to 5 when user clicks "Organize Content"
+      try {
+        const response = await fetch(`https://db.nymia.ai/rest/v1/user?uuid=eq.${userData.id}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer WeInfl3nc3withAI'
+          },
+          body: JSON.stringify({
+            guide_step: 5
+          })
+        });
+
+        if (response.ok) {
+          dispatch(setUser({ guide_step: 5 }));
+          toast.success('Progress updated! Moving to Phase 5...');
+        } else {
+          toast.error('Failed to update progress');
+        }
+      } catch (error) {
+        console.error('Failed to update guide_step:', error);
+        toast.error('Failed to update progress');
+      }
+      
       navigate('/content/vault');
+    }
+    else {
+      navigate('/dashboard');
     }
   };
 
@@ -98,7 +127,11 @@ export default function Start() {
     }
   };
 
-  const handleContinueWork = async () => {
+  const handleContinueWork = () => {
+    setShowWarningModal(true);
+  };
+
+  const handleConfirmContinueWork = async () => {
     try {
       const response = await fetch(`https://db.nymia.ai/rest/v1/user?uuid=eq.${userData.id}`, {
         method: 'PATCH',
@@ -114,6 +147,7 @@ export default function Start() {
       if (response.ok) {
         dispatch(setUser({ guide_step: 3 }));
         toast.success('Progress updated! Moving to Phase 3...');
+        setShowWarningModal(false);
         // Refresh the page to show updated phase
         window.location.reload();
       } else {
@@ -267,6 +301,43 @@ export default function Start() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Warning Modal for Continue Work */}
+      <Dialog open={showWarningModal} onOpenChange={setShowWarningModal}>
+        <DialogContent className="max-w-md bg-gradient-to-br from-slate-900/95 to-slate-800/95 border-slate-700/50 shadow-2xl">
+          <DialogHeader className="text-center">
+            <div className="w-16 h-16 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 flex items-center justify-center mx-auto mb-4 shadow-lg">
+              <AlertTriangle className="w-8 h-8 text-white" />
+            </div>
+            <DialogTitle className="text-xl font-bold text-white">
+              Quality Consideration
+            </DialogTitle>
+            <DialogDescription className="text-slate-300 text-base leading-relaxed">
+              <p className="mb-4">
+                By proceeding without LoRA training, you may experience reduced character consistency and quality in your generated content.
+              </p>
+              <p className="text-sm text-slate-400">
+                LoRA training significantly enhances your AI influencer's visual consistency and produces more professional, cohesive results. We recommend completing the training for optimal results.
+              </p>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex gap-3 pt-6">
+            <Button
+              variant="outline"
+              onClick={() => setShowWarningModal(false)}
+              className="flex-1 bg-transparent border-slate-600 text-slate-300 hover:bg-slate-800 hover:text-white transition-all duration-200"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleConfirmContinueWork}
+              className="flex-1 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold transition-all duration-200"
+            >
+              Continue Anyway
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 } 

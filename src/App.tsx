@@ -17,7 +17,7 @@ import InfluencerEdit from '@/pages/InfluencerEdit';
 import InfluencerUse from '@/pages/InfluencerUse';
 import InfluencerWizardPage from '@/pages/InfluencerWizardPage';
 import InfluencerBio from '@/pages/InfluencerBio';
-import InfluencerLoraTraining from '@/pages/InfluencerLoraTraining';
+// import InfluencerLoraTraining from '@/pages/InfluencerLoraTraining';
 import Clothing from '@/pages/Clothing';
 import Location from '@/pages/Location';
 import Poses from '@/pages/Poses';
@@ -66,7 +66,7 @@ const App = () => {
                   <Route path='/influencers' element={<InfluencerUse />} />
                   <Route path='/influencers/wizard' element={<InfluencerWizardPage />} />
                   <Route path='/influencers/bio' element={<InfluencerBio />} />
-                  <Route path='/influencers/lora-training' element={<InfluencerLoraTraining />} />
+                  {/* <Route path='/influencers/lora-training' element={<InfluencerLoraTraining />} /> */}
                   <Route path='/catalog/clothing' element={<Clothing />} />
                   <Route path='/catalog/location' element={<Location />} />
                   <Route path='/catalog/poses' element={<Poses />} />

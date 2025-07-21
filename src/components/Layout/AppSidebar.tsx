@@ -68,7 +68,7 @@ const menuItems = [
     items: [
       { title: "Create", url: "/influencers/create", icon: Plus },
       { title: "Edit", url: "/influencers/edit", icon: Edit },
-      { title: "LORA", url: "/influencers/lora-training", icon: Brain },
+      // { title: "LORA", url: "/influencers/lora-training", icon: Brain },
       { title: "Use", url: "/influencers", icon: Play },
       { title: "Templates", url: "/influencers/templates", icon: BookOpen },
     ]

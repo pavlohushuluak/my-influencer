@@ -1,0 +1,227 @@
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { CheckCircle, Circle, Play, Star } from 'lucide-react';
+import InstructionVideo from '@/components/InstructionVideo';
+import { getInstructionVideoConfig } from '@/config/instructionVideos';
+
+export default function Start() {
+  const navigate = useNavigate();
+  const [currentPhase, setCurrentPhase] = useState(1);
+
+  const phases = [
+    {
+      id: 1,
+      title: "Phase 1: Create your Influencer",
+      description: "Set up your AI influencer's profile and basic information",
+      completed: currentPhase > 1,
+      icon: currentPhase > 1 ? CheckCircle : Circle,
+      color: "from-green-500 to-emerald-500",
+      bgColor: "from-green-50 to-emerald-50",
+      borderColor: "border-green-200",
+      textColor: "text-green-600",
+      isPending: currentPhase === 1
+    },
+    {
+      id: 2,
+      title: "Phase 2: Train your AI Model",
+      description: "Train your AI model for character consistency",
+      completed: currentPhase > 2,
+      icon: currentPhase > 2 ? CheckCircle : Circle,
+      color: "from-blue-500 to-indigo-500",
+      bgColor: "from-blue-50 to-indigo-50",
+      borderColor: "border-blue-200",
+      textColor: "text-blue-600",
+      isPending: currentPhase === 2
+    },
+    {
+      id: 3,
+      title: "Phase 3: Generate Exclusive Content",
+      description: "Create unique content for your influencer",
+      completed: currentPhase > 3,
+      icon: currentPhase > 3 ? CheckCircle : Circle,
+      color: "from-purple-500 to-pink-500",
+      bgColor: "from-purple-50 to-pink-50",
+      borderColor: "border-purple-200",
+      textColor: "text-purple-600",
+      isPending: currentPhase === 3
+    },
+    {
+      id: 4,
+      title: "Phase 4: Organize your Content",
+      description: "Manage and organize your generated content",
+      completed: currentPhase > 4,
+      icon: currentPhase > 4 ? CheckCircle : Circle,
+      color: "from-orange-500 to-amber-500",
+      bgColor: "from-orange-50 to-amber-50",
+      borderColor: "border-orange-200",
+      textColor: "text-orange-600",
+      isPending: currentPhase === 4
+    }
+  ];
+
+  const handleCreateInfluencer = () => {
+    if (currentPhase === 0) {
+      navigate('/influencers/create');
+    } else if (currentPhase === 1) {
+      navigate('/influencers/create');
+    } else if (currentPhase === 2) {
+      navigate('/influencers/lora-training');
+    } else if (currentPhase === 3) {
+      navigate('/content/create');
+    } else if (currentPhase === 4) {
+      navigate('/content/vault');
+    }
+  };
+
+  const getButtonText = () => {
+    switch (currentPhase) {
+      case 0:
+        return "Start Your Journey";
+      case 1:
+        return "Create My AI Influencer";
+      case 2:
+        return "Train AI Model";
+      case 3:
+        return "Generate Content";
+      case 4:
+        return "Organize Content";
+      default:
+        return "Start Your Journey";
+    }
+  };
+
+  return (
+    <div className="p-6 space-y-6">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row items-center justify-between gap-5">
+        <div className="flex flex-col items-center md:items-start">
+          <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 bg-clip-text text-transparent">
+            Start
+          </h1>
+          <p className="text-muted-foreground">
+            Welcome to your AI influencer journey
+          </p>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex gap-6">
+        {/* Left Side - Main Card */}
+        <div className="w-full flex">
+          <Card className="bg-gradient-to-br from-slate-900/90 to-slate-800/90 border-slate-700/50 shadow-2xl grid grid-cols-1 lg:grid-cols-5 xl:grid-cols-3 xl:mr-[50px] lg:mr-[30px]">
+            <CardContent className="p-8 lg:col-span-3 xl:col-span-2">
+              <div className="text-center space-y-6">
+                <div className="space-y-4">
+                  <h2 className="text-3xl font-bold text-white">
+                    Let's launch your AI Influencer
+                  </h2>
+                  <p className="text-lg text-slate-300">
+                    All you need is 4 simple steps – start with Phase 1 below.
+                  </p>
+                </div>
+
+                {/* Phases List */}
+                <div className="space-y-4">
+                  {phases.map((phase) => (
+                    <div
+                      key={phase.id}
+                      className={`flex items-center gap-4 p-4 rounded-lg border-2 transition-all duration-300 ${
+                        phase.completed 
+                          ? 'bg-gradient-to-r from-green-900/20 to-emerald-900/20 border-green-500/30' 
+                          : phase.isPending
+                          ? 'bg-gradient-to-r from-blue-900/20 to-indigo-900/20 border-blue-500/30 animate-pulse'
+                          : 'bg-gradient-to-r from-slate-800/50 to-slate-700/50 border-slate-600/30'
+                      }`}
+                    >
+                      <div className={`w-10 h-10 rounded-full bg-gradient-to-r ${phase.color} flex items-center justify-center shadow-lg ${
+                        phase.isPending ? 'animate-pulse' : ''
+                      }`}>
+                        <phase.icon className="w-5 h-5 text-white" />
+                      </div>
+                      <div className="flex-1 text-left">
+                        <h3 className={`text-lg font-semibold ${
+                          phase.completed ? 'text-green-400' : phase.isPending ? 'text-blue-400' : 'text-slate-300'
+                        }`}>
+                          {phase.title}
+                        </h3>
+                        <p className="text-sm text-slate-400">
+                          {phase.description}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Call to Action Button */}
+                <div className="pt-6">
+                  <Button
+                    onClick={handleCreateInfluencer}
+                    className="bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 hover:from-purple-700 hover:via-blue-700 hover:to-indigo-700 text-white font-semibold text-lg px-8 py-4 rounded-xl shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105"
+                  >
+                    {getButtonText()}
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+            <div className="lg:col-span-2 xl:col-span-1 w-full h-full flex flex-col items-center justify-center">
+              <InstructionVideo {...getInstructionVideoConfig('start')} className="m-4 lg:mr-[-30px] xl:mr-[-50px] flex flex-col items-center justify-center " />
+            </div>
+          </Card>
+        </div>
+      </div>
+
+      {/* Additional Features Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <Card className="bg-gradient-to-br from-green-900/20 to-emerald-900/20 border-green-700/30 hover:border-green-500/50 transition-all duration-300">
+          <CardContent className="p-6 text-center">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-r from-green-500 to-emerald-500 flex items-center justify-center mx-auto mb-4 shadow-lg">
+              <Star className="w-6 h-6 text-white" />
+            </div>
+            <h3 className="text-lg font-semibold text-white mb-2">Easy Setup</h3>
+            <p className="text-sm text-slate-400">
+              Get started in minutes with our intuitive interface
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-blue-900/20 to-indigo-900/20 border-blue-700/30 hover:border-blue-500/50 transition-all duration-300">
+          <CardContent className="p-6 text-center">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-500 flex items-center justify-center mx-auto mb-4 shadow-lg">
+              <Play className="w-6 h-6 text-white" />
+            </div>
+            <h3 className="text-lg font-semibold text-white mb-2">AI Training</h3>
+            <p className="text-sm text-slate-400">
+              Advanced AI models for consistent character generation
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-purple-900/20 to-pink-900/20 border-purple-700/30 hover:border-purple-500/50 transition-all duration-300">
+          <CardContent className="p-6 text-center">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center mx-auto mb-4 shadow-lg">
+              <Star className="w-6 h-6 text-white" />
+            </div>
+            <h3 className="text-lg font-semibold text-white mb-2">Content Creation</h3>
+            <p className="text-sm text-slate-400">
+              Generate unlimited high-quality content
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-orange-900/20 to-amber-900/20 border-orange-700/30 hover:border-orange-500/50 transition-all duration-300">
+          <CardContent className="p-6 text-center">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 flex items-center justify-center mx-auto mb-4 shadow-lg">
+              <Star className="w-6 h-6 text-white" />
+            </div>
+            <h3 className="text-lg font-semibold text-white mb-2">Organization</h3>
+            <p className="text-sm text-slate-400">
+              Keep your content organized and accessible
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+} 

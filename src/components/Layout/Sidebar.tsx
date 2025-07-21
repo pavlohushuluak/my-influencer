@@ -25,7 +25,8 @@ export function Sidebar() {
   const navigate = useNavigate();
   const location = useLocation();
   const { sidebarCollapsed } = useSelector((state: RootState) => state.ui);
-  const { name, credits } = useSelector((state: RootState) => state.user);
+  const { firstName, lastName, email, credits, subscription, free_purchase } = useSelector((state: RootState) => state.user);
+  const name = `${firstName} ${lastName}`;
 
   return (
     <div className={cn(

@@ -193,7 +193,7 @@ export function SignUpForm({ onToggleMode }: SignUpFormProps) {
         });
 
         toast.success('Account created successfully');
-        navigate('/dashboard');
+        navigate('/start');
       } else {
         toast.error(data.message || 'Registration failed');
       }

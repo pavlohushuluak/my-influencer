@@ -35,7 +35,8 @@ import {
   Settings,
   Play,
   ChevronRight,
-  Brain
+  Brain,
+  Rocket
 } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
@@ -49,6 +50,12 @@ import {
 import { UserTaskStatus } from "@/components/UserTaskStatus";
 
 const menuItems = [
+  {
+    title: "Start",
+    icon: Rocket,
+    url: "/start",
+    isActive: (pathname: string) => pathname === "/start"
+  },
   {
     title: "Dashboard",
     icon: Calendar,

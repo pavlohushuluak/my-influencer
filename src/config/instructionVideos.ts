@@ -8,6 +8,13 @@ export interface InstructionVideoConfig {
 }
 
 export const instructionVideosConfig: Record<string, InstructionVideoConfig> = {
+  start: {
+    imageUrl: "/videoexample.png",
+    youtubeUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ",
+    title: "Watch the instruction",
+    description: "Get started with your AI influencer journey",
+    theme: "purple"
+  },
   phase1: {
     imageUrl: "/videoexample.png",
     youtubeUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ",

@@ -26,7 +26,7 @@ export function Header() {
   const generateBreadcrumbs = () => {
     const pathSegments = location.pathname.split('/').filter(Boolean);
     const breadcrumbs: Array<{ label: string; href: string; isLast?: boolean }> = [
-      { label: 'Dashboard', href: '/dashboard' }
+      { label: 'Dashboard', href: '/start' }
     ];
 
     let currentPath = '';

@@ -99,7 +99,7 @@ export function SignInForm({ onToggleMode }: SignInFormProps) {
         }));
 
         toast.success('Sign in successful');
-        navigate('/dashboard');
+        navigate('/start');
       } else {
         toast.error(data.message || 'Sign in failed');
       }

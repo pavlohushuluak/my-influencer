@@ -55,6 +55,7 @@ interface GeneratedImageData {
   rating: number;
   favorite: boolean;
   file_type: string;
+  image_num: number;
 }
 
 // Subscription level features
@@ -258,7 +259,8 @@ export default function InfluencerEdit() {
     lifestyle: '',
     eye_shape: '',
     bust_size: '',
-    image_url: ''
+    image_url: '',
+    image_num: 0
   });
 
   const [activeTab, setActiveTab] = useState('basic');
@@ -927,6 +929,7 @@ export default function InfluencerEdit() {
     console.log(generatedImageData);
 
     try {
+      console.log(influencerData.image_num);
       const num = influencerData.image_num === null || influencerData.image_num === undefined ? 0 : influencerData.image_num;
       const copyResponse = await fetch('https://api.nymia.ai/v1/copyfile', {
         method: 'POST',

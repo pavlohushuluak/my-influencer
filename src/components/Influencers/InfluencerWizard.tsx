@@ -1487,7 +1487,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
           'Authorization': 'Bearer WeInfl3nc3withAI'
         },
         body: JSON.stringify({
-          image_num: 1
+          image_num: num + 1
         })
       });
 

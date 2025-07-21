@@ -13,6 +13,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { DialogZoom, DialogContentZoom } from '@/components/ui/zoomdialog';
 import { updateInfluencer, setInfluencers, setLoading, setError, addInfluencer } from '@/store/slices/influencersSlice';
+import { setUser } from '@/store/slices/userSlice';
 import { X, Plus, Save, Crown, Image, Settings, User, ChevronRight, MoreHorizontal, Loader2, ZoomIn, Pencil, Trash2, Brain } from 'lucide-react';
 import { HexColorPicker } from 'react-colorful';
 import { toast } from 'sonner';
@@ -611,6 +612,31 @@ export default function InfluencerEdit() {
         });
 
         if (response.ok) {
+          // Update guide_step if it's currently 1
+          if (userData.guide_step === 1) {
+            try {
+              const guideStepResponse = await fetch(`https://db.nymia.ai/rest/v1/user?uuid=eq.${userData.id}`, {
+                method: 'PATCH',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': 'Bearer WeInfl3nc3withAI'
+                },
+                body: JSON.stringify({
+                  guide_step: 2
+                })
+              });
+
+              if (guideStepResponse.ok) {
+                dispatch(setUser({ guide_step: 2 }));
+                toast.success('Influencer created successfully! Moving to next step...');
+                navigate('/start');
+                return;
+              }
+            } catch (error) {
+              console.error('Failed to update guide_step:', error);
+            }
+          }
+
           setShowEditView(false);
           setActiveTab('basic');
           toast.success('Influencer created successfully');
@@ -632,6 +658,29 @@ export default function InfluencerEdit() {
           setShowEditView(false);
           setActiveTab('basic');
           toast.success('Influencer updated successfully');
+          if (userData.guide_step === 1) {
+            try {
+              const guideStepResponse = await fetch(`https://db.nymia.ai/rest/v1/user?uuid=eq.${userData.id}`, {
+                method: 'PATCH',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': 'Bearer WeInfl3nc3withAI'
+                },
+                body: JSON.stringify({
+                  guide_step: 2
+                })
+              });
+
+              if (guideStepResponse.ok) {
+                dispatch(setUser({ guide_step: 2 }));
+                toast.success('Influencer created successfully! Moving to next step...');
+                navigate('/start');
+                return;
+              }
+            } catch (error) {
+              console.error('Failed to update guide_step:', error);
+            }
+          }
         } else {
           toast.error('Failed to update influencer');
         }
@@ -1526,8 +1575,8 @@ export default function InfluencerEdit() {
                   <div className="relative w-full h-full bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg overflow-hidden">
                     {/* LoraStatusIndicator positioned at top right */}
                     <div className="absolute right-[-15px] top-[-15px] z-10">
-                      <LoraStatusIndicator 
-                        status={influencer.lorastatus || 0} 
+                      <LoraStatusIndicator
+                        status={influencer.lorastatus || 0}
                         className="flex-shrink-0"
                       />
                     </div>
@@ -1560,8 +1609,8 @@ export default function InfluencerEdit() {
                       <div className="flex text-sm text-muted-foreground flex-col">
                         {influencer.notes ? (
                           <span className="text-sm text-muted-foreground">
-                            {influencer.notes.length > 50 
-                              ? `${influencer.notes.substring(0, 50)}...` 
+                            {influencer.notes.length > 50
+                              ? `${influencer.notes.substring(0, 50)}...`
                               : influencer.notes
                             }
                           </span>

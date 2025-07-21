@@ -1,14 +1,20 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useSelector, useDispatch } from 'react-redux';
+import { RootState } from '@/store/store';
+import { setUser } from '@/store/slices/userSlice';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { CheckCircle, Circle, Play, Star } from 'lucide-react';
 import InstructionVideo from '@/components/InstructionVideo';
 import { getInstructionVideoConfig } from '@/config/instructionVideos';
+import { toast } from 'sonner';
 
 export default function Start() {
   const navigate = useNavigate();
-  const [currentPhase, setCurrentPhase] = useState(1);
+  const dispatch = useDispatch();
+  const userData = useSelector((state: RootState) => state.user);
+  const currentPhase = userData.guide_step;
 
   const phases = [
     {
@@ -92,6 +98,33 @@ export default function Start() {
     }
   };
 
+  const handleContinueWork = async () => {
+    try {
+      const response = await fetch(`https://db.nymia.ai/rest/v1/user?uuid=eq.${userData.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          guide_step: 3
+        })
+      });
+
+      if (response.ok) {
+        dispatch(setUser({ guide_step: 3 }));
+        toast.success('Progress updated! Moving to Phase 3...');
+        // Refresh the page to show updated phase
+        window.location.reload();
+      } else {
+        toast.error('Failed to update progress');
+      }
+    } catch (error) {
+      console.error('Failed to update guide_step:', error);
+      toast.error('Failed to update progress');
+    }
+  };
+
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
@@ -149,19 +182,31 @@ export default function Start() {
                         <p className="text-sm text-slate-400">
                           {phase.description}
                         </p>
+
                       </div>
                     </div>
                   ))}
                 </div>
 
                 {/* Call to Action Button */}
-                <div className="pt-6">
+                <div className="pt-6 flex gap-4 justify-center">
                   <Button
                     onClick={handleCreateInfluencer}
                     className="bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 hover:from-purple-700 hover:via-blue-700 hover:to-indigo-700 text-white font-semibold text-lg px-8 py-4 rounded-xl shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105"
                   >
                     {getButtonText()}
                   </Button>
+                  
+                  {/* Continue my work button for Phase 2 */}
+                  {currentPhase === 2 && (
+                    <Button
+                      onClick={handleContinueWork}
+                      variant="outline"
+                      className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-semibold text-lg px-8 py-4 rounded-xl shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 border-green-500"
+                    >
+                      Continue my work
+                    </Button>
+                  )}
                 </div>
               </div>
             </CardContent>

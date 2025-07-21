@@ -94,7 +94,8 @@ export function MainLayout() {
           subscription: userData[0].subscription || 'free',
           billing_date: userData[0].billing_date || 0,
           billed_date: userData[0].billed_date || 0,
-          free_purchase: userData[0].free_purchase
+          free_purchase: userData[0].free_purchase,
+          guide_step: userData[0].guide_step || 1
         }));
       } catch (error) {
         console.error('Error fetching user data:', error);

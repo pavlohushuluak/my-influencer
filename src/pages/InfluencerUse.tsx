@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Command, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useDebounce } from '@/hooks/useDebounce';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Influencer } from '@/store/slices/influencersSlice';
 import { setInfluencers, setLoading, setError } from '@/store/slices/influencersSlice';
 import { setUser } from '@/store/slices/userSlice';
@@ -31,6 +31,7 @@ export default function InfluencerUse() {
   const { subscription } = useSelector((state: RootState) => state.user);
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedInfluencer, setSelectedInfluencer] = useState<string>('');
@@ -70,6 +71,19 @@ export default function InfluencerUse() {
   });
 
   const userData = useSelector((state: RootState) => state.user);
+
+  // Handle fromWizard state - redirect to step 2 if coming from wizard
+  useEffect(() => {
+    if (location.state?.fromWizard) {
+      // Clear the fromWizard state to prevent infinite redirects
+      navigate(location.pathname, { replace: true });
+      
+      // Show welcome message for wizard users
+      toast.success('Welcome to Step 2!', {
+        description: 'Your influencer has been created and image generation has started. You can now create content with your new influencer.'
+      });
+    }
+  }, [location.state, navigate]);
 
   useEffect(() => {
     const fetchInfluencers = async () => {

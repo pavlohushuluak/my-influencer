@@ -78,7 +78,7 @@ export function CreateInfluencerSteps({ onComplete }: CreateInfluencerStepsProps
     image_url: '',
     name_first: '',
     name_last: '',
-    visual_only: false,
+    visual_only: true, // Default to Visual only
     sex: '',
     cultural_background: '',
     hair_length: '',
@@ -131,21 +131,9 @@ export function CreateInfluencerSteps({ onComplete }: CreateInfluencerStepsProps
   const steps = [
     { 
       id: 1, 
-      title: 'Visual', 
-      description: 'Choose your visual style',
+      title: 'Basic Information', 
+      description: 'Name, Sex & Age',
       icon: User
-    },
-    { 
-      id: 2, 
-      title: 'Influencer type', 
-      description: 'Select your influencer type',
-      icon: Sparkles
-    },
-    { 
-      id: 3, 
-      title: 'Details', 
-      description: 'Basic information',
-      icon: Palette
     }
   ];
 
@@ -214,109 +202,141 @@ export function CreateInfluencerSteps({ onComplete }: CreateInfluencerStepsProps
       case 1:
         return (
           <div className="space-y-6">
-            <div className="space-y-4">
-              <Label className="text-lg font-semibold">Influencer Type</Label>
-              <div className="grid grid-cols-2 gap-4">
-                <Button
-                  variant={influencerData.visual_only === true ? 'default' : 'outline'}
-                  onClick={() => handleOptionSelect('visual_only', true)}
-                  className={cn(
-                    "h-24 transition-all duration-300",
-                    influencerData.visual_only === true 
-                      ? "bg-primary hover:bg-primary/90" 
-                      : "hover:bg-amber-500"
-                  )}
-                >
-                  <div className="flex flex-col items-center gap-2">
-                    <User className="w-6 h-6" />
-                    <span className="font-medium">Visual only</span>
-                  </div>
-                </Button>
-                <Button
-                  variant={influencerData.visual_only === false ? 'default' : 'outline'}
-                  onClick={() => handleOptionSelect('visual_only', false)}
-                  className={cn(
-                    "h-24 transition-all duration-300",
-                    influencerData.visual_only === false 
-                      ? "bg-primary hover:bg-primary/90" 
-                      : "hover:bg-amber-500"
-                  )}
-                >
-                  <div className="flex flex-col items-center gap-2">
-                    <Sparkles className="w-6 h-6" />
-                    <span className="font-medium">Full persona</span>
-                  </div>
-                </Button>
-              </div>
-            </div>
-          </div>
-        );
-
-      case 2:
-        return (
-          <div className="space-y-6">
-            <div className="space-y-4">
-              <Label className="text-lg font-semibold">Category</Label>
-              <div className="grid grid-cols-2 gap-4">
-                <Button
-                  variant={influencerData.influencer_type === 'Lifestyle' ? 'default' : 'outline'}
-                  onClick={() => handleOptionSelect('influencer_type', 'Lifestyle')}
-                  className={cn(
-                    "h-24 transition-all duration-300",
-                    influencerData.influencer_type === 'Lifestyle' 
-                      ? "bg-primary hover:bg-primary/90" 
-                      : "hover:bg-amber-500"
-                  )}
-                >
-                  <div className="flex flex-col items-center gap-2">
-                    <Sparkles className="w-6 h-6" />
-                    <span className="font-medium">Lifestyle</span>
-                  </div>
-                </Button>
-                <Button
-                  variant={influencerData.influencer_type === 'Educational' ? 'default' : 'outline'}
-                  onClick={() => handleOptionSelect('influencer_type', 'Educational')}
-                  className={cn(
-                    "h-24 transition-all duration-300",
-                    influencerData.influencer_type === 'Educational' 
-                      ? "bg-primary hover:bg-primary/90" 
-                      : "hover:bg-amber-500"
-                  )}
-                >
-                  <div className="flex flex-col items-center gap-2">
-                    <Palette className="w-6 h-6" />
-                    <span className="font-medium">Educational</span>
-                  </div>
-                </Button>
-              </div>
-            </div>
-          </div>
-        );
-
-      case 3:
-        return (
-          <div className="space-y-6">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>First Name</Label>
-                    <Input
-                      value={influencerData.name_first}
-                      onChange={(e) => handleOptionSelect('name_first', e.target.value)}
-                      placeholder="Enter first name"
-                    />
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="basic">Basic Info</TabsTrigger>
+                <TabsTrigger value="sex">Sex</TabsTrigger>
+                <TabsTrigger value="age">Age</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="basic" className="space-y-4">
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>First Name</Label>
+                      <Input
+                        value={influencerData.name_first}
+                        onChange={(e) => handleOptionSelect('name_first', e.target.value)}
+                        placeholder="Enter first name"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Last Name</Label>
+                      <Input
+                        value={influencerData.name_last}
+                        onChange={(e) => handleOptionSelect('name_last', e.target.value)}
+                        placeholder="Enter last name"
+                      />
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label>Last Name</Label>
-                    <Input
-                      value={influencerData.name_last}
-                      onChange={(e) => handleOptionSelect('name_last', e.target.value)}
-                      placeholder="Enter last name"
-                    />
+                </CardContent>
+              </TabsContent>
+
+              <TabsContent value="sex" className="space-y-4">
+                <CardContent className="space-y-4">
+                  <Label className="text-lg font-semibold">Sex</Label>
+                  <div className="grid grid-cols-2 gap-4">
+                    <Button
+                      variant={influencerData.sex === 'Female' ? 'default' : 'outline'}
+                      onClick={() => handleOptionSelect('sex', 'Female')}
+                      className={cn(
+                        "h-24 transition-all duration-300",
+                        influencerData.sex === 'Female' 
+                          ? "bg-primary hover:bg-primary/90" 
+                          : "hover:bg-amber-500"
+                      )}
+                    >
+                      <div className="flex flex-col items-center gap-2">
+                        <User className="w-6 h-6" />
+                        <span className="font-medium">Female</span>
+                      </div>
+                    </Button>
+                    <Button
+                      variant={influencerData.sex === 'Male' ? 'default' : 'outline'}
+                      onClick={() => handleOptionSelect('sex', 'Male')}
+                      className={cn(
+                        "h-24 transition-all duration-300",
+                        influencerData.sex === 'Male' 
+                          ? "bg-primary hover:bg-primary/90" 
+                          : "hover:bg-amber-500"
+                      )}
+                    >
+                      <div className="flex flex-col items-center gap-2">
+                        <User className="w-6 h-6" />
+                        <span className="font-medium">Male</span>
+                      </div>
+                    </Button>
                   </div>
-                </div>
-              </CardContent>
+                </CardContent>
+              </TabsContent>
+
+              <TabsContent value="age" className="space-y-4">
+                <CardContent className="space-y-4">
+                  <Label className="text-lg font-semibold">Age</Label>
+                  <div className="grid grid-cols-2 gap-4">
+                    <Button
+                      variant={influencerData.age_lifestyle === '18-25' ? 'default' : 'outline'}
+                      onClick={() => handleOptionSelect('age_lifestyle', '18-25')}
+                      className={cn(
+                        "h-24 transition-all duration-300",
+                        influencerData.age_lifestyle === '18-25' 
+                          ? "bg-primary hover:bg-primary/90" 
+                          : "hover:bg-amber-500"
+                      )}
+                    >
+                      <div className="flex flex-col items-center gap-2">
+                        <User className="w-6 h-6" />
+                        <span className="font-medium">18-25</span>
+                      </div>
+                    </Button>
+                    <Button
+                      variant={influencerData.age_lifestyle === '26-35' ? 'default' : 'outline'}
+                      onClick={() => handleOptionSelect('age_lifestyle', '26-35')}
+                      className={cn(
+                        "h-24 transition-all duration-300",
+                        influencerData.age_lifestyle === '26-35' 
+                          ? "bg-primary hover:bg-primary/90" 
+                          : "hover:bg-amber-500"
+                      )}
+                    >
+                      <div className="flex flex-col items-center gap-2">
+                        <User className="w-6 h-6" />
+                        <span className="font-medium">26-35</span>
+                      </div>
+                    </Button>
+                    <Button
+                      variant={influencerData.age_lifestyle === '36-45' ? 'default' : 'outline'}
+                      onClick={() => handleOptionSelect('age_lifestyle', '36-45')}
+                      className={cn(
+                        "h-24 transition-all duration-300",
+                        influencerData.age_lifestyle === '36-45' 
+                          ? "bg-primary hover:bg-primary/90" 
+                          : "hover:bg-amber-500"
+                      )}
+                    >
+                      <div className="flex flex-col items-center gap-2">
+                        <User className="w-6 h-6" />
+                        <span className="font-medium">36-45</span>
+                      </div>
+                    </Button>
+                    <Button
+                      variant={influencerData.age_lifestyle === '46+' ? 'default' : 'outline'}
+                      onClick={() => handleOptionSelect('age_lifestyle', '46+')}
+                      className={cn(
+                        "h-24 transition-all duration-300",
+                        influencerData.age_lifestyle === '46+' 
+                          ? "bg-primary hover:bg-primary/90" 
+                          : "hover:bg-amber-500"
+                      )}
+                    >
+                      <div className="flex flex-col items-center gap-2">
+                        <User className="w-6 h-6" />
+                        <span className="font-medium">46+</span>
+                      </div>
+                    </Button>
+                  </div>
+                </CardContent>
+              </TabsContent>
             </Tabs>
           </div>
         );
@@ -327,15 +347,11 @@ export function CreateInfluencerSteps({ onComplete }: CreateInfluencerStepsProps
   };
 
   const handleNext = () => {
-    if (currentStep < 3) {
-      setCurrentStep(prev => prev + 1);
-    } else {
-      if(influencerData.name_first.length > 0 && influencerData.name_last.length > 0) {
-        handleSubmit();
-      }
-      else {
-        toast.error('Please enter your first and last name');
-      }
+    if(influencerData.name_first.length > 0 && influencerData.name_last.length > 0 && influencerData.sex && influencerData.age_lifestyle) {
+      handleSubmit();
+    }
+    else {
+      toast.error('Please complete all required fields: name, sex, and age');
     }
   };
 
@@ -375,30 +391,20 @@ export function CreateInfluencerSteps({ onComplete }: CreateInfluencerStepsProps
               <ChevronLeft className="mr-2 h-4 w-4" />
               Back
             </Button>
-            {currentStep < 3 ? (
-              <Button 
-                onClick={handleNext}
-                className="px-6 bg-primary hover:bg-primary/90 transition-colors duration-300"
-              >
-                Next
-                <ChevronRight className="ml-2 h-4 w-4" />
-              </Button>
-            ) : (
-              <Button 
-                onClick={handleNext} 
-                disabled={isOptionsLoading}
-                className="px-6 bg-primary hover:bg-primary/90 transition-colors duration-300"
-              >
-                {isOptionsLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Creating...
-                  </>
-                ) : (
-                  'Create Basic Info'
-                )}
-              </Button>
-            )}
+            <Button 
+              onClick={handleNext} 
+              disabled={isOptionsLoading}
+              className="px-6 bg-primary hover:bg-primary/90 transition-colors duration-300"
+            >
+              {isOptionsLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                'Create Basic Info'
+              )}
+            </Button>
           </div>
         </CardContent>
       </Card>

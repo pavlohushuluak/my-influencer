@@ -334,6 +334,7 @@ export default function InfluencerEdit() {
   const [previewImages, setPreviewImages] = useState<Array<{ imageUrl: string; negativePrompt: string; isRecommended?: boolean; isLoading?: boolean; taskId?: string }>>([]);
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [showLoraPrompt, setShowLoraPrompt] = useState(false);
   const [generatedImageData, setGeneratedImageData] = useState<{ image_id: string; system_filename: string } | null>(null);
 
   const [humorOptions, setHumorOptions] = useState<Option[]>([]);
@@ -734,7 +735,29 @@ export default function InfluencerEdit() {
       });
       dispatch(updateInfluencer(influencerData));
       if (response.ok) {
-        toast.success('Influencer updated successfully');
+        // Check if LoRA exists
+        try {
+          const loraCheckResponse = await fetch(`https://api.nymia.ai/v1/listfiles?user=${userData.id}&folder=models/${influencerData.id}/lora`, {
+            headers: {
+              'Authorization': 'Bearer WeInfl3nc3withAI'
+            }
+          });
+          
+          if (loraCheckResponse.ok) {
+            const loraFiles = await loraCheckResponse.json();
+            if (loraFiles.length === 0) {
+              // No LoRA found, show prompt
+              setShowLoraPrompt(true);
+            } else {
+              toast.success('Influencer updated successfully');
+            }
+          } else {
+            toast.success('Influencer updated successfully');
+          }
+        } catch (error) {
+          console.error('LoRA check error:', error);
+          toast.success('Influencer updated successfully');
+        }
       } else {
         toast.error('Failed to update influencer');
       }
@@ -5112,6 +5135,63 @@ export default function InfluencerEdit() {
                       Apply Template
                     </>
                   )}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* LoRA Generation Prompt Dialog */}
+      {showLoraPrompt && (
+        <Dialog open={showLoraPrompt} onOpenChange={setShowLoraPrompt}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-bold text-center">
+                Generate LoRA Now?
+              </DialogTitle>
+              <DialogDescription className="text-center text-gray-600 dark:text-gray-400">
+                You haven't generated a LoRA model for this influencer yet. Would you like to create one now to enhance your experience?
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4">
+              <div className="bg-gradient-to-br from-blue-50/50 to-indigo-50/50 dark:from-blue-950/20 dark:to-indigo-950/20 rounded-lg p-4 border border-blue-200/50 dark:border-blue-800/50">
+                <div className="flex items-start gap-3">
+                  <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-blue-800 dark:text-blue-200 mb-1">Enhanced Experience</h4>
+                    <p className="text-sm text-blue-700 dark:text-blue-300">
+                      LoRA models improve image generation quality and consistency for your influencer.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-col sm:flex-row gap-3 pt-4">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowLoraPrompt(false);
+                    toast.success('Influencer updated successfully');
+                  }}
+                  className="flex-1 h-12 text-base font-medium border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
+                >
+                  I'm still editing, do this later
+                </Button>
+                <Button
+                  onClick={() => {
+                    setShowLoraPrompt(false);
+                    navigate(`/influencers/lora-training?influencerId=${influencerData.id}`);
+                  }}
+                  className="flex-1 h-12 text-base font-medium bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg hover:shadow-xl transition-all duration-300"
+                >
+                  Yes, enhance my experience, create it now
                 </Button>
               </div>
             </div>

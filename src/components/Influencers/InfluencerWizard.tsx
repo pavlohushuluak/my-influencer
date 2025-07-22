@@ -8,6 +8,7 @@ import { Progress } from '@/components/ui/progress';
 import { ChevronRight, ChevronLeft, Loader2, User, Sparkles, Palette, Settings, ArrowRight, Check, ZoomIn, RefreshCcw, Globe, Image as ImageIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { RootState } from '@/store/store';
+import { setUser } from '@/store/slices/userSlice';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
@@ -293,6 +294,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
   const [showFacialTemplateDetails, setShowFacialTemplateDetails] = useState(false);
   const [showFacialTemplateConfirm, setShowFacialTemplateConfirm] = useState(false);
   const [isApplyingTemplate, setIsApplyingTemplate] = useState(false);
+  const [hasAutoRendered, setHasAutoRendered] = useState(false);
   const [showStep3Modal, setShowStep3Modal] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(5);
@@ -459,6 +461,24 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
 
     fetchSexOptions();
   }, []);
+
+  // Auto-start preview when reaching step 15 (only once)
+  useEffect(() => {
+    if (currentStep === 15 && !isPreviewLoading && !hasAutoRendered) {
+      // Small delay to ensure the step content is rendered
+      const timer = setTimeout(() => {
+        handlePreview();
+        setHasAutoRendered(true);
+      }, 500);
+      
+      return () => clearTimeout(timer);
+    }
+    
+    // Reset the flag when leaving step 15
+    if (currentStep !== 15) {
+      setHasAutoRendered(false);
+    }
+  }, [currentStep, isPreviewLoading, hasAutoRendered]);
 
   // Fetch facial features options from API
   const fetchFacialFeaturesOptions = async (ethnic?: string) => {
@@ -1275,10 +1295,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
   const handleOptionSelect = (field: string, value: string | boolean) => {
     setInfluencerData(prev => ({ ...prev, [field]: value }));
 
-    // Special handling for origin_residence - automatically set origin_birth to the same value
-    if (field === 'origin_residence' && typeof value === 'string') {
-      setInfluencerData(prev => ({ ...prev, origin_birth: value }));
-    }
+
 
     // Show success toast for selection (excluding origin and name fields)
     if (typeof value === 'string' && value !== '' && field !== 'origin_birth' && field !== 'origin_residence' && field !== 'name_first' && field !== 'name_last') {
@@ -1550,12 +1567,52 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
           image_num: 0,
         };
 
-        // Navigate to edit page with the created influencer data
-        navigate('/influencers/edit', {
-          state: {
-            influencerData: createdInfluencerData
+        // Autostart image generation
+        try {
+          const useridResponse = await fetch(`https://db.nymia.ai/rest/v1/user?uuid=eq.${userData.id}`, {
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer WeInfl3nc3withAI'
+            }
+          });
+          const useridData = await useridResponse.json();
+
+          // Start image generation automatically
+          const imageGenerationResponse = await fetch(`https://api.nymia.ai/v1/createtask?userid=${useridData[0].userid}&type=createimage`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer WeInfl3nc3withAI'
+            },
+            body: JSON.stringify({
+              ...influencerData,
+              negative_prompt: "1"
+            })
+          });
+
+          if (imageGenerationResponse.ok) {
+            toast.success('Influencer created and image generation started!', {
+              description: 'You will be redirected to step 2'
+            });
           }
-        });
+        } catch (error) {
+          console.error('Error starting image generation:', error);
+        }
+
+        // Check guide_step and navigate accordingly
+        if (userData.guide_step === 1) {
+          // Update guide_step to 2 and navigate to start page
+          dispatch(setUser({ guide_step: 2 }));
+          navigate('/start');
+        } else {
+          // Navigate to influencers page
+          navigate('/influencers', {
+            state: {
+              influencerId: data[0].id,
+              fromWizard: true
+            }
+          });
+        }
         onComplete();
       } else {
         throw new Error('Failed to create influencer');
@@ -3764,10 +3821,10 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
               </div>
               <div className="space-y-3">
                 <h2 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                  Current Residence
+                  Place of Birth
                 </h2>
                 <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto text-lg leading-relaxed">
-                  Tell us where your influencer currently lives. This will also be set as their birth place and can be edited later in the Influencer Dataset.
+                  Tell us where your influencer was born. This helps create a more authentic and detailed background story.
                 </p>
               </div>
             </div>
@@ -3778,17 +3835,17 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                   <div className="space-y-6">
                     <div className="space-y-3">
                       <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-                        Where does your influencer currently live?
+                        Where was your influencer born?
                       </label>
                       <input
                         type="text"
-                        value={influencerData.origin_residence}
-                        onChange={(e) => handleOptionSelect('origin_residence', e.target.value)}
-                        placeholder="e.g., Los Angeles, USA"
+                        value={influencerData.origin_birth}
+                        onChange={(e) => handleOptionSelect('origin_birth', e.target.value)}
+                        placeholder="e.g., New York, US"
                         className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 transition-all duration-300 hover:border-indigo-300 dark:hover:border-indigo-600"
                       />
                       <p className="text-sm text-gray-500 dark:text-gray-400">
-                        💡 This will also be set as their birth place. You can edit both separately later in the Influencer Dataset.
+                        💡 This information helps create a more authentic background story for your influencer.
                       </p>
                     </div>
                   </div>
@@ -3810,8 +3867,8 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                   Preview Your Influencer
                 </h2>
                 <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto text-lg leading-relaxed">
-                  See how your influencer will look before creating the final version.<br />
-                  You can add more details on Influencer → Edit page after creation.
+                  Generating a preview of your influencer based on all your selections...<br />
+                  This will help you see how your influencer will look before creating the final version.
                 </p>
               </div>
             </div>
@@ -3822,10 +3879,10 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                   <div className="text-center space-y-6">
                     <div className="space-y-4">
                       <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-                        Ready to see your influencer?
+                        Generating Your Preview...
                       </h3>
                       <p className="text-gray-600 dark:text-gray-400">
-                        Click the button below to generate a preview of your influencer based on all the selections you've made.
+                        We're automatically creating a preview of your influencer based on all your selections.
                       </p>
                     </div>
 
@@ -3841,7 +3898,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                         </>
                       ) : (
                         <>
-                          Click Here to Render a Preview
+                          Regenerate Preview
                           <Sparkles className="w-6 h-6" />
                         </>
                       )}
@@ -4068,7 +4125,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
       case 13:
         return influencerData.bust_size !== '';
       case 14:
-        return influencerData.origin_residence !== '';
+        return influencerData.origin_birth !== '';
       case 15:
         return selectedProfilePictureUrl !== null;
       case 16:
@@ -4449,7 +4506,8 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                                     setSelectedProfilePictureUrl(generatedImage.system_filename);
                                     
                                     // Update the influencer data with the new profile picture URL
-                                    const newImageUrl = `https://images.nymia.ai/cdn-cgi/image/w=400/${userData.id}/models/temp/profilepic/profilepic0.png`;
+                                    const newImageUrl = preview.imageUrl;
+                                    console.log(newImageUrl);
 
                                     setInfluencerData(prev => ({
                                       ...prev,

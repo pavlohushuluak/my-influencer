@@ -98,6 +98,99 @@ const influencersSlice = createSlice({
   }
 });
 
+// Utility functions for date handling
+export const parseDate = (dateString: string | null | undefined): number => {
+  if (!dateString) return 0;
+  
+  try {
+    const date = new Date(dateString);
+    return isNaN(date.getTime()) ? 0 : date.getTime();
+  } catch (error) {
+    console.warn('Error parsing date:', dateString, error);
+    return 0;
+  }
+};
+
+export const formatDate = (dateString: string | null | undefined): string => {
+  if (!dateString) return 'Unknown';
+  
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return 'Unknown';
+    
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  } catch (error) {
+    console.warn('Error formatting date:', dateString, error);
+    return 'Unknown';
+  }
+};
+
+// Selector functions for sorted influencers
+export const selectLatestTrainedInfluencer = (state: { influencers: InfluencersState }) => {
+  const { influencers } = state.influencers;
+  const trainedInfluencers = [...influencers].filter(inf => inf.lorastatus === 2);
+  
+  if (trainedInfluencers.length === 0) return null;
+  
+  return trainedInfluencers.sort((a, b) => {
+    const dateA = parseDate(a.created_at);
+    const dateB = parseDate(b.created_at);
+    
+    // If created_at is not available, fallback to updated_at
+    if (dateA === 0 && dateB === 0) {
+      const updatedA = parseDate(a.updated_at);
+      const updatedB = parseDate(b.updated_at);
+      return updatedB - updatedA;
+    }
+    
+    return dateB - dateA;
+  })[0];
+};
+
+export const selectLatestGeneratedInfluencer = (state: { influencers: InfluencersState }) => {
+  const { influencers } = state.influencers;
+  
+  if (influencers.length === 0) return null;
+  
+  return [...influencers].sort((a, b) => {
+    const dateA = parseDate(a.created_at);
+    const dateB = parseDate(b.created_at);
+    
+    // If created_at is not available, fallback to updated_at
+    if (dateA === 0 && dateB === 0) {
+      const updatedA = parseDate(a.updated_at);
+      const updatedB = parseDate(b.updated_at);
+      return updatedB - updatedA;
+    }
+    
+    return dateB - dateA;
+  })[0];
+};
+
+export const selectInfluencersSortedByDate = (state: { influencers: InfluencersState }) => {
+  const { influencers } = state.influencers;
+  
+  return [...influencers].sort((a, b) => {
+    const dateA = parseDate(a.created_at);
+    const dateB = parseDate(b.created_at);
+    
+    // If created_at is not available, fallback to updated_at
+    if (dateA === 0 && dateB === 0) {
+      const updatedA = parseDate(a.updated_at);
+      const updatedB = parseDate(b.updated_at);
+      return updatedB - updatedA;
+    }
+    
+    return dateB - dateA;
+  });
+};
+
 export const { 
   setInfluencers, 
   addInfluencer, 

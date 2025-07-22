@@ -15,6 +15,7 @@ import { User, Sparkles, Loader2, Check, Settings, Image as ImageIcon } from 'lu
 import { cn } from '@/lib/utils';
 import { RootState } from '@/store/store';
 import { setUser } from '@/store/slices/userSlice';
+import { formatDate, parseDate } from '@/store/slices/influencersSlice';
 import { toast } from 'sonner';
 
 interface CreateInfluencerStepsProps {
@@ -69,6 +70,8 @@ interface InfluencerData {
   background_elements: string[];
   prompt: string;
   notes: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 interface Option {
@@ -635,7 +638,15 @@ export function CreateInfluencerSteps({ onComplete }: CreateInfluencerStepsProps
       return;
     }
 
-    navigate('/influencers/edit', { state: { influencerData: influencerData, create: true } });
+    // Add current timestamp for new influencer
+    const currentTimestamp = new Date().toISOString();
+    const influencerDataWithDates = {
+      ...influencerData,
+      created_at: currentTimestamp,
+      updated_at: currentTimestamp
+    };
+
+    navigate('/influencers/edit', { state: { influencerData: influencerDataWithDates, create: true } });
     onComplete();
   };
 

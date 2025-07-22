@@ -18,11 +18,15 @@ export default function Start() {
   const dispatch = useDispatch();
   const userData = useSelector((state: RootState) => state.user);
   const { influencers } = useSelector((state: RootState) => state.influencers);
+
+  // console.log('Influencers:', influencers);
+
   const currentPhase = userData.guide_step;
   const [showWarningModal, setShowWarningModal] = useState(false);
     const [showPhase2Modal, setShowPhase2Modal] = useState(false);
   const [showTrainingModal, setShowTrainingModal] = useState(false);
   const [showInfluencerSelectorModal, setShowInfluencerSelectorModal] = useState(false);
+  const [showPhase2InfluencerSelectorModal, setShowPhase2InfluencerSelectorModal] = useState(false);
   const [blinkState, setBlinkState] = useState(false);
   
   // LoRA Training Modal States
@@ -30,7 +34,8 @@ export default function Start() {
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
   const [isCopyingImage, setIsCopyingImage] = useState(false);
   
-  // Phase 3 selected influencer state
+  // Phase 2 and Phase 3 selected influencer state
+  const [selectedPhase2Influencer, setSelectedPhase2Influencer] = useState<any>(null);
   const [selectedPhase3Influencer, setSelectedPhase3Influencer] = useState<any>(null);
 
   useEffect(() => {
@@ -112,7 +117,7 @@ export default function Start() {
     };
 
     fetchInfluencers();
-  }, [dispatch]);
+  }, [dispatch, userData.id]);
 
   // Utility function to safely parse dates
   const parseDate = (dateString: string | null | undefined): number => {
@@ -301,14 +306,41 @@ export default function Start() {
     }
   };
 
-  const handlePhaseClick = (phaseId: number) => {
-    // Update the current phase in Redux store
-    dispatch(setUser({ guide_step: phaseId }));
+  const handlePhaseClick = async (phaseId: number) => {
+    try {
+      // Fetch current guide_step from database
+      const response = await fetch(`https://db.nymia.ai/rest/v1/user?uuid=eq.${userData.id}`, {
+        headers: {
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        }
+      });
 
-    // Show success message
-    toast.success(`Phase ${phaseId} activated!`, {
-      description: `You are now on ${phases.find(p => p.id === phaseId)?.title}`
-    });
+      if (!response.ok) {
+        throw new Error('Failed to fetch user data');
+      }
+
+      const userDataFromDB = await response.json();
+      const currentGuideStep = userDataFromDB[0]?.guide_step || 0;
+
+      // Check if user is trying to access a phase higher than their current guide_step
+      if (phaseId > currentGuideStep) {
+        toast.error(`Cannot access Phase ${phaseId}`, {
+          description: `You need to complete the previous phases first. Your current progress is Phase ${currentGuideStep}.`
+        });
+        return;
+      }
+
+      // Update the current phase in Redux store
+      dispatch(setUser({ guide_step: phaseId }));
+
+      // Show success message
+      toast.success(`Phase ${phaseId} activated!`, {
+        description: `You are now on ${phases.find(p => p.id === phaseId)?.title}`
+      });
+    } catch (error) {
+      console.error('Failed to fetch user guide_step:', error);
+      toast.error('Failed to verify phase access');
+    }
   };
 
   const handleContinueWork = () => {
@@ -406,14 +438,21 @@ export default function Start() {
     setShowInfluencerSelectorModal(false);
   };
 
+  const handlePhase2InfluencerSelection = (influencer: any) => {
+    setSelectedPhase2Influencer(influencer);
+    setShowPhase2InfluencerSelectorModal(false);
+    setShowPhase2Modal(true);
+  };
+
   const handleCopyProfileImage = async () => {
-    if (!latestGeneratedInfluencer) return;
+    const trainingInfluencer = selectedPhase2Influencer || latestGeneratedInfluencer;
+    if (!trainingInfluencer) return;
 
     setIsCopyingImage(true);
     try {
       if (uploadedFile) {
         // Upload the image directly to the LoRA folder
-        const loraFilePath = `models/${latestGeneratedInfluencer.id}/loratraining/${uploadedFile.name}`;
+        const loraFilePath = `models/${trainingInfluencer.id}/loratraining/${uploadedFile.name}`;
 
         // Upload file directly to LoRA folder
         const uploadResponse = await fetch(`https://api.nymia.ai/v1/uploadfile?user=${userData.id}&filename=${loraFilePath}`, {
@@ -447,15 +486,15 @@ export default function Start() {
           body: JSON.stringify({
             task: "createlora",
             fromsingleimage: false,
-            modelid: latestGeneratedInfluencer.id,
-            inputimage: `/models/${latestGeneratedInfluencer.id}/loratraining/${uploadedFile.name}`,
+            modelid: trainingInfluencer.id,
+            inputimage: `/models/${trainingInfluencer.id}/loratraining/${uploadedFile.name}`,
           })
         });
 
         toast.success('Image uploaded to LoRA training folder successfully');
       } else {
         // Copy existing profile picture to LoRA folder
-        const latestImageNum = latestGeneratedInfluencer.image_num - 1;
+        const latestImageNum = trainingInfluencer.image_num - 1;
 
         const useridResponse = await fetch(`https://db.nymia.ai/rest/v1/user?uuid=eq.${userData.id}`, {
           method: 'GET',
@@ -475,8 +514,8 @@ export default function Start() {
           body: JSON.stringify({
             task: "createlora",
             fromsingleimage: true,
-            modelid: latestGeneratedInfluencer.id,
-            inputimage: `/models/${latestGeneratedInfluencer.id}/profilepic/profilepic${latestImageNum}.png`,
+            modelid: trainingInfluencer.id,
+            inputimage: `/models/${trainingInfluencer.id}/profilepic/profilepic${latestImageNum}.png`,
           })
         });
 
@@ -827,7 +866,7 @@ export default function Start() {
 
       {/* Phase 2 Modal */}
       <Dialog open={showPhase2Modal} onOpenChange={setShowPhase2Modal}>
-        <DialogContent className="max-w-lg p-0 overflow-hidden">
+        <DialogContent className="max-w-lg p-0 overflow-hidden max-h-[90vh] overflow-y-auto">
           {/* Header with gradient background */}
           <div className="bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700 p-6 text-white relative overflow-hidden">
             {/* Background pattern */}
@@ -852,7 +891,9 @@ export default function Start() {
           <div className="p-6 space-y-6">
             {/* Influencer Card */}
             {(() => {
-              if (!latestGeneratedInfluencer) {
+              const displayInfluencer = selectedPhase2Influencer || latestGeneratedInfluencer;
+              
+              if (!displayInfluencer) {
                 return (
                   <div className="text-center py-8">
                     <Circle className="w-16 h-16 mx-auto mb-4 text-slate-400 opacity-50" />
@@ -862,35 +903,43 @@ export default function Start() {
               }
 
               return (
-                <Card className="bg-gradient-to-br from-blue-50/50 to-indigo-50/50 dark:from-blue-950/20 dark:to-indigo-950/20 border-blue-200/50 dark:border-blue-800/50 shadow-lg">
+                <Card className="bg-gradient-to-br from-slate-800/90 to-slate-700/90 border-slate-600/50 shadow-2xl">
                   <CardContent className="p-6">
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                    <div className="space-y-4">
+                      {/* Profile Image */}
                       <div className="relative">
-                        <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden ring-4 ring-white dark:ring-gray-800 shadow-xl">
-                          <img
-                            src={latestGeneratedInfluencer.image_url}
-                            alt={latestGeneratedInfluencer.name_first}
-                            className="w-full h-full object-cover"
-                          />
+                        <div className="w-full aspect-square bg-gradient-to-br from-slate-700 to-slate-600 rounded-2xl overflow-hidden shadow-xl">
+                          {displayInfluencer.image_url ? (
+                            <img
+                              src={displayInfluencer.image_url}
+                              alt={`${displayInfluencer.name_first} ${displayInfluencer.name_last}`}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <Circle className="w-12 h-12 text-slate-500" />
+                            </div>
+                          )}
                         </div>
-                        <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center shadow-lg">
-                          <Copy className="w-4 h-4 text-white" />
+                        <div className="absolute -top-2 -right-2 w-8 h-8 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full flex items-center justify-center shadow-lg">
+                          <Brain className="w-4 h-4 text-white" />
                         </div>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-1">
-                          {latestGeneratedInfluencer.name_first} {latestGeneratedInfluencer.name_last}
+
+                      {/* Influencer Info */}
+                      <div className="text-center space-y-3">
+                        <h3 className="text-xl font-bold text-white">
+                          {displayInfluencer.name_first} {displayInfluencer.name_last}
                         </h3>
-                        <p className="text-gray-600 dark:text-gray-300 mb-2">
-                          Latest profile picture • Version {latestGeneratedInfluencer.image_num === null || latestGeneratedInfluencer.image_num === undefined || isNaN(latestGeneratedInfluencer.image_num) ? 0 : latestGeneratedInfluencer.image_num - 1}
+                        <p className="text-sm text-slate-400">
+                          {displayInfluencer.influencer_type || 'AI Influencer'}
                         </p>
-                        <div className="flex flex-wrap gap-2">
-                          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
-                            Character Consistency
-                          </span>
-                          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
-                            LoRA Training
-                          </span>
+                        <p className="text-xs text-slate-500">
+                          Created: {formatDate(displayInfluencer.created_at)}
+                        </p>
+                        <div className="flex items-center justify-center gap-2 text-xs text-blue-400">
+                          <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                          Ready for LoRA Training
                         </div>
                       </div>
                     </div>
@@ -906,7 +955,7 @@ export default function Start() {
                   setShowPhase2Modal(false);
                   setShowTrainingModal(true);
                 }}
-                className="w-full h-14 text-base font-semibold bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-700 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-800 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-1.02] border-0"
+                className="w-full h-14 text-base font-semibold bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-700 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-800 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-[1.02] border-0"
               >
                 <Brain className="w-5 h-5 mr-3" />
                 Continue work
@@ -915,7 +964,7 @@ export default function Start() {
                 variant="outline"
                 onClick={() => {
                   setShowPhase2Modal(false);
-                  navigate('/influencers');
+                  setShowPhase2InfluencerSelectorModal(true);
                 }}
                 className="w-full h-12 text-base font-medium border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200"
               >
@@ -949,7 +998,8 @@ export default function Start() {
           </DialogHeader>
 
           {(() => {
-            if (!latestGeneratedInfluencer) return null;
+            const trainingInfluencer = selectedPhase2Influencer || latestGeneratedInfluencer;
+            if (!trainingInfluencer) return null;
 
             return (
               <div className="p-6 space-y-8">
@@ -960,8 +1010,8 @@ export default function Start() {
                       <div className="relative">
                         <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden ring-4 ring-white dark:ring-gray-800 shadow-xl">
                           <img
-                            src={latestGeneratedInfluencer.image_url}
-                            alt={latestGeneratedInfluencer.name_first}
+                            src={trainingInfluencer.image_url}
+                            alt={trainingInfluencer.name_first}
                             className="w-full h-full object-cover"
                           />
                         </div>
@@ -971,10 +1021,10 @@ export default function Start() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-1">
-                          {latestGeneratedInfluencer.name_first} {latestGeneratedInfluencer.name_last}
+                          {trainingInfluencer.name_first} {trainingInfluencer.name_last}
                         </h3>
                         <p className="text-gray-600 dark:text-gray-300 mb-2">
-                          Latest profile picture • Version {latestGeneratedInfluencer.image_num === null || latestGeneratedInfluencer.image_num === undefined || isNaN(latestGeneratedInfluencer.image_num) ? 0 : latestGeneratedInfluencer.image_num - 1}
+                          Latest profile picture • Version {trainingInfluencer.image_num === null || trainingInfluencer.image_num === undefined || isNaN(trainingInfluencer.image_num) ? 0 : trainingInfluencer.image_num - 1}
                         </p>
                         <div className="flex flex-wrap gap-2">
                           <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
@@ -1008,7 +1058,7 @@ export default function Start() {
                           <div className="relative">
                             <div className="aspect-square bg-gradient-to-br from-green-100 to-emerald-100 dark:from-green-900/30 dark:to-emerald-900/30 rounded-2xl overflow-hidden shadow-lg group-hover:shadow-xl transition-shadow duration-300">
                               <img
-                                src={latestGeneratedInfluencer.image_url}
+                                src={trainingInfluencer.image_url}
                                 alt="Latest profile picture"
                                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                               />
@@ -1022,7 +1072,7 @@ export default function Start() {
                               Latest Profile Picture
                             </h4>
                             <p className="text-sm text-gray-600 dark:text-gray-300">
-                              Version {latestGeneratedInfluencer.image_num === null || latestGeneratedInfluencer.image_num === undefined || isNaN(latestGeneratedInfluencer.image_num) || latestGeneratedInfluencer.image_num === 0 ? 0 : latestGeneratedInfluencer.image_num - 1} • High Quality
+                              Version {trainingInfluencer.image_num === null || trainingInfluencer.image_num === undefined || isNaN(trainingInfluencer.image_num) || trainingInfluencer.image_num === 0 ? 0 : trainingInfluencer.image_num - 1} • High Quality
                             </p>
                             <div className="flex items-center justify-center gap-2 text-xs text-green-600 dark:text-green-400">
                               <div className="w-2 h-2 bg-green-500 rounded-full"></div>
@@ -1288,6 +1338,90 @@ export default function Start() {
                 ))}
               </div>
             )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Phase 2 Influencer Selector Modal */}
+      <Dialog open={showPhase2InfluencerSelectorModal} onOpenChange={setShowPhase2InfluencerSelectorModal}>
+        <DialogContent className="max-w-4xl w-[95vw] max-h-[90vh] overflow-y-auto">
+          <DialogHeader className="text-center">
+            <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+              Select Influencer for LoRA Training
+            </DialogTitle>
+            <DialogDescription className="text-base text-gray-600 dark:text-gray-300 mt-2">
+              Choose an influencer with lorastatus === 0 to train for character consistency
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="p-6">
+            {(() => {
+              const availableInfluencers = influencers.filter(inf => inf.lorastatus === 0);
+              
+              if (availableInfluencers.length === 0) {
+                return (
+                  <div className="text-center py-12">
+                    <Circle className="w-16 h-16 mx-auto mb-4 text-slate-400 opacity-50" />
+                    <p className="text-slate-600 dark:text-slate-400">No influencers available for training</p>
+                    <p className="text-sm text-slate-500 mt-2">All influencers have already been trained or are in training</p>
+                  </div>
+                );
+              }
+
+              return (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {availableInfluencers.map((influencer) => (
+                    <Card
+                      key={influencer.id}
+                      onClick={() => handlePhase2InfluencerSelection(influencer)}
+                      className="cursor-pointer hover:shadow-lg transition-all duration-200 border-2 hover:border-blue-300 dark:hover:border-blue-600 bg-gradient-to-br from-slate-50/80 to-slate-100/80 dark:from-slate-800/50 dark:to-slate-700/50"
+                    >
+                      <CardContent className="p-4">
+                        <div className="space-y-3">
+                          {/* Profile Image */}
+                          <div className="relative">
+                            <div className="w-full aspect-square bg-gradient-to-br from-slate-200 to-slate-300 dark:from-slate-600 dark:to-slate-500 rounded-xl overflow-hidden shadow-md">
+                              {influencer.image_url ? (
+                                <img
+                                  src={influencer.image_url}
+                                  alt={`${influencer.name_first} ${influencer.name_last}`}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center">
+                                  <Circle className="w-8 h-8 text-slate-400" />
+                                </div>
+                              )}
+                            </div>
+                            <div className="absolute -top-1 -right-1 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center shadow-lg">
+                              <Brain className="w-3 h-3 text-white" />
+                            </div>
+                          </div>
+
+                          {/* Influencer Info */}
+                          <div className="text-center space-y-1">
+                            <h3 className="font-semibold text-slate-900 dark:text-slate-100 text-sm">
+                              {influencer.name_first} {influencer.name_last}
+                            </h3>
+                            <p className="text-xs text-slate-600 dark:text-slate-400">
+                              {influencer.influencer_type || 'AI Influencer'}
+                            </p>
+                            <p className="text-xs text-slate-500">
+                              Created: {formatDate(influencer.created_at)}
+                            </p>
+                            <div className="flex items-center justify-center gap-1">
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
+                                Ready for Training
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              );
+            })()}
           </div>
         </DialogContent>
       </Dialog>

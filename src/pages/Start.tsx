@@ -147,6 +147,16 @@ export default function Start() {
     }
   };
 
+  const handlePhaseClick = (phaseId: number) => {
+    // Update the current phase in Redux store
+    dispatch(setUser({ guide_step: phaseId }));
+    
+    // Show success message
+    toast.success(`Phase ${phaseId} activated!`, {
+      description: `You are now on ${phases.find(p => p.id === phaseId)?.title}`
+    });
+  };
+
   const handleContinueWork = () => {
     setShowWarningModal(true);
   };
@@ -214,12 +224,13 @@ export default function Start() {
                   {phases.map((phase) => (
                     <div
                       key={phase.id}
-                      className={`flex items-center gap-4 p-4 rounded-lg border-2 transition-all duration-300 ${
+                      onClick={() => handlePhaseClick(phase.id)}
+                      className={`flex items-center gap-4 p-4 rounded-lg border-2 transition-all duration-300 cursor-pointer hover:scale-105 hover:shadow-lg ${
                         phase.completed 
-                          ? 'bg-gradient-to-r from-green-900/20 to-emerald-900/20 border-green-500/30' 
+                          ? 'bg-gradient-to-r from-green-900/20 to-emerald-900/20 border-green-500/30 hover:border-green-400/50' 
                           : phase.isPending
-                          ? `bg-gradient-to-r from-blue-900/20 to-indigo-900/20 border-blue-500/30 ${blinkState ? 'opacity-100' : 'opacity-50'}`
-                          : 'bg-gradient-to-r from-slate-800/50 to-slate-700/50 border-slate-600/30'
+                          ? `bg-gradient-to-r from-blue-900/20 to-indigo-900/20 border-blue-500/30 hover:border-blue-400/50 ${blinkState ? 'opacity-100' : 'opacity-50'}`
+                          : 'bg-gradient-to-r from-slate-800/50 to-slate-700/50 border-slate-600/30 hover:border-slate-500/50'
                       }`}
                     >
                       <div className={`w-10 h-10 rounded-full bg-gradient-to-r ${phase.color} flex items-center justify-center shadow-lg transition-opacity duration-300 ${

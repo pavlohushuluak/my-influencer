@@ -20,14 +20,18 @@ export default function Start() {
   const { influencers } = useSelector((state: RootState) => state.influencers);
   const currentPhase = userData.guide_step;
   const [showWarningModal, setShowWarningModal] = useState(false);
-  const [showPhase2Modal, setShowPhase2Modal] = useState(false);
+    const [showPhase2Modal, setShowPhase2Modal] = useState(false);
   const [showTrainingModal, setShowTrainingModal] = useState(false);
+  const [showInfluencerSelectorModal, setShowInfluencerSelectorModal] = useState(false);
   const [blinkState, setBlinkState] = useState(false);
-
+  
   // LoRA Training Modal States
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
   const [isCopyingImage, setIsCopyingImage] = useState(false);
+  
+  // Phase 3 selected influencer state
+  const [selectedPhase3Influencer, setSelectedPhase3Influencer] = useState<any>(null);
 
   useEffect(() => {
     const checkSubscription = async () => {
@@ -241,7 +245,13 @@ export default function Start() {
     } else if (currentPhase === 2) {
       setShowPhase2Modal(true);
     } else if (currentPhase === 3) {
-      navigate('/content/create');
+      // Navigate to content create with selected influencer
+      const influencerToUse = selectedPhase3Influencer || latestTrainedInfluencer;
+      if (influencerToUse) {
+        navigate('/content/create', { state: { influencerData: influencerToUse } });
+      } else {
+        navigate('/content/create');
+      }
     } else if (currentPhase === 4) {
       // Update guide_step to 5 when user clicks "Organize Content"
       try {
@@ -302,7 +312,8 @@ export default function Start() {
   };
 
   const handleContinueWork = () => {
-    setShowWarningModal(true);
+    // Skip warning and go directly to Phase 3
+    handleConfirmContinueWork();
   };
 
   const handleConfirmContinueWork = async () => {
@@ -388,6 +399,11 @@ export default function Start() {
     }
     setUploadedFile(null);
     setUploadedImageUrl(null);
+  };
+
+  const handleInfluencerSelection = (influencer: any) => {
+    setSelectedPhase3Influencer(influencer);
+    setShowInfluencerSelectorModal(false);
   };
 
   const handleCopyProfileImage = async () => {
@@ -516,10 +532,10 @@ export default function Start() {
       </div>
 
       {/* Main Content */}
-      <div className="flex gap-6">
+      <div className="flex gap-6 w-full">
         {/* Left Side - Main Card */}
-        <div className="w-full flex">
-          <Card className="bg-gradient-to-br from-slate-900/90 to-slate-800/90 border-slate-700/50 shadow-2xl grid grid-cols-1 lg:grid-cols-5 xl:grid-cols-3 xl:mr-[50px] lg:mr-[30px]">
+        <div className="w-full">
+          <Card className="bg-gradient-to-br from-slate-900/90 to-slate-800/90 border-slate-700/50 shadow-2xl grid grid-cols-1 lg:grid-cols-5 xl:grid-cols-3">
             <CardContent className="p-8 lg:col-span-3 xl:col-span-2">
               <div className="text-center space-y-6">
                 <div className="space-y-4">
@@ -596,7 +612,7 @@ export default function Start() {
 
                   if (!displayInfluencer) {
                     return (
-                      <div className="m-4 lg:mr-[-30px] xl:mr-[-50px] flex flex-col items-center justify-center text-center">
+                      <div className="m-4 flex flex-col items-center justify-center text-center">
                         <div className="w-64 h-64 bg-gradient-to-br from-slate-800/50 to-slate-700/50 rounded-2xl border border-slate-600/30 flex items-center justify-center">
                           <div className="text-slate-400">
                             <Circle className="w-16 h-16 mx-auto mb-4 opacity-50" />
@@ -608,7 +624,7 @@ export default function Start() {
                   }
 
                   return (
-                    <div className="m-4 lg:mr-[-30px] xl:mr-[-50px] flex flex-col items-center justify-center">
+                    <div className="m-4 flex flex-col items-center justify-center">
                       <Card className="bg-gradient-to-br from-slate-800/90 to-slate-700/90 border-slate-600/50 shadow-2xl w-64">
                         <CardContent className="p-6">
                           <div className="space-y-4">
@@ -663,8 +679,91 @@ export default function Start() {
                     </div>
                   );
                 })()
+              ) : currentPhase === 3 ? (
+                // Show selected influencer or latest trained influencer for Phase 3
+                (() => {
+                  const displayInfluencer = selectedPhase3Influencer || latestTrainedInfluencer;
+
+                  if (!displayInfluencer) {
+                    return (
+                      <div className="m-4 flex flex-col items-center justify-center text-center">
+                        <div className="w-64 h-64 bg-gradient-to-br from-slate-800/50 to-slate-700/50 rounded-2xl border border-slate-600/30 flex items-center justify-center">
+                          <div className="text-slate-400">
+                            <Circle className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                            <p className="text-sm">No influencers found</p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="m-4 flex flex-col items-center justify-center space-y-4">
+                      <Card className="bg-gradient-to-br from-slate-800/90 to-slate-700/90 border-slate-600/50 shadow-2xl w-64">
+                        <CardContent className="p-6">
+                          <div className="space-y-4">
+                            {/* Profile Image */}
+                            <div className="relative">
+                              <div className="w-full aspect-square bg-gradient-to-br from-slate-700 to-slate-600 rounded-xl overflow-hidden shadow-lg">
+                                {displayInfluencer.image_url ? (
+                                  <img
+                                    src={displayInfluencer.image_url}
+                                    alt={`${displayInfluencer.name_first} ${displayInfluencer.name_last}`}
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center">
+                                    <Circle className="w-12 h-12 text-slate-500" />
+                                  </div>
+                                )}
+                              </div>
+                              {displayInfluencer.lorastatus === 2 && (
+                                <div className="absolute -top-2 -right-2 w-8 h-8 bg-green-500 rounded-full flex items-center justify-center shadow-lg">
+                                  <CheckCircle className="w-4 h-4 text-white" />
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Influencer Info */}
+                            <div className="text-center space-y-2">
+                              <h3 className="text-lg font-semibold text-white">
+                                {displayInfluencer.name_first} {displayInfluencer.name_last}
+                              </h3>
+                              <p className="text-sm text-slate-400">
+                                {displayInfluencer.influencer_type || 'AI Influencer'}
+                              </p>
+                              <p className="text-xs text-slate-500">
+                                Created: {formatDate(displayInfluencer.created_at)}
+                              </p>
+                              {displayInfluencer.lorastatus === 2 ? (
+                                <div className="flex items-center justify-center gap-2 text-xs text-green-400">
+                                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                  LoRA Trained
+                                </div>
+                              ) : (
+                                <div className="flex items-center justify-center gap-2 text-xs text-blue-400">
+                                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                                  Ready for Training
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                      
+                      {/* Select Another Influencer Button */}
+                      <Button
+                        onClick={() => setShowInfluencerSelectorModal(true)}
+                        variant="outline"
+                        className="w-full bg-transparent border-slate-600 text-slate-300 hover:bg-slate-800 hover:text-white transition-all duration-200"
+                      >
+                        Select another influencer
+                      </Button>
+                    </div>
+                  );
+                })()
               ) : (
-                <InstructionVideo {...getInstructionVideoConfig(`phase${currentPhase}`)} className="m-4 lg:mr-[-30px] xl:mr-[-50px] flex flex-col items-center justify-center " />
+                <InstructionVideo {...getInstructionVideoConfig(`phase${currentPhase}`)} className="m-4 flex flex-col items-center justify-center " />
               )}
             </div>
           </Card>
@@ -807,7 +906,7 @@ export default function Start() {
                   setShowPhase2Modal(false);
                   setShowTrainingModal(true);
                 }}
-                className="w-full h-14 text-base font-semibold bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-700 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-800 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-[1.02] border-0"
+                className="w-full h-14 text-base font-semibold bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-700 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-800 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-1.02] border-0"
               >
                 <Brain className="w-5 h-5 mr-3" />
                 Continue work
@@ -1107,6 +1206,89 @@ export default function Start() {
               </div>
             );
           })()}
+        </DialogContent>
+      </Dialog>
+
+      {/* Influencer Selector Modal for Phase 3 */}
+      <Dialog open={showInfluencerSelectorModal} onOpenChange={setShowInfluencerSelectorModal}>
+        <DialogContent className="max-w-4xl w-[95vw] max-h-[90vh] overflow-y-auto">
+          <DialogHeader className="text-center">
+            <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+              Select Influencer for Content Creation
+            </DialogTitle>
+            <DialogDescription className="text-base text-gray-600 dark:text-gray-300 mt-2">
+              Choose an influencer to use for generating exclusive content
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="p-6">
+            {influencers.length === 0 ? (
+              <div className="text-center py-12">
+                <Circle className="w-16 h-16 mx-auto mb-4 text-slate-400 opacity-50" />
+                <p className="text-slate-600 dark:text-slate-400">No influencers found</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {influencers.map((influencer) => (
+                  <Card
+                    key={influencer.id}
+                    onClick={() => handleInfluencerSelection(influencer)}
+                    className="cursor-pointer hover:shadow-lg transition-all duration-200 border-2 hover:border-purple-300 dark:hover:border-purple-600 bg-gradient-to-br from-slate-50/80 to-slate-100/80 dark:from-slate-800/50 dark:to-slate-700/50"
+                  >
+                    <CardContent className="p-4">
+                      <div className="space-y-3">
+                        {/* Profile Image */}
+                        <div className="relative">
+                          <div className="w-full aspect-square bg-gradient-to-br from-slate-200 to-slate-300 dark:from-slate-600 dark:to-slate-500 rounded-xl overflow-hidden shadow-md">
+                            {influencer.image_url ? (
+                              <img
+                                src={influencer.image_url}
+                                alt={`${influencer.name_first} ${influencer.name_last}`}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center">
+                                <Circle className="w-8 h-8 text-slate-400" />
+                              </div>
+                            )}
+                          </div>
+                          {influencer.lorastatus === 2 && (
+                            <div className="absolute -top-1 -right-1 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center shadow-lg">
+                              <CheckCircle className="w-3 h-3 text-white" />
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Influencer Info */}
+                        <div className="text-center space-y-1">
+                          <h3 className="font-semibold text-slate-900 dark:text-slate-100 text-sm">
+                            {influencer.name_first} {influencer.name_last}
+                          </h3>
+                          <p className="text-xs text-slate-600 dark:text-slate-400">
+                            {influencer.influencer_type || 'AI Influencer'}
+                          </p>
+                          <p className="text-xs text-slate-500">
+                            Created: {formatDate(influencer.created_at)}
+                          </p>
+                          <div className="flex items-center justify-center gap-1">
+                            {influencer.lorastatus === 2 ? (
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
+                                LoRA Trained
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
+                                Ready for Training
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </div>

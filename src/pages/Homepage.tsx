@@ -3,7 +3,7 @@ import { RootState } from '@/store/store';
 import { toggleTheme } from '@/store/slices/uiSlice';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Star, Check, Mail, Phone, MapPin } from 'lucide-react';
+import { Star, User, Image, Zap, Shield, TrendingUp, Moon, Sun, Menu, Settings, Check, Mail, Phone, MapPin } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useState, useEffect } from 'react';
@@ -19,7 +19,38 @@ export default function Homepage() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const isLoggedIn = sessionStorage.getItem('access_token') !== null;
 
-
+  const features = [
+    {
+      icon: User,
+      title: 'AI Personalities',
+      description: 'Create unique AI influencers with distinct personalities and characteristics'
+    },
+    {
+      icon: Image,
+      title: 'Content Generation',
+      description: 'Generate high-quality images and videos with advanced AI technology'
+    },
+    {
+      icon: Zap,
+      title: 'Fast Processing',
+      description: 'Lightning-fast content creation and enhancement capabilities'
+    },
+    {
+      icon: Shield,
+      title: 'Secure & Private',
+      description: 'Your data and creations are protected with enterprise-grade security'
+    },
+    {
+      icon: TrendingUp,
+      title: 'Analytics',
+      description: 'Track performance and optimize your content strategy with detailed insights'
+    },
+    {
+      icon: Settings,
+      title: 'Customization',
+      description: 'Tailor AI outputs to match your brand voice, style, and specific requirements'
+    }
+  ];
 
   const pricingPlans = [
     {
@@ -126,65 +157,36 @@ export default function Homepage() {
                 className="bg-ai-gradient hover:opacity-90 text-lg px-8 py-3 mt-5 shadow-lg transition-all hover:shadow-xl"
                 onClick={() => navigate(isLoggedIn ? '/start' : '/signup')}
               >
-                {isLoggedIn ? 'Start Creating' : 'Start Creating'}
+                {isLoggedIn ? 'Start Creating' : 'Get Started'}
               </Button>
             </div>
           </div>
         </div>
       </section>
 
-
-
-      {/* About Section */}
-      <section id="about" className="py-12 sm:py-16 lg:py-20 px-4">
+      {/* Features Section */}
+      <section className="py-20 px-4">
         <div className="container mx-auto">
-          <div className="text-center mb-12 sm:mb-16">
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4 text-foreground">
-              About AI Influence
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-foreground">
+              Powerful Features for Creators
             </h2>
-            <p className="text-lg sm:text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed px-4">
-              We're a team of AI researchers, engineers, and designers passionate about democratizing
-              AI-powered content creation. Our mission is to empower creators worldwide with cutting-edge technology.
+            <p className="text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+              Everything you need to create, manage, and grow your AI influencer empire
             </p>
           </div>
-
-          {/* Company Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8 mb-16">
-            <div className="text-center">
-              <div className="text-2xl sm:text-3xl font-bold text-primary mb-2">10K+</div>
-              <div className="text-sm text-muted-foreground">Active Creators</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl sm:text-3xl font-bold text-primary mb-2">1M+</div>
-              <div className="text-sm text-muted-foreground">Content Generated</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl sm:text-3xl font-bold text-primary mb-2">50+</div>
-              <div className="text-sm text-muted-foreground">Countries</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl sm:text-3xl font-bold text-primary mb-2">99.9%</div>
-              <div className="text-sm text-muted-foreground">Uptime</div>
-            </div>
-          </div>
-
-          {/* Team */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
-            {teamMembers.map((member, index) => (
-              <Card key={index} className="text-center border-border/50 bg-card/50 backdrop-blur">
-                <CardHeader>
-                  <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-muted overflow-hidden">
-                    <img
-                      src={member.image}
-                      alt={member.name}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <CardTitle className="text-lg text-card-foreground">{member.name}</CardTitle>
-                  <p className="text-sm text-primary font-medium">{member.role}</p>
-                </CardHeader>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {features.map((feature, index) => (
+              <Card
+                key={index}
+                className="group hover:shadow-lg transition-all duration-300 border-border/50 hover:border-primary/20 bg-card/50 backdrop-blur cursor-pointer"
+              >
+                <CardContent className='flex items-center p-6 pb-0'>
+                  <feature.icon className="w-12 h-12 text-purple-500 dark:text-amber-500 transition-colors mb-4 mr-3" />
+                  <CardTitle className="text-xl text-card-foreground">{feature.title}</CardTitle>
+                </CardContent>
                 <CardContent>
-                  <p className="text-sm text-muted-foreground leading-relaxed">{member.description}</p>
+                  <p className="text-muted-foreground leading-relaxed">{feature.description}</p>
                 </CardContent>
               </Card>
             ))}
@@ -249,6 +251,63 @@ export default function Homepage() {
                         : 'Change Plan'
                       : 'Get Started'}
                   </Button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* About Section */}
+      <section id="about" className="py-12 sm:py-16 lg:py-20 px-4">
+        <div className="container mx-auto">
+          <div className="text-center mb-12 sm:mb-16">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4 text-foreground">
+              About AI Influence
+            </h2>
+            <p className="text-lg sm:text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed px-4">
+              We're a team of AI researchers, engineers, and designers passionate about democratizing
+              AI-powered content creation. Our mission is to empower creators worldwide with cutting-edge technology.
+            </p>
+          </div>
+
+          {/* Company Stats */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8 mb-16">
+            <div className="text-center">
+              <div className="text-2xl sm:text-3xl font-bold text-primary mb-2">10K+</div>
+              <div className="text-sm text-muted-foreground">Active Creators</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl sm:text-3xl font-bold text-primary mb-2">1M+</div>
+              <div className="text-sm text-muted-foreground">Content Generated</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl sm:text-3xl font-bold text-primary mb-2">50+</div>
+              <div className="text-sm text-muted-foreground">Countries</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl sm:text-3xl font-bold text-primary mb-2">99.9%</div>
+              <div className="text-sm text-muted-foreground">Uptime</div>
+            </div>
+          </div>
+
+          {/* Team */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
+            {teamMembers.map((member, index) => (
+              <Card key={index} className="text-center border-border/50 bg-card/50 backdrop-blur">
+                <CardHeader>
+                  <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-muted overflow-hidden">
+                    <img
+                      src={member.image}
+                      alt={member.name}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <CardTitle className="text-lg text-card-foreground">{member.name}</CardTitle>
+                  <p className="text-sm text-primary font-medium">{member.role}</p>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{member.description}</p>
                 </CardContent>
               </Card>
             ))}

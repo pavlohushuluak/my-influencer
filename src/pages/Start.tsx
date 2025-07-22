@@ -6,7 +6,7 @@ import { setUser } from '@/store/slices/userSlice';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { CheckCircle, Circle, Play, Star, AlertTriangle, Zap, Users, BarChart3, Shield, Sparkles, Target, TrendingUp, Palette, Globe, User, Brain, BookOpen, Wand2, Image as ImageIcon, Edit, Layers, Clock, Settings } from 'lucide-react';
+import { CheckCircle, Circle, Play, Star, AlertTriangle } from 'lucide-react';
 import InstructionVideo from '@/components/InstructionVideo';
 import { getInstructionVideoConfig } from '@/config/instructionVideos';
 import { toast } from 'sonner';
@@ -271,223 +271,21 @@ export default function Start() {
         </div>
       </div>
 
-      {/* Comprehensive Platform Features */}
-      <div className="space-y-12">
-        
-        {/* Core Creation Features */}
-        <div className="space-y-6">
-          <h3 className="text-xl font-semibold text-white text-center mb-6">AI Influencer Creation</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <Card className="group bg-gradient-to-br from-emerald-900/20 to-green-900/20 border-emerald-700/30 hover:border-emerald-500/50 transition-all duration-300 hover:shadow-2xl hover:shadow-emerald-500/10">
-              <CardContent className="p-6 text-center">
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-r from-emerald-500 to-green-500 flex items-center justify-center mx-auto mb-4 shadow-lg group-hover:scale-110 transition-transform duration-300">
-                  <User className="w-7 h-7 text-white" />
-                </div>
-                <h3 className="text-lg font-bold text-white mb-3">AI Personality Builder</h3>
-                <p className="text-sm text-slate-300 leading-relaxed">
-                  Create unique AI influencers with detailed personality traits, appearance, and character profiles
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="group bg-gradient-to-br from-blue-900/20 to-indigo-900/20 border-blue-700/30 hover:border-blue-500/50 transition-all duration-300 hover:shadow-2xl hover:shadow-blue-500/10">
-              <CardContent className="p-6 text-center">
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-r from-blue-500 to-indigo-500 flex items-center justify-center mx-auto mb-4 shadow-lg group-hover:scale-110 transition-transform duration-300">
-                  <Brain className="w-7 h-7 text-white" />
-                </div>
-                <h3 className="text-lg font-bold text-white mb-3">LoRA Training</h3>
-                <p className="text-sm text-slate-300 leading-relaxed">
-                  Advanced AI model training for consistent character generation and visual coherence
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="group bg-gradient-to-br from-purple-900/20 to-pink-900/20 border-purple-700/30 hover:border-purple-500/50 transition-all duration-300 hover:shadow-2xl hover:shadow-purple-500/10">
-              <CardContent className="p-6 text-center">
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center mx-auto mb-4 shadow-lg group-hover:scale-110 transition-transform duration-300">
-                  <BookOpen className="w-7 h-7 text-white" />
-                </div>
-                <h3 className="text-lg font-bold text-white mb-3">Template Library</h3>
-                <p className="text-sm text-slate-300 leading-relaxed">
-                  Pre-designed templates and guided wizards for rapid influencer creation
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="group bg-gradient-to-br from-orange-900/20 to-amber-900/20 border-orange-700/30 hover:border-orange-500/50 transition-all duration-300 hover:shadow-2xl hover:shadow-orange-500/10">
-              <CardContent className="p-6 text-center">
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-r from-orange-500 to-amber-500 flex items-center justify-center mx-auto mb-4 shadow-lg group-hover:scale-110 transition-transform duration-300">
-                  <Wand2 className="w-7 h-7 text-white" />
-                </div>
-                <h3 className="text-lg font-bold text-white mb-3">Guided Wizard</h3>
-                <p className="text-sm text-slate-300 leading-relaxed">
-                  Step-by-step creation process with intelligent recommendations and best practices
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-
-        {/* Content Generation Features */}
-        <div className="space-y-6">
-          <h3 className="text-xl font-semibold text-white text-center mb-6">Content Generation & Management</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <Card className="group bg-gradient-to-br from-cyan-900/20 to-teal-900/20 border-cyan-700/30 hover:border-cyan-500/50 transition-all duration-300 hover:shadow-2xl hover:shadow-cyan-500/10">
-              <CardContent className="p-6 text-center">
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-r from-cyan-500 to-teal-500 flex items-center justify-center mx-auto mb-4 shadow-lg group-hover:scale-110 transition-transform duration-300">
-                  <ImageIcon className="w-7 h-7 text-white" />
-                </div>
-                <h3 className="text-lg font-bold text-white mb-3">AI Content Creation</h3>
-                <p className="text-sm text-slate-300 leading-relaxed">
-                  Generate high-quality images with advanced prompts, scene customization, and style controls
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="group bg-gradient-to-br from-rose-900/20 to-pink-900/20 border-rose-700/30 hover:border-rose-500/50 transition-all duration-300 hover:shadow-2xl hover:shadow-rose-500/10">
-              <CardContent className="p-6 text-center">
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-r from-rose-500 to-pink-500 flex items-center justify-center mx-auto mb-4 shadow-lg group-hover:scale-110 transition-transform duration-300">
-                  <Edit className="w-7 h-7 text-white" />
-                </div>
-                <h3 className="text-lg font-bold text-white mb-3">Content Enhancement</h3>
-                <p className="text-sm text-slate-300 leading-relaxed">
-                  Advanced editing tools for refining, retouching, and perfecting your generated content
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="group bg-gradient-to-br from-violet-900/20 to-purple-900/20 border-violet-700/30 hover:border-violet-500/50 transition-all duration-300 hover:shadow-2xl hover:shadow-violet-500/10">
-              <CardContent className="p-6 text-center">
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-r from-violet-500 to-purple-500 flex items-center justify-center mx-auto mb-4 shadow-lg group-hover:scale-110 transition-transform duration-300">
-                  <Layers className="w-7 h-7 text-white" />
-                </div>
-                <h3 className="text-lg font-bold text-white mb-3">Content Vault</h3>
-                <p className="text-sm text-slate-300 leading-relaxed">
-                  Organized storage system with advanced search, filtering, and content management
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="group bg-gradient-to-br from-lime-900/20 to-green-900/20 border-lime-700/30 hover:border-lime-500/50 transition-all duration-300 hover:shadow-2xl hover:shadow-lime-500/10">
-              <CardContent className="p-6 text-center">
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-r from-lime-500 to-green-500 flex items-center justify-center mx-auto mb-4 shadow-lg group-hover:scale-110 transition-transform duration-300">
-                  <Clock className="w-7 h-7 text-white" />
-                </div>
-                <h3 className="text-lg font-bold text-white mb-3">Content Scheduling</h3>
-                <p className="text-sm text-slate-300 leading-relaxed">
-                  Plan and schedule content across multiple platforms with automated publishing
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-
-        {/* Advanced Features */}
-        <div className="space-y-6">
-          <h3 className="text-xl font-semibold text-white text-center mb-6">Advanced Tools & Analytics</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <Card className="group bg-gradient-to-br from-indigo-900/20 to-blue-900/20 border-indigo-700/30 hover:border-indigo-500/50 transition-all duration-300 hover:shadow-2xl hover:shadow-indigo-500/10">
-              <CardContent className="p-6 text-center">
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-r from-indigo-500 to-blue-500 flex items-center justify-center mx-auto mb-4 shadow-lg group-hover:scale-110 transition-transform duration-300">
-                  <BarChart3 className="w-7 h-7 text-white" />
-                </div>
-                <h3 className="text-lg font-bold text-white mb-3">Performance Analytics</h3>
-                <p className="text-sm text-slate-300 leading-relaxed">
-                  Track engagement, growth metrics, and content performance with detailed insights
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="group bg-gradient-to-br from-pink-900/20 to-rose-900/20 border-pink-700/30 hover:border-pink-500/50 transition-all duration-300 hover:shadow-2xl hover:shadow-pink-500/10">
-              <CardContent className="p-6 text-center">
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-r from-pink-500 to-rose-500 flex items-center justify-center mx-auto mb-4 shadow-lg group-hover:scale-110 transition-transform duration-300">
-                  <Palette className="w-7 h-7 text-white" />
-                </div>
-                <h3 className="text-lg font-bold text-white mb-3">Style Customization</h3>
-                <p className="text-sm text-slate-300 leading-relaxed">
-                  Extensive clothing, pose, location, and accessory catalogs for limitless creativity
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="group bg-gradient-to-br from-yellow-900/20 to-orange-900/20 border-yellow-700/30 hover:border-yellow-500/50 transition-all duration-300 hover:shadow-2xl hover:shadow-yellow-500/10">
-              <CardContent className="p-6 text-center">
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-r from-yellow-500 to-orange-500 flex items-center justify-center mx-auto mb-4 shadow-lg group-hover:scale-110 transition-transform duration-300">
-                  <Zap className="w-7 h-7 text-white" />
-                </div>
-                <h3 className="text-lg font-bold text-white mb-3">Batch Processing</h3>
-                <p className="text-sm text-slate-300 leading-relaxed">
-                  Generate multiple content variations simultaneously with automated workflows
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="group bg-gradient-to-br from-teal-900/20 to-cyan-900/20 border-teal-700/30 hover:border-teal-500/50 transition-all duration-300 hover:shadow-2xl hover:shadow-teal-500/10">
-              <CardContent className="p-6 text-center">
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-r from-teal-500 to-cyan-500 flex items-center justify-center mx-auto mb-4 shadow-lg group-hover:scale-110 transition-transform duration-300">
-                  <Settings className="w-7 h-7 text-white" />
-                </div>
-                <h3 className="text-lg font-bold text-white mb-3">Preset Management</h3>
-                <p className="text-sm text-slate-300 leading-relaxed">
-                  Save and reuse custom configurations for consistent content generation
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-
-        {/* Enterprise Features */}
-        <div className="space-y-6">
-          <h3 className="text-xl font-semibold text-white text-center mb-6">Enterprise & Security</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <Card className="group bg-gradient-to-br from-red-900/20 to-pink-900/20 border-red-700/30 hover:border-red-500/50 transition-all duration-300 hover:shadow-2xl hover:shadow-red-500/10">
-              <CardContent className="p-6 text-center">
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-r from-red-500 to-pink-500 flex items-center justify-center mx-auto mb-4 shadow-lg group-hover:scale-110 transition-transform duration-300">
-                  <Shield className="w-7 h-7 text-white" />
-                </div>
-                <h3 className="text-lg font-bold text-white mb-3">Enterprise Security</h3>
-                <p className="text-sm text-slate-300 leading-relaxed">
-                  Bank-level encryption, secure cloud infrastructure, and data protection compliance
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="group bg-gradient-to-br from-slate-900/20 to-gray-900/20 border-slate-700/30 hover:border-slate-500/50 transition-all duration-300 hover:shadow-2xl hover:shadow-slate-500/10">
-              <CardContent className="p-6 text-center">
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-r from-slate-500 to-gray-500 flex items-center justify-center mx-auto mb-4 shadow-lg group-hover:scale-110 transition-transform duration-300">
-                  <Users className="w-7 h-7 text-white" />
-                </div>
-                <h3 className="text-lg font-bold text-white mb-3">Team Collaboration</h3>
-                <p className="text-sm text-slate-300 leading-relaxed">
-                  Multi-user access, role-based permissions, and collaborative content creation
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="group bg-gradient-to-br from-emerald-900/20 to-green-900/20 border-emerald-700/30 hover:border-emerald-500/50 transition-all duration-300 hover:shadow-2xl hover:shadow-emerald-500/10">
-              <CardContent className="p-6 text-center">
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-r from-emerald-500 to-green-500 flex items-center justify-center mx-auto mb-4 shadow-lg group-hover:scale-110 transition-transform duration-300">
-                  <Globe className="w-7 h-7 text-white" />
-                </div>
-                <h3 className="text-lg font-bold text-white mb-3">Multi-Platform Export</h3>
-                <p className="text-sm text-slate-300 leading-relaxed">
-                  Optimize content for Instagram, TikTok, YouTube, and all major social platforms
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="group bg-gradient-to-br from-purple-900/20 to-indigo-900/20 border-purple-700/30 hover:border-purple-500/50 transition-all duration-300 hover:shadow-2xl hover:shadow-purple-500/10">
-              <CardContent className="p-6 text-center">
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-r from-purple-500 to-indigo-500 flex items-center justify-center mx-auto mb-4 shadow-lg group-hover:scale-110 transition-transform duration-300">
-                  <Star className="w-7 h-7 text-white" />
-                </div>
-                <h3 className="text-lg font-bold text-white mb-3">Premium Support</h3>
-                <p className="text-sm text-slate-300 leading-relaxed">
-                  Priority support, dedicated account management, and expert guidance
-                </p>
-              </CardContent>
-            </Card>
-          </div>
+      {/* Move to Main Page Section */}
+      <div className="flex justify-center mt-12">
+        <div className="text-center space-y-6">
+          <div className="w-24 h-1 bg-gradient-to-r from-purple-500 via-blue-500 to-indigo-500 mx-auto rounded-full shadow-lg"></div>
+          <Button
+            onClick={() => navigate('/')}
+            className="group relative overflow-hidden bg-gradient-to-r from-slate-700 via-gray-700 to-slate-800 hover:from-slate-600 hover:via-gray-600 hover:to-slate-700 text-white font-semibold text-lg px-12 py-4 rounded-2xl shadow-2xl hover:shadow-purple-500/20 transition-all duration-500 transform hover:scale-105 border border-slate-600/50 hover:border-slate-500/70"
+          >
+            <span className="relative z-10 flex items-center gap-3">
+              <Star className="w-5 h-5 group-hover:rotate-12 transition-transform duration-300" />
+              Move to Main Page
+              <Star className="w-5 h-5 group-hover:-rotate-12 transition-transform duration-300" />
+            </span>
+            <div className="absolute inset-0 bg-gradient-to-r from-purple-500/20 via-blue-500/20 to-indigo-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+          </Button>
         </div>
       </div>
 

@@ -118,9 +118,9 @@ export function AppHeader({ showAuthButtons = true }: AppHeaderProps) {
                 </Button>
                 <Button
                   className="bg-ai-gradient hover:opacity-90 transition-opacity shadow-lg"
-                  onClick={() => navigate(isLoggedIn ? '/dashboard' : '/signup')}
+                  onClick={() => navigate(isLoggedIn ? '/start' : '/signup')}
                 >
-                  {isLoggedIn ? 'Dashboard' : 'Get Started'}
+                  {isLoggedIn ? 'Start Creating' : 'Get Started'}
                 </Button>
               </>
             )}
@@ -189,11 +189,11 @@ export function AppHeader({ showAuthButtons = true }: AppHeaderProps) {
                   <Button
                     className="w-full bg-ai-gradient hover:opacity-90 transition-opacity"
                     onClick={() => {
-                      navigate(isLoggedIn ? '/dashboard' : '/signup');
+                      navigate(isLoggedIn ? '/start' : '/signup');
                       setIsSheetOpen(false);
                     }}
                   >
-                    {isLoggedIn ? 'Dashboard' : 'Get Started'}
+                    {isLoggedIn ? 'Start Creating' : 'Get Started'}
                   </Button>
                 </div>
               </SheetContent>

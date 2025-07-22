@@ -735,7 +735,22 @@ export default function InfluencerEdit() {
       });
       dispatch(updateInfluencer(influencerData));
       if (response.ok) {
-        // Check if LoRA exists
+        // Check if user came from "Build from Scratch" and handle guide_step
+        if (location.state?.fromBuildFromScratch) {
+          if (userData.guide_step === 1) {
+            // Update guide_step to 2 and navigate to start page
+            dispatch(setUser({ guide_step: 2 }));
+            navigate('/start');
+            toast.success('Influencer created successfully! Moving to step 2.');
+          } else {
+            // Navigate to influencers page
+            navigate('/influencers');
+            toast.success('Influencer created successfully!');
+          }
+          return;
+        }
+        
+        // Check if LoRA exists (only for non-Build from Scratch users)
         try {
           const loraCheckResponse = await fetch(`https://api.nymia.ai/v1/listfiles?user=${userData.id}&folder=models/${influencerData.id}/lora`, {
             headers: {

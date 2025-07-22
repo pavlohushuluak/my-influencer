@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '@/store/store';
@@ -17,6 +17,26 @@ export default function Start() {
   const userData = useSelector((state: RootState) => state.user);
   const currentPhase = userData.guide_step;
   const [showWarningModal, setShowWarningModal] = useState(false);
+  const [blinkState, setBlinkState] = useState(false);
+
+  // Custom blinking animation: blink 3 times, wait, then loop
+  useEffect(() => {
+    let blinkCount = 0;
+    const blinkInterval = setInterval(() => {
+      if (blinkCount < 7) {
+        setBlinkState(prev => !prev);
+        blinkCount++;
+      } else {
+        // Wait for 2 seconds after 3 blinks
+        setTimeout(() => {
+          blinkCount = 0;
+          setBlinkState(false);
+        }, 3000);
+      }
+    }, 1000); // Blink every 500ms
+
+    return () => clearInterval(blinkInterval);
+  }, []);
 
   const phases = [
     {
@@ -115,13 +135,13 @@ export default function Start() {
       case 0:
         return "Start Your Journey";
       case 1:
-        return "Create My AI Influencer";
+        return "Start Phase 1 - Create your Influencer";
       case 2:
-        return "Train AI Model";
+        return "Start Phase 2 - Train your AI Model";
       case 3:
-        return "Generate Content";
+        return "Start Phase 3 - Generate Exclusive Content";
       case 4:
-        return "Organize Content";
+        return "Start Phase 4 - Organize your Content";
       default:
         return "Start Your Journey";
     }
@@ -198,18 +218,18 @@ export default function Start() {
                         phase.completed 
                           ? 'bg-gradient-to-r from-green-900/20 to-emerald-900/20 border-green-500/30' 
                           : phase.isPending
-                          ? 'bg-gradient-to-r from-blue-900/20 to-indigo-900/20 border-blue-500/30 animate-pulse'
+                          ? `bg-gradient-to-r from-blue-900/20 to-indigo-900/20 border-blue-500/30 ${blinkState ? 'opacity-100' : 'opacity-50'}`
                           : 'bg-gradient-to-r from-slate-800/50 to-slate-700/50 border-slate-600/30'
                       }`}
                     >
-                      <div className={`w-10 h-10 rounded-full bg-gradient-to-r ${phase.color} flex items-center justify-center shadow-lg ${
-                        phase.isPending ? 'animate-pulse' : ''
+                      <div className={`w-10 h-10 rounded-full bg-gradient-to-r ${phase.color} flex items-center justify-center shadow-lg transition-opacity duration-300 ${
+                        phase.isPending ? (blinkState ? 'opacity-100' : 'opacity-50') : ''
                       }`}>
                         <phase.icon className="w-5 h-5 text-white" />
                       </div>
                       <div className="flex-1 text-left">
-                        <h3 className={`text-lg font-semibold ${
-                          phase.completed ? 'text-green-400' : phase.isPending ? 'text-blue-400' : 'text-slate-300'
+                        <h3 className={`text-lg font-semibold transition-opacity duration-300 ${
+                          phase.completed ? 'text-green-400' : phase.isPending ? (blinkState ? 'text-blue-400' : 'text-blue-600') : 'text-slate-300'
                         }`}>
                           {phase.title}
                         </h3>

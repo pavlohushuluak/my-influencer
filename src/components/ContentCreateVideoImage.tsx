@@ -418,10 +418,6 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
       toast.error('Please enter a prompt');
       return false;
     }
-    if (!formData.model) {
-      toast.error('Please select a model');
-      return false;
-    }
     if (formData.numberOfVideos < 1 || formData.numberOfVideos > 10) {
       toast.error('Number of videos must be between 1 and 10');
       return false;
@@ -664,7 +660,7 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
       </div>
 
       <div className="bg-gradient-to-r from-slate-50 to-blue-50 dark:from-slate-900/50 dark:to-blue-900/20 rounded-xl p-6 shadow-sm border border-slate-200/50 dark:border-slate-700/50">
-        <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="flex flex-col space-y-2 group">
             <span className="text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wide">
               Format
@@ -904,7 +900,7 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
             // Convert GeneratedImageData to a format compatible with our modelData
             const selectedImage = {
               id: image.id,
-              image_url: image.file_path,
+              image_url: `https://images.nymia.ai/cdn-cgi/image/w=800/${image.file_path}`,
               name_first: image.user_filename || 'Selected',
               name_last: 'Image',
               influencer_type: 'Video Start Image',

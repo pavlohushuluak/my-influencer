@@ -2515,7 +2515,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
         <div className="flex items-center gap-4">
           <div>
             <h1 className="text-3xl font-bold tracking-tight bg-ai-gradient bg-clip-text text-transparent">
-              Create Content
+              Create Image
             </h1>
             <p className="text-muted-foreground">
               {modelData ? `Creating content for ${modelData.name_first} ${modelData.name_last}` : 'Generate new content'}
@@ -2586,7 +2586,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
             ) : (
               <>
                 <Wand2 className="w-4 h-4 mr-2" />
-                Generate Content
+                Generate Image
               </>
             )}
           </Button>

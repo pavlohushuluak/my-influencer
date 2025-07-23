@@ -23,8 +23,51 @@ const InstructionVideo: React.FC<InstructionVideoProps> = ({
   theme = "purple",
   className = ""
 }) => {
+  // Default YouTube videos for each theme (safe, popular videos with additional parameters)
+  const defaultVideos = {
+    purple: "https://www.youtube.com/embed/dQw4w9WgXcQ?rel=0&modestbranding=1&showinfo=0", // Rick Astley - Never Gonna Give You Up
+    green: "https://www.youtube.com/embed/jNQXAC9IVRw?rel=0&modestbranding=1&showinfo=0", // Me at the zoo (first YouTube video)
+    blue: "https://www.youtube.com/embed/9bZkp7q19f0?rel=0&modestbranding=1&showinfo=0", // PSY - GANGNAM STYLE
+    orange: "https://www.youtube.com/embed/kJQP7kiw5Fk?rel=0&modestbranding=1&showinfo=0" // Luis Fonsi - Despacito
+  };
+
+  // Fallback videos (very reliable, simple videos)
+  const fallbackVideos = {
+    purple: "https://www.youtube.com/embed/jNQXAC9IVRw?rel=0&modestbranding=1&showinfo=0", // Me at the zoo
+    green: "https://www.youtube.com/embed/jNQXAC9IVRw?rel=0&modestbranding=1&showinfo=0", // Me at the zoo
+    blue: "https://www.youtube.com/embed/jNQXAC9IVRw?rel=0&modestbranding=1&showinfo=0", // Me at the zoo
+    orange: "https://www.youtube.com/embed/jNQXAC9IVRw?rel=0&modestbranding=1&showinfo=0" // Me at the zoo
+  };
+
+  // Helper function to convert YouTube URL to embed URL
+  const convertToEmbedUrl = (url: string): string => {
+    if (!url) return '';
+    
+    // If already an embed URL, add parameters if missing
+    if (url.includes('youtube.com/embed/')) {
+      if (!url.includes('?')) {
+        return `${url}?rel=0&modestbranding=1&showinfo=0`;
+      }
+      return url;
+    }
+    
+    // Extract video ID from various YouTube URL formats
+    const videoIdMatch = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/);
+    if (videoIdMatch) {
+      return `https://www.youtube.com/embed/${videoIdMatch[1]}?rel=0&modestbranding=1&showinfo=0`;
+    }
+    
+    return url; // Return original if no match found
+  };
+
   const [isPlaying, setIsPlaying] = useState(false);
   const [showGuideModal, setShowGuideModal] = useState(false);
+  const [videoError, setVideoError] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [useFallback, setUseFallback] = useState(false);
+
+  // Use provided youtubeUrl, default, or fallback based on theme
+  const finalYoutubeUrl = convertToEmbedUrl(youtubeUrl || (useFallback ? fallbackVideos[theme] : defaultVideos[theme]));
 
   const themeConfig = {
     purple: {
@@ -76,8 +119,15 @@ const InstructionVideo: React.FC<InstructionVideoProps> = ({
   const config = themeConfig[theme];
 
   const handlePlayClick = () => {
-    if (youtubeUrl || videoUrl) {
-      setIsPlaying(true);
+    if (finalYoutubeUrl || videoUrl) {
+      setIsLoading(true);
+      setVideoError(false);
+      
+      // Add a small delay to show loading state
+      setTimeout(() => {
+        setIsPlaying(true);
+        setIsLoading(false);
+      }, 500);
     }
   };
 
@@ -192,15 +242,34 @@ const InstructionVideo: React.FC<InstructionVideoProps> = ({
           </div>
           
           <div className={`relative ${isPlaying ? 'w-full h-96' : 'aspect-video'} bg-gradient-to-br ${config.bgGradient} dark:${config.darkBgGradient} rounded-2xl overflow-hidden shadow-xl border-2 ${config.borderColor} bg-opacity-60 backdrop-blur-md mb-4 transition-all duration-300 ${isPlaying ? 'scale-105' : ''}`}>
-            {isPlaying && youtubeUrl ? (
+            {isLoading ? (
+              <div className="relative w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-800">
+                <div className="text-center p-6">
+                  <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/20 rounded-full flex items-center justify-center mx-auto mb-4 animate-spin">
+                    <svg className="w-8 h-8 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                    Loading Video...
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-300">
+                    Please wait while we prepare your video.
+                  </p>
+                </div>
+              </div>
+            ) : isPlaying && finalYoutubeUrl && !videoError ? (
               <div className="relative w-full h-full">
                 <iframe
-                  src={youtubeUrl}
+                  src={finalYoutubeUrl}
                   title={title}
                   className="w-full h-full"
                   frameBorder="0"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen
+                  loading="lazy"
+                  onError={() => setVideoError(true)}
+                  onLoad={() => setVideoError(false)}
                 />
                 <Button
                   onClick={handleBackClick}
@@ -211,6 +280,45 @@ const InstructionVideo: React.FC<InstructionVideoProps> = ({
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </Button>
+              </div>
+            ) : isPlaying && videoError ? (
+              <div className="relative w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-800">
+                <div className="text-center p-6">
+                  <div className="w-16 h-16 bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                    Video Unavailable
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-300 mb-4">
+                    The video could not be loaded. Please try again later.
+                  </p>
+                  <div className="flex gap-2 justify-center">
+                    <Button
+                      onClick={() => {
+                        setVideoError(false);
+                        setUseFallback(true);
+                        setIsPlaying(false);
+                        handlePlayClick();
+                      }}
+                      className="bg-blue-600 hover:bg-blue-700 text-white"
+                    >
+                      Try Alternative Video
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        setVideoError(false);
+                        setUseFallback(false);
+                        setIsPlaying(false);
+                      }}
+                      variant="outline"
+                    >
+                      Go Back
+                    </Button>
+                  </div>
+                </div>
               </div>
             ) : isPlaying && videoUrl ? (
               <div className="relative w-full h-full">

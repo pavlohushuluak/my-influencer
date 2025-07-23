@@ -23,7 +23,8 @@ import Location from '@/pages/Location';
 import Poses from '@/pages/Poses';
 import Accessories from '@/pages/Accessories';
 import Vault from '@/pages/Vault';
-import ContentCreate from '@/pages/ContentCreate';
+import ContentCreateImage from '@/pages/ContentCreateImage';
+import ContentCreateVideo from '@/pages/ContentCreateVideo';
 import ContentEnhance from '@/pages/ContentEnhance';
 import ContentEdit from '@/pages/ContentEdit';
 import ContentStory from '@/pages/ContentStory';
@@ -72,7 +73,8 @@ const App = () => {
                   <Route path='/catalog/poses' element={<Poses />} />
                   <Route path='/catalog/accessories' element={<Accessories />} />
                   <Route path='/content/vault' element={<Vault />} />
-                  <Route path='/content/create' element={<ContentCreate />} />
+                  <Route path='/content/create-image' element={<ContentCreateImage />} />
+                  <Route path='/content/create-video' element={<ContentCreateVideo />} />
                   <Route path='/content/enhance' element={<ContentEnhance />} />
                   <Route path='/content/edit' element={<ContentEdit />} />
                   <Route path='/content/story' element={<ContentStory />} />

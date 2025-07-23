@@ -110,7 +110,7 @@ export function CreateInfluencerSteps({ onComplete }: CreateInfluencerStepsProps
     image_url: '',
     name_first: '',
     name_last: '',
-    visual_only: false,
+    visual_only: true,
     sex: '',
     cultural_background: '',
     hair_length: '',
@@ -697,7 +697,7 @@ export function CreateInfluencerSteps({ onComplete }: CreateInfluencerStepsProps
                   </>
                 ) : (
                   <>
-                    Create Basic Info
+                    Create your Influencer now
                     <Sparkles className="w-4 h-4" />
                   </>
                 )}

@@ -76,20 +76,6 @@ export function AppHeader({ showAuthButtons = true }: AppHeaderProps) {
           <img src='/logo.jpg' alt='logo' className='h-10 rounded-xl' />
         </div>
 
-        {/* Desktop Navigation */}
-        {!isMobile && showAuthButtons && (
-          <nav className="hidden md:flex items-center gap-6">
-            {navigationItems.map((item) => (
-              <button
-                key={item.name}
-                onClick={() => handleNavigation(item.href)}
-                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-              >
-                {item.name}
-              </button>
-            ))}
-          </nav>
-        )}
 
         {/* Desktop Actions */}
         {!isMobile && (
@@ -159,18 +145,6 @@ export function AppHeader({ showAuthButtons = true }: AppHeaderProps) {
                 </SheetHeader>
 
                 <div className="flex flex-col gap-6 mt-8">
-                  {/* Navigation */}
-                  <nav className="flex flex-col gap-3">
-                    {navigationItems.map((item) => (
-                      <button
-                        key={item.name}
-                        onClick={() => handleNavigation(item.href)}
-                        className="text-sm font-medium text-foreground hover:text-primary transition-colors py-2 px-3 rounded-md hover:bg-accent text-left"
-                      >
-                        {item.name}
-                      </button>
-                    ))}
-                  </nav>
 
                   <Button
                     variant="outline"

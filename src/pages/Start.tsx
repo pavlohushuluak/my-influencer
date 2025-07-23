@@ -809,24 +809,6 @@ export default function Start() {
         </div>
       </div>
 
-      {/* Move to Main Page Section */}
-      <div className="flex justify-center mt-12">
-        <div className="text-center space-y-6">
-          <div className="w-24 h-1 bg-gradient-to-r from-purple-500 via-blue-500 to-indigo-500 mx-auto rounded-full shadow-lg"></div>
-          <Button
-            onClick={() => navigate('/')}
-            className="group relative overflow-hidden bg-gradient-to-r from-slate-700 via-gray-700 to-slate-800 hover:from-slate-600 hover:via-gray-600 hover:to-slate-700 text-white font-semibold text-lg px-12 py-4 rounded-2xl shadow-2xl hover:shadow-purple-500/20 transition-all duration-500 transform hover:scale-105 border border-slate-600/50 hover:border-slate-500/70"
-          >
-            <span className="relative z-10 flex items-center gap-3">
-              <Star className="w-5 h-5 group-hover:rotate-12 transition-transform duration-300" />
-              Move to Main Page
-              <Star className="w-5 h-5 group-hover:-rotate-12 transition-transform duration-300" />
-            </span>
-            <div className="absolute inset-0 bg-gradient-to-r from-purple-500/20 via-blue-500/20 to-indigo-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-          </Button>
-        </div>
-      </div>
-
       {/* Warning Modal for Continue Work */}
       <Dialog open={showWarningModal} onOpenChange={setShowWarningModal}>
         <DialogContent className="max-w-md bg-gradient-to-br from-slate-900/95 to-slate-800/95 border-slate-700/50 shadow-2xl">

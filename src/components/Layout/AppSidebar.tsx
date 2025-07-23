@@ -36,7 +36,8 @@ import {
   Play,
   ChevronRight,
   Brain,
-  Rocket
+  Rocket,
+  Video
 } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
@@ -88,7 +89,8 @@ const menuItems = [
     icon: Image,
     items: [
       { title: "Vault", url: "/content/vault", icon: Layers },
-      { title: "Create", url: "/content/create", icon: Plus },
+      { title: "Images", url: "/content/create-image", icon: Image },
+      { title: "Videos", url: "/content/create-video", icon: Video },
       { title: "Enhance", url: "/content/enhance", icon: Wand2 },
       { title: "Edit", url: "/content/edit", icon: Edit },
       { title: "Story", url: "/content/story", icon: BookOpen },

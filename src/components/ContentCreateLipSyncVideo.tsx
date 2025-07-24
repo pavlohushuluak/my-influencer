@@ -77,6 +77,7 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
   // Generated audio data state
   const [generatedAudioData, setGeneratedAudioData] = useState<GeneratedAudioData | null>(null);
   const [generatedAudioUrl, setGeneratedAudioUrl] = useState<string | null>(null);
+  const [selectedAudioUrl, setSelectedAudioUrl] = useState<string | null>(null);
 
   // Voice states
   const [uploadedAudioFile, setUploadedAudioFile] = useState<File | null>(null);
@@ -94,6 +95,7 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
   // ElevenLabs voices (will be fetched from voice table)
   const [elevenLabsVoices, setElevenLabsVoices] = useState<VoiceOption[]>([]);
   const [loadingVoices, setLoadingVoices] = useState(true);
+  const [selectedAudioId, setSelectedAudioId] = useState<string>('');
 
   // Individual voices per influencer (mock data)
   const [individualVoices, setIndividualVoices] = useState<VoiceOption[]>([
@@ -169,6 +171,11 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
     };
   }, []);
 
+  // Debug selectedAudioUrl changes
+  useEffect(() => {
+    console.log('selectedAudioUrl changed to:', selectedAudioUrl);
+  }, [selectedAudioUrl]);
+
   // Fetch voices from voice table
   useEffect(() => {
     const fetchVoices = async () => {
@@ -239,6 +246,10 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
 
   const handleElevenLabsVoiceSelect = (voice: VoiceOption) => {
     setSelectedElevenLabsVoice(voice);
+    console.log('voice', voice);
+    const selectedUrl = `https://images.nymia.ai/wizard/mappings/${voice.elevenlabs_id}.mp3`;
+    setSelectedAudioUrl(selectedUrl);
+    setSelectedAudioId(voice.id.toString());
     setValidationErrors([]);
     toast.success(`Selected voice: ${voice.name}`);
   };
@@ -260,9 +271,9 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
       errors.push('Please select a video to apply lip-sync to');
     }
 
-    // Check if audio is generated
-    if (!generatedAudioData || !generatedAudioUrl) {
-      errors.push('Please generate audio first before creating lip-sync video');
+    // Check if audio is selected
+    if (!selectedAudioUrl) {
+      errors.push('Please select an audio file for lip-sync video generation');
     }
 
     // Phase-specific validation
@@ -311,7 +322,7 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
   // Silent validation for button disabled state
   const isFormValid = () => {
     if (!selectedVideo) return false;
-    if (!generatedAudioData || !generatedAudioUrl) return false;
+    if (!selectedAudioUrl) return false;
 
     if (activePhase === 'upload' && !uploadedAudioFile) return false;
 
@@ -338,19 +349,19 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
         return;
       }
 
-      if (!generatedAudioData) {
-        toast.error('Please generate audio first');
-        return;
-      }
+      // if (!generatedAudioData) {
+      //   toast.error('Please generate audio first');
+      //   return;
+      // }
 
       // Prepare the lip-sync generation data
       const lipSyncData = {
         user_uuid: userData.id,
         model: "kwaivgi/kling-lip-sync",
-        audio_url: generatedAudioUrl,
+        audio_url: selectedAudioUrl,
         video_url: getVideoUrl(selectedVideo.video_id),
-        audio: generatedAudioData.audio_id,
-        prompt: generatedAudioData.prompt,
+        audio: selectedAudioId,
+        prompt: textToSpeak,
         status: "new"
       };
 
@@ -400,6 +411,7 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
     // Clear generated audio data
     setGeneratedAudioData(null);
     setGeneratedAudioUrl(null);
+    setSelectedAudioUrl(null);
 
     if (uploadedAudioUrl) {
       URL.revokeObjectURL(uploadedAudioUrl);
@@ -459,12 +471,17 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
         // Wait a moment for the audio file to be ready, then store the URL
         setTimeout(() => {
           const audioUrl = `https://images.nymia.ai/${userData.id}/audio/${result.filename}`;
+          console.log('Setting audioUrl for audio_id:', result.audio_id, 'URL:', audioUrl);
 
           // Store the audio URL for the AudioPlayer component
-          setAudioUrls(prev => ({
-            ...prev,
-            [result.audio_id]: audioUrl
-          }));
+          setAudioUrls(prev => {
+            const newAudioUrls = {
+              ...prev,
+              [result.audio_id]: audioUrl
+            };
+            console.log('Updated audioUrls state:', newAudioUrls);
+            return newAudioUrls;
+          });
 
           // Set as currently playing
           setPlayingAudioId(result.audio_id);
@@ -488,6 +505,24 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
 
   const stopAudioPlayback = (audioId: string) => {
     setPlayingAudioId(null);
+  };
+
+  const handleAudioSelect = (audioId: string) => {
+    console.log('handleAudioSelect called with audioId:', audioId);
+    console.log('Current audioUrls state:', audioUrls);
+    console.log('Available audio IDs:', Object.keys(audioUrls));
+    
+    const audioUrl = audioUrls[audioId];
+    console.log('Found audioUrl:', audioUrl);
+    
+    if (audioUrl) {
+      console.log('Setting selectedAudioUrl to:', audioUrl);
+      setSelectedAudioUrl(audioUrl);
+      toast.success('Audio selected for lip sync video generation');
+    } else {
+      console.log('No audioUrl found for audioId:', audioId);
+      toast.error('Audio not found. Please try again.');
+    }
   };
 
   // Video helper functions
@@ -1217,6 +1252,114 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
                 <span>Audio ID: {generatedAudioData.audio_id}</span>
               </div>
             </div>
+          )}
+
+          {/* Audio Selection Section */}
+          {Object.keys(audioUrls).length > 0 && (
+            <Card className="bg-white/80 dark:bg-slate-800/80 border-0 shadow-xl">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Volume2 className="w-5 h-5 text-green-500" />
+                  Select Audio for LipSync (Debug: {Object.keys(audioUrls).length} available)
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Debug info */}
+                <div className="p-2 bg-yellow-50 dark:bg-yellow-900/20 rounded text-xs">
+                  <p>Debug: audioUrls keys: {Object.keys(audioUrls).join(', ')}</p>
+                  <p>Debug: selectedAudioUrl: {selectedAudioUrl || 'null'}</p>
+                  <Button 
+                    size="sm" 
+                    onClick={() => {
+                      const firstAudioId = Object.keys(audioUrls)[0];
+                      if (firstAudioId) {
+                        console.log('Manual test: setting selectedAudioUrl to first audio');
+                        setSelectedAudioUrl(audioUrls[firstAudioId]);
+                      }
+                    }}
+                    className="mt-2"
+                  >
+                    Test Set First Audio
+                  </Button>
+                </div>
+                <div className="space-y-3">
+                  {Object.entries(audioUrls).map(([audioId, audioUrl]) => (
+                    <div
+                      key={audioId}
+                      className={`p-3 rounded-lg border-2 transition-all cursor-pointer ${
+                        selectedAudioUrl === audioUrl
+                          ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
+                          : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
+                      }`}
+                      onClick={() => {
+                        console.log('Audio card clicked with audioId:', audioId);
+                        handleAudioSelect(audioId);
+                      }}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <Volume2 className="w-4 h-4 text-slate-600 dark:text-slate-400" />
+                          <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                            Audio {audioId}
+                          </span>
+                          {selectedAudioUrl === audioUrl && (
+                            <Badge variant="outline" className="text-xs border-green-500 text-green-700 dark:text-green-400">
+                              Selected
+                            </Badge>
+                          )}
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (playingAudioId === audioId) {
+                              stopAudioPlayback(audioId);
+                            } else {
+                              setPlayingAudioId(audioId);
+                            }
+                          }}
+                        >
+                          {playingAudioId === audioId ? (
+                            <>
+                              <Square className="w-3 h-3 mr-1" />
+                              Stop
+                            </>
+                          ) : (
+                            <>
+                              <Play className="w-3 h-3 mr-1" />
+                              Play
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                      <AudioPlayer
+                        src={audioUrl}
+                        onPlay={() => setPlayingAudioId(audioId)}
+                        onPause={() => setPlayingAudioId(null)}
+                        onEnded={() => setPlayingAudioId(null)}
+                        onError={(error) => {
+                          console.error('Audio player error:', error);
+                          setPlayingAudioId(null);
+                          toast.error('Failed to play audio');
+                        }}
+                        className="w-full"
+                      />
+                    </div>
+                  ))}
+                </div>
+                {selectedAudioUrl && (
+                  <div className="mt-4 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                    <p className="text-sm text-green-700 dark:text-green-300">
+                      <strong>Selected Audio:</strong> {Object.keys(audioUrls).find(key => audioUrls[key] === selectedAudioUrl)}
+                    </p>
+                    <p className="text-xs text-green-600 dark:text-green-400 mt-1">
+                      This audio will be used for lip sync video generation
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           )}
           <Card className="bg-white/80 dark:bg-slate-800/80 border-0 shadow-xl">
             <CardHeader>

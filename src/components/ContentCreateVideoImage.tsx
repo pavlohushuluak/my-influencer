@@ -58,10 +58,8 @@ const VIDEO_DURATIONS = [
 ];
 
 const VIDEO_ENGINES = [
-  { value: 'General', label: 'General' },
-  { value: 'Anime', label: 'Anime' },
-  { value: 'Realistic', label: 'Realistic' },
-  { value: 'Artistic', label: 'Artistic' }
+  { value: 'Kling 2.1', label: 'Kling 2.1' },
+  { value: 'WAN 2.1', label: 'WAN 2.1' }
 ];
 
 const VIDEO_QUALITY_OPTIONS = [
@@ -141,7 +139,7 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
     nsfw_strength: 0,
     lora_strength: 1.0,
     quality: 'Quality',
-    engine: 'General',
+    engine: 'Kling 2.1',
     usePromptOnly: false,
     regenerated_from: '',
     fps: 24,
@@ -418,8 +416,16 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
       toast.error('Please enter a prompt');
       return false;
     }
-    if (formData.numberOfVideos < 1 || formData.numberOfVideos > 10) {
-      toast.error('Number of videos must be between 1 and 10');
+    if (!modelData?.image_url) {
+      toast.error('Please select a start image for the video');
+      return false;
+    }
+    if (!formData.engine) {
+      toast.error('Please select a video engine');
+      return false;
+    }
+    if (!formData.duration || parseInt(formData.duration) < 1) {
+      toast.error('Please select a valid video duration');
       return false;
     }
     return true;
@@ -430,53 +436,41 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
 
     setIsGenerating(true);
     try {
-      const useridResponse = await fetch(`https://db.nymia.ai/rest/v1/user?uuid=eq.${userData.id}`, {
-        headers: { 'Authorization': 'Bearer WeInfl3nc3withAI' }
-      });
-      const useridData = await useridResponse.json();
-
-      const generationData = {
-        task: "generatevideo",
-        userid: useridData[0].userid,
-        modelid: formData.model,
+      // Prepare the video generation payload
+      const videoGenerationData = {
+        user_uuid: userData.id,
+        model: formData.engine === 'Kling 2.1' ? 'kwaivgi/kling-v2.1' : 'wan-v2.1',
+        mode: "standard",
         prompt: formData.prompt,
-        negative_prompt: formData.negative_prompt,
-        format: formData.format,
         duration: parseInt(formData.duration),
-        numberOfVideos: formData.numberOfVideos,
-        guidance: formData.guidance,
-        seed: formData.seed || Math.floor(Math.random() * 1000000),
-        quality: formData.quality,
-        engine: formData.engine,
-        fps: formData.fps,
-        motion_strength: formData.motion_strength,
-        camera_movement: formData.camera_movement,
-        transition_type: formData.transition_type,
-        scene_specs: sceneSpecs,
-        model_description: modelDescription,
-        lora: formData.lora,
-        lora_strength: formData.lora_strength
+        start_image: modelData?.image_url ? modelData.image_url.split('/').pop() || '' : '',
+        start_image_url: modelData?.image_url || '',
+        negative_prompt: formData.negative_prompt || '',
+        status: "new"
       };
 
-      const response = await fetch('https://api.nymia.ai/v1/createtask', {
+      const response = await fetch('https://api.nymia.ai/v1/generatevideo', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer WeInfl3nc3withAI'
         },
-        body: JSON.stringify(generationData)
+        body: JSON.stringify(videoGenerationData)
       });
 
       if (response.ok) {
+        const result = await response.json();
         toast.success('Video generation started! Check your history for progress.');
+        console.log('Video generation response:', result);
         // Reset form after successful generation
         handleClear();
       } else {
-        throw new Error('Failed to start video generation');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to start video generation');
       }
     } catch (error) {
       console.error('Error generating video:', error);
-      toast.error('Failed to generate video');
+      toast.error(`Failed to generate video: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsGenerating(false);
     }
@@ -499,7 +493,7 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
       nsfw_strength: 0,
       lora_strength: 1.0,
       quality: 'Quality',
-      engine: 'General',
+      engine: 'Kling 2.1',
       usePromptOnly: false,
       regenerated_from: '',
       fps: 24,

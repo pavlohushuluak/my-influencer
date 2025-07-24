@@ -407,7 +407,7 @@ export default function VaultSelector({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[90vw] max-h-[90vh] overflow-hidden">
+      <DialogContent className="max-w-[90vw] max-h-[90vh] overflow-y-auto overflow-x-hidden">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg">

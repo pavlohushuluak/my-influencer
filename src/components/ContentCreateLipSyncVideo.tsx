@@ -1096,14 +1096,6 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
                         </div>
                       </div>
                       
-                      {textToSpeak.trim() && (
-                        <div className="bg-white/10 rounded-lg p-3 mb-4">
-                          <p className="text-white/90 text-sm italic">
-                            "{textToSpeak.length > 100 ? textToSpeak.substring(0, 100) + '...' : textToSpeak}"
-                          </p>
-                        </div>
-                      )}
-                      
                       <Button
                         onClick={() => selectedElevenLabsVoice && playVoicePreview(selectedElevenLabsVoice)}
                         disabled={!selectedElevenLabsVoice || isGeneratingVoice === selectedElevenLabsVoice?.elevenlabs_id}

@@ -79,6 +79,7 @@ interface VideoData {
   replicate_cancel_url: string;
   user_uuid: string;
   task_completed_at: string;
+  lip_flag: boolean;
 }
 
 export default function ContentStory() {
@@ -318,9 +319,17 @@ export default function ContentStory() {
             <Card key={video.video_id} className="group hover:shadow-xl transition-all duration-300 bg-white/80 dark:bg-slate-800/80 border-0 shadow-lg">
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
-                  <Badge className={`${getStatusColor(video.status)} border`}>
-                    {video.status}
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge className={`${getStatusColor(video.status)} border`}>
+                      {video.status}
+                    </Badge>
+                    {video.lip_flag && (
+                      <Badge className="bg-gradient-to-r from-pink-500 to-purple-500 text-white border-0 shadow-sm">
+                        <Sparkles className="w-3 h-3 mr-1" />
+                        LipSync
+                      </Badge>
+                    )}
+                  </div>
                   <div className="flex items-center gap-1 text-xs text-muted-foreground">
                     <Clock className="w-3 h-3" />
                     {formatDuration(video.duration)}
@@ -443,9 +452,17 @@ export default function ContentStory() {
                           <span>{video.resolution}</span>
                         </div>
                       </div>
-                      <Badge className={`${getStatusColor(video.status)} border ml-4`}>
-                        {video.status}
-                      </Badge>
+                      <div className="flex items-center gap-2 ml-4">
+                        <Badge className={`${getStatusColor(video.status)} border`}>
+                          {video.status}
+                        </Badge>
+                        {video.lip_flag && (
+                          <Badge className="bg-gradient-to-r from-pink-500 to-purple-500 text-white border-0 shadow-sm">
+                            <Sparkles className="w-3 h-3 mr-1" />
+                            LipSync
+                          </Badge>
+                        )}
+                      </div>
                     </div>
                     
                     <div className="flex items-center justify-between">
@@ -569,9 +586,17 @@ export default function ContentStory() {
                   
                   <div>
                     <Label className="text-sm font-medium text-muted-foreground">Status</Label>
-                    <Badge className={`${getStatusColor(selectedVideo.status)} border mt-1`}>
-                      {selectedVideo.status}
-                    </Badge>
+                    <div className="flex items-center gap-2 mt-1">
+                      <Badge className={`${getStatusColor(selectedVideo.status)} border`}>
+                        {selectedVideo.status}
+                      </Badge>
+                      {selectedVideo.lip_flag && (
+                        <Badge className="bg-gradient-to-r from-pink-500 to-purple-500 text-white border-0 shadow-sm">
+                          <Sparkles className="w-3 h-3 mr-1" />
+                          LipSync
+                        </Badge>
+                      )}
+                    </div>
                   </div>
 
                   {selectedVideo.negative_prompt && (

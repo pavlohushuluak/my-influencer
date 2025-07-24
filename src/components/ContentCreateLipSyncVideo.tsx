@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/store/store';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,8 +11,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
-import { Mic, Upload, Play, Pause, Volume2, ArrowLeft, Wand2, Loader2, RotateCcw, Calendar, BookOpen, Save, FolderOpen, Star, User, Settings, Video } from 'lucide-react';
+import { Mic, Upload, Play, Pause, Volume2, ArrowLeft, Wand2, Loader2, RotateCcw, Calendar, BookOpen, Save, FolderOpen, Star, User, Settings, Video, X, Search, Clock, Eye, Download, Share2, Sparkles, Square } from 'lucide-react';
 import VaultSelector from '@/components/VaultSelector';
+import { AudioPlayer } from '@/components/ui/audio-player';
 
 interface ContentCreateLipSyncVideoProps {
   influencerData?: any;
@@ -20,21 +21,62 @@ interface ContentCreateLipSyncVideoProps {
 }
 
 interface VoiceOption {
-  id: string;
+  id: number;
+  elevenlabs_id: string;
   name: string;
   description: string;
-  category: string;
+  internal_hint: string;
+  speed: number;
+  category?: string;
   preview_url?: string;
   isPlaying?: boolean;
+}
+
+interface GeneratedAudioData {
+  audio_id: string;
+  user_uuid: string;
+  created_at: string;
+  elevenlabs_id: string;
+  prompt: string;
+  filename: string;
+  status: string;
+  character_cost: number;
+  voice_name: string;
+  voice_description: string;
+  voice_speed: number;
 }
 
 function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipSyncVideoProps) {
   const userData = useSelector((state: RootState) => state.user);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isGeneratingVoice, setIsGeneratingVoice] = useState<string | null>(null);
   const [activePhase, setActivePhase] = useState<'upload' | 'elevenlabs' | 'individual'>('upload');
 
   // Model data state to store influencer or selected video information
   const [modelData, setModelData] = useState<any>(null);
+
+  // Video selection state
+  const [videos, setVideos] = useState<any[]>([]);
+  const [loadingVideos, setLoadingVideos] = useState(false);
+  const [selectedVideo, setSelectedVideo] = useState<any>(null);
+  const [showVideoSelector, setShowVideoSelector] = useState(false);
+  const [videoSearchTerm, setVideoSearchTerm] = useState('');
+  const [videoFilterStatus, setVideoFilterStatus] = useState<string>('all');
+  const [videoSortBy, setVideoSortBy] = useState<string>('newest');
+
+  // Validation state
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
+
+  // Audio playback state
+  const [audioUrls, setAudioUrls] = useState<{ [key: string]: string }>({});
+  const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
+  const [playingVoiceSample, setPlayingVoiceSample] = useState<string | null>(null);
+  const [voiceAudioElements, setVoiceAudioElements] = useState<{ [key: string]: HTMLAudioElement }>({});
+  const voiceAudioElementsRef = useRef<{ [key: string]: HTMLAudioElement }>({});
+
+  // Generated audio data state
+  const [generatedAudioData, setGeneratedAudioData] = useState<GeneratedAudioData | null>(null);
+  const [generatedAudioUrl, setGeneratedAudioUrl] = useState<string | null>(null);
 
   // Voice states
   const [uploadedAudioFile, setUploadedAudioFile] = useState<File | null>(null);
@@ -49,55 +91,122 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
   const [showLibraryModal, setShowLibraryModal] = useState(false);
   const [showVaultModal, setShowVaultModal] = useState(false);
 
-  // ElevenLabs voices (mock data - replace with actual API call)
-  const [elevenLabsVoices, setElevenLabsVoices] = useState<VoiceOption[]>([
-    {
-      id: 'voice_1',
-      name: 'Sarah',
-      description: 'Warm and friendly female voice',
-      category: 'Female',
-      preview_url: 'https://example.com/preview1.mp3'
-    },
-    {
-      id: 'voice_2',
-      name: 'Mike',
-      description: 'Professional male voice',
-      category: 'Male',
-      preview_url: 'https://example.com/preview2.mp3'
-    },
-    {
-      id: 'voice_3',
-      name: 'Emma',
-      description: 'Young and energetic female voice',
-      category: 'Female',
-      preview_url: 'https://example.com/preview3.mp3'
-    },
-    {
-      id: 'voice_4',
-      name: 'David',
-      description: 'Deep and authoritative male voice',
-      category: 'Male',
-      preview_url: 'https://example.com/preview4.mp3'
-    }
-  ]);
+  // ElevenLabs voices (will be fetched from voice table)
+  const [elevenLabsVoices, setElevenLabsVoices] = useState<VoiceOption[]>([]);
+  const [loadingVoices, setLoadingVoices] = useState(true);
 
   // Individual voices per influencer (mock data)
   const [individualVoices, setIndividualVoices] = useState<VoiceOption[]>([
     {
-      id: 'ind_voice_1',
+      id: 1,
+      elevenlabs_id: 'ind_voice_1',
       name: 'Custom Voice 1',
       description: 'Personalized voice for influencer',
+      internal_hint: 'Custom voice option',
+      speed: 1.0,
       category: 'Custom',
       preview_url: 'https://example.com/custom1.mp3'
     },
     {
-      id: 'ind_voice_2',
+      id: 2,
+      elevenlabs_id: 'ind_voice_2',
       name: 'Custom Voice 2',
       description: 'Another personalized voice option',
+      internal_hint: 'Custom voice option',
+      speed: 1.0,
       category: 'Custom',
       preview_url: 'https://example.com/custom2.mp3'
     }
   ]);
+
+  // Fetch videos from Supabase
+  useEffect(() => {
+    const fetchVideos = async () => {
+      if (!userData.id) return;
+
+      try {
+        setLoadingVideos(true);
+        const response = await fetch(`https://db.nymia.ai/rest/v1/video?user_uuid=eq.${userData.id}&status=eq.completed&order=task_created_at.desc`, {
+          headers: {
+            'Authorization': 'Bearer WeInfl3nc3withAI',
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          console.log('Fetched videos for LipSync:', data);
+          setVideos(data);
+        } else {
+          throw new Error('Failed to fetch videos');
+        }
+      } catch (error) {
+        console.error('Error fetching videos:', error);
+        toast.error('Failed to load videos');
+      } finally {
+        setLoadingVideos(false);
+      }
+    };
+
+    fetchVideos();
+  }, [userData.id]);
+
+  // Cleanup audio elements on unmount
+  useEffect(() => {
+    return () => {
+      // Stop all playing audio when component unmounts
+      Object.values(voiceAudioElementsRef.current).forEach(audio => {
+        audio.pause();
+        audio.currentTime = 0;
+      });
+      setAudioUrls({});
+      setPlayingAudioId(null);
+      setPlayingVoiceSample(null);
+      setVoiceAudioElements({});
+      voiceAudioElementsRef.current = {};
+      setGeneratedAudioData(null);
+      setGeneratedAudioUrl(null);
+    };
+  }, []);
+
+  // Fetch voices from voice table
+  useEffect(() => {
+    const fetchVoices = async () => {
+      try {
+        setLoadingVoices(true);
+        const response = await fetch('https://db.nymia.ai/rest/v1/voice?order=name.asc', {
+          headers: {
+            'Authorization': 'Bearer WeInfl3nc3withAI',
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          console.log('Fetched voices:', data);
+
+          // Transform the data to match our interface
+          const transformedVoices = data.map((voice: any) => ({
+            ...voice,
+            category: voice.internal_hint || 'General',
+            preview_url: undefined, // Will be added later if needed
+            isPlaying: false
+          }));
+
+          setElevenLabsVoices(transformedVoices);
+        } else {
+          throw new Error('Failed to fetch voices');
+        }
+      } catch (error) {
+        console.error('Error fetching voices:', error);
+        toast.error('Failed to load voices');
+      } finally {
+        setLoadingVoices(false);
+      }
+    };
+
+    fetchVoices();
+  }, []);
 
   useEffect(() => {
     if (influencerData) {
@@ -121,6 +230,7 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
       }
 
       setUploadedAudioFile(file);
+      setValidationErrors([]);
       const url = URL.createObjectURL(file);
       setUploadedAudioUrl(url);
       toast.success('Audio file uploaded successfully');
@@ -129,11 +239,13 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
 
   const handleElevenLabsVoiceSelect = (voice: VoiceOption) => {
     setSelectedElevenLabsVoice(voice);
+    setValidationErrors([]);
     toast.success(`Selected voice: ${voice.name}`);
   };
 
-  const handleIndividualVoiceSelect = (voiceId: string) => {
-    setIndividualVoiceId(voiceId);
+  const handleIndividualVoiceSelect = (voiceId: number) => {
+    setIndividualVoiceId(voiceId.toString());
+    setValidationErrors([]);
     const voice = individualVoices.find(v => v.id === voiceId);
     if (voice) {
       toast.success(`Selected individual voice: ${voice.name}`);
@@ -141,30 +253,75 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
   };
 
   const validateForm = () => {
-    if (!modelData) {
-      toast.error('Please select an influencer video');
-      return false;
+    const errors: string[] = [];
+
+    // Check if video is selected
+    if (!selectedVideo) {
+      errors.push('Please select a video to apply lip-sync to');
     }
 
-    if (activePhase === 'upload' && !uploadedAudioFile) {
-      toast.error('Please upload an audio file');
-      return false;
+    // Check if audio is generated
+    if (!generatedAudioData || !generatedAudioUrl) {
+      errors.push('Please generate audio first before creating lip-sync video');
+    }
+
+    // Phase-specific validation
+    if (activePhase === 'upload') {
+      if (!uploadedAudioFile) {
+        errors.push('Please upload an audio file');
+      }
     }
 
     if (activePhase === 'elevenlabs') {
       if (!selectedElevenLabsVoice) {
-        toast.error('Please select an ElevenLabs voice');
-        return false;
+        errors.push('Please select a voice from the available options');
       }
       if (!textToSpeak.trim()) {
-        toast.error('Please enter text to speak');
-        return false;
+        errors.push('Please enter text for voice generation');
+      }
+      if (textToSpeak.trim().length < 10) {
+        errors.push('Text should be at least 10 characters long');
+      }
+      if (textToSpeak.trim().length > 500) {
+        errors.push('Text should be less than 500 characters');
       }
     }
 
-    if (activePhase === 'individual' && !individualVoiceId) {
-      toast.error('Please select an individual voice');
+    if (activePhase === 'individual') {
+      if (!individualVoiceId) {
+        errors.push('Please select an individual voice');
+      }
+      if (!textToSpeak.trim()) {
+        errors.push('Please enter text for voice generation');
+      }
+    }
+
+    // Update validation errors state
+    setValidationErrors(errors);
+
+    // Show first error as toast and return validation result
+    if (errors.length > 0) {
+      toast.error(errors[0]);
       return false;
+    }
+
+    return true;
+  };
+
+  // Silent validation for button disabled state
+  const isFormValid = () => {
+    if (!selectedVideo) return false;
+    if (!generatedAudioData || !generatedAudioUrl) return false;
+
+    if (activePhase === 'upload' && !uploadedAudioFile) return false;
+
+    if (activePhase === 'elevenlabs') {
+      if (!selectedElevenLabsVoice || !textToSpeak.trim()) return false;
+      if (textToSpeak.trim().length < 10 || textToSpeak.trim().length > 500) return false;
+    }
+
+    if (activePhase === 'individual') {
+      if (!individualVoiceId || !textToSpeak.trim()) return false;
     }
 
     return true;
@@ -175,47 +332,51 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
 
     setIsGenerating(true);
     try {
-      const useridResponse = await fetch(`https://db.nymia.ai/rest/v1/user?uuid=eq.${userData.id}`, {
-        headers: { 'Authorization': 'Bearer WeInfl3nc3withAI' }
-      });
-      const useridData = await useridResponse.json();
-
-      let generationData: any = {
-        task: "generatelipsync",
-        userid: useridData[0].userid,
-        modelid: modelData.id,
-        phase: activePhase
-      };
-
-      // Add phase-specific data
-      if (activePhase === 'upload') {
-        generationData.audio_file = uploadedAudioFile;
-      } else if (activePhase === 'elevenlabs') {
-        generationData.voice_id = selectedElevenLabsVoice?.id;
-        generationData.text = textToSpeak;
-      } else if (activePhase === 'individual') {
-        generationData.individual_voice_id = individualVoiceId;
-        generationData.text = textToSpeak;
+      // Validate required data
+      if (!selectedVideo) {
+        toast.error('Please select a video for lip-sync');
+        return;
       }
 
-      const response = await fetch('https://api.nymia.ai/v1/createtask', {
+      if (!generatedAudioData) {
+        toast.error('Please generate audio first');
+        return;
+      }
+
+      // Prepare the lip-sync generation data
+      const lipSyncData = {
+        user_uuid: userData.id,
+        model: "kwaivgi/kling-lip-sync",
+        audio_url: generatedAudioUrl,
+        video_url: getVideoUrl(selectedVideo.video_id),
+        audio: generatedAudioData.audio_id,
+        prompt: generatedAudioData.prompt,
+        status: "new"
+      };
+
+      console.log('Generating lip-sync video:', lipSyncData);
+
+      const response = await fetch('https://api.nymia.ai/v1/generatelipsyncvideo', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer WeInfl3nc3withAI'
         },
-        body: JSON.stringify(generationData)
+        body: JSON.stringify(lipSyncData)
       });
 
       if (response.ok) {
+        const result = await response.json();
+        console.log('Lip-sync generation response:', result);
         toast.success('Lip-sync video generation started! Check your history for progress.');
         handleClear();
       } else {
-        throw new Error('Failed to start lip-sync generation');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to start lip-sync generation');
       }
     } catch (error) {
       console.error('Error generating lip-sync video:', error);
-      toast.error('Failed to generate lip-sync video');
+      toast.error(`Failed to generate lip-sync video: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsGenerating(false);
     }
@@ -227,14 +388,176 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
     setSelectedElevenLabsVoice(null);
     setTextToSpeak('');
     setIndividualVoiceId('');
+    setSelectedVideo(null);
+    setValidationErrors([]);
+
+    // Stop and clean up any playing audio
+    if (playingAudioId) {
+      stopAudioPlayback(playingAudioId);
+    }
+    setAudioUrls({});
+
+    // Clear generated audio data
+    setGeneratedAudioData(null);
+    setGeneratedAudioUrl(null);
+
     if (uploadedAudioUrl) {
       URL.revokeObjectURL(uploadedAudioUrl);
     }
   };
 
-  const playVoicePreview = (voice: VoiceOption) => {
-    // Mock audio preview functionality
-    toast.info(`Playing preview for ${voice.name}`);
+  const playVoicePreview = async (voice: VoiceOption) => {
+    if (!textToSpeak.trim()) {
+      toast.error('Please enter some text to generate voice preview');
+      return;
+    }
+
+    setIsGeneratingVoice(voice.elevenlabs_id);
+
+    try {
+      const voiceGenerationData = {
+        user_uuid: userData.id,
+        voice_id: voice.elevenlabs_id,
+        speed: voice.speed,
+        prompt: textToSpeak
+      };
+
+      console.log('Generating voice preview:', voiceGenerationData);
+
+      const response = await fetch('https://api.nymia.ai/v1/generateaudio', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify(voiceGenerationData)
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('Voice generation response:', result);
+
+        toast.success(`Voice preview generated for ${voice.name}! Audio ID: ${result.audio_id}`);
+
+        // Save the generated audio data
+        const audioData: GeneratedAudioData = {
+          audio_id: result.audio_id,
+          user_uuid: result.user_uuid,
+          created_at: result.created_at,
+          elevenlabs_id: result.elevenlabs_id,
+          prompt: result.prompt,
+          filename: result.filename,
+          status: result.status,
+          character_cost: result.character_cost,
+          voice_name: voice.name,
+          voice_description: voice.description,
+          voice_speed: voice.speed
+        };
+
+        setGeneratedAudioData(audioData);
+
+        // Wait a moment for the audio file to be ready, then store the URL
+        setTimeout(() => {
+          const audioUrl = `https://images.nymia.ai/${userData.id}/audio/${result.filename}`;
+
+          // Store the audio URL for the AudioPlayer component
+          setAudioUrls(prev => ({
+            ...prev,
+            [result.audio_id]: audioUrl
+          }));
+
+          // Set as currently playing
+          setPlayingAudioId(result.audio_id);
+
+          // Set the generated audio URL for the persistent player
+          setGeneratedAudioUrl(audioUrl);
+
+        }, 2000); // Wait 2 seconds for the file to be ready
+
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to generate voice preview');
+      }
+    } catch (error) {
+      console.error('Error generating voice preview:', error);
+      toast.error(`Failed to generate voice preview: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsGeneratingVoice(null);
+    }
+  };
+
+  const stopAudioPlayback = (audioId: string) => {
+    setPlayingAudioId(null);
+  };
+
+  // Video helper functions
+  const getVideoUrl = (videoId: string) => {
+    return `https://images.nymia.ai/${userData.id}/video/${videoId}.mp4`;
+  };
+
+  const formatVideoDuration = (seconds: number) => {
+    if (seconds < 60) return `${seconds}s`;
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}m ${remainingSeconds}s`;
+  };
+
+  const formatVideoDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const getVideoStatusColor = (status: string) => {
+    switch (status) {
+      case 'completed': return 'bg-green-500/20 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800';
+      case 'processing': return 'bg-blue-500/20 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800';
+      case 'failed': return 'bg-red-500/20 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800';
+      case 'pending': return 'bg-yellow-500/20 text-yellow-700 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800';
+      default: return 'bg-gray-500/20 text-gray-700 dark:text-gray-400 border-gray-200 dark:border-gray-800';
+    }
+  };
+
+  const getVideoModelDisplayName = (model: string) => {
+    switch (model) {
+      case 'kling-v2.1': return 'Kling 2.1';
+      case 'wan-v2.1': return 'WAN 2.1';
+      default: return model;
+    }
+  };
+
+  // Filter and sort videos
+  const filteredVideos = videos
+    .filter(video => {
+      const matchesStatus = videoFilterStatus === 'all' || video.status === videoFilterStatus;
+      const matchesSearch = video.prompt.toLowerCase().includes(videoSearchTerm.toLowerCase()) ||
+        video.model.toLowerCase().includes(videoSearchTerm.toLowerCase());
+      return matchesStatus && matchesSearch;
+    })
+    .sort((a, b) => {
+      switch (videoSortBy) {
+        case 'newest':
+          return new Date(b.task_created_at).getTime() - new Date(a.task_created_at).getTime();
+        case 'oldest':
+          return new Date(a.task_created_at).getTime() - new Date(b.task_created_at).getTime();
+        case 'duration':
+          return b.duration - a.duration;
+        case 'model':
+          return a.model.localeCompare(b.model);
+        default:
+          return 0;
+      }
+    });
+
+  const handleVideoSelect = (video: any) => {
+    setSelectedVideo(video);
+    setShowVideoSelector(false);
+    setValidationErrors([]);
+    toast.success(`Selected video: ${video.prompt.substring(0, 50)}...`);
   };
 
   return (
@@ -285,7 +608,7 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
             </Button>
 
             <Button
-              onClick={() => {/* handleSavePreset */}}
+              onClick={() => {/* handleSavePreset */ }}
               variant="outline"
               size="sm"
               className="h-10 px-4 bg-gradient-to-r from-emerald-50 to-green-50 dark:from-emerald-900/20 dark:to-green-900/20 border-emerald-200 dark:border-emerald-700 hover:from-emerald-100 hover:to-green-100 dark:hover:from-emerald-800/30 dark:hover:to-green-800/30 text-emerald-700 dark:text-emerald-300 font-medium shadow-sm hover:shadow-md transition-all duration-200"
@@ -295,10 +618,27 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
             </Button>
           </div>
         </div>
+        {/* Validation Errors Display */}
+        {validationErrors.length > 0 && (
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-4">
+            <div className="flex items-start gap-2">
+              <div className="w-1.5 h-1.5 bg-red-500 rounded-full mt-2 flex-shrink-0"></div>
+              <div className="text-sm text-red-700 dark:text-red-300">
+                <p className="font-medium mb-2">Please fix the following issues:</p>
+                <ul className="list-disc list-inside space-y-1 text-xs">
+                  {validationErrors.map((error, index) => (
+                    <li key={index}>{error}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-1 gap-2">
           <Button
             onClick={handleGenerate}
-            disabled={!validateForm() || isGenerating}
+            disabled={!isFormValid() || isGenerating}
             className="bg-gradient-to-r from-purple-600 to-pink-600"
             size="lg"
           >
@@ -347,7 +687,7 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
           </Button>
 
           <Button
-            onClick={() => {/* handleSavePreset */}}
+            onClick={() => {/* handleSavePreset */ }}
             variant="outline"
             className="h-10 px-4 bg-gradient-to-r from-emerald-50 to-green-50 dark:from-emerald-900/20 dark:to-green-900/20 border-emerald-200 dark:border-emerald-700 hover:from-emerald-100 hover:to-green-100 dark:hover:from-emerald-800/30 dark:hover:to-green-800/30 text-emerald-700 dark:text-emerald-300 font-medium shadow-sm hover:shadow-md transition-all duration-200"
           >
@@ -366,7 +706,7 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
             className={`h-12 ${activePhase === 'upload' ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white' : 'bg-white dark:bg-slate-800'}`}
           >
             <Upload className="w-4 h-4 mr-2" />
-            Phase 1: Upload Audio
+            Bring your own audio
           </Button>
           <Button
             onClick={() => setActivePhase('elevenlabs')}
@@ -374,7 +714,7 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
             className={`h-12 ${activePhase === 'elevenlabs' ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white' : 'bg-white dark:bg-slate-800'}`}
           >
             <Mic className="w-4 h-4 mr-2" />
-            Phase 2: ElevenLabs Voices
+            Use nymia voices
           </Button>
           <Button
             onClick={() => setActivePhase('individual')}
@@ -382,7 +722,7 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
             className={`h-12 ${activePhase === 'individual' ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white' : 'bg-white dark:bg-slate-800'}`}
           >
             <User className="w-4 h-4 mr-2" />
-            Phase 3: Individual Voices
+            Individual Voices
           </Button>
         </div>
       </div>
@@ -461,69 +801,310 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Mic className="w-5 h-5 text-purple-500" />
-                  Select from our Voices
+                  Nymia Voice Generation
                 </CardTitle>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Generate custom audio using our professional voice collection
+                </p>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
+              <CardContent className="space-y-6">
+                {/* Text Input Section */}
+                <div className="space-y-3">
                   <Label htmlFor="text-to-speak" className="text-sm font-medium">
-                    Type text to say
+                    Text for Voice Generation
                   </Label>
                   <Textarea
                     id="text-to-speak"
-                    placeholder="Enter the text you want the voice to speak..."
+                    placeholder="Enter the text you want the voice to speak... (e.g., 'Hello everyone, welcome to my channel!')"
                     value={textToSpeak}
-                    onChange={(e) => setTextToSpeak(e.target.value)}
+                    onChange={(e) => {
+                      setTextToSpeak(e.target.value);
+                      setValidationErrors([]);
+                    }}
                     rows={4}
-                    className="resize-none"
+                    className="resize-none border-2 focus:border-purple-500 transition-colors"
                   />
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span>{textToSpeak.length} characters</span>
+                    <span>Recommended: 50-200 characters</span>
+                  </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">
-                    Select from our Voices
-                  </Label>
-                  <ScrollArea className="h-64">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {elevenLabsVoices.map((voice) => (
-                        <Card
-                          key={voice.id}
-                          className={`cursor-pointer transition-all duration-200 ${
-                            selectedElevenLabsVoice?.id === voice.id
-                              ? 'ring-2 ring-purple-500 bg-purple-50 dark:bg-purple-900/20'
-                              : 'hover:shadow-md'
-                          }`}
-                          onClick={() => handleElevenLabsVoiceSelect(voice)}
-                        >
+                {/* Voice Selection Section */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm font-medium">
+                      Select Voice & Generate Preview ({elevenLabsVoices.length})
+                    </Label>
+                    {loadingVoices && (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-500"></div>
+                        Loading voices...
+                      </div>
+                    )}
+                  </div>
+
+                  {loadingVoices ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {Array.from({ length: 6 }).map((_, index) => (
+                        <Card key={index} className="animate-pulse">
                           <CardContent className="p-4">
-                            <div className="flex items-center justify-between">
-                              <div className="flex-1">
-                                <h4 className="font-semibold text-slate-900 dark:text-slate-100">
-                                  {voice.name}
-                                </h4>
-                                <p className="text-sm text-slate-600 dark:text-slate-300">
-                                  {voice.description}
-                                </p>
-                                <Badge variant="secondary" className="mt-2">
-                                  {voice.category}
-                                </Badge>
-                              </div>
-                              <Button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  playVoicePreview(voice);
-                                }}
-                                variant="outline"
-                                size="sm"
-                              >
-                                <Play className="w-4 h-4" />
-                              </Button>
+                            <div className="space-y-3">
+                              <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded"></div>
+                              <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-3/4"></div>
+                              <div className="h-6 bg-slate-200 dark:bg-slate-700 rounded w-1/2"></div>
                             </div>
                           </CardContent>
                         </Card>
                       ))}
                     </div>
-                  </ScrollArea>
+                  ) : (
+                    <ScrollArea>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-5">
+                        {elevenLabsVoices.map((voice) => (
+                          <Card
+                            key={voice.id}
+                            className={`group cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-105 ${selectedElevenLabsVoice?.id === voice.id
+                              ? 'ring-2 ring-purple-500 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 shadow-lg'
+                              : playingAudioId
+                                ? 'ring-2 ring-blue-500 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 shadow-lg'
+                                : 'hover:ring-2 hover:ring-purple-200 dark:hover:ring-purple-800'
+                              }`}
+                            onClick={() => handleElevenLabsVoiceSelect(voice)}
+                          >
+                            <CardContent className="p-4">
+                              <div className="space-y-3">
+                                {/* Voice Header */}
+                                <div className="flex items-start justify-between">
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-2">
+                                      <h4 className="font-semibold text-slate-900 dark:text-slate-100 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
+                                        {voice.name}
+                                      </h4>
+                                    </div>
+                                    <p className="text-sm text-slate-600 dark:text-slate-300 mt-1 line-clamp-2">
+                                      {voice.description}
+                                    </p>
+                                  </div>
+                                  
+                                  {/* Play/Stop Button */}
+                                  <Button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      
+                                      // If this voice is currently playing, stop it
+                                      if (playingVoiceSample === voice.id.toString()) {
+                                        console.log('Stopping voice:', voice.id.toString());
+                                        
+                                        const currentAudio = voiceAudioElementsRef.current[voice.id.toString()];
+                                        console.log('Found audio element:', currentAudio);
+                                        
+                                        if (currentAudio) {
+                                          currentAudio.pause();
+                                          currentAudio.currentTime = 0;
+                                          console.log('Audio stopped successfully');
+                                        } else {
+                                          console.log('No audio element found, trying to stop all audio');
+                                          // Fallback: try to stop all audio elements
+                                          Object.values(voiceAudioElementsRef.current).forEach(audio => {
+                                            audio.pause();
+                                            audio.currentTime = 0;
+                                          });
+                                        }
+                                        
+                                        setPlayingVoiceSample(null);
+                                        return;
+                                      }
+                                      
+                                      // Stop any other currently playing voice sample
+                                      if (playingVoiceSample) {
+                                        const currentAudio = voiceAudioElementsRef.current[playingVoiceSample];
+                                        if (currentAudio) {
+                                          currentAudio.pause();
+                                          currentAudio.currentTime = 0;
+                                        }
+                                        setPlayingVoiceSample(null);
+                                      }
+                                      
+                                      const audioUrl = `https://images.nymia.ai/wizard/mappings/${voice.elevenlabs_id}.mp3`;
+                                      const audio = new Audio(audioUrl);
+                                      
+                                      // Store the audio element reference
+                                      console.log('Storing audio element for voice:', voice.id.toString());
+                                      voiceAudioElementsRef.current[voice.id.toString()] = audio;
+                                      setVoiceAudioElements(prev => {
+                                        const newElements = {
+                                          ...prev,
+                                          [voice.id.toString()]: audio
+                                        };
+                                        console.log('Updated voiceAudioElements:', newElements);
+                                        return newElements;
+                                      });
+                                      
+                                      // Set up audio event listeners
+                                      audio.addEventListener('ended', () => {
+                                        setPlayingVoiceSample(null);
+                                        // Clean up the audio element reference
+                                        delete voiceAudioElementsRef.current[voice.id.toString()];
+                                        setVoiceAudioElements(prev => {
+                                          const newElements = { ...prev };
+                                          delete newElements[voice.id.toString()];
+                                          return newElements;
+                                        });
+                                      });
+                                      audio.addEventListener('error', () => {
+                                        setPlayingVoiceSample(null);
+                                        // Clean up the audio element reference
+                                        delete voiceAudioElementsRef.current[voice.id.toString()];
+                                        setVoiceAudioElements(prev => {
+                                          const newElements = { ...prev };
+                                          delete newElements[voice.id.toString()];
+                                          return newElements;
+                                        });
+                                        toast.error('Failed to play voice sample');
+                                      });
+                                      
+                                      // Play the audio
+                                      audio.play().then(() => {
+                                        setPlayingVoiceSample(voice.id.toString());
+                                      }).catch((error) => {
+                                        console.error('Error playing audio:', error);
+                                        setPlayingVoiceSample(null);
+                                        // Clean up the audio element reference
+                                        delete voiceAudioElementsRef.current[voice.id.toString()];
+                                        setVoiceAudioElements(prev => {
+                                          const newElements = { ...prev };
+                                          delete newElements[voice.id.toString()];
+                                          return newElements;
+                                        });
+                                        toast.error('Failed to play voice sample');
+                                      });
+                                    }}
+                                    variant="outline"
+                                    size="sm"
+                                    className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-white/80 dark:bg-slate-800/80 hover:bg-purple-50 dark:hover:bg-purple-900/20"
+                                  >
+                                    {playingVoiceSample === voice.id.toString() ? (
+                                      <Square className="w-3 h-3" />
+                                    ) : (
+                                      <Play className="w-3 h-3" />
+                                    )}
+                                  </Button>
+                                </div>
+
+                                {/* Voice Details */}
+                                <div className="space-y-2">
+                                  <div className="flex items-center gap-2">
+                                    <Badge
+                                      variant="secondary"
+                                      className="text-xs bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-blue-200 dark:border-blue-700"
+                                    >
+                                      {voice.category}
+                                    </Badge>
+                                    <Badge
+                                      variant="outline"
+                                      className="text-xs border-green-200 dark:border-green-700 text-green-700 dark:text-green-400"
+                                    >
+                                      Speed: {voice.speed}x
+                                    </Badge>
+                                  </div>
+
+                                  {voice.internal_hint && (
+                                    <p className="text-xs text-muted-foreground italic">
+                                      "{voice.internal_hint}"
+                                    </p>
+                                  )}
+                                </div>
+
+                                {/* Selection Indicator */}
+                                {selectedElevenLabsVoice?.id === voice.id && (
+                                  <div className="flex items-center gap-2 text-sm text-purple-600 dark:text-purple-400">
+                                    <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse"></div>
+                                    <span className="font-medium">Selected</span>
+                                  </div>
+                                )}
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    </ScrollArea>
+                  )}
+                </div>
+
+
+
+                {/* Generate Audio Button */}
+                <div className="mt-6">
+                  <div className={`rounded-xl p-6 shadow-lg border transition-all duration-300 ${
+                    selectedElevenLabsVoice 
+                      ? 'bg-gradient-to-r from-purple-600 to-pink-600 border-purple-500/20' 
+                      : 'bg-gradient-to-r from-slate-400 to-slate-500 border-slate-300/20'
+                  }`}>
+                    <div className="text-center">
+                      <div className="flex items-center justify-center mb-4">
+                        <div className={`w-12 h-12 rounded-full flex items-center justify-center mr-3 ${
+                          selectedElevenLabsVoice ? 'bg-white/20' : 'bg-white/10'
+                        }`}>
+                          <Mic className={`w-6 h-6 ${selectedElevenLabsVoice ? 'text-white' : 'text-white/70'}`} />
+                        </div>
+                        <div className="text-left">
+                          <h3 className={`text-xl font-bold ${selectedElevenLabsVoice ? 'text-white' : 'text-white/90'}`}>
+                            Generate Audio
+                          </h3>
+                          <p className={`text-sm ${selectedElevenLabsVoice ? 'text-purple-100' : 'text-white/70'}`}>
+                            {selectedElevenLabsVoice 
+                              ? `${selectedElevenLabsVoice.name} • ${textToSpeak.length} characters`
+                              : 'Select a voice first • ' + textToSpeak.length + ' characters'
+                            }
+                          </p>
+                        </div>
+                      </div>
+                      
+                      {textToSpeak.trim() && (
+                        <div className="bg-white/10 rounded-lg p-3 mb-4">
+                          <p className="text-white/90 text-sm italic">
+                            "{textToSpeak.length > 100 ? textToSpeak.substring(0, 100) + '...' : textToSpeak}"
+                          </p>
+                        </div>
+                      )}
+                      
+                      <Button
+                        onClick={() => selectedElevenLabsVoice && playVoicePreview(selectedElevenLabsVoice)}
+                        disabled={!selectedElevenLabsVoice || isGeneratingVoice === selectedElevenLabsVoice?.elevenlabs_id}
+                        size="lg"
+                        className={`font-semibold px-8 py-3 text-base shadow-lg hover:shadow-xl transition-all duration-200 ${
+                          selectedElevenLabsVoice 
+                            ? 'bg-white text-purple-600 hover:bg-purple-50' 
+                            : 'bg-white/50 text-slate-500 cursor-not-allowed'
+                        }`}
+                      >
+                        {isGeneratingVoice === selectedElevenLabsVoice?.elevenlabs_id ? (
+                          <>
+                            <Loader2 className="w-5 h-5 mr-3 animate-spin" />
+                            Generating Audio...
+                          </>
+                        ) : selectedElevenLabsVoice ? (
+                          <>
+                            <Wand2 className="w-5 h-5 mr-3" />
+                            Generate Audio Now
+                          </>
+                        ) : (
+                          <>
+                            <Mic className="w-5 h-5 mr-3" />
+                            Select a Voice First
+                          </>
+                        )}
+                      </Button>
+                      
+                      <p className={`text-xs mt-3 ${selectedElevenLabsVoice ? 'text-purple-200' : 'text-white/60'}`}>
+                        {selectedElevenLabsVoice 
+                          ? `This will create a ${selectedElevenLabsVoice.speed}x speed audio using ${selectedElevenLabsVoice.name}`
+                          : 'Please select a voice from the options above to generate audio'
+                        }
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -562,11 +1143,10 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
                       {individualVoices.map((voice) => (
                         <Card
                           key={voice.id}
-                          className={`cursor-pointer transition-all duration-200 ${
-                            individualVoiceId === voice.id
-                              ? 'ring-2 ring-purple-500 bg-purple-50 dark:bg-purple-900/20'
-                              : 'hover:shadow-md'
-                          }`}
+                          className={`cursor-pointer transition-all duration-200 ${individualVoiceId === voice.id.toString()
+                            ? 'ring-2 ring-purple-500 bg-purple-50 dark:bg-purple-900/20'
+                            : 'hover:shadow-md'
+                            }`}
                           onClick={() => handleIndividualVoiceSelect(voice.id)}
                         >
                           <CardContent className="p-4">
@@ -582,16 +1162,7 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
                                   {voice.category}
                                 </Badge>
                               </div>
-                              <Button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  playVoicePreview(voice);
-                                }}
-                                variant="outline"
-                                size="sm"
-                              >
-                                <Play className="w-4 h-4" />
-                              </Button>
+
                             </div>
                           </CardContent>
                         </Card>
@@ -604,40 +1175,106 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
           )}
         </div>
 
-        {/* Right Column - Influencer Video Selection */}
+        {/* Right Column - Video Selection */}
         <div className="space-y-6">
+          {generatedAudioData && generatedAudioUrl && (
+            <div className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg p-6 border border-purple-200 dark:border-purple-800 shadow-sm">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="font-semibold text-purple-900 dark:text-purple-100 flex items-center gap-2">
+                    <Mic className="w-4 h-4" />
+                    Generated Audio Preview
+                  </h3>
+                  <p className="text-sm text-purple-700 dark:text-purple-300 mt-1">
+                    Voice: {generatedAudioData.voice_name} • Speed: {generatedAudioData.voice_speed}x • Cost: {generatedAudioData.character_cost} characters
+                  </p>
+                </div>
+                <Badge variant="outline" className="text-xs border-purple-300 dark:border-purple-700 text-purple-700 dark:text-purple-300">
+                  {generatedAudioData.status}
+                </Badge>
+              </div>
+
+              <div className="mb-3">
+                <p className="text-sm text-slate-600 dark:text-slate-400 italic">
+                  "{generatedAudioData.prompt}"
+                </p>
+              </div>
+              <AudioPlayer
+                src={generatedAudioUrl}
+                onPlay={() => setPlayingAudioId(generatedAudioData.audio_id)}
+                onPause={() => setPlayingAudioId(null)}
+                onEnded={() => setPlayingAudioId(null)}
+                onError={(error) => {
+                  console.error('Generated audio player error:', error);
+                  setPlayingAudioId(null);
+                  toast.error('Failed to play generated audio');
+                }}
+                className="w-full"
+              />
+
+              <div className="flex items-center justify-between mt-3 text-xs text-slate-500 dark:text-slate-400">
+                <span>Generated: {new Date(generatedAudioData.created_at).toLocaleString()}</span>
+                <span>Audio ID: {generatedAudioData.audio_id}</span>
+              </div>
+            </div>
+          )}
           <Card className="bg-white/80 dark:bg-slate-800/80 border-0 shadow-xl">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Video className="w-5 h-5 text-green-500" />
-                Influencer Video
+                <Video className="w-5 h-5 text-blue-500" />
+                Select Video for LipSync
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label>Please select video to lipsync</Label>
-                <div className="aspect-square bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-600 rounded-lg border-2 border-dashed border-slate-300 dark:border-slate-600 flex items-center justify-center">
-                  {modelData?.image_url ? (
-                    <img
-                      src={modelData.image_url}
-                      alt={`${modelData.name_first} ${modelData.name_last}`}
-                      className="w-full h-full object-cover rounded-lg"
-                    />
+                <Label>Choose a video to apply lip-sync to</Label>
+                <div className="aspect-video bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-600 rounded-lg border-2 border-dashed border-slate-300 dark:border-slate-600 flex items-center justify-center">
+                  {selectedVideo ? (
+                    <div className="w-full h-full relative">
+                      <video
+                        src={getVideoUrl(selectedVideo.video_id)}
+                        className="w-full h-full object-cover rounded-lg"
+                        muted
+                        loop
+                      />
+                    </div>
                   ) : (
                     <div className="text-center">
                       <Video className="w-12 h-12 text-slate-400 mx-auto mb-2" />
                       <p className="text-sm text-slate-500">No video selected</p>
+                      <p className="text-xs text-slate-400">Choose from your completed videos</p>
                     </div>
                   )}
                 </div>
                 <Button
-                  onClick={() => setShowVaultModal(true)}
+                  onClick={() => setShowVideoSelector(true)}
                   className="w-full"
                   variant="outline"
+                  disabled={loadingVideos}
                 >
-                  <Upload className="w-4 h-4 mr-2" />
-                  Select
+                  {loadingVideos ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Loading videos...
+                    </>
+                  ) : (
+                    <>
+                      <Video className="w-4 h-4 mr-2" />
+                      Select Video ({videos.length})
+                    </>
+                  )}
                 </Button>
+                {selectedVideo && (
+                  <Button
+                    onClick={() => setSelectedVideo(null)}
+                    variant="outline"
+                    size="sm"
+                    className="w-full text-red-600 dark:text-red-400 border-red-300 dark:border-red-700"
+                  >
+                    <X className="w-4 h-4 mr-2" />
+                    Clear Selection
+                  </Button>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -659,26 +1296,160 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
       </div>
 
       {/* Modals */}
-      {showVaultModal && (
-        <VaultSelector
-          open={showVaultModal}
-          onOpenChange={setShowVaultModal}
-          onImageSelect={(image) => {
-            // Convert GeneratedImageData to a format compatible with our modelData
-            const selectedVideo = {
-              id: image.id,
-              image_url: image.file_path,
-              name_first: image.user_filename || 'Selected',
-              name_last: 'Video',
-              influencer_type: 'LipSync Video',
-              lorastatus: 0
-            };
-            setModelData(selectedVideo);
-            setShowVaultModal(false);
-          }}
-          title="Select Video for LipSync"
-          description="Choose a video to use for lip-sync generation"
-        />
+      {/* Video Selector Modal */}
+      {showVideoSelector && (
+        <Dialog open={showVideoSelector} onOpenChange={setShowVideoSelector}>
+          <DialogContent className="max-w-6xl max-h-[80vh]">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Video className="w-5 h-5 text-blue-500" />
+                Select Video for LipSync
+              </DialogTitle>
+              <DialogDescription>
+                Choose an existing video to apply lip-sync audio to.
+              </DialogDescription>
+            </DialogHeader>
+
+            {/* Search and Filter Controls */}
+            <div className="space-y-4">
+              <div className="flex flex-col sm:flex-row gap-3">
+                <div className="flex-1">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                    <Input
+                      placeholder="Search videos by prompt or model..."
+                      value={videoSearchTerm}
+                      onChange={(e) => setVideoSearchTerm(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
+                <Select value={videoFilterStatus} onValueChange={setVideoFilterStatus}>
+                  <SelectTrigger className="w-full sm:w-48">
+                    <SelectValue placeholder="Filter by status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Videos</SelectItem>
+                    <SelectItem value="completed">Completed</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select value={videoSortBy} onValueChange={setVideoSortBy}>
+                  <SelectTrigger className="w-full sm:w-48">
+                    <SelectValue placeholder="Sort by" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="newest">Newest First</SelectItem>
+                    <SelectItem value="oldest">Oldest First</SelectItem>
+                    <SelectItem value="duration">Duration</SelectItem>
+                    <SelectItem value="model">Model</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Video Grid */}
+            <ScrollArea className="h-[400px]">
+              {loadingVideos ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {[...Array(6)].map((_, i) => (
+                    <div key={i} className="animate-pulse">
+                      <div className="aspect-video bg-slate-200 dark:bg-slate-700 rounded-lg mb-2"></div>
+                      <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded mb-2"></div>
+                      <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-2/3"></div>
+                    </div>
+                  ))}
+                </div>
+              ) : filteredVideos.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {filteredVideos.map((video) => (
+                    <Card
+                      key={video.video_id}
+                      className="group cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-105"
+                      onClick={() => handleVideoSelect(video)}
+                    >
+                      <CardContent className="p-3">
+                        <div className="aspect-video bg-slate-100 dark:bg-slate-800 rounded-lg mb-3 relative overflow-hidden">
+                          <video
+                            src={getVideoUrl(video.video_id)}
+                            className="w-full h-full object-cover"
+                            muted
+                            loop
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <div className="flex items-start justify-between">
+                            <h4 className="font-medium text-sm line-clamp-2">
+                              {video.prompt.substring(0, 60)}...
+                            </h4>
+                            <div className="flex items-center gap-1">
+                              <Badge
+                                variant="outline"
+                                className={`text-xs ${getVideoStatusColor(video.status)}`}
+                              >
+                                {video.status}
+                              </Badge>
+                              {video.lip_flag && (
+                                <Badge className="bg-gradient-to-r from-pink-500 to-purple-500 text-white border-0 shadow-sm text-xs">
+                                  <Sparkles className="w-2 h-2 mr-1" />
+                                  LipSync
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-between text-xs text-muted-foreground">
+                            <span>{getVideoModelDisplayName(video.model)}</span>
+                            <span>{formatVideoDuration(video.duration)}</span>
+                          </div>
+
+                          <div className="text-xs text-muted-foreground">
+                            {formatVideoDate(video.task_created_at)}
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <Video className="w-12 h-12 text-slate-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-slate-900 dark:text-slate-100 mb-2">
+                    No videos found
+                  </h3>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                    {videoSearchTerm || videoFilterStatus !== 'all'
+                      ? 'Try adjusting your search or filter criteria.'
+                      : 'Create your first video to get started.'
+                    }
+                  </p>
+                </div>
+              )}
+            </ScrollArea>
+
+            <div className="flex justify-between items-center pt-4 border-t">
+              <div className="text-sm text-muted-foreground">
+                {filteredVideos.length} of {videos.length} videos
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowVideoSelector(false)}
+                >
+                  Cancel
+                </Button>
+                {selectedVideo && (
+                  <Button
+                    onClick={() => setShowVideoSelector(false)}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    Use Selected Video
+                  </Button>
+                )}
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       )}
 
       {showHistory && (

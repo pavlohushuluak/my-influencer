@@ -96,6 +96,15 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
   // Model data state to store influencer or selected image information
   const [modelData, setModelData] = useState<any>(null);
 
+  // Video selection state
+  const [videos, setVideos] = useState<any[]>([]);
+  const [loadingVideos, setLoadingVideos] = useState(false);
+  const [selectedVideoForStart, setSelectedVideoForStart] = useState<any>(null);
+  const [showVideoSelector, setShowVideoSelector] = useState(false);
+  const [videoSearchTerm, setVideoSearchTerm] = useState('');
+  const [videoFilterStatus, setVideoFilterStatus] = useState<string>('all');
+  const [videoSortBy, setVideoSortBy] = useState<string>('newest');
+
   // Search state for influencer selection
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSearchField, setSelectedSearchField] = useState(SEARCH_FIELDS[0]);
@@ -190,6 +199,38 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
 
   // Validation errors state
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
+
+  // Fetch videos from Supabase
+  useEffect(() => {
+    const fetchVideos = async () => {
+      if (!userData.id) return;
+      
+      try {
+        setLoadingVideos(true);
+        const response = await fetch(`https://db.nymia.ai/rest/v1/video?user_uuid=eq.${userData.id}&status=eq.completed&order=task_created_at.desc`, {
+          headers: {
+            'Authorization': 'Bearer WeInfl3nc3withAI',
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          console.log('Fetched videos for selection:', data);
+          setVideos(data);
+        } else {
+          throw new Error('Failed to fetch videos');
+        }
+      } catch (error) {
+        console.error('Error fetching videos:', error);
+        toast.error('Failed to load videos');
+      } finally {
+        setLoadingVideos(false);
+      }
+    };
+
+    fetchVideos();
+  }, [userData.id]);
 
   useEffect(() => {
     if (influencerData) {
@@ -511,6 +552,75 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
       age: '',
       lifestyle: '',
     });
+  };
+
+  // Video helper functions
+  const getVideoUrl = (videoId: string) => {
+    return `https://images.nymia.ai/${userData.id}/video/${videoId}.mp4`;
+  };
+
+  const formatVideoDuration = (seconds: number) => {
+    if (seconds < 60) return `${seconds}s`;
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}m ${remainingSeconds}s`;
+  };
+
+  const formatVideoDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const getVideoStatusColor = (status: string) => {
+    switch (status) {
+      case 'completed': return 'bg-green-500/20 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800';
+      case 'processing': return 'bg-blue-500/20 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800';
+      case 'failed': return 'bg-red-500/20 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800';
+      case 'pending': return 'bg-yellow-500/20 text-yellow-700 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800';
+      default: return 'bg-gray-500/20 text-gray-700 dark:text-gray-400 border-gray-200 dark:border-gray-800';
+    }
+  };
+
+  const getVideoModelDisplayName = (model: string) => {
+    switch (model) {
+      case 'kling-v2.1': return 'Kling 2.1';
+      case 'wan-v2.1': return 'WAN 2.1';
+      default: return model;
+    }
+  };
+
+  // Filter and sort videos
+  const filteredVideos = videos
+    .filter(video => {
+      const matchesStatus = videoFilterStatus === 'all' || video.status === videoFilterStatus;
+      const matchesSearch = video.prompt.toLowerCase().includes(videoSearchTerm.toLowerCase()) ||
+                           video.model.toLowerCase().includes(videoSearchTerm.toLowerCase());
+      return matchesStatus && matchesSearch;
+    })
+    .sort((a, b) => {
+      switch (videoSortBy) {
+        case 'newest':
+          return new Date(b.task_created_at).getTime() - new Date(a.task_created_at).getTime();
+        case 'oldest':
+          return new Date(a.task_created_at).getTime() - new Date(b.task_created_at).getTime();
+        case 'duration':
+          return b.duration - a.duration;
+        case 'model':
+          return a.model.localeCompare(b.model);
+        default:
+          return 0;
+      }
+    });
+
+  const handleVideoSelect = (video: any) => {
+    setSelectedVideoForStart(video);
+    setShowVideoSelector(false);
+    toast.success(`Selected video: ${video.prompt.substring(0, 50)}...`);
   };
 
   return (
@@ -890,6 +1000,73 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
             </CardContent>
           </Card>
 
+          {/* Video Selection */}
+          <Card className="bg-white/80 dark:bg-slate-800/80 border-0 shadow-xl">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Video className="w-5 h-5 text-blue-500" />
+                Start from Existing Video
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label>Use an existing video as starting point</Label>
+                <div className="aspect-video bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-600 rounded-lg border-2 border-dashed border-slate-300 dark:border-slate-600 flex items-center justify-center">
+                  {selectedVideoForStart ? (
+                    <div className="w-full h-full relative">
+                      <video
+                        src={getVideoUrl(selectedVideoForStart.video_id)}
+                        className="w-full h-full object-cover rounded-lg"
+                        muted
+                        loop
+                      />
+                      <div className="absolute inset-0 bg-black/20 rounded-lg flex items-center justify-center">
+                        <div className="bg-white/90 dark:bg-slate-800/90 rounded-lg p-2">
+                          <Play className="w-6 h-6 text-blue-600" />
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center">
+                      <Video className="w-12 h-12 text-slate-400 mx-auto mb-2" />
+                      <p className="text-sm text-slate-500">No video selected</p>
+                      <p className="text-xs text-slate-400">Optional: Start from existing video</p>
+                    </div>
+                  )}
+                </div>
+                <Button
+                  onClick={() => setShowVideoSelector(true)}
+                  className="w-full"
+                  variant="outline"
+                  disabled={loadingVideos}
+                >
+                  {loadingVideos ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Loading videos...
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="w-4 h-4 mr-2" />
+                      Select Video ({videos.length})
+                    </>
+                  )}
+                </Button>
+                {selectedVideoForStart && (
+                  <Button
+                    onClick={() => setSelectedVideoForStart(null)}
+                    variant="outline"
+                    size="sm"
+                    className="w-full text-red-600 dark:text-red-400 border-red-300 dark:border-red-700"
+                  >
+                    <X className="w-4 h-4 mr-2" />
+                    Clear Selection
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Action Buttons */}
           <Card className="bg-white/80 dark:bg-slate-800/80 border-0 shadow-xl">
             <CardContent className="space-y-4 pt-6">
@@ -964,6 +1141,159 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
                 Browse your video library and templates.
               </DialogDescription>
             </DialogHeader>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Video Selector Modal */}
+      {showVideoSelector && (
+        <Dialog open={showVideoSelector} onOpenChange={setShowVideoSelector}>
+          <DialogContent className="max-w-6xl max-h-[80vh]">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Video className="w-5 h-5 text-blue-500" />
+                Select Video to Start From
+              </DialogTitle>
+              <DialogDescription>
+                Choose an existing video to use as the starting point for your new video generation.
+              </DialogDescription>
+            </DialogHeader>
+
+            {/* Search and Filter Controls */}
+            <div className="space-y-4">
+              <div className="flex flex-col sm:flex-row gap-3">
+                <div className="flex-1">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                    <Input
+                      placeholder="Search videos by prompt or model..."
+                      value={videoSearchTerm}
+                      onChange={(e) => setVideoSearchTerm(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
+                <Select value={videoFilterStatus} onValueChange={setVideoFilterStatus}>
+                  <SelectTrigger className="w-full sm:w-48">
+                    <SelectValue placeholder="Filter by status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Videos</SelectItem>
+                    <SelectItem value="completed">Completed</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select value={videoSortBy} onValueChange={setVideoSortBy}>
+                  <SelectTrigger className="w-full sm:w-48">
+                    <SelectValue placeholder="Sort by" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="newest">Newest First</SelectItem>
+                    <SelectItem value="oldest">Oldest First</SelectItem>
+                    <SelectItem value="duration">Duration</SelectItem>
+                    <SelectItem value="model">Model</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Video Grid */}
+            <ScrollArea className="h-[400px]">
+              {loadingVideos ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {[...Array(6)].map((_, i) => (
+                    <div key={i} className="animate-pulse">
+                      <div className="aspect-video bg-slate-200 dark:bg-slate-700 rounded-lg mb-2"></div>
+                      <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded mb-2"></div>
+                      <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-2/3"></div>
+                    </div>
+                  ))}
+                </div>
+              ) : filteredVideos.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {filteredVideos.map((video) => (
+                    <Card
+                      key={video.video_id}
+                      className="group cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-105"
+                      onClick={() => handleVideoSelect(video)}
+                    >
+                      <CardContent className="p-3">
+                        <div className="aspect-video bg-slate-100 dark:bg-slate-800 rounded-lg mb-3 relative overflow-hidden">
+                          <video
+                            src={getVideoUrl(video.video_id)}
+                            className="w-full h-full object-cover"
+                            muted
+                            loop
+                          />
+                          <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
+                            <div className="bg-white/90 dark:bg-slate-800/90 rounded-lg p-2">
+                              <Play className="w-6 h-6 text-blue-600" />
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <div className="flex items-start justify-between">
+                            <h4 className="font-medium text-sm line-clamp-2">
+                              {video.prompt.substring(0, 60)}...
+                            </h4>
+                            <Badge 
+                              variant="outline" 
+                              className={`text-xs ${getVideoStatusColor(video.status)}`}
+                            >
+                              {video.status}
+                            </Badge>
+                          </div>
+                          
+                          <div className="flex items-center justify-between text-xs text-muted-foreground">
+                            <span>{getVideoModelDisplayName(video.model)}</span>
+                            <span>{formatVideoDuration(video.duration)}</span>
+                          </div>
+                          
+                          <div className="text-xs text-muted-foreground">
+                            {formatVideoDate(video.task_created_at)}
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <Video className="w-12 h-12 text-slate-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-slate-900 dark:text-slate-100 mb-2">
+                    No videos found
+                  </h3>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                    {videoSearchTerm || videoFilterStatus !== 'all' 
+                      ? 'Try adjusting your search or filter criteria.'
+                      : 'Create your first video to get started.'
+                    }
+                  </p>
+                </div>
+              )}
+            </ScrollArea>
+
+            <div className="flex justify-between items-center pt-4 border-t">
+              <div className="text-sm text-muted-foreground">
+                {filteredVideos.length} of {videos.length} videos
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowVideoSelector(false)}
+                >
+                  Cancel
+                </Button>
+                {selectedVideoForStart && (
+                  <Button
+                    onClick={() => setShowVideoSelector(false)}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    Use Selected Video
+                  </Button>
+                )}
+              </div>
+            </div>
           </DialogContent>
         </Dialog>
       )}

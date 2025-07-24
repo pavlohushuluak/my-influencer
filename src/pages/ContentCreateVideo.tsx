@@ -89,8 +89,8 @@ function ContentCreateVideo({ influencerData }: ContentCreateVideoProps) {
                 <div className="flex items-center gap-4 text-sm text-slate-600 dark:text-slate-300 group-hover:text-slate-700 dark:group-hover:text-slate-200 transition-colors duration-300">
                   <div className="w-3 h-3 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full shadow-sm"></div>
                   <span className="font-medium">Professional quality settings</span>
-                </div>
-              </div>
+          </div>
+          </div>
 
               {/* Action Button */}
               <div className="pt-4">
@@ -105,7 +105,7 @@ function ContentCreateVideo({ influencerData }: ContentCreateVideoProps) {
                   Start Creating Videos
                 </Button>
               </div>
-            </div>
+          </div>
           </CardContent>
         </Card>
 
@@ -124,11 +124,11 @@ function ContentCreateVideo({ influencerData }: ContentCreateVideoProps) {
             </div>
             <CardTitle className="text-3xl font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-rose-600 bg-clip-text text-transparent mb-3">
               Create LipSync Video
-            </CardTitle>
+              </CardTitle>
             <p className="text-slate-600 dark:text-slate-300 leading-relaxed text-lg">
               Create engaging lip-sync videos with custom audio, voice selection, and synchronized mouth movements
             </p>
-          </CardHeader>
+            </CardHeader>
           <CardContent className="relative z-10 pt-0">
             <div className="space-y-6">
               {/* Features List */}
@@ -149,11 +149,11 @@ function ContentCreateVideo({ influencerData }: ContentCreateVideoProps) {
                   <div className="w-3 h-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full shadow-sm"></div>
                   <span className="font-medium">Perfect lip synchronization</span>
                 </div>
-              </div>
+        </div>
 
               {/* Action Button */}
               <div className="pt-4">
-                <Button 
+                <Button
                   className="w-full h-14 bg-gradient-to-r from-purple-600 via-pink-600 to-rose-600 hover:from-purple-700 hover:via-pink-700 hover:to-rose-700 text-white font-bold text-lg shadow-xl hover:shadow-2xl transition-all duration-300 group-hover:scale-[1.02]"
                   onClick={(e) => {
                     e.stopPropagation();
@@ -165,11 +165,11 @@ function ContentCreateVideo({ influencerData }: ContentCreateVideoProps) {
                 </Button>
               </div>
             </div>
-          </CardContent>
-        </Card>
-      </div>
+            </CardContent>
+          </Card>
+        </div>
     </div>
   );
-}
+} 
 
 export default ContentCreateVideo;

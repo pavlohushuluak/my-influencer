@@ -58,8 +58,13 @@ const VIDEO_DURATIONS = [
 ];
 
 const VIDEO_ENGINES = [
-  { value: 'Kling 2.1', label: 'Kling 2.1' },
-  { value: 'WAN 2.1', label: 'WAN 2.1' }
+  { value: 'kling-v2.1', label: 'Kling 2.1' },
+  { value: 'wan-v2.1', label: 'WAN 2.1' }
+];
+
+const KLING_MODES = [
+  { value: 'standard', label: 'Standard (720p)' },
+  { value: 'pro', label: 'Pro (1080p)' }
 ];
 
 const VIDEO_QUALITY_OPTIONS = [
@@ -139,7 +144,8 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
     nsfw_strength: 0,
     lora_strength: 1.0,
     quality: 'Quality',
-    engine: 'Kling 2.1',
+    engine: 'kling-v2.1',
+    mode: 'standard',
     usePromptOnly: false,
     regenerated_from: '',
     fps: 24,
@@ -182,6 +188,9 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
     lifestyle: '',
   });
 
+  // Validation errors state
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
+
   useEffect(() => {
     if (influencerData) {
       // Save influencer data to modelData state
@@ -220,10 +229,19 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
   }, [influencerData]);
 
   const handleInputChange = (field: string, value: any) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
+    setFormData(prev => {
+      const newData = {
+        ...prev,
+        [field]: value
+      };
+
+      // Reset mode when engine changes
+      if (field === 'engine') {
+        newData.mode = value === 'kling-v2.1' ? 'standard' : '';
+      }
+
+      return newData;
+    });
   };
 
   const handleSceneSpecChange = (field: string, value: any) => {
@@ -346,88 +364,46 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
     );
   };
 
-  // Fetch options from API
-  useEffect(() => {
-    const fetchOptions = async () => {
-      try {
-        // Fetch framing options
-        const framingResponse = await fetch('https://api.nymia.ai/v1/getoptions?type=framing', {
-          headers: { 'Authorization': 'Bearer WeInfl3nc3withAI' }
-        });
-        if (framingResponse.ok) {
-          const framingData = await framingResponse.json();
-          setFramingOptions(framingData);
-        }
-
-        // Fetch clothes options
-        const clothesResponse = await fetch('https://api.nymia.ai/v1/getoptions?type=clothes', {
-          headers: { 'Authorization': 'Bearer WeInfl3nc3withAI' }
-        });
-        if (clothesResponse.ok) {
-          const clothesData = await clothesResponse.json();
-          setClothesOptions(clothesData);
-        }
-
-        // Fetch rotation options
-        const rotationResponse = await fetch('https://api.nymia.ai/v1/getoptions?type=rotation', {
-          headers: { 'Authorization': 'Bearer WeInfl3nc3withAI' }
-        });
-        if (rotationResponse.ok) {
-          const rotationData = await rotationResponse.json();
-          setRotationOptions(rotationData);
-        }
-
-        // Fetch lighting options
-        const lightingResponse = await fetch('https://api.nymia.ai/v1/getoptions?type=lighting', {
-          headers: { 'Authorization': 'Bearer WeInfl3nc3withAI' }
-        });
-        if (lightingResponse.ok) {
-          const lightingData = await lightingResponse.json();
-          setLightingOptions(lightingData);
-        }
-
-        // Fetch pose options
-        const poseResponse = await fetch('https://api.nymia.ai/v1/getoptions?type=pose', {
-          headers: { 'Authorization': 'Bearer WeInfl3nc3withAI' }
-        });
-        if (poseResponse.ok) {
-          const poseData = await poseResponse.json();
-          setPoseOptions(poseData);
-        }
-
-        // Fetch scene settings options
-        const sceneSettingsResponse = await fetch('https://api.nymia.ai/v1/getoptions?type=scene_settings', {
-          headers: { 'Authorization': 'Bearer WeInfl3nc3withAI' }
-        });
-        if (sceneSettingsResponse.ok) {
-          const sceneSettingsData = await sceneSettingsResponse.json();
-          setSceneSettingsOptions(sceneSettingsData);
-        }
-      } catch (error) {
-        console.error('Error fetching options:', error);
-      }
-    };
-
-    fetchOptions();
-  }, []);
+  const isFormValid = () => {
+    return (
+      formData.prompt.trim() !== '' &&
+      modelData?.image_url &&
+      formData.engine &&
+      (formData.engine !== 'kling-v2.1' || formData.mode) &&
+      formData.duration &&
+      parseInt(formData.duration) >= 1
+    );
+  };
 
   const validateForm = () => {
+    const errors: string[] = [];
+
     if (!formData.prompt.trim()) {
-      toast.error('Please enter a prompt');
-      return false;
+      errors.push('Please enter a prompt');
     }
     if (!modelData?.image_url) {
-      toast.error('Please select a start image for the video');
-      return false;
+      errors.push('Please select a start image for the video');
     }
     if (!formData.engine) {
-      toast.error('Please select a video engine');
-      return false;
+      errors.push('Please select a video engine');
+    }
+    if (formData.engine === 'kling-v2.1' && !formData.mode) {
+      errors.push('Please select a mode for Kling 2.1');
     }
     if (!formData.duration || parseInt(formData.duration) < 1) {
-      toast.error('Please select a valid video duration');
+      errors.push('Please select a valid video duration');
+    }
+
+    setValidationErrors(errors);
+
+    if (errors.length > 0) {
+      // Show the first error as a toast
+      toast.error(errors[0]);
       return false;
     }
+
+    // Clear validation errors if validation passes
+    setValidationErrors([]);
     return true;
   };
 
@@ -439,8 +415,8 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
       // Prepare the video generation payload
       const videoGenerationData = {
         user_uuid: userData.id,
-        model: formData.engine === 'Kling 2.1' ? 'kwaivgi/kling-v2.1' : 'wan-v2.1',
-        mode: "standard",
+        model: formData.engine,
+        mode: formData.mode,
         prompt: formData.prompt,
         duration: parseInt(formData.duration),
         start_image: modelData?.image_url ? modelData.image_url.split('/').pop() || '' : '',
@@ -448,6 +424,8 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
         negative_prompt: formData.negative_prompt || '',
         status: "new"
       };
+
+      console.log(videoGenerationData);
 
       const response = await fetch('https://api.nymia.ai/v1/generatevideo', {
         method: 'POST',
@@ -477,6 +455,7 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
   };
 
   const handleClear = () => {
+    setValidationErrors([]);
     setFormData({
       model: '',
       scene: '',
@@ -493,7 +472,8 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
       nsfw_strength: 0,
       lora_strength: 1.0,
       quality: 'Quality',
-      engine: 'Kling 2.1',
+      engine: 'kling-v2.1',
+      mode: 'standard',
       usePromptOnly: false,
       regenerated_from: '',
       fps: 24,
@@ -581,7 +561,7 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
             </Button>
 
             <Button
-              onClick={() => {/* handleSavePreset */}}
+              onClick={() => {/* handleSavePreset */ }}
               variant="outline"
               size="sm"
               className="h-10 px-4 bg-gradient-to-r from-emerald-50 to-green-50 dark:from-emerald-900/20 dark:to-green-900/20 border-emerald-200 dark:border-emerald-700 hover:from-emerald-100 hover:to-green-100 dark:hover:from-emerald-800/30 dark:hover:to-green-800/30 text-emerald-700 dark:text-emerald-300 font-medium shadow-sm hover:shadow-md transition-all duration-200"
@@ -591,10 +571,30 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
             </Button>
           </div>
         </div>
+
+        {/* Validation Errors Display */}
+        {validationErrors.length > 0 && (
+          <div className="mt-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+            <div className="flex items-center gap-2 mb-2">
+              <AlertTriangle className="w-4 h-4 text-red-500" />
+              <span className="text-sm font-medium text-red-700 dark:text-red-300">
+                Please fix the following issues:
+              </span>
+            </div>
+            <ul className="list-disc list-inside space-y-1">
+              {validationErrors.map((error, index) => (
+                <li key={index} className="text-sm text-red-600 dark:text-red-400">
+                  {error}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-1 gap-2">
           <Button
             onClick={handleGenerate}
-            disabled={!validateForm() || isGenerating}
+            disabled={!isFormValid() || isGenerating}
             className="bg-gradient-to-r from-blue-600 to-indigo-600"
             size="lg"
           >
@@ -643,7 +643,7 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
           </Button>
 
           <Button
-            onClick={() => {/* handleSavePreset */}}
+            onClick={() => {/* handleSavePreset */ }}
             variant="outline"
             className="h-10 px-4 bg-gradient-to-r from-emerald-50 to-green-50 dark:from-emerald-900/20 dark:to-green-900/20 border-emerald-200 dark:border-emerald-700 hover:from-emerald-100 hover:to-green-100 dark:hover:from-emerald-800/30 dark:hover:to-green-800/30 text-emerald-700 dark:text-emerald-300 font-medium shadow-sm hover:shadow-md transition-all duration-200"
           >
@@ -776,11 +776,32 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
                       <SelectValue placeholder="Select engine" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Kling 2.1">Kling 2.1</SelectItem>
-                      <SelectItem value="WAN 2.1">WAN 2.1</SelectItem>
+                      {VIDEO_ENGINES.map((engine) => (
+                        <SelectItem key={engine.value} value={engine.value}>
+                          {engine.label}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
+
+                {formData.engine === 'kling-v2.1' && (
+                  <div className="space-y-2">
+                    <Label>Kling Mode</Label>
+                    <Select value={formData.mode} onValueChange={(value) => handleInputChange('mode', value)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select mode" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {KLING_MODES.map((mode) => (
+                          <SelectItem key={mode.value} value={mode.value}>
+                            {mode.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
 
                 <div className="space-y-2">
                   <Label>Resolution</Label>

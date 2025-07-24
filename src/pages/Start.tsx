@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '@/store/store';
@@ -18,6 +18,18 @@ export default function Start() {
   const dispatch = useDispatch();
   const userData = useSelector((state: RootState) => state.user);
   const { influencers } = useSelector((state: RootState) => state.influencers);
+  
+  // Get latest generated influencer with lorastatus === 0
+  const latestGeneratedInfluencerWithLora0 = useMemo(() => {
+    const influencersWithLora0 = influencers.filter(inf => inf.lorastatus === 0);
+    if (influencersWithLora0.length === 0) return null;
+    
+    return influencersWithLora0.sort((a, b) => {
+      const dateA = new Date(a.created_at).getTime();
+      const dateB = new Date(b.created_at).getTime();
+      return dateB - dateA;
+    })[0];
+  }, [influencers]);
 
   // console.log('Influencers:', influencers);
 
@@ -30,14 +42,10 @@ export default function Start() {
   const [blinkState, setBlinkState] = useState(false);
   
   // Check localStorage for guide_step
-  const [localGuideStep, setLocalGuideStep] = useState<number>(0);
-  
-  useEffect(() => {
-    const storedGuideStep = localStorage.getItem('guide_step');
-    if (storedGuideStep) {
-      setLocalGuideStep(parseInt(storedGuideStep));
-    }
-  }, []);
+  const [localGuideStep, setLocalGuideStep] = useState<number>(() => {
+    const stored = localStorage.getItem('guide_step');
+    return stored ? parseInt(stored, 10) : currentPhase;
+  });
   
   // LoRA Training Modal States
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
@@ -103,6 +111,14 @@ export default function Start() {
   }, [userData.billing_date, userData.id]);
 
   // console.log('User Data:', userData);
+  // Sync localStorage with current guide_step
+  useEffect(() => {
+    if (currentPhase !== localGuideStep) {
+      setLocalGuideStep(currentPhase);
+      localStorage.setItem('guide_step', currentPhase.toString());
+    }
+  }, [currentPhase, localGuideStep]);
+
   useEffect(() => {
     const fetchInfluencers = async () => {
       try {
@@ -251,28 +267,6 @@ export default function Start() {
   // Use Redux selectors for getting latest influencers
   const latestTrainedInfluencer = useSelector(selectLatestTrainedInfluencer);
   const latestGeneratedInfluencer = useSelector(selectLatestGeneratedInfluencer);
-  
-  // Get latest influencer with lorastatus === 0 for Phase 2
-  const latestUntrainedInfluencer = useSelector((state: RootState) => {
-    const { influencers } = state.influencers;
-    const untrainedInfluencers = [...influencers].filter(inf => inf.lorastatus === 0);
-    
-    if (untrainedInfluencers.length === 0) return null;
-    
-    return untrainedInfluencers.sort((a, b) => {
-      const dateA = parseDate(a.created_at);
-      const dateB = parseDate(b.created_at);
-      
-      // If created_at is not available, fallback to updated_at
-      if (dateA === 0 && dateB === 0) {
-        const updatedA = parseDate(a.updated_at);
-        const updatedB = parseDate(b.updated_at);
-        return updatedB - updatedA;
-      }
-      
-      return dateB - dateA;
-    })[0];
-  });
 
   const handleCreateInfluencer = async () => {
     if (currentPhase === 0) {
@@ -362,6 +356,19 @@ export default function Start() {
         return;
       }
 
+      // Special handling for Phase 2 - show modal with the influencer from right side
+      if (phaseId === 2) {
+        if (latestGeneratedInfluencerWithLora0) {
+          setSelectedPhase2Influencer(latestGeneratedInfluencerWithLora0);
+          setShowPhase2Modal(true);
+        } else {
+          toast.error('No influencers available for Phase 2', {
+            description: 'Please create an influencer first before starting Phase 2.'
+          });
+        }
+        return;
+      }
+
       // Update the current phase in Redux store
       dispatch(setUser({ guide_step: phaseId }));
 
@@ -376,33 +383,24 @@ export default function Start() {
   };
 
   const handleContinueWork = () => {
-    // Check if we should show warning modal (for phase 2) or navigate directly (for phase > 2)
+    // If localStorage guide_step > 2, navigate to that step
     if (localGuideStep > 2) {
-      // Navigate to the appropriate guide step
-      navigateToGuideStep(localGuideStep);
-    } else {
-      // Skip warning and go directly to Phase 3
-      handleConfirmContinueWork();
-    }
-  };
-
-  const navigateToGuideStep = (step: number) => {
-    switch (step) {
-      case 3:
+      // Update the user's guide_step in Redux and localStorage
+      dispatch(setUser({ guide_step: localGuideStep }));
+      localStorage.setItem('guide_step', localGuideStep.toString());
+      
+      // Navigate to the appropriate step
+      if (localGuideStep === 3) {
         navigate('/content/create');
-        break;
-      case 4:
+      } else if (localGuideStep === 4) {
         navigate('/content/enhance');
-        break;
-      case 5:
-        navigate('/content/schedule');
-        break;
-      case 6:
-        navigate('/content/vault');
-        break;
-      default:
-        navigate('/start');
-        break;
+      } else {
+        // Default to content creation for any step > 2
+        navigate('/content/create');
+      }
+    } else {
+      // Original logic for phase 2
+      setShowWarningModal(true);
     }
   };
 
@@ -503,7 +501,7 @@ export default function Start() {
   };
 
   const handleCopyProfileImage = async () => {
-    const trainingInfluencer = selectedPhase2Influencer || latestGeneratedInfluencer;
+    const trainingInfluencer = selectedPhase2Influencer || latestGeneratedInfluencerWithLora0;
     if (!trainingInfluencer) return;
 
     setIsCopyingImage(true);
@@ -684,17 +682,16 @@ export default function Start() {
                     {getButtonText()}
                   </Button>
 
-                  {/* Continue my work button for Phase 2 and guide_step > 2 */}
+                  {/* Continue my work button for Phase 2 */}
                   {(currentPhase === 2 || localGuideStep > 2) && (
                     <Button
                       onClick={handleContinueWork}
                       variant="outline"
-                      disabled={currentPhase === 2 && !latestUntrainedInfluencer}
-                      className={`font-semibold text-lg px-8 py-4 rounded-xl shadow-xl transition-all duration-300 transform ${
-                        (currentPhase === 2 && latestUntrainedInfluencer) || localGuideStep > 2
+                      disabled={!latestGeneratedInfluencerWithLora0}
+                      className={`font-semibold text-lg px-8 py-4 rounded-xl shadow-xl transition-all duration-300 transform ${latestGeneratedInfluencerWithLora0
                           ? 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white hover:shadow-2xl hover:scale-105 border-green-500'
                           : 'bg-gradient-to-r from-slate-600 to-slate-700 text-slate-400 border-slate-500 cursor-not-allowed opacity-50'
-                      }`}
+                        }`}
                     >
                       Continue my work
                     </Button>
@@ -703,89 +700,159 @@ export default function Start() {
               </div>
             </CardContent>
             <div className="lg:col-span-2 xl:col-span-1 w-full h-full flex flex-col items-center justify-center">
-              {/* Show latest untrained influencer for Phase 2, otherwise show latest generated influencer */}
-              {(() => {
-                const displayInfluencer = currentPhase === 2 ? latestUntrainedInfluencer : latestGeneratedInfluencer;
+              {currentPhase === 2 ? (
+                // Always show latest generated influencer with lorastatus === 0
+                (() => {
+                  const displayInfluencer = latestGeneratedInfluencerWithLora0;
 
-                if (!displayInfluencer) {
-                  return (
-                    <div className="m-4 flex flex-col items-center justify-center text-center">
-                      <div className="w-64 h-64 bg-gradient-to-br from-slate-800/50 to-slate-700/50 rounded-2xl border border-slate-600/30 flex items-center justify-center">
-                        <div className="text-slate-400">
-                          <Circle className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                          <p className="text-sm">No influencers found</p>
+                  if (!displayInfluencer) {
+                    return (
+                      <div className="m-4 flex flex-col items-center justify-center text-center">
+                        <div className="w-64 h-64 bg-gradient-to-br from-slate-800/50 to-slate-700/50 rounded-2xl border border-slate-600/30 flex items-center justify-center">
+                          <div className="text-slate-400">
+                            <Circle className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                            <p className="text-sm">No influencers found</p>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  );
-                }
+                    );
+                  }
 
-                return (
-                  <div className="m-4 flex flex-col items-center justify-center">
-                    <Card className="bg-gradient-to-br from-slate-800/90 to-slate-700/90 border-slate-600/50 shadow-2xl w-64">
-                      <CardContent className="p-6">
-                        <div className="space-y-4">
-                          {/* Profile Image */}
-                          <div className="relative">
-                            <div className="w-full aspect-square bg-gradient-to-br from-slate-700 to-slate-600 rounded-xl overflow-hidden shadow-lg">
-                              {displayInfluencer.image_url ? (
-                                <img
-                                  src={displayInfluencer.image_url}
-                                  alt={`${displayInfluencer.name_first} ${displayInfluencer.name_last}`}
-                                  className="w-full h-full object-cover"
-                                />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center">
-                                  <Circle className="w-12 h-12 text-slate-500" />
+                  return (
+                    <div className="m-4 flex flex-col items-center justify-center">
+                      <Card className="bg-gradient-to-br from-slate-800/90 to-slate-700/90 border-slate-600/50 shadow-2xl w-64">
+                        <CardContent className="p-6">
+                          <div className="space-y-4">
+                            {/* Profile Image */}
+                            <div className="relative">
+                              <div className="w-full aspect-square bg-gradient-to-br from-slate-700 to-slate-600 rounded-xl overflow-hidden shadow-lg">
+                                {displayInfluencer.image_url ? (
+                                  <img
+                                    src={displayInfluencer.image_url}
+                                    alt={`${displayInfluencer.name_first} ${displayInfluencer.name_last}`}
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center">
+                                    <Circle className="w-12 h-12 text-slate-500" />
+                                  </div>
+                                )}
+                              </div>
+                              {displayInfluencer.lorastatus === 0 && (
+                                <div className="absolute -top-2 -right-2 w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center shadow-lg">
+                                  <Brain className="w-4 h-4 text-white" />
                                 </div>
                               )}
                             </div>
-                            {displayInfluencer.lorastatus === 2 && (
-                              <div className="absolute -top-2 -right-2 w-8 h-8 bg-green-500 rounded-full flex items-center justify-center shadow-lg">
-                                <CheckCircle className="w-4 h-4 text-white" />
-                              </div>
-                            )}
-                            {currentPhase === 2 && displayInfluencer.lorastatus === 0 && (
-                              <div className="absolute -top-2 -right-2 w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center shadow-lg">
-                                <Brain className="w-4 h-4 text-white" />
-                              </div>
-                            )}
-                          </div>
 
-                          {/* Influencer Info */}
-                          <div className="text-center space-y-2">
-                            <h3 className="text-lg font-semibold text-white">
-                              {displayInfluencer.name_first} {displayInfluencer.name_last}
-                            </h3>
-                            <p className="text-sm text-slate-400">
-                              {displayInfluencer.influencer_type || 'AI Influencer'}
-                            </p>
-                            <p className="text-xs text-slate-500">
-                              Created: {formatDate(displayInfluencer.created_at)}
-                            </p>
-                            {displayInfluencer.lorastatus === 2 ? (
-                              <div className="flex items-center justify-center gap-2 text-xs text-green-400">
-                                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                                LoRA Trained
-                              </div>
-                            ) : currentPhase === 2 && displayInfluencer.lorastatus === 0 ? (
+                            {/* Influencer Info */}
+                            <div className="text-center space-y-2">
+                              <h3 className="text-lg font-semibold text-white">
+                                {displayInfluencer.name_first} {displayInfluencer.name_last}
+                              </h3>
+                              <p className="text-sm text-slate-400">
+                                {displayInfluencer.influencer_type || 'AI Influencer'}
+                              </p>
+                              <p className="text-xs text-slate-500">
+                                Created: {formatDate(displayInfluencer.created_at)}
+                              </p>
                               <div className="flex items-center justify-center gap-2 text-xs text-blue-400">
                                 <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
                                 Ready for LoRA Training
                               </div>
-                            ) : (
-                              <div className="flex items-center justify-center gap-2 text-xs text-blue-400">
-                                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                                Ready for Training
-                              </div>
-                            )}
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  );
+                })()
+              ) : currentPhase === 3 ? (
+                // Show selected influencer or latest trained influencer for Phase 3
+                (() => {
+                  const displayInfluencer = selectedPhase3Influencer || latestTrainedInfluencer;
+
+                  if (!displayInfluencer) {
+                    return (
+                      <div className="m-4 flex flex-col items-center justify-center text-center">
+                        <div className="w-64 h-64 bg-gradient-to-br from-slate-800/50 to-slate-700/50 rounded-2xl border border-slate-600/30 flex items-center justify-center">
+                          <div className="text-slate-400">
+                            <Circle className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                            <p className="text-sm">No influencers found</p>
                           </div>
                         </div>
-                      </CardContent>
-                    </Card>
-                  </div>
-                );
-              })()}
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="m-4 flex flex-col items-center justify-center space-y-4">
+                      <Card className="bg-gradient-to-br from-slate-800/90 to-slate-700/90 border-slate-600/50 shadow-2xl w-64">
+                        <CardContent className="p-6">
+                          <div className="space-y-4">
+                            {/* Profile Image */}
+                            <div className="relative">
+                              <div className="w-full aspect-square bg-gradient-to-br from-slate-700 to-slate-600 rounded-xl overflow-hidden shadow-lg">
+                                {displayInfluencer.image_url ? (
+                                  <img
+                                    src={displayInfluencer.image_url}
+                                    alt={`${displayInfluencer.name_first} ${displayInfluencer.name_last}`}
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center">
+                                    <Circle className="w-12 h-12 text-slate-500" />
+                                  </div>
+                                )}
+                              </div>
+                              {displayInfluencer.lorastatus === 2 && (
+                                <div className="absolute -top-2 -right-2 w-8 h-8 bg-green-500 rounded-full flex items-center justify-center shadow-lg">
+                                  <CheckCircle className="w-4 h-4 text-white" />
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Influencer Info */}
+                            <div className="text-center space-y-2">
+                              <h3 className="text-lg font-semibold text-white">
+                                {displayInfluencer.name_first} {displayInfluencer.name_last}
+                              </h3>
+                              <p className="text-sm text-slate-400">
+                                {displayInfluencer.influencer_type || 'AI Influencer'}
+                              </p>
+                              <p className="text-xs text-slate-500">
+                                Created: {formatDate(displayInfluencer.created_at)}
+                              </p>
+                              {displayInfluencer.lorastatus === 2 ? (
+                                <div className="flex items-center justify-center gap-2 text-xs text-green-400">
+                                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                  LoRA Trained
+                                </div>
+                              ) : (
+                                <div className="flex items-center justify-center gap-2 text-xs text-blue-400">
+                                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                                  Ready for Training
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                      
+                      {/* Select Another Influencer Button */}
+                      <Button
+                        onClick={() => setShowInfluencerSelectorModal(true)}
+                        variant="outline"
+                        className="w-full bg-transparent border-slate-600 text-slate-300 hover:bg-slate-800 hover:text-white transition-all duration-200"
+                      >
+                        Select another influencer
+                      </Button>
+                    </div>
+                  );
+                })()
+              ) : (
+                <InstructionVideo {...getInstructionVideoConfig(`phase${currentPhase}`)} className="m-4 flex flex-col items-center justify-center " />
+              )}
             </div>
           </Card>
         </div>
@@ -855,7 +922,7 @@ export default function Start() {
           <div className="p-6 space-y-6">
             {/* Influencer Card */}
             {(() => {
-              const displayInfluencer = selectedPhase2Influencer || latestUntrainedInfluencer;
+              const displayInfluencer = selectedPhase2Influencer || latestGeneratedInfluencerWithLora0;
               
               if (!displayInfluencer) {
                 return (
@@ -885,11 +952,9 @@ export default function Start() {
                             </div>
                           )}
                         </div>
-                        {displayInfluencer.lorastatus === 0 && (
-                          <div className="absolute -top-2 -right-2 w-8 h-8 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full flex items-center justify-center shadow-lg">
-                            <Brain className="w-4 h-4 text-white" />
-                          </div>
-                        )}
+                        <div className="absolute -top-2 -right-2 w-8 h-8 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full flex items-center justify-center shadow-lg">
+                          <Brain className="w-4 h-4 text-white" />
+                        </div>
                       </div>
 
                       {/* Influencer Info */}
@@ -903,17 +968,10 @@ export default function Start() {
                         <p className="text-xs text-slate-500">
                           Created: {formatDate(displayInfluencer.created_at)}
                         </p>
-                        {displayInfluencer.lorastatus === 0 ? (
-                          <div className="flex items-center justify-center gap-2 text-xs text-blue-400">
-                            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                            Ready for LoRA Training
-                          </div>
-                        ) : (
-                          <div className="flex items-center justify-center gap-2 text-xs text-slate-400">
-                            <div className="w-2 h-2 bg-slate-500 rounded-full"></div>
-                            {displayInfluencer.lorastatus === 2 ? 'LoRA Trained' : 'Training in Progress'}
-                          </div>
-                        )}
+                        <div className="flex items-center justify-center gap-2 text-xs text-blue-400">
+                          <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                          Ready for LoRA Training
+                        </div>
                       </div>
                     </div>
                   </CardContent>
@@ -971,7 +1029,7 @@ export default function Start() {
           </DialogHeader>
 
           {(() => {
-            const trainingInfluencer = selectedPhase2Influencer || latestGeneratedInfluencer;
+            const trainingInfluencer = selectedPhase2Influencer || latestGeneratedInfluencerWithLora0;
             if (!trainingInfluencer) return null;
 
             return (

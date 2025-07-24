@@ -792,7 +792,7 @@ export default function VaultSelector({
                 <p className="text-muted-foreground mt-2">Loading images...</p>
               </div>
             ) : filteredAndSortedImages.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 overflow-y-auto max-h-96">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 h-full">
                 {filteredAndSortedImages.map((image) => (
                   <Card
                     key={image.id}

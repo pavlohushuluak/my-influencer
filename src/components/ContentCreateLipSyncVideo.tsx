@@ -812,7 +812,7 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
 
       {/* Phase Selection */}
       <div className="bg-gradient-to-r from-slate-50 to-purple-50 dark:from-slate-900/50 dark:to-purple-900/20 rounded-xl p-6 shadow-sm border border-slate-200/50 dark:border-slate-700/50">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Button
             onClick={() => setActivePhase('upload')}
             variant={activePhase === 'upload' ? 'default' : 'outline'}
@@ -829,14 +829,14 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
             <Mic className="w-4 h-4 mr-2" />
             Use nymia voices
           </Button>
-          <Button
+          {/* <Button
             onClick={() => setActivePhase('individual')}
             variant={activePhase === 'individual' ? 'default' : 'outline'}
             className={`h-12 ${activePhase === 'individual' ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white' : 'bg-white dark:bg-slate-800'}`}
           >
             <User className="w-4 h-4 mr-2" />
             Individual Voices
-          </Button>
+          </Button> */}
         </div>
       </div>
 
@@ -1512,7 +1512,7 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
       {/* Video Selector Modal */}
       {showVideoSelector && (
         <Dialog open={showVideoSelector} onOpenChange={setShowVideoSelector}>
-          <DialogContent className="max-w-6xl max-h-[80vh]">
+          <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <Video className="w-5 h-5 text-blue-500" />
@@ -1561,7 +1561,7 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
             </div>
 
             {/* Video Grid */}
-            <ScrollArea className="h-[400px]">
+            <ScrollArea>
               {loadingVideos ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {[...Array(6)].map((_, i) => (
@@ -1581,7 +1581,7 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
                       onClick={() => handleVideoSelect(video)}
                     >
                       <CardContent className="p-3">
-                        <div className="aspect-video bg-slate-100 dark:bg-slate-800 rounded-lg mb-3 relative overflow-hidden">
+                        <div className="aspect-video bg-slate-100 dark:bg-slate-800 rounded-lg mb-3 relative">
                           <video
                             src={getVideoUrl(video.video_id)}
                             className="w-full h-full object-cover"

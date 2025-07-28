@@ -27,7 +27,7 @@ import { DialogZoom, DialogContentZoom } from '@/components/ui/zoomdialog';
 import VaultSelector from '@/components/VaultSelector';
 import PresetsManager from '@/components/PresetsManager';
 import LibraryManager from '@/components/LibraryManager';
-import { Video, Play, Settings, Sparkles, Loader2, Camera, Search, X, Filter, Plus, RotateCcw, Download, Trash2, Calendar, Share, Pencil, Edit3, BookOpen, Save, FolderOpen, Upload, Edit, AlertTriangle, Eye, User, Monitor, ZoomIn, SortAsc, SortDesc, Wand2, Image as ImageIcon, ArrowLeft } from 'lucide-react';
+import { Video, Play, Settings, Sparkles, Loader2, Camera, Search, X, Filter, Plus, RotateCcw, Download, Trash2, Calendar, Share, Pencil, Edit3, BookOpen, Save, FolderOpen, Upload, Edit, AlertTriangle, Eye, User, Monitor, ZoomIn, SortAsc, SortDesc, Wand2, Image as ImageIcon, ArrowLeft, Share2 } from 'lucide-react';
 import HistoryCard from '@/components/HistoryCard';
 
 const VIDEO_OPTIONS = [
@@ -116,6 +116,7 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
   const [generatedVideos, setGeneratedVideos] = useState<any[]>([]);
   const [selectedVideo, setSelectedVideo] = useState<any>(null);
   const [showVideoModal, setShowVideoModal] = useState(false);
+  const [selectedVideoForModal, setSelectedVideoForModal] = useState<any>(null);
 
   // Preset and library states
   const [showPresetModal, setShowPresetModal] = useState(false);
@@ -231,6 +232,9 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
 
     fetchVideos();
   }, [userData.id]);
+
+  // Filter videos for regular video history (lip_flag === false or undefined)
+  const regularVideos = videos.filter(video => !video.lip_flag);
 
   useEffect(() => {
     if (influencerData) {
@@ -621,6 +625,28 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
     setSelectedVideoForStart(video);
     setShowVideoSelector(false);
     toast.success(`Selected video: ${video.prompt.substring(0, 50)}...`);
+  };
+
+  const handleVideoClick = (video: any) => {
+    setSelectedVideoForModal(video);
+    setShowVideoModal(true);
+  };
+
+  const handleDownload = (video: any) => {
+    const videoUrl = getVideoUrl(video.video_id);
+    const link = document.createElement('a');
+    link.href = videoUrl;
+    link.download = `video-${video.video_id}.mp4`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success('Download started');
+  };
+
+  const handleShare = (video: any) => {
+    const videoUrl = getVideoUrl(video.video_id);
+    navigator.clipboard.writeText(videoUrl);
+    toast.success('Video URL copied to clipboard');
   };
 
   return (
@@ -1108,13 +1134,169 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
 
       {showHistory && (
         <Dialog open={showHistory} onOpenChange={setShowHistory}>
-          <DialogContent>
+          <DialogContent className="max-w-6xl max-h-[80vh]">
             <DialogHeader>
-              <DialogTitle>Video History</DialogTitle>
+              <DialogTitle className="flex items-center gap-2">
+                <Video className="w-5 h-5 text-blue-500" />
+                Video Generation History
+              </DialogTitle>
               <DialogDescription>
-                Your video generation history will appear here.
+                Your video generation history. Showing {regularVideos.length} videos.
               </DialogDescription>
             </DialogHeader>
+
+            {/* Search and Filter Controls */}
+            <div className="space-y-4">
+              <div className="flex flex-col sm:flex-row gap-3">
+                <div className="flex-1">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                    <Input
+                      placeholder="Search videos by prompt or model..."
+                      value={videoSearchTerm}
+                      onChange={(e) => setVideoSearchTerm(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
+                <Select value={videoFilterStatus} onValueChange={setVideoFilterStatus}>
+                  <SelectTrigger className="w-full sm:w-48">
+                    <SelectValue placeholder="Filter by status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Videos</SelectItem>
+                    <SelectItem value="completed">Completed</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select value={videoSortBy} onValueChange={setVideoSortBy}>
+                  <SelectTrigger className="w-full sm:w-48">
+                    <SelectValue placeholder="Sort by" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="newest">Newest First</SelectItem>
+                    <SelectItem value="oldest">Oldest First</SelectItem>
+                    <SelectItem value="duration">Duration</SelectItem>
+                    <SelectItem value="model">Model</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Video Grid */}
+            <ScrollArea className="h-[400px]">
+              {loadingVideos ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {[...Array(6)].map((_, i) => (
+                    <div key={i} className="animate-pulse">
+                      <div className="aspect-video bg-slate-200 dark:bg-slate-700 rounded-lg mb-2"></div>
+                      <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded mb-2"></div>
+                      <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-2/3"></div>
+                    </div>
+                  ))}
+                </div>
+              ) : regularVideos.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {regularVideos
+                    .filter(video => {
+                      const matchesStatus = videoFilterStatus === 'all' || video.status === videoFilterStatus;
+                      const matchesSearch = video.prompt.toLowerCase().includes(videoSearchTerm.toLowerCase()) ||
+                        video.model.toLowerCase().includes(videoSearchTerm.toLowerCase());
+                      return matchesStatus && matchesSearch;
+                    })
+                    .sort((a, b) => {
+                      switch (videoSortBy) {
+                        case 'newest':
+                          return new Date(b.task_created_at).getTime() - new Date(a.task_created_at).getTime();
+                        case 'oldest':
+                          return new Date(a.task_created_at).getTime() - new Date(b.task_created_at).getTime();
+                        case 'duration':
+                          return b.duration - a.duration;
+                        case 'model':
+                          return a.model.localeCompare(b.model);
+                        default:
+                          return 0;
+                      }
+                    })
+                    .map((video) => (
+                      <Card
+                        key={video.video_id}
+                        className="group cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-105"
+                      >
+                        <CardContent className="p-3">
+                          <div className="aspect-video bg-slate-100 dark:bg-slate-800 rounded-lg mb-3 relative overflow-hidden">
+                            <video
+                              src={getVideoUrl(video.video_id)}
+                              className="w-full h-full object-cover"
+                              muted
+                              loop
+                            />
+                            <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
+                              <div className="bg-white/90 dark:bg-slate-800/90 rounded-lg p-2">
+                                <Play className="w-6 h-6 text-blue-600" />
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="space-y-2">
+                            <div className="flex items-start justify-between">
+                              <h4 className="font-medium text-sm line-clamp-2">
+                                {video.prompt.substring(0, 60)}...
+                              </h4>
+                              <Badge 
+                                variant="outline" 
+                                className={`text-xs ${getVideoStatusColor(video.status)}`}
+                              >
+                                {video.status}
+                              </Badge>
+                            </div>
+                            
+                            <div className="flex items-center justify-between text-xs text-muted-foreground">
+                              <span>{getVideoModelDisplayName(video.model)}</span>
+                              <span>{formatVideoDuration(video.duration)}</span>
+                            </div>
+                            
+                            <div className="text-xs text-muted-foreground">
+                              {formatVideoDate(video.task_created_at)}
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <Video className="w-12 h-12 text-slate-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-slate-900 dark:text-slate-100 mb-2">
+                    No videos found
+                  </h3>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                    {videoSearchTerm || videoFilterStatus !== 'all' 
+                      ? 'Try adjusting your search or filter criteria.'
+                      : 'Create your first video to get started.'
+                    }
+                  </p>
+                </div>
+              )}
+            </ScrollArea>
+
+            <div className="flex justify-between items-center pt-4 border-t">
+              <div className="text-sm text-muted-foreground">
+                {regularVideos.filter(video => {
+                  const matchesStatus = videoFilterStatus === 'all' || video.status === videoFilterStatus;
+                  const matchesSearch = video.prompt.toLowerCase().includes(videoSearchTerm.toLowerCase()) ||
+                    video.model.toLowerCase().includes(videoSearchTerm.toLowerCase());
+                  return matchesStatus && matchesSearch;
+                }).length} of {regularVideos.length} videos
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowHistory(false)}
+                >
+                  Close
+                </Button>
+              </div>
+            </div>
           </DialogContent>
         </Dialog>
       )}
@@ -1297,6 +1479,109 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Video Playback Modal */}
+      <Dialog open={showVideoModal} onOpenChange={setShowVideoModal}>
+        <DialogContent className="max-w-4xl w-[95vw] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Video className="w-5 h-5 text-blue-500" />
+              Video Details
+            </DialogTitle>
+          </DialogHeader>
+          
+          {selectedVideoForModal && (
+            <div className="space-y-6">
+              {/* Video Player */}
+              <div className="relative aspect-video bg-black rounded-lg overflow-hidden">
+                <video
+                  src={getVideoUrl(selectedVideoForModal.video_id)}
+                  className="w-full h-full"
+                  controls
+                  autoPlay
+                />
+              </div>
+
+              {/* Video Information */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <div>
+                    <Label className="text-sm font-medium text-muted-foreground">Prompt</Label>
+                    <p className="text-sm mt-1">{selectedVideoForModal.prompt}</p>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-sm font-medium text-muted-foreground">Model</Label>
+                      <p className="text-sm mt-1">{getVideoModelDisplayName(selectedVideoForModal.model)}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium text-muted-foreground">Mode</Label>
+                      <p className="text-sm mt-1">{selectedVideoForModal.mode || 'Standard'}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium text-muted-foreground">Duration</Label>
+                      <p className="text-sm mt-1">{formatVideoDuration(selectedVideoForModal.duration)}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium text-muted-foreground">Resolution</Label>
+                      <p className="text-sm mt-1">{selectedVideoForModal.resolution || 'HD'}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <Label className="text-sm font-medium text-muted-foreground">Created</Label>
+                    <p className="text-sm mt-1">{formatVideoDate(selectedVideoForModal.task_created_at)}</p>
+                  </div>
+                  
+                  <div>
+                    <Label className="text-sm font-medium text-muted-foreground">Status</Label>
+                    <div className="flex items-center gap-2 mt-1">
+                      <Badge className={`${getVideoStatusColor(selectedVideoForModal.status)} border`}>
+                        {selectedVideoForModal.status}
+                      </Badge>
+                    </div>
+                  </div>
+
+                  {selectedVideoForModal.negative_prompt && (
+                    <div>
+                      <Label className="text-sm font-medium text-muted-foreground">Negative Prompt</Label>
+                      <p className="text-sm mt-1">{selectedVideoForModal.negative_prompt}</p>
+                    </div>
+                  )}
+
+                  {selectedVideoForModal.start_image && (
+                    <div>
+                      <Label className="text-sm font-medium text-muted-foreground">Start Image</Label>
+                      <p className="text-sm mt-1">{selectedVideoForModal.start_image}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-3 pt-4 border-t">
+                <Button
+                  onClick={() => handleDownload(selectedVideoForModal)}
+                  className="bg-gradient-to-r from-green-600 to-emerald-600"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Download
+                </Button>
+                <Button
+                  onClick={() => handleShare(selectedVideoForModal)}
+                  variant="outline"
+                >
+                  <Share2 className="w-4 h-4 mr-2" />
+                  Share
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

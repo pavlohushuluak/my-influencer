@@ -50,6 +50,7 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
   const userData = useSelector((state: RootState) => state.user);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isGeneratingVoice, setIsGeneratingVoice] = useState<string | null>(null);
+  const [isUploadingAudio, setIsUploadingAudio] = useState(false);
   const [activePhase, setActivePhase] = useState<'upload' | 'elevenlabs' | 'individual'>('upload');
 
   // Model data state to store influencer or selected video information
@@ -91,6 +92,8 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
   const [showPresetModal, setShowPresetModal] = useState(false);
   const [showLibraryModal, setShowLibraryModal] = useState(false);
   const [showVaultModal, setShowVaultModal] = useState(false);
+  const [showVideoModal, setShowVideoModal] = useState(false);
+  const [selectedVideoForModal, setSelectedVideoForModal] = useState<any>(null);
 
   // ElevenLabs voices (will be fetched from voice table)
   const [elevenLabsVoices, setElevenLabsVoices] = useState<VoiceOption[]>([]);
@@ -152,6 +155,9 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
 
     fetchVideos();
   }, [userData.id]);
+
+  // Filter videos for lip sync history (lip_flag === true)
+  const lipSyncVideos = videos.filter(video => video.lip_flag === true);
 
   // Cleanup audio elements on unmount
   useEffect(() => {
@@ -221,7 +227,7 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
     }
   }, [influencerData]);
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       // Validate file type
@@ -236,11 +242,59 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
         return;
       }
 
-      setUploadedAudioFile(file);
-      setValidationErrors([]);
-      const url = URL.createObjectURL(file);
-      setUploadedAudioUrl(url);
-      toast.success('Audio file uploaded successfully');
+      try {
+        setIsUploadingAudio(true);
+        
+        // Create FormData for file upload
+        const formData = new FormData();
+        formData.append('file', file);
+
+        // Generate a unique filename
+        const timestamp = Date.now();
+        const fileExtension = file.name.split('.').pop();
+        const filename = `uploaded_audio_${timestamp}.${fileExtension}`;
+
+        // Upload file to the API
+        const uploadUrl = `https://api.nymia.ai/v1/uploadfile?user=${userData.id}&filename=audio/${filename}`;
+        
+        console.log('Uploading file to:', uploadUrl);
+        console.log('Filename:', filename);
+
+        const response = await fetch(uploadUrl, {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Bearer WeInfl3nc3withAI'
+          },
+          body: formData
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          console.log('File upload response:', result);
+
+          // Set the uploaded file and URL
+          setUploadedAudioFile(file);
+          setValidationErrors([]);
+          
+          // Create the audio URL for the uploaded file
+          const audioUrl = `https://images.nymia.ai/${userData.id}/audio/${filename}`;
+          setUploadedAudioUrl(audioUrl);
+          
+          // Also set as selected audio for lip sync
+          setSelectedAudioUrl(audioUrl);
+          setSelectedAudioId(`uploaded_${timestamp}`);
+
+          toast.success('Audio file uploaded and saved successfully');
+        } else {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.message || 'Failed to upload audio file');
+        }
+      } catch (error) {
+        console.error('Error uploading audio file:', error);
+        toast.error(`Failed to upload audio file: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      } finally {
+        setIsUploadingAudio(false);
+      }
     }
   };
 
@@ -249,7 +303,7 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
     console.log('voice', voice);
     const selectedUrl = `https://images.nymia.ai/wizard/mappings/${voice.elevenlabs_id}.mp3`;
     setSelectedAudioUrl(selectedUrl);
-    setSelectedAudioId(voice.id.toString());
+    setSelectedAudioId(voice.elevenlabs_id);
     setValidationErrors([]);
     toast.success(`Selected voice: ${voice.name}`);
   };
@@ -271,15 +325,15 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
       errors.push('Please select a video to apply lip-sync to');
     }
 
-    // Check if audio is selected
-    if (!selectedAudioUrl) {
-      errors.push('Please select an audio file for lip-sync video generation');
-    }
-
     // Phase-specific validation
     if (activePhase === 'upload') {
-      if (!uploadedAudioFile) {
+      if (!uploadedAudioFile || !selectedAudioUrl) {
         errors.push('Please upload an audio file');
+      }
+    } else {
+      // Check if audio is selected for other phases
+      if (!selectedAudioUrl) {
+        errors.push('Please select an audio file for lip-sync video generation');
       }
     }
 
@@ -401,6 +455,7 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
     setIndividualVoiceId('');
     setSelectedVideo(null);
     setValidationErrors([]);
+    setIsUploadingAudio(false);
 
     // Stop and clean up any playing audio
     if (playingAudioId) {
@@ -412,6 +467,7 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
     setGeneratedAudioData(null);
     setGeneratedAudioUrl(null);
     setSelectedAudioUrl(null);
+    setSelectedAudioId('');
 
     if (uploadedAudioUrl) {
       URL.revokeObjectURL(uploadedAudioUrl);
@@ -593,6 +649,28 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
     setShowVideoSelector(false);
     setValidationErrors([]);
     toast.success(`Selected video: ${video.prompt.substring(0, 50)}...`);
+  };
+
+  const handleVideoClick = (video: any) => {
+    setSelectedVideoForModal(video);
+    setShowVideoModal(true);
+  };
+
+  const handleDownload = (video: any) => {
+    const videoUrl = getVideoUrl(video.video_id);
+    const link = document.createElement('a');
+    link.href = videoUrl;
+    link.download = `lipsync-video-${video.video_id}.mp4`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success('Download started');
+  };
+
+  const handleShare = (video: any) => {
+    const videoUrl = getVideoUrl(video.video_id);
+    navigator.clipboard.writeText(videoUrl);
+    toast.success('Video URL copied to clipboard');
   };
 
   return (
@@ -1589,13 +1667,176 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
 
       {showHistory && (
         <Dialog open={showHistory} onOpenChange={setShowHistory}>
-          <DialogContent>
+          <DialogContent className="max-w-6xl max-h-[80vh]">
             <DialogHeader>
-              <DialogTitle>LipSync Video History</DialogTitle>
+              <DialogTitle className="flex items-center gap-2">
+                <Video className="w-5 h-5 text-purple-500" />
+                LipSync Video History
+              </DialogTitle>
               <DialogDescription>
-                Your lip-sync video generation history will appear here.
+                Your lip-sync video generation history. Showing {lipSyncVideos.length} videos.
               </DialogDescription>
             </DialogHeader>
+
+            {/* Search and Filter Controls */}
+            <div className="space-y-4">
+              <div className="flex flex-col sm:flex-row gap-3">
+                <div className="flex-1">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                    <Input
+                      placeholder="Search lip-sync videos by prompt or model..."
+                      value={videoSearchTerm}
+                      onChange={(e) => setVideoSearchTerm(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
+                <Select value={videoFilterStatus} onValueChange={setVideoFilterStatus}>
+                  <SelectTrigger className="w-full sm:w-48">
+                    <SelectValue placeholder="Filter by status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Videos</SelectItem>
+                    <SelectItem value="completed">Completed</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select value={videoSortBy} onValueChange={setVideoSortBy}>
+                  <SelectTrigger className="w-full sm:w-48">
+                    <SelectValue placeholder="Sort by" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="newest">Newest First</SelectItem>
+                    <SelectItem value="oldest">Oldest First</SelectItem>
+                    <SelectItem value="duration">Duration</SelectItem>
+                    <SelectItem value="model">Model</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Video Grid */}
+            <ScrollArea className="h-[400px]">
+              {loadingVideos ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {[...Array(6)].map((_, i) => (
+                    <div key={i} className="animate-pulse">
+                      <div className="aspect-video bg-slate-200 dark:bg-slate-700 rounded-lg mb-2"></div>
+                      <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded mb-2"></div>
+                      <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-2/3"></div>
+                    </div>
+                  ))}
+                </div>
+              ) : lipSyncVideos.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {lipSyncVideos
+                    .filter(video => {
+                      const matchesStatus = videoFilterStatus === 'all' || video.status === videoFilterStatus;
+                      const matchesSearch = video.prompt.toLowerCase().includes(videoSearchTerm.toLowerCase()) ||
+                        video.model.toLowerCase().includes(videoSearchTerm.toLowerCase());
+                      return matchesStatus && matchesSearch;
+                    })
+                    .sort((a, b) => {
+                      switch (videoSortBy) {
+                        case 'newest':
+                          return new Date(b.task_created_at).getTime() - new Date(a.task_created_at).getTime();
+                        case 'oldest':
+                          return new Date(a.task_created_at).getTime() - new Date(b.task_created_at).getTime();
+                        case 'duration':
+                          return b.duration - a.duration;
+                        case 'model':
+                          return a.model.localeCompare(b.model);
+                        default:
+                          return 0;
+                      }
+                    })
+                    .map((video) => (
+                      <Card
+                        key={video.video_id}
+                        className="group cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-105"
+                        onClick={() => handleVideoClick(video)}
+                      >
+                        <CardContent className="p-3">
+                          <div className="aspect-video bg-slate-100 dark:bg-slate-800 rounded-lg mb-3 relative overflow-hidden">
+                            <video
+                              src={getVideoUrl(video.video_id)}
+                              className="w-full h-full object-cover"
+                              muted
+                              loop
+                            />
+                            <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
+                              <div className="bg-white/90 dark:bg-slate-800/90 rounded-lg p-2">
+                                <Play className="w-6 h-6 text-purple-600" />
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="space-y-2">
+                            <div className="flex items-start justify-between">
+                              <h4 className="font-medium text-sm line-clamp-2">
+                                {video.prompt.substring(0, 60)}...
+                              </h4>
+                              <div className="flex items-center gap-1">
+                                <Badge
+                                  variant="outline"
+                                  className={`text-xs ${getVideoStatusColor(video.status)}`}
+                                >
+                                  {video.status}
+                                </Badge>
+                                <Badge className="bg-gradient-to-r from-pink-500 to-purple-500 text-white border-0 shadow-sm text-xs">
+                                  <Sparkles className="w-2 h-2 mr-1" />
+                                  LipSync
+                                </Badge>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center justify-between text-xs text-muted-foreground">
+                              <span>{getVideoModelDisplayName(video.model)}</span>
+                              <span>{formatVideoDuration(video.duration)}</span>
+                            </div>
+
+                            <div className="text-xs text-muted-foreground">
+                              {formatVideoDate(video.task_created_at)}
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <Video className="w-12 h-12 text-slate-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-slate-900 dark:text-slate-100 mb-2">
+                    No lip-sync videos found
+                  </h3>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                    {videoSearchTerm || videoFilterStatus !== 'all'
+                      ? 'Try adjusting your search or filter criteria.'
+                      : 'Create your first lip-sync video to get started.'
+                    }
+                  </p>
+                </div>
+              )}
+            </ScrollArea>
+
+            <div className="flex justify-between items-center pt-4 border-t">
+              <div className="text-sm text-muted-foreground">
+                {lipSyncVideos.filter(video => {
+                  const matchesStatus = videoFilterStatus === 'all' || video.status === videoFilterStatus;
+                  const matchesSearch = video.prompt.toLowerCase().includes(videoSearchTerm.toLowerCase()) ||
+                    video.model.toLowerCase().includes(videoSearchTerm.toLowerCase());
+                  return matchesStatus && matchesSearch;
+                }).length} of {lipSyncVideos.length} lip-sync videos
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowHistory(false)}
+                >
+                  Close
+                </Button>
+              </div>
+            </div>
           </DialogContent>
         </Dialog>
       )}
@@ -1625,6 +1866,106 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Video Playback Modal */}
+      <Dialog open={showVideoModal} onOpenChange={setShowVideoModal}>
+        <DialogContent className="max-w-4xl w-[95vw] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Video className="w-5 h-5 text-purple-500" />
+              LipSync Video Details
+            </DialogTitle>
+          </DialogHeader>
+          
+          {selectedVideoForModal && (
+            <div className="space-y-6">
+              {/* Video Player */}
+              <div className="relative aspect-video bg-black rounded-lg overflow-hidden">
+                <video
+                  src={getVideoUrl(selectedVideoForModal.video_id)}
+                  className="w-full h-full"
+                  controls
+                  autoPlay
+                />
+              </div>
+
+              {/* Video Information */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <div>
+                    <Label className="text-sm font-medium text-muted-foreground">Prompt</Label>
+                    <p className="text-sm mt-1">{selectedVideoForModal.prompt}</p>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-sm font-medium text-muted-foreground">Model</Label>
+                      <p className="text-sm mt-1">{getVideoModelDisplayName(selectedVideoForModal.model)}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium text-muted-foreground">Duration</Label>
+                      <p className="text-sm mt-1">{formatVideoDuration(selectedVideoForModal.duration)}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium text-muted-foreground">Status</Label>
+                      <p className="text-sm mt-1">{selectedVideoForModal.status}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium text-muted-foreground">Type</Label>
+                      <p className="text-sm mt-1">LipSync Video</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <Label className="text-sm font-medium text-muted-foreground">Created</Label>
+                    <p className="text-sm mt-1">{formatVideoDate(selectedVideoForModal.task_created_at)}</p>
+                  </div>
+                  
+                  <div>
+                    <Label className="text-sm font-medium text-muted-foreground">Status</Label>
+                    <div className="flex items-center gap-2 mt-1">
+                      <Badge className={`${getVideoStatusColor(selectedVideoForModal.status)} border`}>
+                        {selectedVideoForModal.status}
+                      </Badge>
+                      <Badge className="bg-gradient-to-r from-pink-500 to-purple-500 text-white border-0 shadow-sm">
+                        <Sparkles className="w-3 h-3 mr-1" />
+                        LipSync
+                      </Badge>
+                    </div>
+                  </div>
+
+                  {selectedVideoForModal.audio && (
+                    <div>
+                      <Label className="text-sm font-medium text-muted-foreground">Audio Used</Label>
+                      <p className="text-sm mt-1">{selectedVideoForModal.audio}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-3 pt-4 border-t">
+                <Button
+                  onClick={() => handleDownload(selectedVideoForModal)}
+                  className="bg-gradient-to-r from-green-600 to-emerald-600"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Download
+                </Button>
+                <Button
+                  onClick={() => handleShare(selectedVideoForModal)}
+                  variant="outline"
+                >
+                  <Share2 className="w-4 h-4 mr-2" />
+                  Share
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

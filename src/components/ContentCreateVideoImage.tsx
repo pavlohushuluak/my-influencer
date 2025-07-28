@@ -696,7 +696,7 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
 
       console.log('Video generation payload:', videoGenerationData);
 
-      const response = await fetch('https://api.nymia.ai/v1/generatevideo', {
+      const response = await fetch('https://api.nymia.ai/generatevideo', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1059,7 +1059,7 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
             >
               <div className="flex items-center gap-1">
                 {formData.format}
-                <Edit3 className="w-3 h-3 opacity-60 group-hover:opacity-100" />
+                {/* <Edit3 className="w-3 h-3 opacity-60 group-hover:opacity-100" /> */}
               </div>
             </Badge>
           </div>
@@ -1074,7 +1074,7 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
             >
               <div className="flex items-center gap-1">
                 {formData.numberOfVideos}
-                <Edit3 className="w-3 h-3 opacity-60 group-hover:opacity-100" />
+                {/* <Edit3 className="w-3 h-3 opacity-60 group-hover:opacity-100" /> */}
               </div>
             </Badge>
           </div>
@@ -1089,7 +1089,7 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
             >
               <div className="flex items-center gap-1">
                 {formData.engine}
-                <Edit3 className="w-3 h-3 opacity-60 group-hover:opacity-100" />
+                {/* <Edit3 className="w-3 h-3 opacity-60 group-hover:opacity-100" /> */}
               </div>
             </Badge>
           </div>
@@ -1104,7 +1104,7 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
             >
               <div className="flex items-center gap-1">
                 {formData.duration}s
-                <Edit3 className="w-3 h-3 opacity-60 group-hover:opacity-100" />
+                {/* <Edit3 className="w-3 h-3 opacity-60 group-hover:opacity-100" /> */}
               </div>
             </Badge>
           </div>

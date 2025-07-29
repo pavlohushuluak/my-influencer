@@ -696,7 +696,7 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
 
       console.log('Video generation payload:', videoGenerationData);
 
-      const response = await fetch('https://api.nymia.ai/generatevideo', {
+      const response = await fetch('https://api.nymia.ai/v1/generatevideo', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

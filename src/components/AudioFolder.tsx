@@ -97,6 +97,10 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
   const [renamingFile, setRenamingFile] = useState<string | null>(null);
   const [newFileNameInput, setNewFileNameInput] = useState('');
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(5);
+
   // Multi-selection state
   const [selectedAudios, setSelectedAudios] = useState<Set<string>>(new Set());
 
@@ -318,6 +322,13 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
       
       return sortOrder === 'asc' ? comparison : -comparison;
     });
+
+  // Pagination calculations
+  const totalItems = filteredAudios.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentAudios = filteredAudios.slice(startIndex, endIndex);
 
   // Audio helper functions
   const getAudioUrl = (audioId: string) => {
@@ -718,6 +729,21 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
     console.log('Dropped on folder:', targetFolderPath);
   };
 
+  // Pagination functions
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  const handleItemsPerPageChange = (newItemsPerPage: number) => {
+    setItemsPerPage(newItemsPerPage);
+    setCurrentPage(1); // Reset to first page when changing items per page
+  };
+
+  const goToFirstPage = () => handlePageChange(1);
+  const goToLastPage = () => handlePageChange(totalPages);
+  const goToPreviousPage = () => handlePageChange(Math.max(1, currentPage - 1));
+  const goToNextPage = () => handlePageChange(Math.min(totalPages, currentPage + 1));
+
   return (
     <div className="px-6 space-y-4">
       {/* Header */}
@@ -995,7 +1021,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
             </Card>
           ))}
         </div>
-      ) : filteredAudios.length === 0 ? (
+      ) : totalItems === 0 ? (
         <div className="text-center py-12">
           <Music className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-muted-foreground mb-2">No audios found</h3>
@@ -1003,7 +1029,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {filteredAudios.map((audio) => (
+          {currentAudios.map((audio) => (
             <Card
               key={audio.id}
               className="group cursor-pointer hover:shadow-lg transition-all duration-300"
@@ -1096,6 +1122,102 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
               </CardContent>
             </Card>
           ))}
+        </div>
+
+      )}
+
+      {/* Pagination Controls */}
+      {totalItems > 0 && (
+        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 py-6 border-t border-gray-200 dark:border-gray-700 mt-4">
+          {/* Items per page selector */}
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-600 dark:text-gray-400">Show:</span>
+            <Select value={itemsPerPage.toString()} onValueChange={(value) => handleItemsPerPageChange(parseInt(value))}>
+              <SelectTrigger className="w-20 h-8">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="5">5</SelectItem>
+                <SelectItem value="10">10</SelectItem>
+                <SelectItem value="20">20</SelectItem>
+                <SelectItem value="50">50</SelectItem>
+                <SelectItem value="100">100</SelectItem>
+              </SelectContent>
+            </Select>
+            <span className="text-sm text-gray-600 dark:text-gray-400">per page</span>
+          </div>
+
+          {/* Page info */}
+          <div className="text-sm text-gray-600 dark:text-gray-400">
+            Showing {startIndex + 1}-{Math.min(endIndex, totalItems)} of {totalItems} audios
+          </div>
+
+          {/* Pagination buttons */}
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={goToFirstPage}
+              disabled={currentPage === 1}
+              className="px-3 py-1 text-sm font-medium border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300"
+            >
+              First
+            </Button>
+            <Button
+              variant="outline"
+              onClick={goToPreviousPage}
+              disabled={currentPage === 1}
+              className="px-3 py-1 text-sm font-medium border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300"
+            >
+              Previous
+            </Button>
+
+            {/* Page numbers */}
+            <div className="flex items-center gap-1">
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                let pageNumber;
+                if (totalPages <= 5) {
+                  pageNumber = i + 1;
+                } else if (currentPage <= 3) {
+                  pageNumber = i + 1;
+                } else if (currentPage >= totalPages - 2) {
+                  pageNumber = totalPages - 4 + i;
+                } else {
+                  pageNumber = currentPage - 2 + i;
+                }
+
+                return (
+                  <Button
+                    key={pageNumber}
+                    variant={currentPage === pageNumber ? "default" : "outline"}
+                    onClick={() => handlePageChange(pageNumber)}
+                    className={`px-3 py-1 text-sm font-medium transition-all duration-300 ${currentPage === pageNumber
+                      ? "bg-green-600 text-white border-green-600"
+                      : "border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
+                      }`}
+                  >
+                    {pageNumber}
+                  </Button>
+                );
+              })}
+            </div>
+
+            <Button
+              variant="outline"
+              onClick={goToNextPage}
+              disabled={currentPage === totalPages}
+              className="px-3 py-1 text-sm font-medium border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300"
+            >
+              Next
+            </Button>
+            <Button
+              variant="outline"
+              onClick={goToLastPage}
+              disabled={currentPage === totalPages}
+              className="px-3 py-1 text-sm font-medium border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300"
+            >
+              Last
+            </Button>
+          </div>
         </div>
       )}
 

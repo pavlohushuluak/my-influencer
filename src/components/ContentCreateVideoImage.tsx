@@ -184,8 +184,8 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
     nsfw_strength: 0,
     lora_strength: 1.0,
     quality: 'Quality',
-                engine: 'kling-v2.1',
-      mode: 'standard',
+    engine: 'kling-v2.1',
+    mode: 'standard',
     usePromptOnly: false,
     regenerated_from: '',
     fps: 24,
@@ -637,16 +637,16 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
         // Kling models: kling-v2.1 and kling-v2.1-master
         const mode = (formData.format === '480p' || formData.format === '720p') ? 'standard' : 'pro';
         videoGenerationData = {
-          user_uuid: userData.id,
-          model: formData.engine,
+        user_uuid: userData.id,
+        model: formData.engine,
           mode: mode,
-          prompt: formData.prompt,
-          duration: parseInt(formData.duration),
-          start_image: modelData?.image_url ? modelData.image_url.split('/').pop() || '' : '',
-          start_image_url: modelData?.image_url || '',
-          negative_prompt: formData.negative_prompt || '',
-          status: "new"
-        };
+        prompt: formData.prompt,
+        duration: parseInt(formData.duration),
+        start_image: modelData?.image_url ? modelData.image_url.split('/').pop() || '' : '',
+        start_image_url: modelData?.image_url || '',
+        negative_prompt: formData.negative_prompt || '',
+        status: "new"
+      };
       } else if (formData.engine.includes('seedance')) {
         // Seedance models: seedance-1-lite and seedance-1-pro
         videoGenerationData = {
@@ -1175,7 +1175,7 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
                           <>
                             <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
                               <Video className="w-6 h-6 text-white" />
-                            </div>
+                </div>
                             <div className="text-left">
                               <p className="font-medium text-slate-900 dark:text-slate-100">
                                 {videoModels.find(m => m.label === formData.engine)?.label || formData.engine}
@@ -1183,7 +1183,7 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
                               <p className="text-sm text-slate-500 dark:text-slate-400">
                                 {videoModels.find(m => m.label === formData.engine)?.description || 'Video generation model'}
                               </p>
-                            </div>
+                  </div>
                           </>
                         ) : (
                           <>

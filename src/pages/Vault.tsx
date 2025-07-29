@@ -216,6 +216,10 @@ export default function Vault() {
   const [currentSpecialFolder, setCurrentSpecialFolder] = useState<'none' | 'video' | 'audio'>('none');
   const [multiSelectContextMenu, setMultiSelectContextMenu] = useState<{ x: number; y: number } | null>(null);
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(5);
+
   // Load copy state from localStorage on component mount
   useEffect(() => {
     const savedCopyState = localStorage.getItem('copystate');
@@ -3337,6 +3341,34 @@ export default function Vault() {
     setGeneratedImages(prev => [...prev, { ...file, user_filename: `${currentPath}` }]);
   };
 
+  // Pagination functions
+  const totalItems = filteredAndSortedGeneratedImages.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentItems = filteredAndSortedGeneratedImages.slice(startIndex, endIndex);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    // Scroll to top when page changes
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleItemsPerPageChange = (newItemsPerPage: number) => {
+    setItemsPerPage(newItemsPerPage);
+    setCurrentPage(1); // Reset to first page when changing items per page
+  };
+
+  const goToFirstPage = () => handlePageChange(1);
+  const goToLastPage = () => handlePageChange(totalPages);
+  const goToPreviousPage = () => handlePageChange(Math.max(1, currentPage - 1));
+  const goToNextPage = () => handlePageChange(Math.min(totalPages, currentPage + 1));
+
+  // Reset pagination when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, sortBy, sortOrder, selectedFilters]);
+
   if (foldersLoading) {
     return (
       <div className="p-6 space-y-6 animate-fade-in">
@@ -4156,21 +4188,6 @@ export default function Vault() {
           </svg>
           <span className="hidden sm:inline">Multi-select</span>
         </Button>
-        <div className="flex items-center gap-4">
-          <p className="text-sm text-muted-foreground">
-            {currentPath === '' ? (
-              `Showing ${filteredAndSortedGeneratedImages.length} of ${generatedImages.length} items`
-            ) : (
-              `Showing ${filteredAndSortedGeneratedImages.length} of ${generatedImages.length} items in "${decodeName(currentPath)}"`
-            )}
-          </p>
-          {currentPath && (
-            <Badge variant="outline" className="bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800">
-              <Folder className="w-3 h-3 mr-1" />
-              {decodeName(currentPath)}
-            </Badge>
-          )}
-        </div>
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Star className="w-4 h-4 text-yellow-500" />
           {currentPath === '' ? `${generatedImages.length} total items` : `${generatedImages.length} total items`}
@@ -4258,7 +4275,7 @@ export default function Vault() {
               )
             }
             {/* Render image cards */}
-            {filteredAndSortedGeneratedImages.map((image) => (
+            {currentItems.map((image) => (
               <Card
                 key={image.id}
                 className={`group hover:shadow-xl transition-all duration-300 border-border/50 hover:border-yellow-500/30 backdrop-blur-sm ${image.task_id?.startsWith('upload_')
@@ -5776,6 +5793,7 @@ export default function Vault() {
                   </Card>
                 ))}
               </div>
+
             ) : (
               <div className="text-center py-12">
                 <User className="w-12 h-12 text-gray-400 mx-auto mb-4" />
@@ -5906,6 +5924,101 @@ export default function Vault() {
             <Trash2 className="w-4 h-4" />
             Delete Selected
           </button>
+        </div>
+      )}
+
+      {/* Pagination Controls */}
+      {totalItems > 0 && (
+        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 py-6 border-t border-gray-200 dark:border-gray-700 mt-4">
+          {/* Items per page selector */}
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-600 dark:text-gray-400">Show:</span>
+            <Select value={itemsPerPage.toString()} onValueChange={(value) => handleItemsPerPageChange(parseInt(value))}>
+              <SelectTrigger className="w-20 h-8">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="5">5</SelectItem>
+                <SelectItem value="10">10</SelectItem>
+                <SelectItem value="20">20</SelectItem>
+                <SelectItem value="50">50</SelectItem>
+                <SelectItem value="100">100</SelectItem>
+              </SelectContent>
+            </Select>
+            <span className="text-sm text-gray-600 dark:text-gray-400">per page</span>
+          </div>
+
+          {/* Page info */}
+          <div className="text-sm text-gray-600 dark:text-gray-400">
+            Showing {startIndex + 1}-{Math.min(endIndex, totalItems)} of {totalItems} items
+          </div>
+
+          {/* Pagination buttons */}
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={goToFirstPage}
+              disabled={currentPage === 1}
+              className="px-3 py-1 text-sm font-medium border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300"
+            >
+              First
+            </Button>
+            <Button
+              variant="outline"
+              onClick={goToPreviousPage}
+              disabled={currentPage === 1}
+              className="px-3 py-1 text-sm font-medium border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300"
+            >
+              Previous
+            </Button>
+
+            {/* Page numbers */}
+            <div className="flex items-center gap-1">
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                let pageNumber;
+                if (totalPages <= 5) {
+                  pageNumber = i + 1;
+                } else if (currentPage <= 3) {
+                  pageNumber = i + 1;
+                } else if (currentPage >= totalPages - 2) {
+                  pageNumber = totalPages - 4 + i;
+                } else {
+                  pageNumber = currentPage - 2 + i;
+                }
+
+                return (
+                  <Button
+                    key={pageNumber}
+                    variant={currentPage === pageNumber ? "default" : "outline"}
+                    onClick={() => handlePageChange(pageNumber)}
+                    className={`px-3 py-1 text-sm font-medium transition-all duration-300 ${currentPage === pageNumber
+                      ? "bg-green-600 text-white border-green-600"
+                      : "border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
+                      }`}
+                  >
+                    {pageNumber}
+                  </Button>
+                );
+              })}
+            </div>
+
+            <Button
+              variant="outline"
+              onClick={goToNextPage}
+              disabled={currentPage === totalPages}
+              className="px-3 py-1 text-sm font-medium border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300"
+            >
+              Next
+            </Button>
+            <Button
+              variant="outline"
+              onClick={goToLastPage}
+              disabled={currentPage === totalPages}
+              className="px-3 py-1 text-sm font-medium border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300"
+            >
+              Last
+            </Button>
+          </div>
         </div>
       )}
     </div>

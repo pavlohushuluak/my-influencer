@@ -2419,10 +2419,10 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
         if (jsonjob.scene.clothes) setSceneSpecs(prev => ({ ...prev, clothes: jsonjob.scene.clothes }));
       }
 
-      // Apply model data if available
-      if (jsonjob.model) {
-        setModelData(jsonjob.model);
-      }
+      // Apply model data if available - DISABLED to prevent changing influencer information
+      // if (jsonjob.model) {
+      //   setModelData(jsonjob.model);
+      // }
 
       setShowPresetsManager(false);
       toast.success(`Applied preset: ${preset.name}`);
@@ -5039,10 +5039,10 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
                 if (jsonjob.scene.clothes) setSceneSpecs(prev => ({ ...prev, clothes: jsonjob.scene.clothes }));
               }
 
-              // Apply model data if available
-              if (jsonjob.model) {
-                setModelData(jsonjob.model);
-              }
+              // Apply model data if available - DISABLED to prevent changing influencer information
+              // if (jsonjob.model) {
+              //   setModelData(jsonjob.model);
+              // }
 
               setShowLibraryModal(false);
               toast.success(`Applied library item: ${library.name}`);
@@ -5952,89 +5952,89 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
                 });
               }
 
-              // Apply model data if available
-              if (jsonjob.model && jsonjob.model.id) {
-                // Find the influencer with the matching ID
-                const selectedInfluencer = influencers.find(inf => inf.id === jsonjob.model.id);
+              // Apply model data if available - DISABLED to prevent changing influencer information
+              // if (jsonjob.model && jsonjob.model.id) {
+              //   // Find the influencer with the matching ID
+              //   const selectedInfluencer = influencers.find(inf => inf.id === jsonjob.model.id);
 
-                if (selectedInfluencer) {
-                  // Set the model data to the found influencer
-                  setModelData(selectedInfluencer);
+              //   if (selectedInfluencer) {
+              //     // Set the model data to the found influencer
+              //     setModelData(selectedInfluencer);
 
-                  // Update model description with influencer data
-                  setModelDescription({
-                    appearance: `${selectedInfluencer.name_first} ${selectedInfluencer.name_last}, ${selectedInfluencer.age || ''}`,
-                    culturalBackground: selectedInfluencer.cultural_background || '',
-                    bodyType: selectedInfluencer.body_type || '',
-                    facialFeatures: selectedInfluencer.facial_features || '',
-                    hairColor: selectedInfluencer.hair_color || '',
-                    hairLength: selectedInfluencer.hair_length || '',
-                    hairStyle: selectedInfluencer.hair_style || '',
-                    skin: selectedInfluencer.skin_tone || '',
-                    lips: selectedInfluencer.lip_style || '',
-                    eyes: selectedInfluencer.eye_color || '',
-                    nose: selectedInfluencer.nose_style || '',
-                    makeup: jsonjob.model.makeup_style || 'Natural / No-Makeup Look',
-                    clothing: `${selectedInfluencer.clothing_style_everyday || ''} ${selectedInfluencer.clothing_style_occasional || ''}`.trim(),
-                    sex: selectedInfluencer.sex || '',
-                    bust: selectedInfluencer.bust_size || '',
-                    eyebrowStyle: selectedInfluencer.eyebrow_style || '',
-                    faceShape: selectedInfluencer.face_shape || '',
-                    colorPalette: selectedInfluencer.color_palette ? selectedInfluencer.color_palette.join(', ') : '',
-                    age: selectedInfluencer.age || '',
-                    lifestyle: selectedInfluencer.lifestyle || ''
-                  });
+              //     // Update model description with influencer data
+              //     setModelDescription({
+              //       appearance: `${selectedInfluencer.name_first} ${selectedInfluencer.name_last}, ${selectedInfluencer.age || ''}`,
+              //       culturalBackground: selectedInfluencer.cultural_background || '',
+              //       bodyType: selectedInfluencer.body_type || '',
+              //       facialFeatures: selectedInfluencer.facial_features || '',
+              //       hairColor: selectedInfluencer.hair_color || '',
+              //       hairLength: selectedInfluencer.hair_length || '',
+              //       hairStyle: selectedInfluencer.hair_style || '',
+              //       skin: selectedInfluencer.skin_tone || '',
+              //       lips: selectedInfluencer.lip_style || '',
+              //       eyes: selectedInfluencer.eye_color || '',
+              //       nose: selectedInfluencer.nose_style || '',
+              //       makeup: jsonjob.model.makeup_style || 'Natural / No-Makeup Look',
+              //       clothing: `${selectedInfluencer.clothing_style_everyday || ''} ${selectedInfluencer.clothing_style_occasional || ''}`.trim(),
+              //       sex: selectedInfluencer.sex || '',
+              //       bust: selectedInfluencer.bust_size || '',
+              //       eyebrowStyle: selectedInfluencer.eyebrow_style || '',
+              //       faceShape: selectedInfluencer.face_shape || '',
+              //       colorPalette: selectedInfluencer.color_palette ? selectedInfluencer.color_palette.join(', ') : '',
+              //       age: selectedInfluencer.age || '',
+              //       lifestyle: selectedInfluencer.lifestyle || ''
+              //     });
 
-                  // Generate the model description automatically
-                  const parts = [];
-                  if (selectedInfluencer.name_first && selectedInfluencer.name_last) {
-                    parts.push(`${selectedInfluencer.name_first} ${selectedInfluencer.name_last}`);
-                  }
-                  if (selectedInfluencer.age) parts.push(selectedInfluencer.age);
-                  if (selectedInfluencer.lifestyle) parts.push(selectedInfluencer.lifestyle);
-                  if (selectedInfluencer.cultural_background) parts.push(`Cultural background: ${selectedInfluencer.cultural_background}`);
-                  if (selectedInfluencer.body_type) parts.push(`Body type: ${selectedInfluencer.body_type}`);
-                  if (selectedInfluencer.facial_features) parts.push(`Facial features: ${selectedInfluencer.facial_features}`);
-                  if (selectedInfluencer.hair_color && selectedInfluencer.hair_length && selectedInfluencer.hair_style) {
-                    parts.push(`${selectedInfluencer.hair_length} ${selectedInfluencer.hair_color} hair, ${selectedInfluencer.hair_style} style`);
-                  }
-                  if (selectedInfluencer.skin_tone) parts.push(`Skin: ${selectedInfluencer.skin_tone}`);
-                  if (selectedInfluencer.lip_style) parts.push(`Lips: ${selectedInfluencer.lip_style}`);
-                  if (selectedInfluencer.eye_color) parts.push(`Eyes: ${selectedInfluencer.eye_color}`);
-                  if (selectedInfluencer.nose_style) parts.push(`Nose: ${selectedInfluencer.nose_style}`);
-                  if (jsonjob.model.makeup_style) parts.push(`Makeup: ${jsonjob.model.makeup_style}`);
-                  if (selectedInfluencer.clothing_style_everyday || selectedInfluencer.clothing_style_occasional) {
-                    parts.push(`Clothing: ${selectedInfluencer.clothing_style_everyday || ''} ${selectedInfluencer.clothing_style_occasional || ''}`.trim());
-                  }
+              //     // Generate the model description automatically
+              //     const parts = [];
+              //     if (selectedInfluencer.name_first && selectedInfluencer.name_last) {
+              //       parts.push(`${selectedInfluencer.name_first} ${selectedInfluencer.name_last}`);
+              //     }
+              //     if (selectedInfluencer.age) parts.push(selectedInfluencer.age);
+              //     if (selectedInfluencer.lifestyle) parts.push(selectedInfluencer.lifestyle);
+              //     if (selectedInfluencer.cultural_background) parts.push(`Cultural background: ${selectedInfluencer.cultural_background}`);
+              //     if (selectedInfluencer.body_type) parts.push(`Body type: ${selectedInfluencer.body_type}`);
+              //     if (selectedInfluencer.facial_features) parts.push(`Facial features: ${selectedInfluencer.facial_features}`);
+              //     if (selectedInfluencer.hair_color && selectedInfluencer.hair_length && selectedInfluencer.hair_style) {
+              //       parts.push(`${selectedInfluencer.hair_length} ${selectedInfluencer.hair_color} hair, ${selectedInfluencer.hair_style} style`);
+              //     }
+              //     if (selectedInfluencer.skin_tone) parts.push(`Skin: ${selectedInfluencer.skin_tone}`);
+              //     if (selectedInfluencer.lip_style) parts.push(`Lips: ${selectedInfluencer.lip_style}`);
+              //     if (selectedInfluencer.eye_color) parts.push(`Eyes: ${selectedInfluencer.eye_color}`);
+              //     if (selectedInfluencer.nose_style) parts.push(`Nose: ${selectedInfluencer.nose_style}`);
+              //     if (jsonjob.model.makeup_style) parts.push(`Makeup: ${jsonjob.model.makeup_style}`);
+              //     if (selectedInfluencer.clothing_style_everyday || selectedInfluencer.clothing_style_occasional) {
+              //       parts.push(`Clothing: ${selectedInfluencer.clothing_style_everyday || ''} ${selectedInfluencer.clothing_style_occasional || ''}`.trim());
+              //     }
 
-                  const fullDescription = parts.join(', ');
-                  setFormData(prev => ({
-                    ...prev,
-                    model: fullDescription,
-                    prompt: selectedInfluencer.prompt || jsonjob.prompt || ''
-                  }));
-                } else {
-                  // If influencer not found, use the model data from preset
-                  setModelData(jsonjob.model);
-                  // Update model description with makeup style
-                  if (jsonjob.model.makeup_style) {
-                    setModelDescription(prev => ({
-                      ...prev,
-                      makeup: jsonjob.model.makeup_style
-                    }));
-                  }
-                }
-              } else if (jsonjob.model) {
-                // If no model.id but model data exists, use it directly
-                setModelData(jsonjob.model);
-                // Update model description with makeup style
-                if (jsonjob.model.makeup_style) {
-                  setModelDescription(prev => ({
-                    ...prev,
-                    makeup: jsonjob.model.makeup_style
-                  }));
-                }
-              }
+              //     const fullDescription = parts.join(', ');
+              //     setFormData(prev => ({
+              //       ...prev,
+              //       model: fullDescription,
+              //       prompt: selectedInfluencer.prompt || jsonjob.prompt || ''
+              //     }));
+              //   } else {
+              //     // If influencer not found, use the model data from preset
+              //     setModelData(jsonjob.model);
+              //     // Update model description with makeup style
+              //     if (jsonjob.model.makeup_style) {
+              //       setModelDescription(prev => ({
+              //         ...prev,
+              //         makeup: jsonjob.model.makeup_style
+              //       }));
+              //     }
+              //   }
+              // } else if (jsonjob.model) {
+              //   // If no model.id but model data exists, use it directly
+              //   setModelData(jsonjob.model);
+              //   // Update model description with makeup style
+              //   if (jsonjob.model.makeup_style) {
+              //     setModelDescription(prev => ({
+              //       ...prev,
+              //       makeup: jsonjob.model.makeup_style
+              //     }));
+              //   }
+              // }
 
               toast.success(`Preset "${preset.name}" applied successfully`);
               setShowPresetsManager(false);

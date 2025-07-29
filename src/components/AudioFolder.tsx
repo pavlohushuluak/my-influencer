@@ -1,0 +1,1356 @@
+import { useState, useEffect, useCallback } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
+import { RootState } from '@/store/store';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Star, Search, Download, Share, Trash2, Filter, Calendar, Music, SortAsc, SortDesc, ZoomIn, Folder, Plus, Upload, ChevronRight, Home, ArrowLeft, Pencil, Menu, X, File, User, RefreshCcw, Edit, Play, Volume2 } from 'lucide-react';
+import { Label } from '@/components/ui/label';
+import { toast } from 'sonner';
+import { DialogContentZoom } from '@/components/ui/zoomdialog';
+import { DialogZoom } from '@/components/ui/zoomdialog';
+
+// Interface for audio data from database
+interface AudioData {
+  id: string;
+  task_id: string;
+  audio_id: string;
+  user_uuid: string;
+  prompt: string;
+  duration: number;
+  format: string;
+  status: string;
+  task_created_at: string;
+  task_completed_at: string;
+  user_filename?: string;
+  user_notes?: string;
+  user_tags?: string[];
+  rating?: number;
+  favorite?: boolean;
+}
+
+// Interface for folder data from API
+interface FolderData {
+  Key: string;
+}
+
+// Interface for folder structure
+interface FolderStructure {
+  name: string;
+  path: string;
+  children: FolderStructure[];
+  isFolder: boolean;
+}
+
+interface AudioFolderProps {
+  onBack: () => void;
+}
+
+export default function AudioFolder({ onBack }: AudioFolderProps) {
+  const userData = useSelector((state: RootState) => state.user);
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const [audios, setAudios] = useState<AudioData[]>([]);
+  const [folders, setFolders] = useState<FolderData[]>([]);
+  const [foldersLoading, setFoldersLoading] = useState(true);
+  const [audiosLoading, setAudiosLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortBy, setSortBy] = useState('newest');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [selectedAudio, setSelectedAudio] = useState<string | null>(null);
+  const [shareModal, setShareModal] = useState<{ open: boolean; itemId: string | null; itemPath: string | null }>({ open: false, itemId: null, itemPath: null });
+
+  // New folder modal state
+  const [showNewFolderModal, setShowNewFolderModal] = useState(false);
+  const [newFolderName, setNewFolderName] = useState('');
+  const [selectedFolderIcon, setSelectedFolderIcon] = useState('');
+  const [uploadedIcon, setUploadedIcon] = useState<File | null>(null);
+  const [folderIcons, setFolderIcons] = useState<string[]>([]);
+
+  // Folder navigation state
+  const [currentPath, setCurrentPath] = useState<string>('audio');
+  const [folderStructure, setFolderStructure] = useState<FolderStructure[]>([]);
+
+  // Folder renaming state
+  const [renamingFolder, setRenamingFolder] = useState<string | null>(null);
+  const [newFolderNameInput, setNewFolderNameInput] = useState('');
+  const [editingFolder, setEditingFolder] = useState<string | null>(null);
+  const [editingFolderName, setEditingFolderName] = useState('');
+
+  // Context menu state
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; folderPath: string } | null>(null);
+
+  // Clipboard state
+  const [clipboard, setClipboard] = useState<{ type: 'copy' | 'cut'; items: string[] } | null>(null);
+  const [copyState, setCopyState] = useState(0); // 0: none, 1: copy, 2: cut
+  const [isPasting, setIsPasting] = useState(false);
+
+  // File operations state
+  const [fileContextMenu, setFileContextMenu] = useState<{ x: number; y: number; audio: AudioData } | null>(null);
+  const [fileClipboard, setFileClipboard] = useState<{ type: 'copy' | 'cut'; items: AudioData[] } | null>(null);
+  const [fileCopyState, setFileCopyState] = useState(0);
+  const [isPastingFile, setIsPastingFile] = useState(false);
+  const [renamingFile, setRenamingFile] = useState<string | null>(null);
+  const [newFileNameInput, setNewFileNameInput] = useState('');
+
+  // Multi-selection state
+  const [selectedAudios, setSelectedAudios] = useState<Set<string>>(new Set());
+
+  // Drag and drop state
+  const [dragOverFolder, setDragOverFolder] = useState<string | null>(null);
+  const [dragOverUpload, setDragOverUpload] = useState(false);
+
+  // File counts and loading states
+  const [folderFileCounts, setFolderFileCounts] = useState<{ [key: string]: number }>({});
+  const [loadingFileCounts, setLoadingFileCounts] = useState<{ [key: string]: boolean }>({});
+
+  // Filter state
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [formatFilter, setFormatFilter] = useState<string>('all');
+  const [favoriteFilter, setFavoriteFilter] = useState<boolean | null>(null);
+
+  // Extract folder name from full path
+  const extractFolderName = (fullPath: string): string => {
+    const parts = fullPath.split('/');
+    return parts[parts.length - 1] || fullPath;
+  };
+
+  // Encode name for URL
+  const encodeName = (name: string): string => {
+    return encodeURIComponent(name);
+  };
+
+  // Decode name from URL
+  const decodeName = (name: string): string => {
+    return decodeURIComponent(name);
+  };
+
+  // Build folder structure from flat list
+  const buildFolderStructure = (folderData: FolderData[]): FolderStructure[] => {
+    const folderMap = new Map<string, FolderStructure>();
+    const rootFolders: FolderStructure[] = [];
+
+    // Filter for audio folder and its subfolders
+    const audioFolders = folderData.filter(folder => 
+      folder.Key.startsWith('audio/') || folder.Key === 'audio'
+    );
+
+    audioFolders.forEach(folder => {
+      const parts = folder.Key.split('/');
+      let currentPath = '';
+      
+      parts.forEach((part, index) => {
+        if (part === '') return;
+        
+        const parentPath = currentPath;
+        currentPath = currentPath ? `${currentPath}/${part}` : part;
+        
+        if (!folderMap.has(currentPath)) {
+          const folderStructure: FolderStructure = {
+            name: part,
+            path: currentPath,
+            children: [],
+            isFolder: true
+          };
+          
+          folderMap.set(currentPath, folderStructure);
+          
+          if (parentPath === '') {
+            rootFolders.push(folderStructure);
+          } else {
+            const parent = folderMap.get(parentPath);
+            if (parent) {
+              parent.children.push(folderStructure);
+            }
+          }
+        }
+      });
+    });
+
+    return rootFolders;
+  };
+
+  // Navigate to folder
+  const navigateToFolder = (folderPath: string) => {
+    setCurrentPath(folderPath);
+    fetchFolderFiles(folderPath);
+  };
+
+  // Navigate to parent folder
+  const navigateToParent = () => {
+    const parts = currentPath.split('/');
+    parts.pop();
+    const parentPath = parts.join('/') || 'audio';
+    setCurrentPath(parentPath);
+    fetchFolderFiles(parentPath);
+  };
+
+  // Navigate to home (audio root)
+  const navigateToHome = () => {
+    setCurrentPath('audio');
+    fetchFolderFiles('audio');
+  };
+
+  // Get breadcrumb items
+  const getBreadcrumbItems = () => {
+    const parts = currentPath.split('/');
+    const items = [];
+    
+    for (let i = 0; i < parts.length; i++) {
+      const path = parts.slice(0, i + 1).join('/');
+      const name = parts[i];
+      items.push({ name, path });
+    }
+    
+    return items;
+  };
+
+  // Fetch folders
+  useEffect(() => {
+    const fetchFolders = async () => {
+      if (!userData.id) return;
+      
+      try {
+        setFoldersLoading(true);
+        const response = await fetch(`https://db.nymia.ai/rest/v1/folders?user_uuid=eq.${userData.id}`, {
+          headers: {
+            'Authorization': 'Bearer WeInfl3nc3withAI',
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          console.log('Fetched folders:', data);
+          setFolders(data);
+          setFolderStructure(buildFolderStructure(data));
+        } else {
+          throw new Error('Failed to fetch folders');
+        }
+      } catch (error) {
+        console.error('Error fetching folders:', error);
+        toast.error('Failed to load folders');
+      } finally {
+        setFoldersLoading(false);
+      }
+    };
+
+    fetchFolders();
+  }, [userData.id]);
+
+  // Fetch audios from current folder
+  const fetchFolderFiles = async (folderPath: string) => {
+    if (!userData.id) return;
+    
+    try {
+      setAudiosLoading(true);
+      // For now, we'll use a mock audio data since the API might not have audio endpoints yet
+      // In a real implementation, you would fetch from the audio API endpoint
+      const mockAudios: AudioData[] = [
+        {
+          id: '1',
+          task_id: 'task-1',
+          audio_id: 'audio-1',
+          user_uuid: userData.id,
+          prompt: 'Background music for video',
+          duration: 30,
+          format: 'mp3',
+          status: 'completed',
+          task_created_at: new Date().toISOString(),
+          task_completed_at: new Date().toISOString(),
+          user_filename: 'Background Music.mp3',
+          favorite: false
+        }
+      ];
+      
+      setAudios(mockAudios);
+    } catch (error) {
+      console.error('Error fetching audios:', error);
+      toast.error('Failed to load audios');
+    } finally {
+      setAudiosLoading(false);
+    }
+  };
+
+  // Fetch initial audios
+  useEffect(() => {
+    fetchFolderFiles('audio');
+  }, [userData.id]);
+
+  // Filter and sort audios
+  const filteredAudios = audios
+    .filter(audio => {
+      const matchesSearch = audio.prompt.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           (audio.user_filename && audio.user_filename.toLowerCase().includes(searchTerm.toLowerCase()));
+      
+      const matchesStatus = statusFilter === 'all' || audio.status === statusFilter;
+      const matchesFormat = formatFilter === 'all' || audio.format === formatFilter;
+      const matchesFavorite = favoriteFilter === null || audio.favorite === favoriteFilter;
+      
+      return matchesSearch && matchesStatus && matchesFormat && matchesFavorite;
+    })
+    .sort((a, b) => {
+      let comparison = 0;
+      
+      switch (sortBy) {
+        case 'newest':
+          comparison = new Date(b.task_created_at).getTime() - new Date(a.task_created_at).getTime();
+          break;
+        case 'oldest':
+          comparison = new Date(a.task_created_at).getTime() - new Date(b.task_created_at).getTime();
+          break;
+        case 'duration':
+          comparison = b.duration - a.duration;
+          break;
+        case 'format':
+          comparison = a.format.localeCompare(b.format);
+          break;
+        case 'name':
+          comparison = (a.user_filename || a.task_id).localeCompare(b.user_filename || b.task_id);
+          break;
+        default:
+          comparison = 0;
+      }
+      
+      return sortOrder === 'asc' ? comparison : -comparison;
+    });
+
+  // Audio helper functions
+  const getAudioUrl = (audioId: string) => {
+    return `https://images.nymia.ai/${userData.id}/audio/${audioId}.mp3`;
+  };
+
+  const formatAudioDuration = (seconds: number) => {
+    if (seconds < 60) return `${seconds}s`;
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}m ${remainingSeconds}s`;
+  };
+
+  const formatAudioDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const getAudioStatusColor = (status: string) => {
+    switch (status) {
+      case 'completed': return 'bg-green-500/20 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800';
+      case 'processing': return 'bg-blue-500/20 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800';
+      case 'failed': return 'bg-red-500/20 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800';
+      case 'pending': return 'bg-yellow-500/20 text-yellow-700 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800';
+      default: return 'bg-gray-500/20 text-gray-700 dark:text-gray-400 border-gray-200 dark:border-gray-800';
+    }
+  };
+
+  // Handle audio selection
+  const handleAudioSelect = (audio: AudioData) => {
+    setSelectedAudio(audio.audio_id);
+  };
+
+  // Handle download
+  const handleDownload = async (audioId: string) => {
+    try {
+      const audioUrl = getAudioUrl(audioId);
+      const link = document.createElement('a');
+      link.href = audioUrl;
+      link.download = `audio-${audioId}.mp3`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      toast.success('Download started');
+    } catch (error) {
+      console.error('Error downloading audio:', error);
+      toast.error('Failed to download audio');
+    }
+  };
+
+  // Handle share
+  const handleShare = (audioId: string) => {
+    const audioUrl = getAudioUrl(audioId);
+    navigator.clipboard.writeText(audioUrl);
+    toast.success('Audio URL copied to clipboard');
+  };
+
+  // Handle delete
+  const handleDelete = async (audio: AudioData) => {
+    if (!confirm('Are you sure you want to delete this audio?')) return;
+    
+    try {
+      // In a real implementation, you would call the audio delete API
+      setAudios(prev => prev.filter(a => a.id !== audio.id));
+      toast.success('Audio deleted successfully');
+    } catch (error) {
+      console.error('Error deleting audio:', error);
+      toast.error('Failed to delete audio');
+    }
+  };
+
+  // Handle refresh
+  const handleRefresh = async () => {
+    await fetchFolderFiles(currentPath);
+    toast.success('Audios refreshed');
+  };
+
+  // Clear filters
+  const clearFilters = () => {
+    setSearchTerm('');
+    setStatusFilter('all');
+    setFormatFilter('all');
+    setFavoriteFilter(null);
+    setSortBy('newest');
+    setSortOrder('desc');
+  };
+
+  // Folder management functions
+  const handleCreateFolder = async () => {
+    if (!newFolderName.trim()) {
+      toast.error('Please enter a folder name');
+      return;
+    }
+
+    try {
+      const encodedName = encodeName(newFolderName.trim());
+      const newFolderPath = currentPath ? `${currentPath}/${encodedName}` : encodedName;
+
+      const response = await fetch('https://api.nymia.ai/v1/createfolder', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          user: userData.id,
+          folder: newFolderPath
+        })
+      });
+
+      if (response.ok) {
+        toast.success('Folder created successfully');
+        setShowNewFolderModal(false);
+        setNewFolderName('');
+        
+        // Refresh folders
+        const updatedFolders = [...folders, { Key: newFolderPath }];
+        setFolders(updatedFolders);
+        setFolderStructure(buildFolderStructure(updatedFolders));
+      } else {
+        throw new Error('Failed to create folder');
+      }
+    } catch (error) {
+      console.error('Error creating folder:', error);
+      toast.error('Failed to create folder');
+    }
+  };
+
+  const handleFolderRename = async (oldPath: string, newName: string) => {
+    if (!newName.trim()) {
+      toast.error('Please enter a folder name');
+      return;
+    }
+
+    try {
+      const encodedNewName = encodeName(newName.trim());
+      const newPath = oldPath.split('/').slice(0, -1).join('/') + '/' + encodedNewName;
+
+      const response = await fetch('https://api.nymia.ai/v1/renamefolder', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          user: userData.id,
+          old_folder: oldPath,
+          new_folder: newPath
+        })
+      });
+
+      if (response.ok) {
+        toast.success('Folder renamed successfully');
+        setEditingFolder(null);
+        setEditingFolderName('');
+        
+        // Update folders
+        const updatedFolders = folders.map(folder => 
+          folder.Key === oldPath ? { ...folder, Key: newPath } : folder
+        );
+        setFolders(updatedFolders);
+        setFolderStructure(buildFolderStructure(updatedFolders));
+      } else {
+        throw new Error('Failed to rename folder');
+      }
+    } catch (error) {
+      console.error('Error renaming folder:', error);
+      toast.error('Failed to rename folder');
+    }
+  };
+
+  const handleDeleteFolder = async (folderPath: string) => {
+    if (!confirm('Are you sure you want to delete this folder and all its contents?')) return;
+
+    try {
+      const response = await fetch('https://api.nymia.ai/v1/deletefolder', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          user: userData.id,
+          folder: folderPath
+        })
+      });
+
+      if (response.ok) {
+        toast.success('Folder deleted successfully');
+        
+        // Update folders
+        const updatedFolders = folders.filter(folder => folder.Key !== folderPath);
+        setFolders(updatedFolders);
+        setFolderStructure(buildFolderStructure(updatedFolders));
+      } else {
+        throw new Error('Failed to delete folder');
+      }
+    } catch (error) {
+      console.error('Error deleting folder:', error);
+      toast.error('Failed to delete folder');
+    }
+  };
+
+  const handleCopy = (folderPath: string) => {
+    setClipboard({ type: 'copy', items: [folderPath] });
+    setCopyState(1);
+    toast.success('Folder copied to clipboard');
+  };
+
+  const handleCut = (folderPath: string) => {
+    setClipboard({ type: 'cut', items: [folderPath] });
+    setCopyState(2);
+    toast.success('Folder cut to clipboard');
+  };
+
+  const handlePaste = async () => {
+    if (!clipboard || copyState === 0) return;
+
+    setIsPasting(true);
+    try {
+      for (const sourcePath of clipboard.items) {
+        const sourceName = sourcePath.split('/').pop() || '';
+        const destPath = currentPath ? `${currentPath}/${sourceName}` : sourceName;
+
+        if (clipboard.type === 'copy') {
+          // Copy folder
+          const response = await fetch('https://api.nymia.ai/v1/copyfolder', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer WeInfl3nc3withAI'
+            },
+            body: JSON.stringify({
+              user: userData.id,
+              source_folder: sourcePath,
+              dest_folder: destPath
+            })
+          });
+
+          if (!response.ok) throw new Error('Failed to copy folder');
+        } else {
+          // Move folder
+          const response = await fetch('https://api.nymia.ai/v1/movefolder', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer WeInfl3nc3withAI'
+            },
+            body: JSON.stringify({
+              user: userData.id,
+              source_folder: sourcePath,
+              dest_folder: destPath
+            })
+          });
+
+          if (!response.ok) throw new Error('Failed to move folder');
+        }
+      }
+
+      toast.success(`Folder ${clipboard.type === 'copy' ? 'copied' : 'moved'} successfully`);
+      setClipboard(null);
+      setCopyState(0);
+      
+      // Refresh folders
+      const response = await fetch('https://api.nymia.ai/v1/getfoldernames', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          user: userData.id,
+          folder: "vault"
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setFolders(data);
+        setFolderStructure(buildFolderStructure(data));
+      }
+    } catch (error) {
+      console.error('Error pasting folder:', error);
+      toast.error('Failed to paste folder');
+    } finally {
+      setIsPasting(false);
+    }
+  };
+
+  const handleContextMenu = (e: React.MouseEvent, folderPath: string) => {
+    e.preventDefault();
+    setContextMenu({ x: e.clientX, y: e.clientY, folderPath });
+  };
+
+  const handleFileCopy = (audio: AudioData) => {
+    setFileClipboard({ type: 'copy', items: [audio] });
+    setFileCopyState(1);
+    toast.success('Audio copied to clipboard');
+  };
+
+  const handleFileCut = (audio: AudioData) => {
+    setFileClipboard({ type: 'cut', items: [audio] });
+    setFileCopyState(2);
+    toast.success('Audio cut to clipboard');
+  };
+
+  const handleFilePaste = async () => {
+    if (!fileClipboard || fileCopyState === 0) return;
+
+    setIsPastingFile(true);
+    try {
+      for (const audio of fileClipboard.items) {
+        // In a real implementation, you would move/copy the audio file
+        // For now, we'll just show a success message
+        console.log(`${fileClipboard.type} audio:`, audio);
+      }
+
+      toast.success(`Audio ${fileClipboard.type === 'copy' ? 'copied' : 'moved'} successfully`);
+      setFileClipboard(null);
+      setFileCopyState(0);
+    } catch (error) {
+      console.error('Error pasting audio:', error);
+      toast.error('Failed to paste audio');
+    } finally {
+      setIsPastingFile(false);
+    }
+  };
+
+  const handleFileContextMenu = (e: React.MouseEvent, audio: AudioData) => {
+    e.preventDefault();
+    setFileContextMenu({ x: e.clientX, y: e.clientY, audio });
+  };
+
+  const fetchFolderFileCount = async (folderPath: string) => {
+    if (loadingFileCounts[folderPath]) return;
+
+    setLoadingFileCounts(prev => ({ ...prev, [folderPath]: true }));
+    try {
+      // In a real implementation, you would fetch the actual file count
+      // For now, we'll use a mock count
+      const mockCount = Math.floor(Math.random() * 10);
+      setFolderFileCounts(prev => ({ ...prev, [folderPath]: mockCount }));
+    } catch (error) {
+      console.error('Error fetching folder file count:', error);
+    } finally {
+      setLoadingFileCounts(prev => ({ ...prev, [folderPath]: false }));
+    }
+  };
+
+  const getCurrentPathFolders = (): FolderStructure[] => {
+    if (!currentPath) return folderStructure;
+
+    const findFolder = (folders: FolderStructure[], path: string): FolderStructure | null => {
+      for (const folder of folders) {
+        if (folder.path === path) return folder;
+        const found = findFolder(folder.children, path);
+        if (found) return found;
+      }
+      return null;
+    };
+
+    const currentFolder = findFolder(folderStructure, currentPath);
+    return currentFolder ? currentFolder.children : [];
+  };
+
+  const getCurrentPathRawFolders = (): FolderData[] => {
+    return folders.filter(folder => {
+      const folderPath = folder.Key;
+      const currentPathParts = currentPath.split('/');
+      const folderPathParts = folderPath.split('/');
+      
+      // Check if this folder is an immediate child of current path
+      return folderPathParts.length === currentPathParts.length + 1 &&
+             folderPathParts.slice(0, currentPathParts.length).join('/') === currentPath;
+    });
+  };
+
+  // Drag and drop functions
+  const handleDragOver = (e: React.DragEvent, folderPath: string) => {
+    e.preventDefault();
+    setDragOverFolder(folderPath);
+  };
+
+  const handleDragLeave = () => {
+    setDragOverFolder(null);
+  };
+
+  const handleDrop = async (e: React.DragEvent, targetFolderPath: string) => {
+    e.preventDefault();
+    setDragOverFolder(null);
+    
+    // Handle folder drop logic here
+    console.log('Dropped on folder:', targetFolderPath);
+  };
+
+  return (
+    <div className="px-6 space-y-4">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row items-center justify-between gap-5">
+        <div className="flex items-center gap-4">
+          <Button
+            onClick={onBack}
+            variant="outline"
+            size="sm"
+            className="flex items-center gap-2"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back
+          </Button>
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight bg-ai-gradient bg-clip-text text-transparent">
+              Audio Folder
+            </h1>
+            <p className="text-muted-foreground">
+              Manage your audio content
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <Button
+            onClick={handleRefresh}
+            variant="outline"
+            size="sm"
+            className="h-10 px-4"
+          >
+            <RefreshCcw className="w-4 h-4 mr-2" />
+            Refresh
+          </Button>
+
+          {/* Paste Buttons */}
+          <Button
+            variant={copyState > 0 ? "default" : "outline"}
+            size="sm"
+            onClick={handlePaste}
+            disabled={copyState === 0 || isPasting}
+            className={`flex items-center gap-1.5 transition-all duration-200 ${copyState > 0
+              ? 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-md'
+              : 'text-muted-foreground'
+              }`}
+          >
+            {isPasting ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                Processing...
+              </>
+            ) : (
+              <>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                {copyState === 1 ? 'Paste Copy' : copyState === 2 ? 'Paste Move' : 'Paste'}
+              </>
+            )}
+          </Button>
+
+          <Button
+            variant={fileCopyState > 0 ? "default" : "outline"}
+            size="sm"
+            onClick={handleFilePaste}
+            disabled={fileCopyState === 0 || isPastingFile}
+            className={`flex items-center gap-1.5 transition-all duration-200 ${fileCopyState > 0
+              ? 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-md'
+              : 'text-muted-foreground'
+              }`}
+          >
+            {isPastingFile ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                Processing...
+              </>
+            ) : (
+              <>
+                <Music className="w-4 h-4" />
+                {fileCopyState === 1 ? 'Paste Audio Copy' : fileCopyState === 2 ? 'Paste Audio Move' : 'Paste Audio'}
+              </>
+            )}
+          </Button>
+        </div>
+      </div>
+
+      {/* Breadcrumb */}
+      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={navigateToHome}
+          className="h-6 px-2"
+        >
+          <Home className="w-3 h-3 mr-1" />
+          Audio
+        </Button>
+        {getBreadcrumbItems().slice(1).map((item, index) => (
+          <div key={index} className="flex items-center gap-2">
+            <ChevronRight className="w-3 h-3" />
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigateToFolder(item.path)}
+              className="h-6 px-2"
+            >
+              {item.name}
+            </Button>
+          </div>
+        ))}
+      </div>
+
+      {/* Search and Filters */}
+      <div className="flex flex-col md:flex-row gap-4">
+        <div className="flex-1">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+            <Input
+              placeholder="Search audios..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+        </div>
+
+        <div className="flex gap-2">
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-32">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="completed">Completed</SelectItem>
+              <SelectItem value="processing">Processing</SelectItem>
+              <SelectItem value="failed">Failed</SelectItem>
+              <SelectItem value="pending">Pending</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={formatFilter} onValueChange={setFormatFilter}>
+            <SelectTrigger className="w-32">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Formats</SelectItem>
+              <SelectItem value="mp3">MP3</SelectItem>
+              <SelectItem value="wav">WAV</SelectItem>
+              <SelectItem value="m4a">M4A</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={sortBy} onValueChange={setSortBy}>
+            <SelectTrigger className="w-32">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="newest">Newest</SelectItem>
+              <SelectItem value="oldest">Oldest</SelectItem>
+              <SelectItem value="duration">Duration</SelectItem>
+              <SelectItem value="format">Format</SelectItem>
+              <SelectItem value="name">Name</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+          >
+            {sortOrder === 'asc' ? <SortAsc className="w-4 h-4" /> : <SortDesc className="w-4 h-4" />}
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={clearFilters}
+          >
+            Clear
+          </Button>
+        </div>
+      </div>
+
+      {/* Folder Grid */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3 mb-6">
+        {/* Show folders for current path */}
+        {(() => {
+          const currentFolders = getCurrentPathFolders();
+
+          return currentFolders.map((folder) => (
+            <div
+              key={folder.path}
+              className={`group cursor-pointer ${dragOverFolder === folder.path ? 'ring-2 ring-blue-500 ring-opacity-50 bg-blue-100 dark:bg-blue-900/20' : ''}`}
+              onDoubleClick={() => navigateToFolder(folder.path)}
+              onContextMenu={(e) => handleContextMenu(e, folder.path)}
+              onDragOver={(e) => handleDragOver(e, folder.path)}
+              onDragLeave={handleDragLeave}
+              onDrop={(e) => handleDrop(e, folder.path)}
+            >
+              <div className="flex flex-col items-center p-3 rounded-lg border-2 border-transparent transition-all duration-200 hover:border-blue-300 hover:bg-blue-50 dark:hover:bg-blue-950/20">
+                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center mb-2 group-hover:scale-110 transition-transform duration-200">
+                  <Folder className="w-6 h-6 text-white" />
+                </div>
+                {editingFolder === folder.path ? (
+                  <div className="w-full">
+                    <Input
+                      value={editingFolderName}
+                      onChange={(e) => setEditingFolderName(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          handleFolderRename(folder.path, editingFolderName);
+                        } else if (e.key === 'Escape') {
+                          setEditingFolder(null);
+                          setEditingFolderName('');
+                        }
+                      }}
+                      onBlur={() => handleFolderRename(folder.path, editingFolderName)}
+                      className="text-xs h-6 text-center"
+                      autoFocus
+                    />
+                  </div>
+                ) : (
+                  <span className="text-xs font-medium text-center text-gray-700 dark:text-gray-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                    {decodeName(folder.name)}
+                  </span>
+                )}
+                <span className="text-xs text-muted-foreground mt-1">
+                  {folder.children.length} folders
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {loadingFileCounts[folder.path] ? (
+                    <div className="flex items-center gap-1">
+                      <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-gray-400"></div>
+                      Loading...
+                    </div>
+                  ) : (
+                    `${folderFileCounts[folder.path] || 0} files`
+                  )}
+                </span>
+              </div>
+            </div>
+          ));
+        })()}
+
+        {/* Add New Folder Button */}
+        <div
+          className="group cursor-pointer"
+          onClick={() => setShowNewFolderModal(true)}
+        >
+          <div className="flex flex-col items-center p-3 rounded-lg border-2 border-dashed border-gray-300 hover:border-green-400 hover:bg-green-50 dark:hover:bg-green-950/20 transition-all duration-200">
+            <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex items-center justify-center mb-2 group-hover:scale-110 transition-transform duration-200">
+              <Plus className="w-6 h-6 text-white" />
+            </div>
+            <span className="text-xs font-medium text-center text-gray-700 dark:text-gray-300 group-hover:text-green-600 dark:group-hover:text-green-400 transition-colors">
+              New Folder
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Audio Grid */}
+      {audiosLoading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {[...Array(8)].map((_, i) => (
+            <Card key={i} className="animate-pulse">
+              <CardContent className="p-4">
+                <div className="space-y-3">
+                  <div className="aspect-square bg-slate-200 dark:bg-slate-700 rounded-lg flex items-center justify-center">
+                    <Music className="w-8 h-8 text-slate-400" />
+                  </div>
+                  <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded"></div>
+                  <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-3/4"></div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : filteredAudios.length === 0 ? (
+        <div className="text-center py-12">
+          <Music className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-muted-foreground mb-2">No audios found</h3>
+          <p className="text-muted-foreground">Try adjusting your search or filters</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {filteredAudios.map((audio) => (
+            <Card
+              key={audio.id}
+              className="group cursor-pointer hover:shadow-lg transition-all duration-300"
+              onClick={() => handleAudioSelect(audio)}
+              onContextMenu={(e) => handleFileContextMenu(e, audio)}
+            >
+              <CardContent className="p-4">
+                <div className="space-y-3">
+                  {/* Audio Preview */}
+                  <div className="relative aspect-square bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/30 dark:to-purple-900/30 rounded-lg overflow-hidden flex items-center justify-center">
+                    <div className="text-center">
+                      <Volume2 className="w-12 h-12 text-blue-600 dark:text-blue-400 mx-auto mb-2" />
+                      <div className="text-xs text-blue-600 dark:text-blue-400 font-medium">
+                        {audio.format.toUpperCase()}
+                      </div>
+                    </div>
+                    <div className="absolute top-2 right-2">
+                      <Badge className={getAudioStatusColor(audio.status)}>
+                        {audio.status}
+                      </Badge>
+                    </div>
+                  </div>
+
+                  {/* Audio Info */}
+                  <div className="space-y-2">
+                    <div className="flex items-start justify-between">
+                      <h4 className="font-semibold text-sm line-clamp-2">
+                        {audio.user_filename || audio.prompt.substring(0, 50)}
+                      </h4>
+                      {audio.favorite && (
+                        <Star className="w-4 h-4 text-yellow-500 fill-current" />
+                      )}
+                    </div>
+                    
+                    <p className="text-xs text-muted-foreground line-clamp-2">
+                      {audio.prompt}
+                    </p>
+
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <span>{audio.format.toUpperCase()}</span>
+                      <span>{formatAudioDuration(audio.duration)}</span>
+                    </div>
+
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <span>{formatAudioDate(audio.task_created_at)}</span>
+                      <span>Audio</span>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-700">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDownload(audio.audio_id);
+                      }}
+                      className="h-6 px-2 text-xs"
+                    >
+                      <Download className="w-3 h-3 mr-1" />
+                      Download
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleShare(audio.audio_id);
+                      }}
+                      className="h-6 px-2 text-xs"
+                    >
+                      <Share className="w-3 h-3 mr-1" />
+                      Share
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDelete(audio);
+                      }}
+                      className="h-6 px-2 text-xs text-red-600 hover:text-red-700"
+                    >
+                      <Trash2 className="w-3 h-3 mr-1" />
+                      Delete
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {/* Audio Preview Modal */}
+      {selectedAudio && (
+        <Dialog open={!!selectedAudio} onOpenChange={() => setSelectedAudio(null)}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Audio Preview</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-lg p-6 text-center">
+                <Volume2 className="w-16 h-16 text-blue-600 dark:text-blue-400 mx-auto mb-4" />
+                <audio
+                  src={getAudioUrl(selectedAudio)}
+                  controls
+                  className="w-full"
+                />
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button
+                  onClick={() => handleDownload(selectedAudio)}
+                  variant="outline"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Download
+                </Button>
+                <Button
+                  onClick={() => handleShare(selectedAudio)}
+                  variant="outline"
+                >
+                  <Share className="w-4 h-4 mr-2" />
+                  Share
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Share Modal */}
+      {shareModal.open && (
+        <Dialog open={shareModal.open} onOpenChange={() => setShareModal({ open: false, itemId: null, itemPath: null })}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Share Audio</DialogTitle>
+              <DialogDescription>
+                Share this audio with others
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="flex gap-2">
+                <Button onClick={() => shareToSocialMedia('facebook', shareModal.itemId!)}>
+                  Facebook
+                </Button>
+                <Button onClick={() => shareToSocialMedia('twitter', shareModal.itemId!)}>
+                  Twitter
+                </Button>
+                <Button onClick={() => shareToSocialMedia('instagram', shareModal.itemId!)}>
+                  Instagram
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* New Folder Modal */}
+      <Dialog open={showNewFolderModal} onOpenChange={setShowNewFolderModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create New Folder</DialogTitle>
+            <DialogDescription>
+              Create a new folder in the current location
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="folderName">Folder Name</Label>
+              <Input
+                id="folderName"
+                value={newFolderName}
+                onChange={(e) => setNewFolderName(e.target.value)}
+                placeholder="Enter folder name"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleCreateFolder();
+                  }
+                }}
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setShowNewFolderModal(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleCreateFolder}>
+                Create Folder
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Folder Context Menu */}
+      {contextMenu && (
+        <div
+          className="fixed z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg py-1 min-w-[160px]"
+          style={{ left: contextMenu.x, top: contextMenu.y }}
+        >
+          <button
+            className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+            onClick={() => {
+              setEditingFolder(contextMenu.folderPath);
+              setEditingFolderName(decodeName(contextMenu.folderPath.split('/').pop() || ''));
+              setContextMenu(null);
+            }}
+          >
+            <Pencil className="w-4 h-4" />
+            Rename
+          </button>
+          <button
+            className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+            onClick={() => {
+              handleCopy(contextMenu.folderPath);
+              setContextMenu(null);
+            }}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
+            Copy
+          </button>
+          <button
+            className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+            onClick={() => {
+              handleCut(contextMenu.folderPath);
+              setContextMenu(null);
+            }}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 4v16a2 2 0 002 2h8a2 2 0 002-2V4a2 2 0 00-2-2H8a2 2 0 00-2 2z" />
+            </svg>
+            Cut
+          </button>
+          <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>
+          <button
+            className="w-full px-4 py-2 text-left text-sm hover:bg-red-100 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 flex items-center gap-2"
+            onClick={() => {
+              handleDeleteFolder(contextMenu.folderPath);
+              setContextMenu(null);
+            }}
+          >
+            <Trash2 className="w-4 h-4" />
+            Delete
+          </button>
+        </div>
+      )}
+
+      {/* Audio Context Menu */}
+      {fileContextMenu && (
+        <div
+          className="fixed z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg py-1 min-w-[160px]"
+          style={{ left: fileContextMenu.x, top: fileContextMenu.y }}
+        >
+          <button
+            className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+            onClick={() => {
+              handleDownload(fileContextMenu.audio.audio_id);
+              setFileContextMenu(null);
+            }}
+          >
+            <Download className="w-4 h-4" />
+            Download
+          </button>
+          <button
+            className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+            onClick={() => {
+              handleShare(fileContextMenu.audio.audio_id);
+              setFileContextMenu(null);
+            }}
+          >
+            <Share className="w-4 h-4" />
+            Share
+          </button>
+          <button
+            className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+            onClick={() => {
+              handleFileCopy(fileContextMenu.audio);
+              setFileContextMenu(null);
+            }}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
+            Copy
+          </button>
+          <button
+            className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+            onClick={() => {
+              handleFileCut(fileContextMenu.audio);
+              setFileContextMenu(null);
+            }}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 4v16a2 2 0 002 2h8a2 2 0 002-2V4a2 2 0 00-2-2H8a2 2 0 00-2 2z" />
+            </svg>
+            Cut
+          </button>
+          <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>
+          <button
+            className="w-full px-4 py-2 text-left text-sm hover:bg-red-100 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 flex items-center gap-2"
+            onClick={() => {
+              handleDelete(fileContextMenu.audio);
+              setFileContextMenu(null);
+            }}
+          >
+            <Trash2 className="w-4 h-4" />
+            Delete
+          </button>
+        </div>
+      )}
+
+      {/* Click outside to close context menus */}
+      {(contextMenu || fileContextMenu) && (
+        <div
+          className="fixed inset-0 z-40"
+          onClick={() => {
+            setContextMenu(null);
+            setFileContextMenu(null);
+          }}
+        />
+      )}
+    </div>
+  );
+
+  // Helper function for social media sharing
+  function shareToSocialMedia(platform: string, audioId: string) {
+    const audioUrl = getAudioUrl(audioId);
+    const text = 'Check out this amazing audio!';
+    
+    let shareUrl = '';
+    switch (platform) {
+      case 'facebook':
+        shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(audioUrl)}`;
+        break;
+      case 'twitter':
+        shareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(audioUrl)}`;
+        break;
+      case 'instagram':
+        // Instagram doesn't support direct sharing via URL
+        navigator.clipboard.writeText(audioUrl);
+        toast.success('Audio URL copied to clipboard for Instagram');
+        return;
+    }
+    
+    window.open(shareUrl, '_blank');
+  }
+} 

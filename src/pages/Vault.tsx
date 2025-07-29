@@ -8,12 +8,14 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Star, Search, Download, Share, Trash2, Filter, Calendar, Image, Video, SortAsc, SortDesc, ZoomIn, Folder, Plus, Upload, ChevronRight, Home, ArrowLeft, Pencil, Menu, X, File, User, RefreshCcw, Edit } from 'lucide-react';
+import { Star, Search, Download, Share, Trash2, Filter, Calendar, Image, Video, SortAsc, SortDesc, ZoomIn, Folder, Plus, Upload, ChevronRight, Home, ArrowLeft, Pencil, Menu, X, File, User, RefreshCcw, Edit, Music } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { DialogContentZoom } from '@/components/ui/zoomdialog';
 import { DialogZoom } from '@/components/ui/zoomdialog';
 import { setInfluencers, updateInfluencer } from '@/store/slices/influencersSlice';
+import VideoFolder from '@/components/VideoFolder';
+import AudioFolder from '@/components/AudioFolder';
 
 // Interface for folder data from API
 interface FolderData {
@@ -209,6 +211,9 @@ export default function Vault() {
   // Multi-select state
   const [selectedImages, setSelectedImages] = useState<Set<string>>(new Set());
   const [isMultiSelectMode, setIsMultiSelectMode] = useState<boolean>(false);
+
+  // Special folder navigation state
+  const [currentSpecialFolder, setCurrentSpecialFolder] = useState<'none' | 'video' | 'audio'>('none');
   const [multiSelectContextMenu, setMultiSelectContextMenu] = useState<{ x: number; y: number } | null>(null);
 
   // Load copy state from localStorage on component mount
@@ -345,6 +350,20 @@ export default function Vault() {
   // Navigate to home (root)
   const navigateToHome = () => {
     setCurrentPath('');
+    setCurrentSpecialFolder('none');
+    fetchHomeFiles();
+  };
+
+  const navigateToVideoFolder = () => {
+    setCurrentSpecialFolder('video');
+  };
+
+  const navigateToAudioFolder = () => {
+    setCurrentSpecialFolder('audio');
+  };
+
+  const handleBackFromSpecialFolder = () => {
+    setCurrentSpecialFolder('none');
   };
 
   // Get breadcrumb items
@@ -3339,6 +3358,15 @@ export default function Vault() {
     );
   }
 
+  // Render special folders if active
+  if (currentSpecialFolder === 'video') {
+    return <VideoFolder onBack={handleBackFromSpecialFolder} />;
+  }
+
+  if (currentSpecialFolder === 'audio') {
+    return <AudioFolder onBack={handleBackFromSpecialFolder} />;
+  }
+
   return (
     <div className="p-6 animate-fade-in">
       <div className="flex flex-col md:flex-row items-center justify-between gap-5 mb-6">
@@ -3350,6 +3378,30 @@ export default function Vault() {
             Organize and manage your content with folders
           </p>
         </div>
+
+        {/* Special Folder Buttons */}
+        {currentPath === '' && (
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={navigateToVideoFolder}
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-2 bg-gradient-to-r from-red-50 to-pink-50 dark:from-red-900/20 dark:to-pink-900/20 border-red-200 dark:border-red-700 hover:from-red-100 hover:to-pink-100 dark:hover:from-red-800/30 dark:hover:to-pink-800/30 text-red-700 dark:text-red-300 font-medium shadow-sm hover:shadow-md transition-all duration-200"
+            >
+              <Video className="w-4 h-4" />
+              Video
+            </Button>
+            <Button
+              onClick={navigateToAudioFolder}
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-2 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-blue-200 dark:border-blue-700 hover:from-blue-100 hover:to-indigo-100 dark:hover:from-blue-800/30 dark:hover:to-indigo-800/30 text-blue-700 dark:text-blue-300 font-medium shadow-sm hover:shadow-md transition-all duration-200"
+            >
+              <Music className="w-4 h-4" />
+              Audio
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Professional Search and Filter Bar */}
@@ -3793,7 +3845,9 @@ export default function Vault() {
         </CardHeader>
         <CardContent className="space-y-4">
 
-          {/* Folder Grid */}
+
+
+          {/* Regular Folders */}
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3">
             {/* Show folders for current path */}
             {(() => {

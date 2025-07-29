@@ -1124,120 +1124,177 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
 
       {/* Audio Grid */}
       {audiosLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 md:gap-6">
           {[...Array(8)].map((_, i) => (
-            <Card key={i} className="animate-pulse">
+            <Card key={i} className="animate-pulse overflow-hidden">
+              <div className="aspect-video bg-slate-200 dark:bg-slate-700"></div>
               <CardContent className="p-4">
                 <div className="space-y-3">
-                  <div className="aspect-square bg-slate-200 dark:bg-slate-700 rounded-lg flex items-center justify-center">
-                    <Music className="w-8 h-8 text-slate-400" />
-                  </div>
                   <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded"></div>
                   <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-3/4"></div>
+                  <div className="flex justify-between">
+                    <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-1/3"></div>
+                    <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-1/4"></div>
+                  </div>
                 </div>
               </CardContent>
             </Card>
           ))}
         </div>
       ) : totalItems === 0 ? (
-        <div className="text-center py-12">
-          <Music className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-muted-foreground mb-2">No audios found</h3>
-          <p className="text-muted-foreground">Try adjusting your search or filters</p>
+        <div className="text-center py-16 px-4">
+          <div className="max-w-md mx-auto">
+            <div className="w-20 h-20 bg-gradient-to-br from-purple-500 to-pink-600 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Music className="w-10 h-10 text-white" />
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">No audios found</h3>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">Try adjusting your search criteria or filters to find what you're looking for.</p>
+            <Button onClick={clearFilters} variant="outline" className="gap-2">
+              <Filter className="w-4 h-4" />
+              Clear Filters
+            </Button>
+          </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 md:gap-6">
           {currentAudios.map((audio) => (
             <Card
               key={audio.id}
-              className="group cursor-pointer hover:shadow-lg transition-all duration-300"
+              className="group cursor-pointer overflow-hidden bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-600 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1"
               onClick={() => handleAudioSelect(audio)}
               onContextMenu={(e) => handleFileContextMenu(e, audio)}
             >
-              <CardContent className="p-4">
-                <div className="space-y-3">
-                  {/* Audio Preview */}
-                  <div className="relative aspect-square bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/30 dark:to-purple-900/30 rounded-lg overflow-hidden flex items-center justify-center">
-                    <div className="text-center">
-                      <Volume2 className="w-12 h-12 text-blue-600 dark:text-blue-400 mx-auto mb-2" />
-                      <div className="text-xs text-blue-600 dark:text-blue-400 font-medium">
-                        {audio.format.toUpperCase()}
+              {/* Audio Preview */}
+              <div className="relative aspect-video bg-gradient-to-br from-purple-500 via-pink-500 to-orange-500 overflow-hidden">
+                    <div className="absolute inset-0 bg-gradient-to-br from-purple-600/20 to-pink-600/20"></div>
+                    
+                    {/* Audio waveform visualization */}
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="flex items-end gap-1 h-16">
+                        {[...Array(8)].map((_, i) => (
+                          <div
+                            key={i}
+                            className="w-1 bg-white/80 rounded-full animate-pulse"
+                            style={{
+                              height: `${Math.random() * 60 + 20}%`,
+                              animationDelay: `${i * 0.1}s`
+                            }}
+                          />
+                        ))}
                       </div>
                     </div>
-                    <div className="absolute top-2 right-2">
-                      <Badge className={getAudioStatusColor(audio.status)}>
+
+                    {/* Music icon */}
+                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                      <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">
+                        <Music className="w-8 h-8 text-white" />
+                      </div>
+                    </div>
+
+                    {/* Overlay with play button */}
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-300 flex items-center justify-center">
+                      <div className="w-16 h-16 bg-white/90 dark:bg-gray-800/90 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 transform scale-75 group-hover:scale-100">
+                        <Play className="w-6 h-6 text-gray-900 dark:text-white ml-1" />
+                      </div>
+                    </div>
+
+                    {/* Status badge */}
+                    <div className="absolute top-3 right-3">
+                      <Badge className={`${getAudioStatusColor(audio.status)} text-xs font-medium px-2 py-1`}>
                         {audio.status}
                       </Badge>
+                    </div>
+
+                    {/* Favorite indicator */}
+                    {audio.favorite && (
+                      <div className="absolute top-3 left-3">
+                        <div className="w-8 h-8 bg-yellow-500 rounded-full flex items-center justify-center shadow-lg">
+                          <Star className="w-4 h-4 text-white fill-current" />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Duration overlay */}
+                    <div className="absolute bottom-3 right-3">
+                      <div className="bg-black/70 text-white text-xs px-2 py-1 rounded-md font-medium">
+                        {formatAudioDuration(audio.duration)}
+                      </div>
+                    </div>
+
+                    {/* Format overlay */}
+                    <div className="absolute bottom-3 left-3">
+                      <div className="bg-black/70 text-white text-xs px-2 py-1 rounded-md font-medium">
+                        {audio.format}
+                      </div>
                     </div>
                   </div>
 
                   {/* Audio Info */}
-                  <div className="space-y-2">
-                    <div className="flex items-start justify-between">
-                      <h4 className="font-semibold text-sm line-clamp-2">
-                        {audio.user_filename || audio.prompt.substring(0, 50)}
+                  <CardContent className="p-4 space-y-3">
+                    {/* Title and format */}
+                    <div className="space-y-2">
+                      <h4 className="font-semibold text-sm text-gray-900 dark:text-gray-100 line-clamp-2 leading-tight">
+                        {audio.user_filename || audio.prompt.substring(0, 60)}
                       </h4>
-                      {audio.favorite && (
-                        <Star className="w-4 h-4 text-yellow-500 fill-current" />
-                      )}
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary" className="text-xs px-2 py-1 bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300">
+                          {audio.format}
+                        </Badge>
+                        <Badge variant="outline" className="text-xs px-2 py-1">
+                          Audio
+                        </Badge>
+                      </div>
                     </div>
-                    
-                    <p className="text-xs text-muted-foreground line-clamp-2">
+
+                    {/* Description */}
+                    <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2 leading-relaxed">
                       {audio.prompt}
                     </p>
 
-                    <div className="flex items-center justify-between text-xs text-muted-foreground">
-                      <span>{audio.format.toUpperCase()}</span>
-                      <span>{formatAudioDuration(audio.duration)}</span>
-                    </div>
-
-                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    {/* Date */}
+                    <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                      <Calendar className="w-3 h-3" />
                       <span>{formatAudioDate(audio.task_created_at)}</span>
-                      <span>Audio</span>
                     </div>
-                  </div>
 
                   {/* Action Buttons */}
-                  <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-700">
+                  <div className="flex gap-1.5 mt-3">
                     <Button
-                      variant="ghost"
                       size="sm"
+                      variant="outline"
+                      className="flex-1 h-8 text-xs font-medium hover:bg-purple-700 hover:border-purple-500 transition-colors"
                       onClick={(e) => {
                         e.stopPropagation();
                         handleDownload(audio.audio_id);
                       }}
-                      className="h-6 px-2 text-xs"
                     >
-                      <Download className="w-3 h-3 mr-1" />
-                      Download
+                      <Download className="w-3 h-3 mr-1.5" />
+                      <span className="hidden sm:inline">Download</span>
                     </Button>
                     <Button
-                      variant="ghost"
                       size="sm"
+                      variant="outline"
+                      className="h-8 w-8 p-0 hover:bg-green-50 hover:bg-green-700 hover:border-green-500 transition-colors"
                       onClick={(e) => {
                         e.stopPropagation();
                         handleShare(audio.audio_id);
                       }}
-                      className="h-6 px-2 text-xs"
                     >
-                      <Share className="w-3 h-3 mr-1" />
-                      Share
+                      <Share className="w-3 h-3" />
                     </Button>
                     <Button
-                      variant="ghost"
                       size="sm"
+                      variant="outline"
+                      className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-amber-500 hover:border-amber-300 transition-colors"
                       onClick={(e) => {
                         e.stopPropagation();
                         handleDelete(audio);
                       }}
-                      className="h-6 px-2 text-xs text-red-600 hover:text-red-700"
                     >
-                      <Trash2 className="w-3 h-3 mr-1" />
-                      Delete
+                      <Trash2 className="w-3 h-3" />
                     </Button>
                   </div>
-                </div>
-              </CardContent>
+                </CardContent>
             </Card>
           ))}
         </div>

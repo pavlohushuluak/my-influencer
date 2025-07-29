@@ -72,7 +72,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
   const [folderIcons, setFolderIcons] = useState<string[]>([]);
 
   // Folder navigation state
-  const [currentPath, setCurrentPath] = useState<string>('audio');
+  const [currentPath, setCurrentPath] = useState<string>('');
   const [folderStructure, setFolderStructure] = useState<FolderStructure[]>([]);
 
   // Folder renaming state
@@ -119,8 +119,9 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
 
   // Extract folder name from full path
   const extractFolderName = (fullPath: string): string => {
-    const parts = fullPath.split('/');
-    return parts[parts.length - 1] || fullPath;
+    // Remove the user ID and "audio/" prefix
+    const pathWithoutPrefix = fullPath.replace(/^[^\/]+\/audio\//, '');
+    return pathWithoutPrefix;
   };
 
   // Encode name for URL
@@ -133,49 +134,100 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
     return decodeURIComponent(name);
   };
 
-  // Build folder structure from flat list
+  // Build folder structure from raw folder data
   const buildFolderStructure = (folderData: FolderData[]): FolderStructure[] => {
-    const folderMap = new Map<string, FolderStructure>();
-    const rootFolders: FolderStructure[] = [];
+    const structure: FolderStructure[] = [];
+    const pathMap = new Map<string, FolderStructure>();
 
-    // Filter for audio folder and its subfolders
-    const audioFolders = folderData.filter(folder => 
-      folder.Key.startsWith('audio/') || folder.Key === 'audio'
-    );
+    console.log('Building folder structure from:', folderData);
 
-    audioFolders.forEach(folder => {
-      const parts = folder.Key.split('/');
+    folderData.forEach(folder => {
+      console.log('Processing folder:', folder);
+      console.log('Folder key:', folder.Key);
+
+      // Extract the folder path from the key
+      const folderPath = extractFolderName(folder.Key);
+      console.log('Extracted folder path:', folderPath);
+
+      if (!folderPath) {
+        console.log('No folder path extracted, skipping');
+        return;
+      }
+
+      const pathParts = folderPath.split('/').filter(part => part.length > 0);
+      console.log('Path parts:', pathParts);
+
       let currentPath = '';
-      
-      parts.forEach((part, index) => {
-        if (part === '') return;
-        
+
+      pathParts.forEach((part, index) => {
         const parentPath = currentPath;
         currentPath = currentPath ? `${currentPath}/${part}` : part;
-        
-        if (!folderMap.has(currentPath)) {
-          const folderStructure: FolderStructure = {
+
+        console.log(`Processing part "${part}", currentPath: "${currentPath}", parentPath: "${parentPath}"`);
+
+        if (!pathMap.has(currentPath)) {
+          const folderNode: FolderStructure = {
             name: part,
             path: currentPath,
             children: [],
             isFolder: true
           };
-          
-          folderMap.set(currentPath, folderStructure);
-          
-          if (parentPath === '') {
-            rootFolders.push(folderStructure);
-          } else {
-            const parent = folderMap.get(parentPath);
-            if (parent) {
-              parent.children.push(folderStructure);
-            }
+
+          pathMap.set(currentPath, folderNode);
+          console.log(`Created folder node:`, folderNode);
+
+          if (parentPath && pathMap.has(parentPath)) {
+            console.log(`Adding to parent "${parentPath}"`);
+            pathMap.get(parentPath)!.children.push(folderNode);
+          } else if (!parentPath) {
+            console.log(`Adding to root structure`);
+            structure.push(folderNode);
           }
         }
       });
     });
 
-    return rootFolders;
+    console.log('Final folder structure:', structure);
+    return structure;
+  };
+
+  // Get all subfolders recursively
+  const getAllSubfolders = async (folderPath: string): Promise<string[]> => {
+    try {
+      const response = await fetch('https://api.nymia.ai/v1/getfoldernames', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          user: userData.id,
+          folder: `audio/${folderPath}`
+        })
+      });
+
+      if (!response.ok) {
+        return [];
+      }
+
+      const folders = await response.json();
+      const subfolders: string[] = [];
+
+      for (const folder of folders) {
+        const extractedPath = extractFolderName(folder.Key);
+        if (extractedPath && extractedPath.startsWith(folderPath + '/')) {
+          subfolders.push(extractedPath);
+          // Recursively get subfolders of this subfolder
+          const nestedSubfolders = await getAllSubfolders(extractedPath);
+          subfolders.push(...nestedSubfolders);
+        }
+      }
+
+      return subfolders;
+    } catch (error) {
+      console.error('Error getting subfolders:', error);
+      return [];
+    }
   };
 
   // Navigate to folder
@@ -186,65 +238,109 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
 
   // Navigate to parent folder
   const navigateToParent = () => {
-    const parts = currentPath.split('/');
-    parts.pop();
-    const parentPath = parts.join('/') || 'audio';
+    const pathParts = currentPath.split('/');
+    pathParts.pop();
+    const parentPath = pathParts.join('/');
     setCurrentPath(parentPath);
     fetchFolderFiles(parentPath);
   };
 
   // Navigate to home (audio root)
   const navigateToHome = () => {
-    setCurrentPath('audio');
-    fetchFolderFiles('audio');
+    setCurrentPath('');
+    fetchFolderFiles('');
   };
 
   // Get breadcrumb items
   const getBreadcrumbItems = () => {
-    const parts = currentPath.split('/');
-    const items = [];
-    
-    for (let i = 0; i < parts.length; i++) {
-      const path = parts.slice(0, i + 1).join('/');
-      const name = parts[i];
-      items.push({ name, path });
-    }
-    
-    return items;
+    if (!currentPath) return [];
+
+    const pathParts = currentPath.split('/');
+    const breadcrumbs = [];
+    let currentPathBuilt = '';
+
+    pathParts.forEach((part, index) => {
+      currentPathBuilt = currentPathBuilt ? `${currentPathBuilt}/${part}` : part;
+      breadcrumbs.push({
+        name: part,
+        path: currentPathBuilt
+      });
+    });
+
+    return breadcrumbs;
   };
 
-  // Fetch folders
+  // Fetch folders from API
   useEffect(() => {
     const fetchFolders = async () => {
-      if (!userData.id) return;
-      
       try {
         setFoldersLoading(true);
-        const response = await fetch(`https://db.nymia.ai/rest/v1/folders?user_uuid=eq.${userData.id}`, {
+        const response = await fetch('https://api.nymia.ai/v1/getfoldernames', {
+          method: 'POST',
           headers: {
-            'Authorization': 'Bearer WeInfl3nc3withAI',
-            'Content-Type': 'application/json'
-          }
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer WeInfl3nc3withAI'
+          },
+          body: JSON.stringify({
+            user: userData.id,
+            folder: "audio"
+          })
         });
 
-        if (response.ok) {
-          const data = await response.json();
-          console.log('Fetched folders:', data);
-          setFolders(data);
-          setFolderStructure(buildFolderStructure(data));
-        } else {
+        if (!response.ok) {
           throw new Error('Failed to fetch folders');
+        }
+
+        const data = await response.json();
+        console.log('Raw folders data from API:', data);
+        setFolders(data);
+
+        // Build folder structure
+        const structure = buildFolderStructure(data);
+        console.log('Built folder structure:', structure);
+        setFolderStructure(structure);
+
+        // If no structure was built, create a fallback from the raw data
+        if (structure.length === 0 && data.length > 0) {
+          console.log('No structure built, creating fallback folders');
+          const fallbackFolders = data.map((folder: FolderData) => ({
+            name: folder.Key || extractFolderName(folder.Key) || 'Unknown Folder',
+            path: folder.Key || extractFolderName(folder.Key) || 'unknown',
+            children: [],
+            isFolder: true
+          }));
+          console.log('Fallback folders:', fallbackFolders);
+          setFolderStructure(fallbackFolders);
         }
       } catch (error) {
         console.error('Error fetching folders:', error);
-        toast.error('Failed to load folders');
+        setFolders([]);
+        setFolderStructure([]);
       } finally {
         setFoldersLoading(false);
       }
     };
 
-    fetchFolders();
+    if (userData.id) {
+      fetchFolders();
+    }
   }, [userData.id]);
+
+  // Fetch file counts for all folders when folder structure changes
+  useEffect(() => {
+    const fetchAllFolderFileCounts = async () => {
+      const currentFolders = getCurrentPathFolders();
+
+      // Fetch file counts for each immediate children folder of current path
+      for (const folder of currentFolders) {
+        await fetchFolderFileCount(folder.path);
+      }
+    };
+
+    if (folderStructure.length > 0) {
+      fetchAllFolderFileCounts();
+    }
+  }, [folderStructure, userData.id, currentPath]);
 
   // Fetch audios from current folder
   const fetchFolderFiles = async (folderPath: string) => {
@@ -282,7 +378,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
 
   // Fetch initial audios
   useEffect(() => {
-    fetchFolderFiles('audio');
+    fetchFolderFiles('');
   }, [userData.id]);
 
   // Filter and sort audios
@@ -440,7 +536,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
         },
         body: JSON.stringify({
           user: userData.id,
-          folder: newFolderPath
+          folder: `audio/${newFolderPath}`
         })
       });
 
@@ -450,7 +546,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
         setNewFolderName('');
         
         // Refresh folders
-        const updatedFolders = [...folders, { Key: newFolderPath }];
+        const updatedFolders = [...folders, { Key: `audio/${newFolderPath}` }];
         setFolders(updatedFolders);
         setFolderStructure(buildFolderStructure(updatedFolders));
       } else {
@@ -480,8 +576,8 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
         },
         body: JSON.stringify({
           user: userData.id,
-          old_folder: oldPath,
-          new_folder: newPath
+          old_folder: `audio/${oldPath}`,
+          new_folder: `audio/${newPath}`
         })
       });
 
@@ -492,7 +588,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
         
         // Update folders
         const updatedFolders = folders.map(folder => 
-          folder.Key === oldPath ? { ...folder, Key: newPath } : folder
+          folder.Key === `audio/${oldPath}` ? { ...folder, Key: `audio/${newPath}` } : folder
         );
         setFolders(updatedFolders);
         setFolderStructure(buildFolderStructure(updatedFolders));
@@ -517,7 +613,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
         },
         body: JSON.stringify({
           user: userData.id,
-          folder: folderPath
+          folder: `audio/${folderPath}`
         })
       });
 
@@ -525,7 +621,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
         toast.success('Folder deleted successfully');
         
         // Update folders
-        const updatedFolders = folders.filter(folder => folder.Key !== folderPath);
+        const updatedFolders = folders.filter(folder => folder.Key !== `audio/${folderPath}`);
         setFolders(updatedFolders);
         setFolderStructure(buildFolderStructure(updatedFolders));
       } else {
@@ -568,8 +664,8 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
             },
             body: JSON.stringify({
               user: userData.id,
-              source_folder: sourcePath,
-              dest_folder: destPath
+              source_folder: `audio/${sourcePath}`,
+              dest_folder: `audio/${destPath}`
             })
           });
 
@@ -584,8 +680,8 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
             },
             body: JSON.stringify({
               user: userData.id,
-              source_folder: sourcePath,
-              dest_folder: destPath
+              source_folder: `audio/${sourcePath}`,
+              dest_folder: `audio/${destPath}`
             })
           });
 
@@ -606,7 +702,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
         },
         body: JSON.stringify({
           user: userData.id,
-          folder: "vault"
+          folder: "audio"
         })
       });
 
@@ -671,13 +767,35 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
     if (loadingFileCounts[folderPath]) return;
 
     setLoadingFileCounts(prev => ({ ...prev, [folderPath]: true }));
+
     try {
-      // In a real implementation, you would fetch the actual file count
-      // For now, we'll use a mock count
-      const mockCount = Math.floor(Math.random() * 10);
-      setFolderFileCounts(prev => ({ ...prev, [folderPath]: mockCount }));
+      const response = await fetch('https://api.nymia.ai/v1/getfilenames', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          user: userData.id,
+          folder: `audio/${folderPath}`
+        })
+      });
+
+      if (response.ok) {
+        const files = await response.json();
+        const directFiles = files.filter((file: any) => {
+          const relativePath = file.Key.replace(`audio/${userData.id}/audio/${folderPath}/`, '');
+          if (folderPath === '') {
+            return !relativePath.includes('/');
+          }
+          return false;
+        });
+
+        setFolderFileCounts(prev => ({ ...prev, [folderPath]: directFiles.length }));
+      }
     } catch (error) {
-      console.error('Error fetching folder file count:', error);
+      console.error(`Error fetching file count for folder ${folderPath}:`, error);
+      setFolderFileCounts(prev => ({ ...prev, [folderPath]: 0 }));
     } finally {
       setLoadingFileCounts(prev => ({ ...prev, [folderPath]: false }));
     }
@@ -841,7 +959,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
           <Home className="w-3 h-3 mr-1" />
           Audio
         </Button>
-        {getBreadcrumbItems().slice(1).map((item, index) => (
+        {getBreadcrumbItems().map((item, index) => (
           <div key={index} className="flex items-center gap-2">
             <ChevronRight className="w-3 h-3" />
             <Button

@@ -7,8 +7,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Star, Search, Download, Share, Trash2, Filter, Calendar, Video, SortAsc, SortDesc, ZoomIn, Folder, Plus, Upload, ChevronRight, Home, ArrowLeft, Pencil, Menu, X, File, User, RefreshCcw, Edit, Play } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
+import { Star, Search, Download, Share, Trash2, Filter, Calendar, Video, SortAsc, SortDesc, ZoomIn, Folder, Plus, ChevronRight, Home, ArrowLeft, Pencil, Menu, X, File, User, RefreshCcw, Edit, Play } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { DialogContentZoom } from '@/components/ui/zoomdialog';
@@ -114,7 +116,9 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
 
   // Drag and drop state
   const [dragOverFolder, setDragOverFolder] = useState<string | null>(null);
-  const [dragOverUpload, setDragOverUpload] = useState(false);
+
+  const [draggedVideo, setDraggedVideo] = useState<VideoData | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
 
   // File counts and loading states
   const [folderFileCounts, setFolderFileCounts] = useState<{ [key: string]: number }>({});
@@ -552,9 +556,29 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
 
   // Handle download
   const handleDownload = async (video: VideoData) => {
+    const videoId = video.video_id;
+    
+    // Prevent multiple downloads of the same video
+    if (downloadingVideos.has(videoId)) {
+      return;
+    }
+
     try {
+      // Set downloading state
+      setDownloadingVideos(prev => new Set(prev).add(videoId));
+      setDownloadProgress(prev => ({ ...prev, [videoId]: 0 }));
+
+      // Show initial toast
+      toast.info('Preparing download...', {
+        description: `Starting download for "${video.user_filename || video.video_id}"`,
+        duration: 2000
+      });
+
       const fileName = video.video_name && video.video_name.trim() !== '' ? video.video_name : video.video_id;
       const path = currentPath === "" ? "video" : `video/${currentPath}`;
+      
+      // Update progress to 25%
+      setDownloadProgress(prev => ({ ...prev, [videoId]: 25 }));
       
       const response = await fetch('https://api.nymia.ai/v1/downloadfile', {
         method: 'POST',
@@ -572,13 +596,28 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
         throw new Error('Failed to download file');
       }
 
+      // Update progress to 50%
+      setDownloadProgress(prev => ({ ...prev, [videoId]: 50 }));
+
+      // Show downloading toast
+      toast.info('Downloading video...', {
+        description: `Processing "${video.user_filename || video.video_id}"`,
+        duration: 2000
+      });
+
       const blob = await response.blob();
+
+      // Update progress to 75%
+      setDownloadProgress(prev => ({ ...prev, [videoId]: 75 }));
 
       // Create a download link
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
       link.download = `${fileName}.mp4`;
+
+      // Update progress to 90%
+      setDownloadProgress(prev => ({ ...prev, [videoId]: 90 }));
 
       // Trigger download
       document.body.appendChild(link);
@@ -588,10 +627,49 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
       
-      toast.success('Download started');
+      // Update progress to 100%
+      setDownloadProgress(prev => ({ ...prev, [videoId]: 100 }));
+
+      // Show success toast
+      toast.success('Download completed!', {
+        description: `"${video.user_filename || video.video_id}" has been downloaded successfully`,
+        duration: 3000
+      });
+
+      // Clear download state after a short delay
+      setTimeout(() => {
+        setDownloadingVideos(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(videoId);
+          return newSet;
+        });
+        setDownloadProgress(prev => {
+          const newProgress = { ...prev };
+          delete newProgress[videoId];
+          return newProgress;
+        });
+      }, 1000);
+
     } catch (error) {
       console.error('Error downloading video:', error);
-      toast.error('Failed to download video');
+      
+      // Show error toast
+      toast.error('Download failed', {
+        description: `Failed to download "${video.user_filename || video.video_id}". Please try again.`,
+        duration: 5000
+      });
+
+      // Clear download state
+      setDownloadingVideos(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(videoId);
+        return newSet;
+      });
+      setDownloadProgress(prev => {
+        const newProgress = { ...prev };
+        delete newProgress[videoId];
+        return newProgress;
+      });
     }
   };
 
@@ -1407,16 +1485,33 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
     if (!fileClipboard || fileCopyState === 0) return;
 
     setIsPastingFile(true);
+    const processingToast = toast.loading('Processing files...', {
+      description: `${fileClipboard.type === 'copy' ? 'Copying' : 'Moving'} ${fileClipboard.items.length} video(s)`,
+      duration: Infinity
+    });
+
     try {
-      for (const video of fileClipboard.items) {
+      for (let i = 0; i < fileClipboard.items.length; i++) {
+        const video = fileClipboard.items[i];
+        
+        // Update toast progress
+        toast.loading(`${fileClipboard.type === 'copy' ? 'Copying' : 'Moving'} video ${i + 1}/${fileClipboard.items.length}...`, {
+          id: processingToast,
+          description: `Processing "${video.user_filename || video.video_id}"`
+        });
+
         if (fileClipboard.type === 'copy') {
           // Copy video - create a new entry with updated path
           const newVideoPath = currentPath || '';
           const fileName = video.video_name && video.video_name.trim() !== '' ? video.video_name : video.video_id;
+          
+          // Generate new video_id for the copy
+          const newVideoId = `copy_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
+          
+          // Construct source and destination paths
+          const sourcePath = video.video_path ? `video/${video.video_path}/${fileName}.mp4` : `video/${fileName}.mp4`;
+          const destinationPath = newVideoPath ? `video/${newVideoPath}/${fileName}.mp4` : `video/${fileName}.mp4`;
 
-          console.log(video);
-          console.log(`video/${video.video_path ? video.video_path + '/' : ''}${fileName}.mp4`);
-          console.log(`video/${newVideoPath}/${fileName}.mp4`);
           // Copy the actual file
           const copyResponse = await fetch('https://api.nymia.ai/v1/copyfile', {
             method: 'POST',
@@ -1426,41 +1521,64 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
             },
             body: JSON.stringify({
               user: userData.id,
-              sourcefilename: `video/${video.video_path ? video.video_path + '/' : ''}${fileName}.mp4`,
-              destinationfilename: `video/${newVideoPath}/${fileName}.mp4`
+              sourcefilename: sourcePath,
+              destinationfilename: destinationPath
             })
           });
 
           if (!copyResponse.ok) {
-            console.warn(`Failed to copy file for video ${video.video_id}`);
+            throw new Error(`Failed to copy file for video ${video.video_id}`);
           }
 
-          const newVideoData = video;
-          newVideoData.video_path = newVideoPath;
-          newVideoData.video_url = `https://images.nymia.ai/${userData.id}/video/${newVideoPath}/${fileName}.mp4`;
-          newVideoData.video_name = fileName;
-          delete newVideoData.video_id;
+          // Create new video data for the copy
+          const newVideoData = {
+            task_id: `copy_${Date.now()}`,
+            video_id: newVideoId,
+            user_uuid: userData.id,
+            model: video.model,
+            mode: video.mode,
+            prompt: video.prompt,
+            duration: video.duration,
+            start_image: video.start_image,
+            start_image_url: video.start_image_url,
+            negative_prompt: video.negative_prompt,
+            status: 'completed',
+            task_created_at: new Date().toISOString(),
+            task_completed_at: new Date().toISOString(),
+            lip_flag: video.lip_flag,
+            user_filename: video.user_filename,
+            user_notes: video.user_notes,
+            user_tags: video.user_tags,
+            rating: video.rating,
+            favorite: video.favorite,
+            video_path: newVideoPath,
+            video_name: fileName
+          };
           
-          // Update the video path in the database
-          const response = await fetch(`https://db.nymia.ai/rest/v1/video`, {
+          // Create new database entry
+          const response = await fetch('https://db.nymia.ai/rest/v1/video', {
             method: 'POST',
             headers: {
               'Authorization': 'Bearer WeInfl3nc3withAI',
               'Content-Type': 'application/json',
             },
-            body: JSON.stringify({
-              ...newVideoData
-            })
+            body: JSON.stringify(newVideoData)
           });
 
           if (!response.ok) {
-            throw new Error(`Failed to copy video ${video.video_id}`);
+            throw new Error(`Failed to create database entry for copied video ${video.video_id}`);
           }
 
         } else {
           // Move video - update the path in database
           const newVideoPath = currentPath || '';
+          const fileName = video.video_name && video.video_name.trim() !== '' ? video.video_name : video.video_id;
           
+          // Construct source and destination paths
+          const sourcePath = video.video_path ? `video/${video.video_path}/${fileName}.mp4` : `video/${fileName}.mp4`;
+          const destinationPath = newVideoPath ? `video/${newVideoPath}/${fileName}.mp4` : `video/${fileName}.mp4`;
+
+          // Update the video's path in the database first
           const response = await fetch(`https://db.nymia.ai/rest/v1/video?video_id=eq.${video.video_id}`, {
             method: 'PATCH',
             headers: {
@@ -1473,11 +1591,10 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
           });
 
           if (!response.ok) {
-            throw new Error(`Failed to move video ${video.video_id}`);
+            throw new Error(`Failed to update database for video ${video.video_id}`);
           }
 
           // Move the actual file
-          const fileName = video.video_name && video.video_name.trim() !== '' ? video.video_name : video.video_id;
           const moveResponse = await fetch('https://api.nymia.ai/v1/copyfile', {
             method: 'POST',
             headers: {
@@ -1486,12 +1603,17 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
             },
             body: JSON.stringify({
               user: userData.id,
-              sourcefilename: `video/${video.video_path ? video.video_path + '/' : ''}${fileName}.mp4`,
-              destinationfilename: `video/${newVideoPath}/${fileName}.mp4`
+              sourcefilename: sourcePath,
+              destinationfilename: destinationPath
             })
           });
 
-          await fetch('https://api.nymia.ai/v1/deletefile', {
+          if (!moveResponse.ok) {
+            throw new Error(`Failed to move file for video ${video.video_id}`);
+          }
+
+          // Delete the original file
+          const deleteResponse = await fetch('https://api.nymia.ai/v1/deletefile', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -1499,17 +1621,22 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
             },
             body: JSON.stringify({
               user: userData.id,
-              filename: `video/${video.video_path ? video.video_path + '/' : ''}${fileName}.mp4`
+              filename: sourcePath
             })
           });
 
-          if (!moveResponse.ok) {
-            console.warn(`Failed to move file for video ${video.video_id}`);
+          if (!deleteResponse.ok) {
+            console.warn(`Failed to delete original file for video ${video.video_id}, but move operation completed`);
           }
         }
       }
 
-      toast.success(`Video ${fileClipboard.type === 'copy' ? 'copied' : 'moved'} successfully`);
+      toast.success(`${fileClipboard.items.length} video(s) ${fileClipboard.type === 'copy' ? 'copied' : 'moved'} successfully!`, {
+        id: processingToast,
+        description: `Files are now in ${currentPath || 'root folder'}`,
+        duration: 4000
+      });
+      
       setFileClipboard(null);
       setFileCopyState(0);
       
@@ -1517,7 +1644,11 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
       await fetchFolderFiles(currentPath);
     } catch (error) {
       console.error('Error pasting video:', error);
-      toast.error('Failed to paste video');
+      toast.error('Failed to paste video', {
+        id: processingToast,
+        description: error instanceof Error ? error.message : 'An error occurred during the operation',
+        duration: 5000
+      });
     } finally {
       setIsPastingFile(false);
     }
@@ -1613,8 +1744,28 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
   };
 
   // Drag and drop functions
+  const handleDragStart = (e: React.DragEvent, video: VideoData) => {
+    setDraggedVideo(video);
+    setIsDragging(true);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', video.video_name || video.video_id);
+
+    // Show toast when drag starts
+    toast.info('Drag started', {
+      description: `Moving "${video.video_name || video.video_id}" - drop on a folder to move it`,
+      duration: 3000
+    });
+  };
+
+  const handleDragEnd = () => {
+    setDraggedVideo(null);
+    setIsDragging(false);
+    setDragOverFolder(null);
+  };
+
   const handleDragOver = (e: React.DragEvent, folderPath: string) => {
     e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
     setDragOverFolder(folderPath);
   };
 
@@ -1625,10 +1776,9 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
   const handleDrop = async (e: React.DragEvent, targetFolderPath: string) => {
     e.preventDefault();
     setDragOverFolder(null);
-    
-    // Check if we have files in clipboard to paste
+
+    // Handle clipboard paste if we have files in clipboard
     if (fileClipboard && fileCopyState > 0) {
-      // Temporarily change current path to target folder for paste operation
       const originalPath = currentPath;
       setCurrentPath(targetFolderPath);
       
@@ -1639,11 +1789,132 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
         console.error('Error dropping files:', error);
         toast.error('Failed to drop files');
       } finally {
-        // Restore original path
         setCurrentPath(originalPath);
       }
+      return;
+    }
+
+    // Handle direct video drag and drop
+    if (!draggedVideo) return;
+
+    // Don't allow dropping into the same folder
+    if (draggedVideo.video_path === targetFolderPath) {
+      toast.error('Video is already in this folder');
+      return;
+    }
+
+    // Show moving process toast
+    const movingToast = toast.loading('Moving video...', {
+      description: `Moving "${draggedVideo.user_filename || draggedVideo.video_id}" to ${targetFolderPath || 'root'}`,
+      duration: Infinity
+    });
+
+    try {
+      const fileName = draggedVideo.video_name && draggedVideo.video_name.trim() !== '' ? draggedVideo.video_name : draggedVideo.video_id;
+      const sourcePath = draggedVideo.video_path || '';
+      const targetPath = targetFolderPath || '';
+
+      // Construct source and destination paths
+      const sourceFilePath = sourcePath ? `video/${sourcePath}/${fileName}.mp4` : `video/${fileName}.mp4`;
+      const targetFilePath = targetPath ? `video/${targetPath}/${fileName}.mp4` : `video/${fileName}.mp4`;
+
+      // Update toast to show progress
+      toast.loading('Updating database...', {
+        id: movingToast,
+        description: `Updating video location in database`
+      });
+
+      // Update the video's video_path in the database
+      const response = await fetch(`https://db.nymia.ai/rest/v1/video?video_id=eq.${draggedVideo.video_id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          video_path: targetPath
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update database');
+      }
+
+      // Copy the file to the target folder
+      toast.loading('Copying file...', {
+        id: movingToast,
+        description: `Copying "${fileName}.mp4" to new location`
+      });
+
+      const copyResponse = await fetch('https://api.nymia.ai/v1/copyfile', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          user: userData.id,
+          sourcefilename: sourceFilePath,
+          destinationfilename: targetFilePath
+        })
+      });
+
+      if (!copyResponse.ok) {
+        throw new Error('Failed to copy file');
+      }
+
+      // Delete the file from the source folder
+      toast.loading('Cleaning up...', {
+        id: movingToast,
+        description: `Removing file from original location`
+      });
+
+      const deleteResponse = await fetch('https://api.nymia.ai/v1/deletefile', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          user: userData.id,
+          filename: sourceFilePath
+        })
+      });
+
+      if (!deleteResponse.ok) {
+        console.warn('Failed to delete original file, but move operation completed');
+      }
+
+      // Refresh the files list
+      toast.loading('Refreshing view...', {
+        id: movingToast,
+        description: `Updating file list`
+      });
+
+      await fetchFolderFiles(currentPath);
+
+      // Show success message
+      toast.success(`Video moved successfully!`, {
+        id: movingToast,
+        description: `"${draggedVideo.user_filename || fileName}.mp4" has been moved to ${targetFolderPath || 'root'}`,
+        duration: 4000
+      });
+
+    } catch (error) {
+      console.error('Error moving video:', error);
+      toast.error('Failed to move video', {
+        id: movingToast,
+        description: error instanceof Error ? error.message : 'An error occurred during the move operation. Please try again.',
+        duration: 5000
+      });
     }
   };
+
+  // Download state
+  const [downloadingVideos, setDownloadingVideos] = useState<Set<string>>(new Set());
+  const [downloadProgress, setDownloadProgress] = useState<Record<string, number>>({});
+
+
 
   // Pagination functions
   const handlePageChange = (page: number) => {
@@ -1971,10 +2242,11 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
         </div>
       </div>
 
-      {/* Video Grid */}
+      {/* Video Grid with Upload Card */}
       {videosLoading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 md:gap-6">
-          {[...Array(8)].map((_, i) => (
+          {/* Loading skeleton cards */}
+          {[...Array(7)].map((_, i) => (
             <Card key={i} className="animate-pulse overflow-hidden">
               <div className="aspect-video bg-slate-200 dark:bg-slate-700"></div>
               <CardContent className="p-4">
@@ -1991,27 +2263,34 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
           ))}
         </div>
       ) : totalItems === 0 ? (
-        <div className="text-center py-16 px-4">
-          <div className="max-w-md mx-auto">
-            <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-6">
-              <Video className="w-10 h-10 text-white" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 md:gap-6">
+          {/* Empty state message */}
+          <div className="col-span-full text-center py-16 px-4">
+            <div className="max-w-md mx-auto">
+              <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                <Video className="w-10 h-10 text-white" />
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">No videos found</h3>
+              <p className="text-gray-600 dark:text-gray-400 mb-6">Try adjusting your search criteria or filters to find what you're looking for.</p>
+              <Button onClick={clearFilters} variant="outline" className="gap-2">
+                <Filter className="w-4 h-4" />
+                Clear Filters
+              </Button>
             </div>
-            <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">No videos found</h3>
-            <p className="text-gray-600 dark:text-gray-400 mb-6">Try adjusting your search criteria or filters to find what you're looking for.</p>
-            <Button onClick={clearFilters} variant="outline" className="gap-2">
-              <Filter className="w-4 h-4" />
-              Clear Filters
-            </Button>
           </div>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 md:gap-6">
+          {/* Video Cards */}
           {currentVideos.map((video) => (
             <Card
               key={video.id}
               className={`group cursor-pointer overflow-hidden bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 ${
                 selectedVideos.has(video.id) ? 'ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-950/20' : ''
-              }`}
+              } ${isDragging && draggedVideo?.id === video.id ? 'opacity-50 scale-95' : ''}`}
+              draggable
+              onDragStart={(e) => handleDragStart(e, video)}
+              onDragEnd={handleDragEnd}
               onClick={(e) => {
                 // Handle multi-selection with Ctrl/Cmd key
                 if (e.ctrlKey || e.metaKey) {
@@ -2112,14 +2391,35 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
                   <Button
                     size="sm"
                     variant="outline"
-                    className="flex-1 h-8 text-xs font-medium hover:bg-blue-700 hover:border-blue-500 transition-colors"
+                    className="flex-1 h-8 text-xs font-medium hover:bg-blue-700 hover:border-blue-500 transition-colors relative overflow-hidden"
                     onClick={(e) => {
                       e.stopPropagation();
                       handleDownload(video);
                     }}
+                    disabled={downloadingVideos.has(video.video_id)}
                   >
-                    <Download className="w-3 h-3 mr-1.5" />
-                    <span className="hidden sm:inline">Download</span>
+                    {downloadingVideos.has(video.video_id) ? (
+                      <>
+                        <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600 mr-1.5"></div>
+                        <span className="hidden sm:inline">
+                          {downloadProgress[video.video_id] === 100 ? 'Complete!' : `Downloading ${downloadProgress[video.video_id] || 0}%`}
+                        </span>
+                        <span className="sm:hidden">
+                          {downloadProgress[video.video_id] === 100 ? 'Done!' : `${downloadProgress[video.video_id] || 0}%`}
+                        </span>
+                        {/* Progress bar overlay */}
+                        {downloadProgress[video.video_id] && downloadProgress[video.video_id] < 100 && (
+                          <div className="absolute bottom-0 left-0 h-0.5 bg-blue-500 transition-all duration-300" 
+                               style={{ width: `${downloadProgress[video.video_id]}%` }} />
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        <Download className="w-3 h-3 mr-1.5" />
+                        <span className="hidden sm:inline">Download</span>
+                        <span className="sm:hidden">DL</span>
+                      </>
+                    )}
                   </Button>
                   <Button
                     size="sm"
@@ -2263,9 +2563,21 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
                 <Button
                   onClick={() => handleDownload(selectedVideo)}
                   variant="outline"
+                  disabled={downloadingVideos.has(selectedVideo.video_id)}
                 >
-                  <Download className="w-4 h-4 mr-2" />
-                  Download
+                  {downloadingVideos.has(selectedVideo.video_id) ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+                      <span>
+                        {downloadProgress[selectedVideo.video_id] === 100 ? 'Complete!' : `Downloading ${downloadProgress[selectedVideo.video_id] || 0}%`}
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <Download className="w-4 h-4 mr-2" />
+                      <span>Download</span>
+                    </>
+                  )}
                 </Button>
                 <Button
                   onClick={() => handleShare(selectedVideo)}
@@ -2516,9 +2828,21 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
               handleDownload(fileContextMenu.video);
               setFileContextMenu(null);
             }}
+            disabled={downloadingVideos.has(fileContextMenu.video.video_id)}
           >
-            <Download className="w-4 h-4" />
-            Download
+            {downloadingVideos.has(fileContextMenu.video.video_id) ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                <span>
+                  {downloadProgress[fileContextMenu.video.video_id] === 100 ? 'Complete!' : `Downloading ${downloadProgress[fileContextMenu.video.video_id] || 0}%`}
+                </span>
+              </>
+            ) : (
+              <>
+                <Download className="w-4 h-4" />
+                <span>Download</span>
+              </>
+            )}
           </button>
           <button
             className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
@@ -2578,6 +2902,9 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
           }}
         />
       )}
+
+      {/* Hidden file input */}
+
     </div>
   );
 

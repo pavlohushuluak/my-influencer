@@ -767,7 +767,17 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
       console.log('New folder created successfully');
 
       // Step 2: Get all files from the old folder and move them to the new folder
-      const videosInFolder = videos.filter(video => video.video_path === oldPath);
+      const allVideosResponse = await fetch(`https://db.nymia.ai/rest/v1/video?user_uuid=eq.${userData.id}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': 'Bearer WeInfl3nc3withAI',
+          'Content-Type': 'application/json'
+        }
+      });
+
+      const allVideos = await allVideosResponse.json();
+      console.log(allVideos);
+      const videosInFolder = allVideos.filter(video => video.video_path === oldPath || (oldPath === "" && video.video_path === ""));
       console.log(videosInFolder);
       
       if (videosInFolder.length > 0) {
@@ -870,7 +880,7 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
 
               if (subfolderCreateResponse.ok) {
                 // Move videos in this subfolder
-                const subfolderVideos = videos.filter(video => video.video_path === `${oldPath}/${relativePath}`);
+                const subfolderVideos = allVideos.filter(video => video.video_path === `${oldPath}/${relativePath}`);
                 
                 for (const video of subfolderVideos) {
                   const fileName = video.video_name && video.video_name.trim() !== '' ? video.video_name : video.video_id;

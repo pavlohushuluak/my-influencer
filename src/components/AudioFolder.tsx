@@ -31,6 +31,7 @@ interface AudioData {
   user_tags?: string[];
   rating?: number;
   favorite?: boolean;
+  audio_url?: string;
 }
 
 // Interface for folder data from API
@@ -348,26 +349,74 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
     
     try {
       setAudiosLoading(true);
-      // For now, we'll use a mock audio data since the API might not have audio endpoints yet
-      // In a real implementation, you would fetch from the audio API endpoint
-      const mockAudios: AudioData[] = [
-        {
-          id: '1',
-          task_id: 'task-1',
-          audio_id: 'audio-1',
-          user_uuid: userData.id,
-          prompt: 'Background music for video',
-          duration: 30,
-          format: 'mp3',
-          status: 'completed',
-          task_created_at: new Date().toISOString(),
-          task_completed_at: new Date().toISOString(),
-          user_filename: 'Background Music.mp3',
-          favorite: false
-        }
-      ];
       
-      setAudios(mockAudios);
+      // Fetch all audio files from the database
+      const response = await fetch(`https://db.nymia.ai/rest/v1/audio?user_uuid=eq.${userData.id}&status=eq.completed&order=task_created_at.desc`, {
+        headers: {
+          'Authorization': 'Bearer WeInfl3nc3withAI',
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Fetched audios:', data);
+        
+        // Filter audios based on current path
+        const filteredAudios = data.filter((audio: AudioData) => {
+          const audioUrl = audio.audio_url || getAudioUrl(audio.audio_id);
+          
+          if (folderPath === '') {
+            // Root folder: show audios that are directly in audio/ folder (no subfolder)
+            return audioUrl.includes(`/audio/${audio.audio_id}.mp3`) && 
+                   !audioUrl.includes(`/audio/${audio.audio_id}/`) &&
+                   !audioUrl.match(`/audio/[^/]+/${audio.audio_id}\\.mp3`);
+          } else {
+            // Subfolder: show audios that are in the specific folder path
+            const expectedPath = `/audio/${folderPath}/${audio.audio_id}.mp3`;
+            return audioUrl.includes(expectedPath);
+          }
+        });
+        
+        console.log('Filtered audios for path:', folderPath, filteredAudios);
+        setAudios(filteredAudios);
+      } else {
+        // Fallback to mock data if API is not available
+        console.log('Audio API not available, using mock data');
+        const mockAudios: AudioData[] = [
+          {
+            id: '1',
+            task_id: 'task-1',
+            audio_id: 'audio-1',
+            user_uuid: userData.id,
+            prompt: 'Background music for video',
+            duration: 30,
+            format: 'mp3',
+            status: 'completed',
+            task_created_at: new Date().toISOString(),
+            task_completed_at: new Date().toISOString(),
+            user_filename: 'Background Music.mp3',
+            favorite: false,
+            audio_url: `https://images.nymia.ai/${userData.id}/audio/audio-1.mp3`
+          }
+        ];
+        
+        // Filter mock data based on path
+        const filteredMockAudios = mockAudios.filter((audio: AudioData) => {
+          const audioUrl = audio.audio_url || getAudioUrl(audio.audio_id);
+          
+          if (folderPath === '') {
+            return audioUrl.includes(`/audio/${audio.audio_id}.mp3`) && 
+                   !audioUrl.includes(`/audio/${audio.audio_id}/`) &&
+                   !audioUrl.match(`/audio/[^/]+/${audio.audio_id}\\.mp3`);
+          } else {
+            const expectedPath = `/audio/${folderPath}/${audio.audio_id}.mp3`;
+            return audioUrl.includes(expectedPath);
+          }
+        });
+        
+        setAudios(filteredMockAudios);
+      }
     } catch (error) {
       console.error('Error fetching audios:', error);
       toast.error('Failed to load audios');
@@ -868,20 +917,20 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
       <div className="flex flex-col md:flex-row items-center justify-between gap-5">
         <div className="flex items-center gap-4">
           <Button
-            onClick={onBack}
+            onClick={currentPath ? navigateToParent : onBack}
             variant="outline"
             size="sm"
             className="flex items-center gap-2"
           >
             <ArrowLeft className="w-4 h-4" />
-            Back
+            {currentPath ? 'Back' : 'Back to Menu'}
           </Button>
           <div>
             <h1 className="text-3xl font-bold tracking-tight bg-ai-gradient bg-clip-text text-transparent">
               Audio Folder
             </h1>
             <p className="text-muted-foreground">
-              Manage your audio content
+              {currentPath ? `Current path: ${currentPath}` : 'Manage your audio content'}
             </p>
           </div>
         </div>

@@ -36,6 +36,9 @@ interface VideoData {
   user_tags?: string[];
   rating?: number;
   favorite?: boolean;
+  video_url?: string;
+  video_path?: string;
+  video_name?: string;
 }
 
 // Interface for folder data from API
@@ -66,7 +69,7 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('newest');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-  const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
+  const [selectedVideo, setSelectedVideo] = useState<VideoData | null>(null);
   const [shareModal, setShareModal] = useState<{ open: boolean; itemId: string | null; itemPath: string | null }>({ open: false, itemId: null, itemPath: null });
 
   // New folder modal state
@@ -363,7 +366,26 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
       if (response.ok) {
         const data = await response.json();
         console.log('Fetched videos:', data);
-        setVideos(data);
+        
+        // Filter videos based on video_path matching current path
+        const filteredVideos = data.filter((video: VideoData) => {
+          // Filter completed videos only
+          if (video.status !== 'completed') {
+            return false;
+          }
+          
+          // Filter by video_path matching current path
+          if (folderPath === '') {
+            // Root folder: show videos with empty or null video_path
+            return !video.video_path || video.video_path === '';
+          } else {
+            // Subfolder: show videos with video_path matching current path
+            return video.video_path === folderPath;
+          }
+        });
+        
+        console.log('Filtered videos for path:', folderPath, filteredVideos);
+        setVideos(filteredVideos);
       } else {
         throw new Error('Failed to fetch videos');
       }
@@ -379,6 +401,55 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
   useEffect(() => {
     fetchFolderFiles('');
   }, [userData.id]);
+
+  // Keyboard shortcuts for copy, cut, paste
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Only handle shortcuts when not typing in input fields
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+
+      if (e.ctrlKey || e.metaKey) {
+        switch (e.key) {
+          case 'c':
+            e.preventDefault();
+            // Copy selected videos
+            if (selectedVideos.size > 0) {
+              const selectedVideoList = videos.filter(video => selectedVideos.has(video.id));
+              if (selectedVideoList.length > 0) {
+                setFileClipboard({ type: 'copy', items: selectedVideoList });
+                setFileCopyState(1);
+                toast.success(`${selectedVideoList.length} video(s) copied to clipboard`);
+              }
+            }
+            break;
+          case 'x':
+            e.preventDefault();
+            // Cut selected videos
+            if (selectedVideos.size > 0) {
+              const selectedVideoList = videos.filter(video => selectedVideos.has(video.id));
+              if (selectedVideoList.length > 0) {
+                setFileClipboard({ type: 'cut', items: selectedVideoList });
+                setFileCopyState(2);
+                toast.success(`${selectedVideoList.length} video(s) cut to clipboard`);
+              }
+            }
+            break;
+          case 'v':
+            e.preventDefault();
+            // Paste videos
+            if (fileClipboard && fileCopyState > 0) {
+              handleFilePaste();
+            }
+            break;
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [selectedVideos, videos, fileClipboard, fileCopyState]);
 
   // Filter and sort videos
   const filteredVideos = videos
@@ -427,8 +498,10 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
   const currentVideos = filteredVideos.slice(startIndex, endIndex);
 
   // Video helper functions
-  const getVideoUrl = (videoId: string) => {
-    return `https://images.nymia.ai/${userData.id}/video/${videoId}.mp4`;
+  const getVideoUrl = (video: VideoData) => {
+    // Use video_name if available, otherwise use video_id
+    const fileName = video.video_name && video.video_name.trim() !== '' ? video.video_name : video.video_id;
+    return `https://images.nymia.ai/${userData.id}/video/${video.video_path ? video.video_path + '/' : ''}${fileName}.mp4`;
   };
 
   const formatVideoDuration = (seconds: number) => {
@@ -472,16 +545,17 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
 
   // Handle video selection
   const handleVideoSelect = (video: VideoData) => {
-    setSelectedVideo(video.video_id);
+    setSelectedVideo(video);
   };
 
   // Handle download
-  const handleDownload = async (videoId: string) => {
+  const handleDownload = async (video: VideoData) => {
     try {
-      const videoUrl = getVideoUrl(videoId);
+      const videoUrl = getVideoUrl(video);
+      const fileName = video.video_name && video.video_name.trim() !== '' ? video.video_name : video.video_id;
       const link = document.createElement('a');
       link.href = videoUrl;
-      link.download = `video-${videoId}.mp4`;
+      link.download = `video-${fileName}.mp4`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -493,18 +567,25 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
   };
 
   // Handle share
-  const handleShare = (videoId: string) => {
-    const videoUrl = getVideoUrl(videoId);
+  const handleShare = (video: VideoData) => {
+    const videoUrl = getVideoUrl(video);
     navigator.clipboard.writeText(videoUrl);
     toast.success('Video URL copied to clipboard');
   };
 
+  // Delete modal state
+  const [deleteModal, setDeleteModal] = useState<{ open: boolean; video: VideoData | null }>({ open: false, video: null });
+
   // Handle delete
   const handleDelete = async (video: VideoData) => {
-    if (!confirm('Are you sure you want to delete this video?')) return;
+    setDeleteModal({ open: true, video });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteModal.video) return;
     
     try {
-      const response = await fetch(`https://db.nymia.ai/rest/v1/video?id=eq.${video.id}`, {
+      const response = await fetch(`https://db.nymia.ai/rest/v1/video?video_id=eq.${deleteModal.video.video_id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': 'Bearer WeInfl3nc3withAI',
@@ -512,9 +593,22 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
         }
       });
 
+      await fetch('https://api.nymia.ai/v1/deletefile', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          user: userData.id,
+          filename: `video/${deleteModal.video.video_path || ''}/${deleteModal.video.video_name || deleteModal.video.video_id}.mp4`
+        })
+      });
+
       if (response.ok) {
-        setVideos(prev => prev.filter(v => v.id !== video.id));
+        setVideos(prev => prev.filter(v => v.id !== deleteModal.video!.id));
         toast.success('Video deleted successfully');
+        setDeleteModal({ open: false, video: null });
       } else {
         throw new Error('Failed to delete video');
       }
@@ -765,14 +859,112 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
     setIsPastingFile(true);
     try {
       for (const video of fileClipboard.items) {
-        // In a real implementation, you would move/copy the video file
-        // For now, we'll just show a success message
-        console.log(`${fileClipboard.type} video:`, video);
+        if (fileClipboard.type === 'copy') {
+          // Copy video - create a new entry with updated path
+          const newVideoPath = currentPath || '';
+          const fileName = video.video_name && video.video_name.trim() !== '' ? video.video_name : video.video_id;
+
+          console.log(video);
+          console.log(`video/${video.video_path ? video.video_path + '/' : ''}${fileName}.mp4`);
+          console.log(`video/${newVideoPath}/${fileName}.mp4`);
+          // Copy the actual file
+          const copyResponse = await fetch('https://api.nymia.ai/v1/copyfile', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer WeInfl3nc3withAI'
+            },
+            body: JSON.stringify({
+              user: userData.id,
+              sourcefilename: `video/${video.video_path ? video.video_path + '/' : ''}${fileName}.mp4`,
+              destinationfilename: `video/${newVideoPath}/${fileName}.mp4`
+            })
+          });
+
+          if (!copyResponse.ok) {
+            console.warn(`Failed to copy file for video ${video.video_id}`);
+          }
+
+          const newVideoData = video;
+          newVideoData.video_path = newVideoPath;
+          newVideoData.video_url = `https://images.nymia.ai/${userData.id}/video/${newVideoPath}/${fileName}.mp4`;
+          newVideoData.video_name = fileName;
+          delete newVideoData.video_id;
+          
+          // Update the video path in the database
+          const response = await fetch(`https://db.nymia.ai/rest/v1/video`, {
+            method: 'POST',
+            headers: {
+              'Authorization': 'Bearer WeInfl3nc3withAI',
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              ...newVideoData
+            })
+          });
+
+          if (!response.ok) {
+            throw new Error(`Failed to copy video ${video.video_id}`);
+          }
+
+        } else {
+          // Move video - update the path in database
+          const newVideoPath = currentPath || '';
+          
+          const response = await fetch(`https://db.nymia.ai/rest/v1/video?video_id=eq.${video.video_id}`, {
+            method: 'PATCH',
+            headers: {
+              'Authorization': 'Bearer WeInfl3nc3withAI',
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              video_path: newVideoPath
+            })
+          });
+
+          if (!response.ok) {
+            throw new Error(`Failed to move video ${video.video_id}`);
+          }
+
+          // Move the actual file
+          const fileName = video.video_name && video.video_name.trim() !== '' ? video.video_name : video.video_id;
+          const moveResponse = await fetch('https://api.nymia.ai/v1/copyfile', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer WeInfl3nc3withAI'
+            },
+            body: JSON.stringify({
+              user: userData.id,
+              sourcefilename: `video/${video.video_path ? video.video_path + '/' : ''}${fileName}.mp4`,
+              destinationfilename: `video/${newVideoPath}/${fileName}.mp4`
+            })
+          });
+
+          await fetch('https://api.nymia.ai/v1/deletefile', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer WeInfl3nc3withAI'
+            },
+            body: JSON.stringify({
+              user: userData.id,
+              filename: `video/${video.video_path ? video.video_path + '/' : ''}${fileName}.mp4`
+            })
+          });
+
+          if (!moveResponse.ok) {
+            console.warn(`Failed to move file for video ${video.video_id}`);
+          }
+        }
       }
 
       toast.success(`Video ${fileClipboard.type === 'copy' ? 'copied' : 'moved'} successfully`);
       setFileClipboard(null);
       setFileCopyState(0);
+      
+      // Refresh the current folder to show updated content
+      await fetchFolderFiles(currentPath);
     } catch (error) {
       console.error('Error pasting video:', error);
       toast.error('Failed to paste video');
@@ -806,7 +998,20 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
 
       if (response.ok) {
         const files = await response.json();
+        
+        // Ensure files is an array
+        if (!Array.isArray(files)) {
+          console.warn(`Invalid response format for folder ${folderPath}:`, files);
+          setFolderFileCounts(prev => ({ ...prev, [folderPath]: 0 }));
+          return;
+        }
+        
         const directFiles = files.filter((file: any) => {
+          // Check if file.Key exists before calling replace
+          if (!file || !file.Key) {
+            return false;
+          }
+          
           const relativePath = file.Key.replace(`video/${userData.id}/video/${folderPath}/`, '');
           if (folderPath === '') {
             return !relativePath.includes('/');
@@ -818,6 +1023,11 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
       }
     } catch (error) {
       console.error(`Error fetching file count for folder ${folderPath}:`, error);
+      console.error('Error details:', {
+        folderPath,
+        userDataId: userData.id,
+        error: error instanceof Error ? error.message : error
+      });
       setFolderFileCounts(prev => ({ ...prev, [folderPath]: 0 }));
     } finally {
       setLoadingFileCounts(prev => ({ ...prev, [folderPath]: false }));
@@ -866,8 +1076,23 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
     e.preventDefault();
     setDragOverFolder(null);
     
-    // Handle folder drop logic here
-    console.log('Dropped on folder:', targetFolderPath);
+    // Check if we have files in clipboard to paste
+    if (fileClipboard && fileCopyState > 0) {
+      // Temporarily change current path to target folder for paste operation
+      const originalPath = currentPath;
+      setCurrentPath(targetFolderPath);
+      
+      try {
+        await handleFilePaste();
+        toast.success(`Files ${fileClipboard.type === 'copy' ? 'copied' : 'moved'} to ${targetFolderPath}`);
+      } catch (error) {
+        console.error('Error dropping files:', error);
+        toast.error('Failed to drop files');
+      } finally {
+        // Restore original path
+        setCurrentPath(originalPath);
+      }
+    }
   };
 
   // Pagination functions
@@ -891,25 +1116,59 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
       <div className="flex flex-col md:flex-row items-center justify-between gap-5">
         <div className="flex items-center gap-4">
           <Button
-            onClick={onBack}
+            onClick={currentPath ? navigateToParent : onBack}
             variant="outline"
             size="sm"
             className="flex items-center gap-2"
           >
             <ArrowLeft className="w-4 h-4" />
-            Back
+            {currentPath ? 'Back' : 'Back to Menu'}
           </Button>
           <div>
             <h1 className="text-3xl font-bold tracking-tight bg-ai-gradient bg-clip-text text-transparent">
               Video Folder
             </h1>
             <p className="text-muted-foreground">
-              Manage your video content
+              {currentPath ? `Current path: ${currentPath}` : 'Manage your video content'}
             </p>
           </div>
         </div>
 
         <div className="flex items-center gap-3">
+          {/* Selection controls */}
+          {selectedVideos.size > 0 && (
+            <div className="flex items-center gap-2 mr-4">
+              <span className="text-sm text-muted-foreground">
+                {selectedVideos.size} selected
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSelectedVideos(new Set())}
+                className="h-8 px-2"
+              >
+                Clear
+              </Button>
+            </div>
+          )}
+          
+          {videos.length > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                if (selectedVideos.size === videos.length) {
+                  setSelectedVideos(new Set());
+                } else {
+                  setSelectedVideos(new Set(videos.map(v => v.id)));
+                }
+              }}
+              className="h-10 px-4"
+            >
+              {selectedVideos.size === videos.length ? 'Deselect All' : 'Select All'}
+            </Button>
+          )}
+          
           <Button
             onClick={handleRefresh}
             variant="outline"
@@ -1186,14 +1445,41 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
           {currentVideos.map((video) => (
             <Card
               key={video.id}
-              className="group cursor-pointer overflow-hidden bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1"
-              onClick={() => handleVideoSelect(video)}
+              className={`group cursor-pointer overflow-hidden bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 ${
+                selectedVideos.has(video.id) ? 'ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-950/20' : ''
+              }`}
+              onClick={(e) => {
+                // Handle multi-selection with Ctrl/Cmd key
+                if (e.ctrlKey || e.metaKey) {
+                  e.preventDefault();
+                  setSelectedVideos(prev => {
+                    const newSet = new Set(prev);
+                    if (newSet.has(video.id)) {
+                      newSet.delete(video.id);
+                    } else {
+                      newSet.add(video.id);
+                    }
+                    return newSet;
+                  });
+                } else {
+                  handleVideoSelect(video);
+                }
+              }}
               onContextMenu={(e) => handleFileContextMenu(e, video)}
             >
               {/* Video Preview */}
               <div className="relative aspect-video bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 overflow-hidden">
+                {/* Selection indicator */}
+                {selectedVideos.has(video.id) && (
+                  <div className="absolute top-2 left-2 z-10 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center shadow-lg">
+                    <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                )}
+                
                 <video
-                  src={getVideoUrl(video.video_id)}
+                  src={getVideoUrl(video)}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   preload="metadata"
                 />
@@ -1265,7 +1551,7 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
                     className="flex-1 h-8 text-xs font-medium hover:bg-blue-700 hover:border-blue-500 transition-colors"
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleDownload(video.video_id);
+                      handleDownload(video);
                     }}
                   >
                     <Download className="w-3 h-3 mr-1.5" />
@@ -1277,7 +1563,7 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
                     className="h-8 w-8 p-0 hover:bg-green-50 hover:bg-green-700 hover:border-green-500 transition-colors"
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleShare(video.video_id);
+                      handleShare(video);
                     }}
                   >
                     <Share className="w-3 h-3" />
@@ -1398,7 +1684,7 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
       {/* Video Preview Modal */}
       {selectedVideo && (
         <Dialog open={!!selectedVideo} onOpenChange={() => setSelectedVideo(null)}>
-          <DialogContent className="max-w-4xl">
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Video Preview</DialogTitle>
             </DialogHeader>
@@ -1442,13 +1728,13 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
             </DialogHeader>
             <div className="space-y-4">
               <div className="flex gap-2">
-                <Button onClick={() => shareToSocialMedia('facebook', shareModal.itemId!)}>
+                <Button onClick={() => shareToSocialMedia('facebook', selectedVideo!)}>
                   Facebook
                 </Button>
-                <Button onClick={() => shareToSocialMedia('twitter', shareModal.itemId!)}>
+                <Button onClick={() => shareToSocialMedia('twitter', selectedVideo!)}>
                   Twitter
                 </Button>
-                <Button onClick={() => shareToSocialMedia('instagram', shareModal.itemId!)}>
+                <Button onClick={() => shareToSocialMedia('instagram', selectedVideo!)}>
                   Instagram
                 </Button>
               </div>
@@ -1487,6 +1773,56 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
               </Button>
               <Button onClick={handleCreateFolder}>
                 Create Folder
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Video Modal */}
+      <Dialog open={deleteModal.open} onOpenChange={(open) => !open && setDeleteModal({ open: false, video: null })}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-red-600">Delete Video</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this video? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            {deleteModal.video && (
+              <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <div className="w-16 h-12 bg-gradient-to-br from-red-500 to-red-600 rounded flex items-center justify-center">
+                    <Video className="w-6 h-6 text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-medium text-gray-900 dark:text-gray-100">
+                      {deleteModal.video.user_filename || deleteModal.video.prompt.substring(0, 50)}
+                    </h4>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      {getVideoModelDisplayName(deleteModal.video.model)} • {formatVideoDuration(deleteModal.video.duration)}
+                    </p>
+                    <p className="text-xs text-gray-400 dark:text-gray-500">
+                      Created: {formatVideoDate(deleteModal.video.task_created_at)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+            <div className="flex justify-end gap-2">
+              <Button 
+                variant="outline" 
+                onClick={() => setDeleteModal({ open: false, video: null })}
+              >
+                Cancel
+              </Button>
+              <Button 
+                variant="destructive" 
+                onClick={confirmDelete}
+                className="bg-red-600 hover:bg-red-700"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Delete Video
               </Button>
             </div>
           </div>
@@ -1557,7 +1893,7 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
           <button
             className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
             onClick={() => {
-              handleDownload(fileContextMenu.video.video_id);
+              handleDownload(fileContextMenu.video);
               setFileContextMenu(null);
             }}
           >
@@ -1567,7 +1903,7 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
           <button
             className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
             onClick={() => {
-              handleShare(fileContextMenu.video.video_id);
+              handleShare(fileContextMenu.video);
               setFileContextMenu(null);
             }}
           >
@@ -1626,8 +1962,8 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
   );
 
   // Helper function for social media sharing
-  function shareToSocialMedia(platform: string, videoId: string) {
-    const videoUrl = getVideoUrl(videoId);
+  function shareToSocialMedia(platform: string, video: VideoData) {
+    const videoUrl = getVideoUrl(video);
     const text = 'Check out this amazing video!';
     
     let shareUrl = '';

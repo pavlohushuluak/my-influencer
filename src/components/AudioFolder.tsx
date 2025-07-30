@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Star, Search, Download, Share, Trash2, Filter, Calendar, Music, SortAsc, SortDesc, ZoomIn, Folder, Plus, Upload, ChevronRight, Home, ArrowLeft, Pencil, Menu, X, File, User, RefreshCcw, Edit, Play, Volume2 } from 'lucide-react';
+import { Star, Search, Download, Share, Trash2, Filter, Calendar, Music, SortAsc, SortDesc, ZoomIn, Folder, Plus, ChevronRight, Home, ArrowLeft, Pencil, Menu, X, File, User, RefreshCcw, Edit, Play, Volume2 } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { DialogContentZoom } from '@/components/ui/zoomdialog';
@@ -69,7 +69,6 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
   const [selectedFolderIcon, setSelectedFolderIcon] = useState('');
-  const [uploadedIcon, setUploadedIcon] = useState<File | null>(null);
   const [folderIcons, setFolderIcons] = useState<string[]>([]);
 
   // Folder navigation state
@@ -107,7 +106,6 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
 
   // Drag and drop state
   const [dragOverFolder, setDragOverFolder] = useState<string | null>(null);
-  const [dragOverUpload, setDragOverUpload] = useState(false);
   const [draggedAudio, setDraggedAudio] = useState<AudioData | null>(null);
   const [isDragging, setIsDragging] = useState(false);
 
@@ -1616,37 +1614,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
     }
   };
 
-  // Handle drag and drop for upload area
-  const handleDragOverUpload = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'copy';
-    setDragOverUpload(true);
-  };
 
-  const handleDragLeaveUpload = () => {
-    setDragOverUpload(false);
-  };
-
-  const handleDropUpload = (e: React.DragEvent) => {
-    e.preventDefault();
-    setDragOverUpload(false);
-    
-    const files = Array.from(e.dataTransfer.files);
-    if (files.length > 0) {
-      const audioFile = files.find(file => file.type.startsWith('audio/'));
-      if (audioFile) {
-        toast.info('Audio upload detected', {
-          description: `File: ${audioFile.name} - Upload functionality coming soon!`,
-          duration: 3000
-        });
-      } else {
-        toast.error('Please drop an audio file', {
-          description: 'Only audio files are supported in Audio Folder',
-          duration: 3000
-        });
-      }
-    }
-  };
 
   // Pagination functions
   const handlePageChange = (page: number) => {
@@ -1923,98 +1891,9 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
         </div>
       </div>
 
-      {/* Audio Grid with Upload Card */}
+      {/* Audio Grid */}
       {audiosLoading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 md:gap-6">
-          {/* Upload Card - Always First */}
-          <Card
-            className={`group cursor-pointer overflow-hidden bg-white dark:bg-gray-800 border-2 border-dashed border-gray-300 dark:border-gray-600 hover:border-purple-400 dark:hover:border-purple-500 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 ${
-              dragOverUpload 
-                ? 'border-purple-500 bg-purple-50 dark:bg-purple-950/20 ring-2 ring-purple-500 ring-opacity-50' 
-                : ''
-            }`}
-            onDragOver={handleDragOverUpload}
-            onDragLeave={handleDragLeaveUpload}
-            onDrop={handleDropUpload}
-          >
-            {/* Upload Preview */}
-            <div className="relative aspect-video bg-gradient-to-br from-purple-500 via-pink-500 to-orange-500 overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-br from-purple-600/20 to-pink-600/20"></div>
-              
-              {/* Upload icon overlay */}
-              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-300 flex items-center justify-center">
-                <div className="w-16 h-16 bg-white/90 dark:bg-gray-800/90 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 transform scale-75 group-hover:scale-100">
-                  <Upload className="w-8 h-8 text-gray-900 dark:text-white" />
-                </div>
-              </div>
-
-              {/* Upload background pattern */}
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-20 h-20 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg flex items-center justify-center opacity-20">
-                  <Upload className="w-10 h-10 text-white" />
-                </div>
-              </div>
-
-              {/* Upload badge */}
-              <div className="absolute top-3 right-3">
-                <Badge className="bg-purple-500/20 text-purple-700 dark:text-purple-400 border-purple-200 dark:border-purple-800 text-xs font-medium px-2 py-1">
-                  Upload
-                </Badge>
-              </div>
-
-              {/* Audio waveform visualization */}
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="flex items-end gap-1 h-16">
-                  {[...Array(8)].map((_, i) => (
-                    <div
-                      key={i}
-                      className="w-1 bg-white/80 rounded-full animate-pulse"
-                      style={{
-                        height: `${Math.random() * 60 + 20}%`,
-                        animationDelay: `${i * 0.1}s`
-                      }}
-                    />
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Upload Info */}
-            <CardContent className="p-4 space-y-3">
-              {/* Title */}
-              <div className="space-y-2">
-                <h4 className="font-semibold text-sm text-gray-900 dark:text-gray-100 line-clamp-2 leading-tight">
-                  Drop audio files here to upload
-                </h4>
-                <div className="flex items-center gap-2">
-                  <Badge variant="secondary" className="text-xs px-2 py-1 bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300">
-                    Audio Files
-                  </Badge>
-                  <Badge variant="outline" className="text-xs px-2 py-1">
-                    MP3, WAV, M4A
-                  </Badge>
-                </div>
-              </div>
-
-              {/* Description */}
-              <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2 leading-relaxed">
-                Drag and drop audio files here, or click to browse and select files to upload
-              </p>
-
-              {/* Upload button */}
-              <div className="flex gap-1.5 mt-3">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="flex-1 h-8 text-xs font-medium hover:bg-purple-700 hover:border-purple-500 transition-colors"
-                >
-                  <Upload className="w-3 h-3 mr-1.5" />
-                  <span className="hidden sm:inline">Choose Files</span>
-                  <span className="sm:hidden">Browse</span>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
 
           {/* Loading skeleton cards */}
           {[...Array(7)].map((_, i) => (
@@ -2035,95 +1914,6 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
         </div>
       ) : totalItems === 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 md:gap-6">
-          {/* Upload Card - Always First */}
-          <Card
-            className={`group cursor-pointer overflow-hidden bg-white dark:bg-gray-800 border-2 border-dashed border-gray-300 dark:border-gray-600 hover:border-purple-400 dark:hover:border-purple-500 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 ${
-              dragOverUpload 
-                ? 'border-purple-500 bg-purple-50 dark:bg-purple-950/20 ring-2 ring-purple-500 ring-opacity-50' 
-                : ''
-            }`}
-            onDragOver={handleDragOverUpload}
-            onDragLeave={handleDragLeaveUpload}
-            onDrop={handleDropUpload}
-          >
-            {/* Upload Preview */}
-            <div className="relative aspect-video bg-gradient-to-br from-purple-500 via-pink-500 to-orange-500 overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-br from-purple-600/20 to-pink-600/20"></div>
-              
-              {/* Upload icon overlay */}
-              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-300 flex items-center justify-center">
-                <div className="w-16 h-16 bg-white/90 dark:bg-gray-800/90 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 transform scale-75 group-hover:scale-100">
-                  <Upload className="w-8 h-8 text-gray-900 dark:text-white" />
-                </div>
-              </div>
-
-              {/* Upload background pattern */}
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-20 h-20 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg flex items-center justify-center opacity-20">
-                  <Upload className="w-10 h-10 text-white" />
-                </div>
-              </div>
-
-              {/* Upload badge */}
-              <div className="absolute top-3 right-3">
-                <Badge className="bg-purple-500/20 text-purple-700 dark:text-purple-400 border-purple-200 dark:border-purple-800 text-xs font-medium px-2 py-1">
-                  Upload
-                </Badge>
-              </div>
-
-              {/* Audio waveform visualization */}
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="flex items-end gap-1 h-16">
-                  {[...Array(8)].map((_, i) => (
-                    <div
-                      key={i}
-                      className="w-1 bg-white/80 rounded-full animate-pulse"
-                      style={{
-                        height: `${Math.random() * 60 + 20}%`,
-                        animationDelay: `${i * 0.1}s`
-                      }}
-                    />
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Upload Info */}
-            <CardContent className="p-4 space-y-3">
-              {/* Title */}
-              <div className="space-y-2">
-                <h4 className="font-semibold text-sm text-gray-900 dark:text-gray-100 line-clamp-2 leading-tight">
-                  Drop audio files here to upload
-                </h4>
-                <div className="flex items-center gap-2">
-                  <Badge variant="secondary" className="text-xs px-2 py-1 bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300">
-                    Audio Files
-                  </Badge>
-                  <Badge variant="outline" className="text-xs px-2 py-1">
-                    MP3, WAV, M4A
-                  </Badge>
-                </div>
-              </div>
-
-              {/* Description */}
-              <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2 leading-relaxed">
-                Drag and drop audio files here, or click to browse and select files to upload
-              </p>
-
-              {/* Upload button */}
-              <div className="flex gap-1.5 mt-3">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="flex-1 h-8 text-xs font-medium hover:bg-purple-700 hover:border-purple-500 transition-colors"
-                >
-                  <Upload className="w-3 h-3 mr-1.5" />
-                  <span className="hidden sm:inline">Choose Files</span>
-                  <span className="sm:hidden">Browse</span>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
 
           {/* Empty state message */}
           <div className="col-span-full text-center py-16 px-4">
@@ -2142,95 +1932,6 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 md:gap-6">
-          {/* Upload Card - Always First */}
-          <Card
-            className={`group cursor-pointer overflow-hidden bg-white dark:bg-gray-800 border-2 border-dashed border-gray-300 dark:border-gray-600 hover:border-purple-400 dark:hover:border-purple-500 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 ${
-              dragOverUpload 
-                ? 'border-purple-500 bg-purple-50 dark:bg-purple-950/20 ring-2 ring-purple-500 ring-opacity-50' 
-                : ''
-            }`}
-            onDragOver={handleDragOverUpload}
-            onDragLeave={handleDragLeaveUpload}
-            onDrop={handleDropUpload}
-          >
-            {/* Upload Preview */}
-            <div className="relative aspect-video bg-gradient-to-br from-purple-500 via-pink-500 to-orange-500 overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-br from-purple-600/20 to-pink-600/20"></div>
-              
-              {/* Upload icon overlay */}
-              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-300 flex items-center justify-center">
-                <div className="w-16 h-16 bg-white/90 dark:bg-gray-800/90 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 transform scale-75 group-hover:scale-100">
-                  <Upload className="w-8 h-8 text-gray-900 dark:text-white" />
-                </div>
-              </div>
-
-              {/* Upload background pattern */}
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-20 h-20 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg flex items-center justify-center opacity-20">
-                  <Upload className="w-10 h-10 text-white" />
-                </div>
-              </div>
-
-              {/* Upload badge */}
-              <div className="absolute top-3 right-3">
-                <Badge className="bg-purple-500/20 text-purple-700 dark:text-purple-400 border-purple-200 dark:border-purple-800 text-xs font-medium px-2 py-1">
-                  Upload
-                </Badge>
-              </div>
-
-              {/* Audio waveform visualization */}
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="flex items-end gap-1 h-16">
-                  {[...Array(8)].map((_, i) => (
-                    <div
-                      key={i}
-                      className="w-1 bg-white/80 rounded-full animate-pulse"
-                      style={{
-                        height: `${Math.random() * 60 + 20}%`,
-                        animationDelay: `${i * 0.1}s`
-                      }}
-                    />
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Upload Info */}
-            <CardContent className="p-4 space-y-3">
-              {/* Title */}
-              <div className="space-y-2">
-                <h4 className="font-semibold text-sm text-gray-900 dark:text-gray-100 line-clamp-2 leading-tight">
-                  Drop audio files here to upload
-                </h4>
-                <div className="flex items-center gap-2">
-                  <Badge variant="secondary" className="text-xs px-2 py-1 bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300">
-                    Audio Files
-                  </Badge>
-                  <Badge variant="outline" className="text-xs px-2 py-1">
-                    MP3, WAV, M4A
-                  </Badge>
-                </div>
-              </div>
-
-              {/* Description */}
-              <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2 leading-relaxed">
-                Drag and drop audio files here, or click to browse and select files to upload
-              </p>
-
-              {/* Upload button */}
-              <div className="flex gap-1.5 mt-3">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="flex-1 h-8 text-xs font-medium hover:bg-purple-700 hover:border-purple-500 transition-colors"
-                >
-                  <Upload className="w-3 h-3 mr-1.5" />
-                  <span className="hidden sm:inline">Choose Files</span>
-                  <span className="sm:hidden">Browse</span>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
 
           {/* Audio Cards */}
           {currentAudios.map((audio) => (

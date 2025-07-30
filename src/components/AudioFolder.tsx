@@ -614,10 +614,43 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
     }
 
     try {
-      const encodedNewName = encodeName(newName.trim());
-      const newPath = oldPath.split('/').slice(0, -1).join('/') + '/' + encodedNewName;
+      // Get the old folder name from the path
+      const oldFolderName = oldPath.split('/').pop() || '';
+      const enNewName = encodeName(newName.trim());
 
-      const response = await fetch('https://api.nymia.ai/v1/renamefolder', {
+      // Check if the new name is the same as the old name
+      if (oldFolderName === enNewName) {
+        console.log('Folder name unchanged, cancelling rename operation');
+        setEditingFolder(null);
+        setEditingFolderName('');
+        return;
+      }
+
+      // Show warning toast before starting the operation
+      toast.warning('Folder rename in progress...', {
+        description: 'This operation may take some time depending on the folder contents. Please wait.',
+        duration: 3000
+      });
+
+      // Set loading state
+      setRenamingFolder(oldPath);
+      toast.info('Renaming folder...', {
+        description: 'This may take a moment depending on the folder contents'
+      });
+
+      console.log('Renaming folder:', oldPath, 'to:', enNewName);
+
+      // Get the parent path and construct the new path
+      const pathParts = oldPath.split('/');
+      const oldFolderNameFromPath = pathParts.pop() || '';
+      const parentPath = pathParts.join('/');
+      const newPath = parentPath ? `${parentPath}/${enNewName}` : enNewName;
+
+      console.log('Parent path:', parentPath);
+      console.log('New path:', newPath);
+
+      // Step 1: Create the new folder
+      const createResponse = await fetch('https://api.nymia.ai/v1/createfolder', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -625,28 +658,259 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
         },
         body: JSON.stringify({
           user: userData.id,
-          old_folder: `audio/${oldPath}`,
-          new_folder: `audio/${newPath}`
+          parentfolder: `audio/${parentPath ? parentPath + '/' : ''}`,
+          folder: enNewName
         })
       });
 
-      if (response.ok) {
-        toast.success('Folder renamed successfully');
-        setEditingFolder(null);
-        setEditingFolderName('');
-        
-        // Update folders
-        const updatedFolders = folders.map(folder => 
-          folder.Key === `audio/${oldPath}` ? { ...folder, Key: `audio/${newPath}` } : folder
-        );
-        setFolders(updatedFolders);
-        setFolderStructure(buildFolderStructure(updatedFolders));
-      } else {
-        throw new Error('Failed to rename folder');
+      if (!createResponse.ok) {
+        throw new Error('Failed to create new folder');
       }
+
+      console.log('New folder created successfully');
+
+      // Step 2: Get all files from the old folder and move them to the new folder
+      const audiosInFolder = audios.filter(audio => {
+        const audioUrl = audio.audio_url || getAudioUrl(audio.audio_id);
+        return audioUrl.includes(`/audio/${oldPath}/`);
+      });
+      
+      if (audiosInFolder.length > 0) {
+        console.log('Moving', audiosInFolder.length, 'audios from old folder to new folder');
+        
+        for (const audio of audiosInFolder) {
+          // Extract the filename from the audio URL
+          const audioUrl = audio.audio_url || getAudioUrl(audio.audio_id);
+          const fileName = audioUrl.split('/').pop() || `${audio.audio_id}.mp3`;
+          
+          console.log(`Attempting to move audio: ${fileName}`);
+          console.log(`From: audio/${oldPath}/${fileName}`);
+          console.log(`To: audio/${newPath}/${fileName}`);
+          
+          // Copy the audio file from old location to new location
+          const copyResponse = await fetch('https://api.nymia.ai/v1/copyfile', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer WeInfl3nc3withAI'
+            },
+            body: JSON.stringify({
+              user: userData.id,
+              sourcefilename: `audio/${oldPath}/${fileName}`,
+              destinationfilename: `audio/${newPath}/${fileName}`
+            })
+          });
+
+          if (!copyResponse.ok) {
+            const errorText = await copyResponse.text();
+            console.error(`Failed to copy audio file ${fileName}:`, errorText);
+            console.error(`Response status: ${copyResponse.status}`);
+            throw new Error(`Failed to copy audio file ${fileName}: ${errorText}`);
+          }
+
+          console.log(`Successfully copied audio file ${fileName}`);
+
+          // Update the audio_url in database
+          const oldAudioUrl = audio.audio_url || getAudioUrl(audio.audio_id);
+          const newAudioUrl = oldAudioUrl.replace(`/audio/${oldPath}/`, `/audio/${newPath}/`);
+          
+          const updateResponse = await fetch(`https://db.nymia.ai/rest/v1/audio?audio_id=eq.${audio.audio_id}`, {
+            method: 'PATCH',
+            headers: {
+              'Authorization': 'Bearer WeInfl3nc3withAI',
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              audio_url: newAudioUrl
+            })
+          });
+
+          if (!updateResponse.ok) {
+            const errorText = await updateResponse.text();
+            console.warn(`Failed to update audio URL for audio ${audio.audio_id}:`, errorText);
+          } else {
+            console.log(`Successfully updated database for audio ${audio.audio_id}`);
+          }
+
+          console.log(`Successfully moved audio ${fileName} to new folder`);
+        }
+      }
+
+      // Step 3: Get all subfolders from the old folder
+      const getFoldersResponse = await fetch('https://api.nymia.ai/v1/getfoldernames', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          user: userData.id,
+          folder: `audio/${oldPath}`
+        })
+      });
+
+      if (getFoldersResponse.ok) {
+        const folders = await getFoldersResponse.json();
+        console.log('Subfolders to copy:', folders);
+
+        // Step 4: Copy all subfolders recursively
+        if (folders && folders.length > 0 && folders[0].Key) {
+          for (const folder of folders) {
+            const folderKey = folder.Key;
+            const re = new RegExp(`^.*?audio/${oldPath}/`);
+            const relativePath = folderKey.replace(re, "").replace(/\/$/, "");
+
+            console.log("Folder Key:", folderKey);
+            console.log("Relative Path:", relativePath);
+
+            if (relativePath && relativePath !== folderKey) {
+              // Create the subfolder in the new location
+              const subfolderCreateResponse = await fetch('https://api.nymia.ai/v1/createfolder', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': 'Bearer WeInfl3nc3withAI'
+                },
+                body: JSON.stringify({
+                  user: userData.id,
+                  parentfolder: `audio/${newPath}/`,
+                  folder: relativePath
+                })
+              });
+
+              if (subfolderCreateResponse.ok) {
+                // Move audios in this subfolder
+                const subfolderAudios = audios.filter(audio => {
+                  const audioUrl = audio.audio_url || getAudioUrl(audio.audio_id);
+                  return audioUrl.includes(`/audio/${oldPath}/${relativePath}/`);
+                });
+                
+                for (const audio of subfolderAudios) {
+                  // Extract the filename from the audio URL
+                  const audioUrl = audio.audio_url || getAudioUrl(audio.audio_id);
+                  const fileName = audioUrl.split('/').pop() || `${audio.audio_id}.mp3`;
+                  
+                  console.log(`Attempting to move audio in subfolder: ${fileName}`);
+                  console.log(`From: audio/${oldPath}/${relativePath}/${fileName}`);
+                  console.log(`To: audio/${newPath}/${relativePath}/${fileName}`);
+                  
+                  // Copy the audio file from old subfolder location to new subfolder location
+                  const copyResponse = await fetch('https://api.nymia.ai/v1/copyfile', {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'Authorization': 'Bearer WeInfl3nc3withAI'
+                    },
+                    body: JSON.stringify({
+                      user: userData.id,
+                      sourcefilename: `audio/${oldPath}/${relativePath}/${fileName}`,
+                      destinationfilename: `audio/${newPath}/${relativePath}/${fileName}`
+                    })
+                  });
+
+                  if (!copyResponse.ok) {
+                    const errorText = await copyResponse.text();
+                    console.error(`Failed to copy audio file ${fileName} in subfolder ${relativePath}:`, errorText);
+                    console.error(`Response status: ${copyResponse.status}`);
+                    throw new Error(`Failed to copy audio file ${fileName} in subfolder ${relativePath}: ${errorText}`);
+                  }
+
+                  console.log(`Successfully copied audio file ${fileName} in subfolder ${relativePath}`);
+
+                  // Update the audio_url in database
+                  const oldAudioUrl = audio.audio_url || getAudioUrl(audio.audio_id);
+                  const newAudioUrl = oldAudioUrl.replace(`/audio/${oldPath}/${relativePath}/`, `/audio/${newPath}/${relativePath}/`);
+                  
+                  const updateResponse = await fetch(`https://db.nymia.ai/rest/v1/audio?audio_id=eq.${audio.audio_id}`, {
+                    method: 'PATCH',
+                    headers: {
+                      'Authorization': 'Bearer WeInfl3nc3withAI',
+                      'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                      audio_url: newAudioUrl
+                    })
+                  });
+
+                  if (!updateResponse.ok) {
+                    const errorText = await updateResponse.text();
+                    console.warn(`Failed to update audio URL for audio ${audio.audio_id}:`, errorText);
+                  } else {
+                    console.log(`Successfully updated database for audio ${audio.audio_id} in subfolder`);
+                  }
+
+                  console.log(`Successfully moved audio ${fileName} in subfolder ${relativePath}`);
+                }
+              }
+            }
+          }
+        }
+      }
+
+      // Step 5: Delete the old folder
+      const deleteResponse = await fetch('https://api.nymia.ai/v1/deletefolder', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          user: userData.id,
+          folder: `audio/${oldPath}`
+        })
+      });
+
+      if (!deleteResponse.ok) {
+        console.warn('Failed to delete old folder, but rename operation completed');
+      }
+
+      // Step 6: Refresh folder structure
+      const refreshResponse = await fetch('https://api.nymia.ai/v1/getfoldernames', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          user: userData.id,
+          folder: "audio"
+        })
+      });
+
+      if (refreshResponse.ok) {
+        const data = await refreshResponse.json();
+        setFolders(data);
+
+        // Rebuild folder structure
+        const structure = buildFolderStructure(data);
+        setFolderStructure(structure);
+      }
+
+      // Step 7: Update current path if we're in the renamed folder
+      if (currentPath === oldPath) {
+        setCurrentPath(newPath);
+      } else if (currentPath.startsWith(oldPath + '/')) {
+        const newCurrentPath = currentPath.replace(oldPath, newPath);
+        setCurrentPath(newCurrentPath);
+      }
+
+      // Step 8: Refresh audios to show updated paths
+      await fetchFolderFiles(currentPath);
+
+      // Step 9: Exit edit mode and clear loading state
+      setEditingFolder(null);
+      setEditingFolderName('');
+      setRenamingFolder(null);
+
+      console.log('Folder rename completed successfully');
+      toast.success(`Folder renamed to "${newName}" successfully`);
+
     } catch (error) {
       console.error('Error renaming folder:', error);
-      toast.error('Failed to rename folder');
+      toast.error('Failed to rename folder. Please try again.');
+      setEditingFolder(null);
+      setEditingFolderName('');
+      setRenamingFolder(null);
     }
   };
 

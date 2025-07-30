@@ -635,7 +635,8 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
       });
 
       if (response.ok) {
-        setVideos(prev => prev.filter(v => v.id !== deleteModal.video!.id));
+        // Refresh current folder content
+        await fetchFolderFiles(currentPath);
         toast.success('Video deleted successfully');
         setDeleteModal({ open: false, video: null });
       } else {
@@ -1006,8 +1007,16 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
     }
   };
 
+  // Delete folder modal state
+  const [deleteFolderModal, setDeleteFolderModal] = useState<{ open: boolean; folderPath: string | null; folderName: string | null }>({ open: false, folderPath: null, folderName: null });
+
   const handleDeleteFolder = async (folderPath: string) => {
-    if (!confirm('Are you sure you want to delete this folder and all its contents?')) return;
+    const folderName = decodeName(folderPath.split('/').pop() || '');
+    setDeleteFolderModal({ open: true, folderPath, folderName });
+  };
+
+  const confirmDeleteFolder = async () => {
+    if (!deleteFolderModal.folderPath) return;
 
     try {
       const response = await fetch('https://api.nymia.ai/v1/deletefolder', {
@@ -1018,17 +1027,37 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
         },
         body: JSON.stringify({
           user: userData.id,
-          folder: `video/${folderPath}`
+          folder: `video/${deleteFolderModal.folderPath}`
         })
       });
 
       if (response.ok) {
         toast.success('Folder deleted successfully');
         
-        // Update folders
-        const updatedFolders = folders.filter(folder => folder.Key !== `video/${folderPath}`);
-        setFolders(updatedFolders);
-        setFolderStructure(buildFolderStructure(updatedFolders));
+        // Refresh folders from API
+        const refreshResponse = await fetch('https://api.nymia.ai/v1/getfoldernames', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer WeInfl3nc3withAI'
+          },
+          body: JSON.stringify({
+            user: userData.id,
+            folder: "video"
+          })
+        });
+
+        if (refreshResponse.ok) {
+          const data = await refreshResponse.json();
+          setFolders(data);
+          setFolderStructure(buildFolderStructure(data));
+        }
+        
+        // Refresh current folder content
+        await fetchFolderFiles(currentPath);
+        
+        // Close modal
+        setDeleteFolderModal({ open: false, folderPath: null, folderName: null });
       } else {
         throw new Error('Failed to delete folder');
       }
@@ -2364,6 +2393,62 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
         </DialogContent>
       </Dialog>
 
+      {/* Delete Folder Modal */}
+      <Dialog open={deleteFolderModal.open} onOpenChange={(open) => !open && setDeleteFolderModal({ open: false, folderPath: null, folderName: null })}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-red-600 flex items-center gap-2">
+              <div className="w-8 h-8 bg-gradient-to-br from-red-500 to-red-600 rounded-lg flex items-center justify-center">
+                <Folder className="w-4 h-4 text-white" />
+              </div>
+              Delete Folder
+            </DialogTitle>
+            <DialogDescription className="text-gray-600 dark:text-gray-400">
+              This action cannot be undone. The folder and all its contents will be permanently deleted.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            {deleteFolderModal.folderName && (
+              <div className="p-4 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-gradient-to-br from-red-500 to-red-600 rounded-lg flex items-center justify-center">
+                    <Folder className="w-6 h-6 text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-semibold text-gray-900 dark:text-gray-100">
+                      {deleteFolderModal.folderName}
+                    </h4>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      Folder and all contents
+                    </p>
+                    <p className="text-xs text-red-600 dark:text-red-400 font-medium">
+                      This will permanently delete all videos and subfolders
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+            <div className="flex justify-end gap-3">
+              <Button 
+                variant="outline" 
+                onClick={() => setDeleteFolderModal({ open: false, folderPath: null, folderName: null })}
+                className="px-6"
+              >
+                Cancel
+              </Button>
+              <Button 
+                variant="destructive" 
+                onClick={confirmDeleteFolder}
+                className="bg-red-600 hover:bg-red-700 px-6"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Delete Folder
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Folder Context Menu */}
       {contextMenu && (
         <div
@@ -2497,7 +2582,7 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
   );
 
   // Helper function for social media sharing
-  function shareToSocialMedia(platform: string, video: VideoData) {
+  const shareToSocialMedia = (platform: string, video: VideoData) => {
     const videoUrl = getVideoUrl(video);
     const text = 'Check out this amazing video!';
     
@@ -2517,5 +2602,5 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
     }
     
     window.open(shareUrl, '_blank');
-  }
-} 
+  };
+}

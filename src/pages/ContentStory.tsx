@@ -80,6 +80,8 @@ interface VideoData {
   user_uuid: string;
   task_completed_at: string;
   lip_flag: boolean;
+  video_path?: string;
+  video_name?: string;
 }
 
 export default function ContentStory() {
@@ -187,8 +189,10 @@ export default function ContentStory() {
     });
   };
 
-  const getVideoUrl = (videoId: string) => {
-    return `https://images.nymia.ai/${userData.id}/video/${videoId}.mp4`;
+  const getVideoUrl = (video: VideoData) => {
+    // Use video_name if available, otherwise use video_id
+    const fileName = video.video_name && video.video_name.trim() !== '' ? video.video_name : video.video_id;
+    return `https://images.nymia.ai/${userData.id}/video/${video.video_path ? video.video_path + '/' : ''}${fileName}.mp4`;
   };
 
   const handleVideoClick = (video: VideoData) => {
@@ -208,10 +212,11 @@ export default function ContentStory() {
   };
 
   const handleDownload = (video: VideoData) => {
-    const videoUrl = getVideoUrl(video.video_id);
+    const videoUrl = getVideoUrl(video);
+    const fileName = video.video_name && video.video_name.trim() !== '' ? video.video_name : video.video_id;
     const link = document.createElement('a');
     link.href = videoUrl;
-    link.download = `video-${video.video_id}.mp4`;
+    link.download = `${fileName}.mp4`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -219,7 +224,7 @@ export default function ContentStory() {
   };
 
   const handleShare = (video: VideoData) => {
-    const videoUrl = getVideoUrl(video.video_id);
+    const videoUrl = getVideoUrl(video);
     navigator.clipboard.writeText(videoUrl);
     toast.success('Video URL copied to clipboard');
   };
@@ -344,7 +349,7 @@ export default function ContentStory() {
                                  {/* Video Preview */}
                  <div className="relative aspect-video bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-600 rounded-lg overflow-hidden group-hover:scale-105 transition-transform duration-300">
                    <video
-                     src={getVideoUrl(video.video_id)}
+                     src={getVideoUrl(video)}
                      className="w-full h-full object-cover"
                      muted={isMuted[video.video_id] || false}
                      onPlay={() => setIsPlaying(video.video_id)}
@@ -422,7 +427,7 @@ export default function ContentStory() {
                                      {/* Video Thumbnail */}
                    <div className="relative w-32 h-20 bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-600 rounded-lg overflow-hidden flex-shrink-0">
                      <video
-                       src={getVideoUrl(video.video_id)}
+                       src={getVideoUrl(video)}
                        className="w-full h-full object-cover"
                        muted={isMuted[video.video_id] || false}
                      />
@@ -543,7 +548,7 @@ export default function ContentStory() {
               {/* Video Player */}
               <div className="relative aspect-video bg-black rounded-lg overflow-hidden">
                 <video
-                  src={getVideoUrl(selectedVideo.video_id)}
+                  src={getVideoUrl(selectedVideo)}
                   className="w-full h-full"
                   controls
                   autoPlay

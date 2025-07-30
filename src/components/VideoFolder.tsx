@@ -121,8 +121,8 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
   const [loadingFileCounts, setLoadingFileCounts] = useState<{ [key: string]: boolean }>({});
 
   // Filter state
-  const [statusFilter, setStatusFilter] = useState<string>('all');
   const [modelFilter, setModelFilter] = useState<string>('all');
+  const [lipSyncFilter, setLipSyncFilter] = useState<string>('all');
   const [favoriteFilter, setFavoriteFilter] = useState<boolean | null>(null);
 
   // Extract folder name from full path
@@ -458,11 +458,13 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
                            video.model.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            (video.user_filename && video.user_filename.toLowerCase().includes(searchTerm.toLowerCase()));
       
-      const matchesStatus = statusFilter === 'all' || video.status === statusFilter;
       const matchesModel = modelFilter === 'all' || video.model === modelFilter;
+      const matchesLipSync = lipSyncFilter === 'all' || 
+                            (lipSyncFilter === 'lip_sync' && video.lip_flag) ||
+                            (lipSyncFilter === 'regular' && !video.lip_flag);
       const matchesFavorite = favoriteFilter === null || video.favorite === favoriteFilter;
       
-      return matchesSearch && matchesStatus && matchesModel && matchesFavorite;
+      return matchesSearch && matchesModel && matchesLipSync && matchesFavorite;
     })
     .sort((a, b) => {
       let comparison = 0;
@@ -551,14 +553,41 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
   // Handle download
   const handleDownload = async (video: VideoData) => {
     try {
-      const videoUrl = getVideoUrl(video);
       const fileName = video.video_name && video.video_name.trim() !== '' ? video.video_name : video.video_id;
+      const path = currentPath === "" ? "video" : `video/${currentPath}`;
+      
+      const response = await fetch('https://api.nymia.ai/v1/downloadfile', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          user: userData.id,
+          filename: `${path}/${fileName}.mp4`
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to download file');
+      }
+
+      const blob = await response.blob();
+
+      // Create a download link
+      const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
-      link.href = videoUrl;
-      link.download = `video-${fileName}.mp4`;
+      link.href = url;
+      link.download = `${fileName}.mp4`;
+
+      // Trigger download
       document.body.appendChild(link);
       link.click();
+
+      // Cleanup
       document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
       toast.success('Download started');
     } catch (error) {
       console.error('Error downloading video:', error);
@@ -627,8 +656,8 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
   // Clear filters
   const clearFilters = () => {
     setSearchTerm('');
-    setStatusFilter('all');
     setModelFilter('all');
+    setLipSyncFilter('all');
     setFavoriteFilter(null);
     setSortBy('newest');
     setSortOrder('desc');
@@ -1262,60 +1291,89 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
             <Input
-              placeholder="Search videos..."
+              placeholder="Search by title, prompt, model, or filename..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
+              className="pl-10 pr-10"
             />
+            {searchTerm && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setSearchTerm('')}
+                className="absolute right-1 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0 hover:bg-gray-100 dark:hover:bg-gray-800"
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            )}
           </div>
+          {searchTerm && (
+            <p className="text-xs text-muted-foreground mt-1">
+              Found {filteredVideos.length} video{filteredVideos.length !== 1 ? 's' : ''} matching "{searchTerm}"
+            </p>
+          )}
         </div>
 
-        <div className="flex gap-2">
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-32">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="completed">Completed</SelectItem>
-              <SelectItem value="processing">Processing</SelectItem>
-              <SelectItem value="failed">Failed</SelectItem>
-              <SelectItem value="pending">Pending</SelectItem>
-            </SelectContent>
-          </Select>
+        <div className="flex flex-wrap gap-2">
+          <div className="flex items-center gap-2">
+            <Label htmlFor="model-filter" className="text-xs font-medium text-muted-foreground whitespace-nowrap">
+              Model:
+            </Label>
+            <Select value={modelFilter} onValueChange={setModelFilter}>
+              <SelectTrigger id="model-filter" className="w-40 h-9">
+                <SelectValue placeholder="All Models" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Models</SelectItem>
+                <SelectItem value="kling-v2.1">Kling 2.1</SelectItem>
+                <SelectItem value="kling-v2.1-master">Kling 2.1 Master</SelectItem>
+                <SelectItem value="seedance-1-lite">Seedance 1 Lite</SelectItem>
+                <SelectItem value="seedance-1-pro">Seedance 1 Pro</SelectItem>
+                <SelectItem value="wan-2.1-i2v-480p">WAN 2.1 480p</SelectItem>
+                <SelectItem value="wan-2.1-i2v-720p">WAN 2.1 720p</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-          <Select value={modelFilter} onValueChange={setModelFilter}>
-            <SelectTrigger className="w-40">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Models</SelectItem>
-              <SelectItem value="kling-v2.1">Kling 2.1</SelectItem>
-              <SelectItem value="kling-v2.1-master">Kling 2.1 Master</SelectItem>
-              <SelectItem value="seedance-1-lite">Seedance 1 Lite</SelectItem>
-              <SelectItem value="seedance-1-pro">Seedance 1 Pro</SelectItem>
-              <SelectItem value="wan-2.1-i2v-480p">WAN 2.1 480p</SelectItem>
-              <SelectItem value="wan-2.1-i2v-720p">WAN 2.1 720p</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="flex items-center gap-2">
+            <Label htmlFor="type-filter" className="text-xs font-medium text-muted-foreground whitespace-nowrap">
+              Type:
+            </Label>
+            <Select value={lipSyncFilter} onValueChange={setLipSyncFilter}>
+              <SelectTrigger id="type-filter" className="w-32 h-9">
+                <SelectValue placeholder="All Types" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="lip_sync">Lip Sync</SelectItem>
+                <SelectItem value="regular">Regular</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-          <Select value={sortBy} onValueChange={setSortBy}>
-            <SelectTrigger className="w-32">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="newest">Newest</SelectItem>
-              <SelectItem value="oldest">Oldest</SelectItem>
-              <SelectItem value="duration">Duration</SelectItem>
-              <SelectItem value="model">Model</SelectItem>
-              <SelectItem value="name">Name</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="flex items-center gap-2">
+            <Label htmlFor="sort-by" className="text-xs font-medium text-muted-foreground whitespace-nowrap">
+              Sort:
+            </Label>
+            <Select value={sortBy} onValueChange={setSortBy}>
+              <SelectTrigger id="sort-by" className="w-32 h-9">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="newest">Newest</SelectItem>
+                <SelectItem value="oldest">Oldest</SelectItem>
+                <SelectItem value="duration">Duration</SelectItem>
+                <SelectItem value="model">Model</SelectItem>
+                <SelectItem value="name">Name</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
           <Button
             variant="outline"
             size="sm"
             onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+            className="h-9 px-3"
           >
             {sortOrder === 'asc' ? <SortAsc className="w-4 h-4" /> : <SortDesc className="w-4 h-4" />}
           </Button>
@@ -1324,7 +1382,9 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
             variant="outline"
             size="sm"
             onClick={clearFilters}
+            className="h-9 px-3"
           >
+            <Filter className="w-4 h-4 mr-1" />
             Clear
           </Button>
         </div>

@@ -385,8 +385,8 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
             return !audio.audio_path || audio.audio_path === '' || audio.audio_path.trim() === '';
           } else {
             // Subfolder: show audios that are in the specific folder path
-            const audioPath = audio.audio_path || getAudioUrl(audio);
-            const expectedPath = `/audio/${folderPath}/${audio.filename}`;
+            const audioPath = audio.audio_path;
+            const expectedPath = `${folderPath}`;
             return audioPath.includes(expectedPath);
           }
         });
@@ -406,6 +406,22 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
   useEffect(() => {
     fetchFolderFiles('');
   }, [userData.id]);
+
+  // Keyboard event listener for clipboard operations
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && fileCopyState > 0) {
+        clearFileClipboard();
+        toast.info('Clipboard cleared', {
+          description: 'Audio clipboard has been cleared',
+          duration: 2000
+        });
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [fileCopyState]);
 
   // Filter and sort audios
   const filteredAudios = audios
@@ -824,8 +840,8 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
             },
             body: JSON.stringify({
               user: userData.id,
-              sourcefilename: `audio/${oldPath}/${fileName}`,
-              destinationfilename: `audio/${newPath}/${fileName}`
+              sourcefilename: `audio/${oldPath === '' ? '' : oldPath + '/'}${fileName}`,
+              destinationfilename: `audio/${newPath === '' ? '' : newPath + '/'}${fileName}`
             })
           });
 
@@ -884,6 +900,12 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
         // Step 4: Copy all subfolders recursively
         if (folders && folders.length > 0 && folders[0].Key) {
           for (const folder of folders) {
+            // Check if folder.Key exists before processing
+            if (!folder.Key || typeof folder.Key !== 'string') {
+              console.log('Skipping folder with invalid Key:', folder);
+              continue;
+            }
+            
             const folderKey = folder.Key;
             const re = new RegExp(`^.*?audio/${oldPath}/`);
             const relativePath = folderKey.replace(re, "").replace(/\/$/, "");
@@ -931,8 +953,8 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
                     },
                     body: JSON.stringify({
                       user: userData.id,
-                      sourcefilename: `audio/${oldPath}/${relativePath}/${fileName}`,
-                      destinationfilename: `audio/${newPath}/${relativePath}/${fileName}`
+                      sourcefilename: `audio/${oldPath === '' ? '' : oldPath + '/'}${relativePath}/${fileName}`,
+                      destinationfilename: `audio/${newPath === '' ? '' : newPath + '/'}${relativePath}/${fileName}`
                     })
                   });
 
@@ -1196,8 +1218,8 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
               },
               body: JSON.stringify({
                 user: userData.id,
-                sourcefilename: `audio/${sourcePath}/${fileName}`,
-                destinationfilename: `audio/${destPath}/${fileName}`
+                sourcefilename: `audio/${sourcePath === '' ? '' : sourcePath + '/'}${fileName}`,
+                destinationfilename: `audio/${destPath === '' ? '' : destPath + '/'}${fileName}`
               })
             });
 
@@ -1281,6 +1303,12 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
 
           if (folders && folders.length > 0 && folders[0].Key) {
             for (const folder of folders) {
+              // Check if folder.Key exists before processing
+              if (!folder.Key || typeof folder.Key !== 'string') {
+                console.log('Skipping folder with invalid Key:', folder);
+                continue;
+              }
+              
               const folderKey = folder.Key;
               const re = new RegExp(`^.*?audio/${sourcePath}/`);
               const relativePath = folderKey.replace(re, "").replace(/\/$/, "");
@@ -1326,8 +1354,8 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
                       },
                       body: JSON.stringify({
                         user: userData.id,
-                        sourcefilename: `audio/${sourcePath}/${relativePath}/${fileName}`,
-                        destinationfilename: `audio/${destPath}/${relativePath}/${fileName}`
+                        sourcefilename: `audio/${sourcePath === '' ? '' : sourcePath + '/'}${relativePath}/${fileName}`,
+                        destinationfilename: `audio/${destPath === '' ? '' : destPath + '/'}${relativePath}/${fileName}`
                       })
                     });
 
@@ -1461,13 +1489,24 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
   const handleFileCopy = (audio: AudioData) => {
     setFileClipboard({ type: 'copy', items: [audio] });
     setFileCopyState(1);
-    toast.success('Audio copied to clipboard');
+    toast.success('Audio copied to clipboard', {
+      description: `"${audio.filename || audio.audio_id}" is ready to be pasted`,
+      duration: 3000
+    });
   };
 
   const handleFileCut = (audio: AudioData) => {
     setFileClipboard({ type: 'cut', items: [audio] });
     setFileCopyState(2);
-    toast.success('Audio cut to clipboard');
+    toast.success('Audio cut to clipboard', {
+      description: `"${audio.filename || audio.audio_id}" is ready to be moved`,
+      duration: 3000
+    });
+  };
+
+  const clearFileClipboard = () => {
+    setFileClipboard(null);
+    setFileCopyState(0);
   };
 
   const handleFilePaste = async () => {
@@ -1475,18 +1514,173 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
 
     setIsPastingFile(true);
     try {
+      // Show initial toast
+      const loadingToast = toast.loading(`${fileClipboard.type === 'copy' ? 'Copying' : 'Moving'} audio...`, {
+        description: `Processing ${fileClipboard.items.length} audio file(s)`,
+        duration: Infinity
+      });
+
       for (const audio of fileClipboard.items) {
-        // In a real implementation, you would move/copy the audio file
-        // For now, we'll just show a success message
-        console.log(`${fileClipboard.type} audio:`, audio);
+        const fileName = audio.filename || `${audio.audio_id}.mp3`;
+        
+        // Determine source path from audio's current location
+        let sourcePath = '';
+        if (audio.audio_path) {
+          // Extract path from audio_path if it exists
+          const pathMatch = audio.audio_path.match(/\/audio\/([^\/]+)\//);
+          if (pathMatch) {
+            sourcePath = pathMatch[1];
+          }
+        }
+        
+        const targetPath = currentPath || '';
+
+        // Check if file already exists in target folder
+        const existingAudio = audios.find(a => 
+          a.filename === fileName && 
+          (a.audio_path || getAudioUrl(a)).includes(`/audio/${targetPath}/`)
+        );
+
+        if (existingAudio) {
+          console.warn(`File ${fileName} already exists in target folder, skipping`);
+          continue;
+        }
+
+        // Update toast to show progress
+        toast.loading(`${fileClipboard.type === 'copy' ? 'Copying' : 'Moving'} ${fileName}...`, {
+          id: loadingToast,
+          description: `Processing "${fileName}"`
+        });
+
+        if (fileClipboard.type === 'copy') {
+          // Copy operation: Create new file and database entry
+          
+          // Copy the file
+          const copyResponse = await fetch('https://api.nymia.ai/v1/copyfile', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer WeInfl3nc3withAI'
+            },
+            body: JSON.stringify({
+              user: userData.id,
+              sourcefilename: `audio/${sourcePath === '' ? '' : sourcePath + '/'}${fileName}`,
+              destinationfilename: `audio/${targetPath === '' ? '' : targetPath + '/'}${fileName}`
+            })
+          });
+
+          if (!copyResponse.ok) {
+            const errorText = await copyResponse.text();
+            console.error(`Failed to copy audio file ${fileName}:`, errorText);
+            throw new Error(`Failed to copy audio file ${fileName}: ${errorText}`);
+          }
+
+          const newAudioData = {
+            ...audio,
+            audio_path: targetPath
+          };
+          delete newAudioData.audio_id; // Remove ID so database generates new one
+
+          const createResponse = await fetch(`https://db.nymia.ai/rest/v1/audio`, {
+            method: 'POST',
+            headers: {
+              'Authorization': 'Bearer WeInfl3nc3withAI',
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(newAudioData)
+          });
+
+          if (!createResponse.ok) {
+            const errorText = await createResponse.text();
+            console.warn(`Failed to create new audio record for ${fileName}:`, errorText);
+          } else {
+            console.log(`Successfully created new audio record for ${fileName}`);
+          }
+
+        } else {
+          // Cut operation: Move file and update database entry
+          
+          // Copy the file to new location
+          const copyResponse = await fetch('https://api.nymia.ai/v1/copyfile', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer WeInfl3nc3withAI'
+            },
+            body: JSON.stringify({
+              user: userData.id,
+              sourcefilename: `audio/${sourcePath === '' ? '' : sourcePath + '/'}${fileName}`,
+              destinationfilename: `audio/${targetPath === '' ? '' : targetPath + '/'}${fileName}`
+            })
+          });
+
+          if (!copyResponse.ok) {
+            const errorText = await copyResponse.text();
+            console.error(`Failed to copy audio file ${fileName}:`, errorText);
+            throw new Error(`Failed to copy audio file ${fileName}: ${errorText}`);
+          }
+
+          // Update database entry
+          const newAudioPath = `https://images.nymia.ai/${userData.id}/audio/${targetPath}/${fileName}`;
+          const updateResponse = await fetch(`https://db.nymia.ai/rest/v1/audio?audio_id=eq.${audio.audio_id}`, {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer WeInfl3nc3withAI'
+            },
+            body: JSON.stringify({
+              audio_path: newAudioPath
+            })
+          });
+
+          if (!updateResponse.ok) {
+            const errorText = await updateResponse.text();
+            console.warn(`Failed to update audio URL for audio ${audio.audio_id}:`, errorText);
+          } else {
+            console.log(`Successfully updated audio URL for audio ${audio.audio_id}`);
+          }
+
+          // Delete the file from the source location
+          const deleteResponse = await fetch('https://api.nymia.ai/v1/deletefile', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer WeInfl3nc3withAI'
+            },
+            body: JSON.stringify({
+              user: userData.id,
+              filename: `audio/${sourcePath}/${fileName}`
+            })
+          });
+
+          if (!deleteResponse.ok) {
+            console.warn(`Failed to delete original file ${fileName}, but move operation completed`);
+          }
+        }
+
+        console.log(`Successfully ${fileClipboard.type === 'copy' ? 'copied' : 'moved'} ${fileName}`);
       }
 
-      toast.success(`Audio ${fileClipboard.type === 'copy' ? 'copied' : 'moved'} successfully`);
+      // Refresh current folder content
+      await fetchFolderFiles(currentPath);
+
+      // Update toast to success
+      toast.success(`Audio ${fileClipboard.type === 'copy' ? 'copied' : 'moved'} successfully!`, {
+        id: loadingToast,
+        description: `${fileClipboard.items.length} audio file(s) ${fileClipboard.type === 'copy' ? 'copied' : 'moved'} to current folder`,
+        duration: 3000
+      });
+
+      // Clear clipboard
       setFileClipboard(null);
       setFileCopyState(0);
+
     } catch (error) {
       console.error('Error pasting audio:', error);
-      toast.error('Failed to paste audio');
+      toast.error(`Failed to ${fileClipboard?.type === 'copy' ? 'copy' : 'move'} audio`, {
+        description: 'An error occurred during the operation. Please try again.',
+        duration: 5000
+      });
     } finally {
       setIsPastingFile(false);
     }
@@ -1518,6 +1712,11 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
       if (response.ok) {
         const files = await response.json();
         const directFiles = files.filter((file: any) => {
+          // Check if file.Key exists before calling replace
+          if (!file.Key || typeof file.Key !== 'string') {
+            return false;
+          }
+          
           const relativePath = file.Key.replace(`audio/${userData.id}/audio/${folderPath}/`, '');
           if (folderPath === '') {
             return !relativePath.includes('/');
@@ -1553,6 +1752,11 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
 
   const getCurrentPathRawFolders = (): FolderData[] => {
     return folders.filter(folder => {
+      // Check if folder.Key exists before processing
+      if (!folder.Key || typeof folder.Key !== 'string') {
+        return false;
+      }
+      
       const folderPath = folder.Key;
       const currentPathParts = currentPath.split('/');
       const folderPathParts = folderPath.split('/');
@@ -1673,8 +1877,8 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
         },
         body: JSON.stringify({
           user: userData.id,
-          sourcefilename: `audio/${sourcePath}/${fileName}`,
-          destinationfilename: `audio/${targetPath}/${fileName}`
+          sourcefilename: `audio/${sourcePath === '' ? '' : sourcePath + '/'}${fileName}`,
+          destinationfilename: `audio/${targetPath === '' ? '' : targetPath + '/'}${fileName}`
         })
       });
 
@@ -1696,7 +1900,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
         },
         body: JSON.stringify({
           user: userData.id,
-          filename: `audio/${sourcePath}/${fileName}`
+          filename: `audio/${sourcePath === '' ? '' : sourcePath + '/'}${fileName}`
         })
       });
 
@@ -1816,6 +2020,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
               ? 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-md'
               : 'text-muted-foreground'
               }`}
+            title={fileClipboard ? `${fileClipboard.type === 'copy' ? 'Copy' : 'Move'} ${fileClipboard.items.length} audio file(s)` : 'No audio in clipboard'}
           >
             {isPastingFile ? (
               <>
@@ -1825,7 +2030,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
             ) : (
               <>
                 <Music className="w-4 h-4" />
-                {fileCopyState === 1 ? 'Paste Audio Copy' : fileCopyState === 2 ? 'Paste Audio Move' : 'Paste Audio'}
+                {fileCopyState === 1 ? `Paste Copy (${fileClipboard?.items.length || 0})` : fileCopyState === 2 ? `Paste Move (${fileClipboard?.items.length || 0})` : 'Paste Audio'}
               </>
             )}
           </Button>
@@ -2043,6 +2248,10 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
               key={audio.audio_id}
               className={`group cursor-pointer overflow-hidden bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-600 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 ${
                 isDragging && draggedAudio?.audio_id === audio.audio_id ? 'opacity-50 scale-95' : ''
+              } ${
+                fileClipboard && fileClipboard.items.some(item => item.audio_id === audio.audio_id) 
+                  ? 'ring-2 ring-green-500 ring-opacity-50 bg-green-50 dark:bg-green-950/20' 
+                  : ''
               }`}
               draggable
               onDragStart={(e) => handleDragStart(e, audio)}

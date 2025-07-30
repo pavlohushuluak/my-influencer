@@ -16,22 +16,15 @@ import { DialogZoom } from '@/components/ui/zoomdialog';
 
 // Interface for audio data from database
 interface AudioData {
-  id: string;
-  task_id: string;
   audio_id: string;
   user_uuid: string;
+  created_at: string;
+  elevenlabs_id: string;
   prompt: string;
-  duration: number;
-  format: string;
+  filename: string;
   status: string;
-  task_created_at: string;
-  task_completed_at: string;
-  user_filename?: string;
-  user_notes?: string;
-  user_tags?: string[];
-  rating?: number;
-  favorite?: boolean;
-  audio_url?: string;
+  character_cost: number;
+  audio_path: string;
 }
 
 // Interface for folder data from API
@@ -115,11 +108,19 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
 
   // Filter state
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [formatFilter, setFormatFilter] = useState<string>('all');
-  const [favoriteFilter, setFavoriteFilter] = useState<boolean | null>(null);
+
+  // Download state
+  const [downloadingAudios, setDownloadingAudios] = useState<Set<string>>(new Set());
+  const [downloadProgress, setDownloadProgress] = useState<Record<string, number>>({});
 
   // Extract folder name from full path
   const extractFolderName = (fullPath: string): string => {
+    // Check if fullPath is defined and is a string
+    if (!fullPath || typeof fullPath !== 'string') {
+      console.warn('extractFolderName called with invalid path:', fullPath);
+      return '';
+    }
+    
     // Remove the user ID and "audio/" prefix
     const pathWithoutPrefix = fullPath.replace(/^[^\/]+\/audio\//, '');
     return pathWithoutPrefix;
@@ -145,6 +146,12 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
     folderData.forEach(folder => {
       console.log('Processing folder:', folder);
       console.log('Folder key:', folder.Key);
+
+      // Check if folder.Key exists
+      if (!folder.Key) {
+        console.log('Folder key is undefined, skipping');
+        return;
+      }
 
       // Extract the folder path from the key
       const folderPath = extractFolderName(folder.Key);
@@ -215,6 +222,12 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
       const subfolders: string[] = [];
 
       for (const folder of folders) {
+        // Check if folder.Key exists
+        if (!folder.Key) {
+          console.log('Folder key is undefined in getAllSubfolders, skipping');
+          continue;
+        }
+        
         const extractedPath = extractFolderName(folder.Key);
         if (extractedPath && extractedPath.startsWith(folderPath + '/')) {
           subfolders.push(extractedPath);
@@ -304,12 +317,14 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
         // If no structure was built, create a fallback from the raw data
         if (structure.length === 0 && data.length > 0) {
           console.log('No structure built, creating fallback folders');
-          const fallbackFolders = data.map((folder: FolderData) => ({
-            name: folder.Key || extractFolderName(folder.Key) || 'Unknown Folder',
-            path: folder.Key || extractFolderName(folder.Key) || 'unknown',
-            children: [],
-            isFolder: true
-          }));
+          const fallbackFolders = data
+            .filter((folder: FolderData) => folder.Key) // Only process folders with valid Key
+            .map((folder: FolderData) => ({
+              name: folder.Key || extractFolderName(folder.Key) || 'Unknown Folder',
+              path: folder.Key || extractFolderName(folder.Key) || 'unknown',
+              children: [],
+              isFolder: true
+            }));
           console.log('Fallback folders:', fallbackFolders);
           setFolderStructure(fallbackFolders);
         }
@@ -350,8 +365,9 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
     try {
       setAudiosLoading(true);
       
+      console.log(`https://db.nymia.ai/rest/v1/audio?user_uuid=eq.${userData.id}&status=eq.created&order=created_at.desc`);
       // Fetch all audio files from the database
-      const response = await fetch(`https://db.nymia.ai/rest/v1/audio?user_uuid=eq.${userData.id}&status=eq.completed&order=task_created_at.desc`, {
+      const response = await fetch(`https://db.nymia.ai/rest/v1/audio?user_uuid=eq.${userData.id}&status=eq.created&order=created_at.desc`, {
         headers: {
           'Authorization': 'Bearer WeInfl3nc3withAI',
           'Content-Type': 'application/json'
@@ -364,58 +380,19 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
         
         // Filter audios based on current path
         const filteredAudios = data.filter((audio: AudioData) => {
-          const audioUrl = audio.audio_url || getAudioUrl(audio.audio_id);
-          
           if (folderPath === '') {
-            // Root folder: show audios that are directly in audio/ folder (no subfolder)
-            return audioUrl.includes(`/audio/${audio.audio_id}.mp3`) && 
-                   !audioUrl.includes(`/audio/${audio.audio_id}/`) &&
-                   !audioUrl.match(`/audio/[^/]+/${audio.audio_id}\\.mp3`);
+            // Root folder: show audios where audio_path is empty, null, or undefined
+            return !audio.audio_path || audio.audio_path === '' || audio.audio_path.trim() === '';
           } else {
             // Subfolder: show audios that are in the specific folder path
-            const expectedPath = `/audio/${folderPath}/${audio.audio_id}.mp3`;
-            return audioUrl.includes(expectedPath);
+            const audioPath = audio.audio_path || getAudioUrl(audio);
+            const expectedPath = `/audio/${folderPath}/${audio.filename}`;
+            return audioPath.includes(expectedPath);
           }
         });
         
         console.log('Filtered audios for path:', folderPath, filteredAudios);
         setAudios(filteredAudios);
-      } else {
-        // Fallback to mock data if API is not available
-        console.log('Audio API not available, using mock data');
-        const mockAudios: AudioData[] = [
-          {
-            id: '1',
-            task_id: 'task-1',
-            audio_id: 'audio-1',
-            user_uuid: userData.id,
-            prompt: 'Background music for video',
-            duration: 30,
-            format: 'mp3',
-            status: 'completed',
-            task_created_at: new Date().toISOString(),
-            task_completed_at: new Date().toISOString(),
-            user_filename: 'Background Music.mp3',
-            favorite: false,
-            audio_url: `https://images.nymia.ai/${userData.id}/audio/audio-1.mp3`
-          }
-        ];
-        
-        // Filter mock data based on path
-        const filteredMockAudios = mockAudios.filter((audio: AudioData) => {
-          const audioUrl = audio.audio_url || getAudioUrl(audio.audio_id);
-          
-          if (folderPath === '') {
-            return audioUrl.includes(`/audio/${audio.audio_id}.mp3`) && 
-                   !audioUrl.includes(`/audio/${audio.audio_id}/`) &&
-                   !audioUrl.match(`/audio/[^/]+/${audio.audio_id}\\.mp3`);
-          } else {
-            const expectedPath = `/audio/${folderPath}/${audio.audio_id}.mp3`;
-            return audioUrl.includes(expectedPath);
-          }
-        });
-        
-        setAudios(filteredMockAudios);
       }
     } catch (error) {
       console.error('Error fetching audios:', error);
@@ -434,32 +411,27 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
   const filteredAudios = audios
     .filter(audio => {
       const matchesSearch = audio.prompt.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           (audio.user_filename && audio.user_filename.toLowerCase().includes(searchTerm.toLowerCase()));
+                           audio.filename.toLowerCase().includes(searchTerm.toLowerCase());
       
       const matchesStatus = statusFilter === 'all' || audio.status === statusFilter;
-      const matchesFormat = formatFilter === 'all' || audio.format === formatFilter;
-      const matchesFavorite = favoriteFilter === null || audio.favorite === favoriteFilter;
       
-      return matchesSearch && matchesStatus && matchesFormat && matchesFavorite;
+      return matchesSearch && matchesStatus;
     })
     .sort((a, b) => {
       let comparison = 0;
       
       switch (sortBy) {
         case 'newest':
-          comparison = new Date(b.task_created_at).getTime() - new Date(a.task_created_at).getTime();
+          comparison = new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
           break;
         case 'oldest':
-          comparison = new Date(a.task_created_at).getTime() - new Date(b.task_created_at).getTime();
+          comparison = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
           break;
-        case 'duration':
-          comparison = b.duration - a.duration;
-          break;
-        case 'format':
-          comparison = a.format.localeCompare(b.format);
+        case 'character_cost':
+          comparison = b.character_cost - a.character_cost;
           break;
         case 'name':
-          comparison = (a.user_filename || a.task_id).localeCompare(b.user_filename || b.task_id);
+          comparison = a.filename.localeCompare(b.filename);
           break;
         default:
           comparison = 0;
@@ -476,15 +448,12 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
   const currentAudios = filteredAudios.slice(startIndex, endIndex);
 
   // Audio helper functions
-  const getAudioUrl = (audioId: string) => {
-    return `https://images.nymia.ai/${userData.id}/audio/${audioId}.mp3`;
+  const getAudioUrl = (audio: AudioData) => {
+    return `https://images.nymia.ai/${userData.id}/audio/${audio.audio_path ? audio.audio_path + '/' : ''}${audio.filename}`;
   };
 
-  const formatAudioDuration = (seconds: number) => {
-    if (seconds < 60) return `${seconds}s`;
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    return `${minutes}m ${remainingSeconds}s`;
+  const formatCharacterCost = (cost: number) => {
+    return `${cost} chars`;
   };
 
   const formatAudioDate = (dateString: string) => {
@@ -514,33 +483,154 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
 
   // Handle download
   const handleDownload = async (audioId: string) => {
+    // Prevent multiple downloads of the same audio
+    if (downloadingAudios.has(audioId)) {
+      return;
+    }
+
     try {
-      const audioUrl = getAudioUrl(audioId);
+      const audio = audios.find(a => a.audio_id === audioId);
+      if (!audio) return;
+
+      // Set downloading state
+      setDownloadingAudios(prev => new Set(prev).add(audioId));
+      setDownloadProgress(prev => ({ ...prev, [audioId]: 0 }));
+
+      // Show initial toast
+      toast.info('Preparing download...', {
+        description: `Starting download for "${audio.filename || audio.audio_id}"`,
+        duration: 2000
+      });
+
+      const path = currentPath === "" ? "audio" : `audio/${currentPath}`;
+      
+      // Update progress to 25%
+      setDownloadProgress(prev => ({ ...prev, [audioId]: 25 }));
+      
+      const response = await fetch('https://api.nymia.ai/v1/downloadfile', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          user: userData.id,
+          filename: `${path}/${audio.filename}`
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to download file');
+      }
+
+      // Update progress to 50%
+      setDownloadProgress(prev => ({ ...prev, [audioId]: 50 }));
+
+      // Show downloading toast
+      toast.info('Downloading audio...', {
+        description: `Processing "${audio.filename || audio.audio_id}"`,
+        duration: 2000
+      });
+
+      const blob = await response.blob();
+
+      // Update progress to 75%
+      setDownloadProgress(prev => ({ ...prev, [audioId]: 75 }));
+
+      // Create a download link
+      const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
-      link.href = audioUrl;
-      link.download = `audio-${audioId}.mp3`;
+      link.href = url;
+      link.download = audio.filename || `audio-${audioId}.mp3`;
+
+      // Update progress to 90%
+      setDownloadProgress(prev => ({ ...prev, [audioId]: 90 }));
+
+      // Trigger download
       document.body.appendChild(link);
       link.click();
+
+      // Cleanup
       document.body.removeChild(link);
-      toast.success('Download started');
+      window.URL.revokeObjectURL(url);
+      
+      // Update progress to 100%
+      setDownloadProgress(prev => ({ ...prev, [audioId]: 100 }));
+
+      // Show success toast
+      toast.success('Download completed!', {
+        description: `"${audio.filename || audio.audio_id}" has been downloaded successfully`,
+        duration: 3000
+      });
+
+      // Clear download state after a short delay
+      setTimeout(() => {
+        setDownloadingAudios(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(audioId);
+          return newSet;
+        });
+        setDownloadProgress(prev => {
+          const newProgress = { ...prev };
+          delete newProgress[audioId];
+          return newProgress;
+        });
+      }, 1000);
+
     } catch (error) {
       console.error('Error downloading audio:', error);
-      toast.error('Failed to download audio');
+      
+      // Find audio again for error message
+      const audio = audios.find(a => a.audio_id === audioId);
+      
+      // Show error toast
+      toast.error('Download failed', {
+        description: `Failed to download "${audio?.filename || audioId}". Please try again.`,
+        duration: 5000
+      });
+
+      // Clear download state
+      setDownloadingAudios(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(audioId);
+        return newSet;
+      });
+      setDownloadProgress(prev => {
+        const newProgress = { ...prev };
+        delete newProgress[audioId];
+        return newProgress;
+      });
     }
   };
 
   // Handle share
   const handleShare = (audioId: string) => {
-    const audioUrl = getAudioUrl(audioId);
+    const audio = audios.find(a => a.audio_id === audioId);
+    if (!audio) return;
+    
+    const audioUrl = audio.audio_path || getAudioUrl(audio);
     navigator.clipboard.writeText(audioUrl);
     toast.success('Audio URL copied to clipboard');
   };
 
   // Handle delete
   const handleDelete = async (audio: AudioData) => {
-    if (!confirm('Are you sure you want to delete this audio?')) return;
+    setDeleteAudioModal({ open: true, audio });
+  };
+
+  // Confirm delete audio
+  const confirmDeleteAudio = async () => {
+    if (!deleteAudioModal.audio) return;
+    
+    const audio = deleteAudioModal.audio;
     
     try {
+      // Show loading toast
+      const loadingToast = toast.loading('Deleting audio...', {
+        description: `Removing "${audio.filename || audio.audio_id}"`,
+        duration: Infinity
+      });
+
       // Delete from database
       const response = await fetch(`https://db.nymia.ai/rest/v1/audio?audio_id=eq.${audio.audio_id}`, {
         method: 'DELETE',
@@ -551,8 +641,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
       });
 
       // Delete the actual file
-      const audioUrl = audio.audio_url || getAudioUrl(audio.audio_id);
-      const fileName = audioUrl.split('/').pop() || `${audio.audio_id}.mp3`;
+      const fileName = audio.filename || `${audio.audio_id}.mp3`;
       
       await fetch('https://api.nymia.ai/v1/deletefile', {
         method: 'POST',
@@ -569,13 +658,25 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
       if (response.ok) {
         // Refresh current folder content
         await fetchFolderFiles(currentPath);
-        toast.success('Audio deleted successfully');
+        
+        // Update toast to success
+        toast.success('Audio deleted successfully!', {
+          id: loadingToast,
+          description: `"${audio.filename || audio.audio_id}" has been permanently deleted`,
+          duration: 3000
+        });
       } else {
         throw new Error('Failed to delete audio');
       }
     } catch (error) {
       console.error('Error deleting audio:', error);
-      toast.error('Failed to delete audio');
+      toast.error('Failed to delete audio', {
+        description: 'An error occurred while deleting the audio. Please try again.',
+        duration: 5000
+      });
+    } finally {
+      // Close modal
+      setDeleteAudioModal({ open: false, audio: null });
     }
   };
 
@@ -589,8 +690,6 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
   const clearFilters = () => {
     setSearchTerm('');
     setStatusFilter('all');
-    setFormatFilter('all');
-    setFavoriteFilter(null);
     setSortBy('newest');
     setSortOrder('desc');
   };
@@ -624,7 +723,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
         setNewFolderName('');
         
         // Refresh folders
-        const updatedFolders = [...folders, { Key: `audio/${newFolderPath}` }];
+        const updatedFolders = [...folders, { Key: `${newFolderPath}` }];
         setFolders(updatedFolders);
         setFolderStructure(buildFolderStructure(updatedFolders));
       } else {
@@ -700,17 +799,17 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
 
       // Step 2: Get all files from the old folder and move them to the new folder
       const audiosInFolder = audios.filter(audio => {
-        const audioUrl = audio.audio_url || getAudioUrl(audio.audio_id);
-        return audioUrl.includes(`/audio/${oldPath}/`);
+        const audioPath = audio.audio_path || getAudioUrl(audio);
+        return audioPath.includes(`/audio/${oldPath}/`);
       });
       
       if (audiosInFolder.length > 0) {
         console.log('Moving', audiosInFolder.length, 'audios from old folder to new folder');
         
         for (const audio of audiosInFolder) {
-          // Extract the filename from the audio URL
-          const audioUrl = audio.audio_url || getAudioUrl(audio.audio_id);
-          const fileName = audioUrl.split('/').pop() || `${audio.audio_id}.mp3`;
+          // Extract the filename from the audio path
+          const audioPath = audio.audio_path || getAudioUrl(audio);
+          const fileName = audio.filename || `${audio.audio_id}.mp3`;
           
           console.log(`Attempting to move audio: ${fileName}`);
           console.log(`From: audio/${oldPath}/${fileName}`);
@@ -739,9 +838,9 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
 
           console.log(`Successfully copied audio file ${fileName}`);
 
-          // Update the audio_url in database
-          const oldAudioUrl = audio.audio_url || getAudioUrl(audio.audio_id);
-          const newAudioUrl = oldAudioUrl.replace(`/audio/${oldPath}/`, `/audio/${newPath}/`);
+          // Update the audio_path in database
+          const oldAudioPath = audio.audio_path || getAudioUrl(audio);
+          const newAudioPath = oldAudioPath.replace(`/audio/${oldPath}/`, `/audio/${newPath}/`);
           
           const updateResponse = await fetch(`https://db.nymia.ai/rest/v1/audio?audio_id=eq.${audio.audio_id}`, {
             method: 'PATCH',
@@ -750,7 +849,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
               'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-              audio_url: newAudioUrl
+              audio_path: newAudioPath
             })
           });
 
@@ -810,14 +909,14 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
               if (subfolderCreateResponse.ok) {
                 // Move audios in this subfolder
                 const subfolderAudios = audios.filter(audio => {
-                  const audioUrl = audio.audio_url || getAudioUrl(audio.audio_id);
-                  return audioUrl.includes(`/audio/${oldPath}/${relativePath}/`);
+                  const audioPath = audio.audio_path || getAudioUrl(audio);
+                  return audioPath.includes(`/audio/${oldPath}/${relativePath}/`);
                 });
                 
                 for (const audio of subfolderAudios) {
-                  // Extract the filename from the audio URL
-                  const audioUrl = audio.audio_url || getAudioUrl(audio.audio_id);
-                  const fileName = audioUrl.split('/').pop() || `${audio.audio_id}.mp3`;
+                  // Extract the filename from the audio path
+                  const audioPath = audio.audio_path || getAudioUrl(audio);
+                  const fileName = audio.filename || `${audio.audio_id}.mp3`;
                   
                   console.log(`Attempting to move audio in subfolder: ${fileName}`);
                   console.log(`From: audio/${oldPath}/${relativePath}/${fileName}`);
@@ -840,15 +939,14 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
                   if (!copyResponse.ok) {
                     const errorText = await copyResponse.text();
                     console.error(`Failed to copy audio file ${fileName} in subfolder ${relativePath}:`, errorText);
-                    console.error(`Response status: ${copyResponse.status}`);
                     throw new Error(`Failed to copy audio file ${fileName} in subfolder ${relativePath}: ${errorText}`);
                   }
 
                   console.log(`Successfully copied audio file ${fileName} in subfolder ${relativePath}`);
 
-                  // Update the audio_url in database
-                  const oldAudioUrl = audio.audio_url || getAudioUrl(audio.audio_id);
-                  const newAudioUrl = oldAudioUrl.replace(`/audio/${oldPath}/${relativePath}/`, `/audio/${newPath}/${relativePath}/`);
+                  // Update the audio_path in database
+                  const oldAudioPath = audio.audio_path || getAudioUrl(audio);
+                  const newAudioPath = oldAudioPath.replace(`/audio/${oldPath}/${relativePath}/`, `/audio/${newPath}/${relativePath}/`);
                   
                   const updateResponse = await fetch(`https://db.nymia.ai/rest/v1/audio?audio_id=eq.${audio.audio_id}`, {
                     method: 'PATCH',
@@ -857,7 +955,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
                       'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                      audio_url: newAudioUrl
+                      audio_path: newAudioPath
                     })
                   });
 
@@ -946,6 +1044,9 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
   // Delete folder modal state
   const [deleteFolderModal, setDeleteFolderModal] = useState<{ open: boolean; folderPath: string | null; folderName: string | null }>({ open: false, folderPath: null, folderName: null });
 
+  // Delete audio modal state
+  const [deleteAudioModal, setDeleteAudioModal] = useState<{ open: boolean; audio: AudioData | null }>({ open: false, audio: null });
+
   const handleDeleteFolder = async (folderPath: string) => {
     const folderName = decodeName(folderPath.split('/').pop() || '');
     setDeleteFolderModal({ open: true, folderPath, folderName });
@@ -955,6 +1056,12 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
     if (!deleteFolderModal.folderPath) return;
 
     try {
+      // Show loading toast
+      const loadingToast = toast.loading('Deleting folder...', {
+        description: `Removing "${deleteFolderModal.folderName}" and all its contents`,
+        duration: Infinity
+      });
+
       const response = await fetch('https://api.nymia.ai/v1/deletefolder', {
         method: 'POST',
         headers: {
@@ -968,8 +1075,6 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
       });
 
       if (response.ok) {
-        toast.success('Folder deleted successfully');
-        
         // Refresh folders from API
         const refreshResponse = await fetch('https://api.nymia.ai/v1/getfoldernames', {
           method: 'POST',
@@ -992,6 +1097,13 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
         // Refresh current folder content
         await fetchFolderFiles(currentPath);
         
+        // Update toast to success
+        toast.success('Folder deleted successfully!', {
+          id: loadingToast,
+          description: `"${deleteFolderModal.folderName}" and all its contents have been permanently deleted`,
+          duration: 3000
+        });
+        
         // Close modal
         setDeleteFolderModal({ open: false, folderPath: null, folderName: null });
       } else {
@@ -999,7 +1111,10 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
       }
     } catch (error) {
       console.error('Error deleting folder:', error);
-      toast.error('Failed to delete folder');
+      toast.error('Failed to delete folder', {
+        description: 'An error occurred while deleting the folder. Please try again.',
+        duration: 5000
+      });
     }
   };
 
@@ -1453,11 +1568,11 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
     setDraggedAudio(audio);
     setIsDragging(true);
     e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/plain', audio.user_filename || audio.audio_id);
+    e.dataTransfer.setData('text/plain', audio.filename || audio.audio_id);
 
     // Show toast when drag starts
     toast.info('Drag started', {
-      description: `Moving "${audio.user_filename || audio.audio_id}" - drop on a folder to move it`,
+      description: `Moving "${audio.filename || audio.audio_id}" - drop on a folder to move it`,
       duration: 3000
     });
   };
@@ -1503,8 +1618,8 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
     if (!draggedAudio) return;
 
     // Don't allow dropping into the same folder
-    const audioUrl = draggedAudio.audio_url || getAudioUrl(draggedAudio.audio_id);
-    const currentAudioPath = audioUrl.includes(`/audio/${targetFolderPath}/`) ? targetFolderPath : '';
+    const audioPath = draggedAudio.audio_path || getAudioUrl(draggedAudio);
+    const currentAudioPath = audioPath.includes(`/audio/${targetFolderPath}/`) ? targetFolderPath : '';
     if (currentAudioPath === targetFolderPath) {
       toast.error('Audio is already in this folder');
       return;
@@ -1512,12 +1627,12 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
 
     // Show moving process toast
     const movingToast = toast.loading('Moving audio...', {
-      description: `Moving "${draggedAudio.user_filename || draggedAudio.audio_id}" to ${targetFolderPath || 'root'}`,
+      description: `Moving "${draggedAudio.filename || draggedAudio.audio_id}" to ${targetFolderPath || 'root'}`,
       duration: Infinity
     });
 
     try {
-      const fileName = audioUrl.split('/').pop() || `${draggedAudio.audio_id}.mp3`;
+      const fileName = draggedAudio.filename || `${draggedAudio.audio_id}.mp3`;
       const sourcePath = currentPath || '';
       const targetPath = targetFolderPath || '';
 
@@ -1527,8 +1642,8 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
         description: `Updating audio location in database`
       });
 
-      // Update the audio's audio_url in the database
-      const newAudioUrl = `https://images.nymia.ai/${userData.id}/audio/${targetPath}/${fileName}`;
+      // Update the audio's audio_path in the database
+      const newAudioPath = `https://images.nymia.ai/${userData.id}/audio/${targetPath}/${fileName}`;
       const response = await fetch(`https://db.nymia.ai/rest/v1/audio?audio_id=eq.${draggedAudio.audio_id}`, {
         method: 'PATCH',
         headers: {
@@ -1536,7 +1651,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
           'Authorization': 'Bearer WeInfl3nc3withAI'
         },
         body: JSON.stringify({
-          audio_url: newAudioUrl
+          audio_path: newAudioPath
         })
       });
 
@@ -1771,17 +1886,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
             </SelectContent>
           </Select>
 
-          <Select value={formatFilter} onValueChange={setFormatFilter}>
-            <SelectTrigger className="w-32">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Formats</SelectItem>
-              <SelectItem value="mp3">MP3</SelectItem>
-              <SelectItem value="wav">WAV</SelectItem>
-              <SelectItem value="m4a">M4A</SelectItem>
-            </SelectContent>
-          </Select>
+
 
           <Select value={sortBy} onValueChange={setSortBy}>
             <SelectTrigger className="w-32">
@@ -1790,8 +1895,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
             <SelectContent>
               <SelectItem value="newest">Newest</SelectItem>
               <SelectItem value="oldest">Oldest</SelectItem>
-              <SelectItem value="duration">Duration</SelectItem>
-              <SelectItem value="format">Format</SelectItem>
+              <SelectItem value="character_cost">Character Cost</SelectItem>
               <SelectItem value="name">Name</SelectItem>
             </SelectContent>
           </Select>
@@ -1936,9 +2040,9 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
           {/* Audio Cards */}
           {currentAudios.map((audio) => (
             <Card
-              key={audio.id}
+              key={audio.audio_id}
               className={`group cursor-pointer overflow-hidden bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-600 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 ${
-                isDragging && draggedAudio?.id === audio.id ? 'opacity-50 scale-95' : ''
+                isDragging && draggedAudio?.audio_id === audio.audio_id ? 'opacity-50 scale-95' : ''
               }`}
               draggable
               onDragStart={(e) => handleDragStart(e, audio)}
@@ -1986,29 +2090,6 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
                         {audio.status}
                       </Badge>
                     </div>
-
-                    {/* Favorite indicator */}
-                    {audio.favorite && (
-                      <div className="absolute top-3 left-3">
-                        <div className="w-8 h-8 bg-yellow-500 rounded-full flex items-center justify-center shadow-lg">
-                          <Star className="w-4 h-4 text-white fill-current" />
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Duration overlay */}
-                    <div className="absolute bottom-3 right-3">
-                      <div className="bg-black/70 text-white text-xs px-2 py-1 rounded-md font-medium">
-                        {formatAudioDuration(audio.duration)}
-                      </div>
-                    </div>
-
-                    {/* Format overlay */}
-                    <div className="absolute bottom-3 left-3">
-                      <div className="bg-black/70 text-white text-xs px-2 py-1 rounded-md font-medium">
-                        {audio.format}
-                      </div>
-                    </div>
                   </div>
 
                   {/* Audio Info */}
@@ -2016,11 +2097,11 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
                     {/* Title and format */}
                     <div className="space-y-2">
                       <h4 className="font-semibold text-sm text-gray-900 dark:text-gray-100 line-clamp-2 leading-tight">
-                        {audio.user_filename || audio.prompt.substring(0, 60)}
+                        {audio.filename || audio.prompt.substring(0, 60)}
                       </h4>
                       <div className="flex items-center gap-2">
                         <Badge variant="secondary" className="text-xs px-2 py-1 bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300">
-                          {audio.format}
+                          MP3
                         </Badge>
                         <Badge variant="outline" className="text-xs px-2 py-1">
                           Audio
@@ -2036,7 +2117,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
                     {/* Date */}
                     <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
                       <Calendar className="w-3 h-3" />
-                      <span>{formatAudioDate(audio.task_created_at)}</span>
+                      <span>{formatAudioDate(audio.created_at)}</span>
                     </div>
 
                   {/* Action Buttons */}
@@ -2045,13 +2126,25 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
                       size="sm"
                       variant="outline"
                       className="flex-1 h-8 text-xs font-medium hover:bg-purple-700 hover:border-purple-500 transition-colors"
+                      disabled={downloadingAudios.has(audio.audio_id)}
                       onClick={(e) => {
                         e.stopPropagation();
                         handleDownload(audio.audio_id);
                       }}
                     >
-                      <Download className="w-3 h-3 mr-1.5" />
-                      <span className="hidden sm:inline">Download</span>
+                      {downloadingAudios.has(audio.audio_id) ? (
+                        <>
+                          <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current mr-1.5"></div>
+                          <span className="hidden sm:inline">
+                            {downloadProgress[audio.audio_id] === 100 ? 'Complete!' : `Downloading ${downloadProgress[audio.audio_id] || 0}%`}
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <Download className="w-3 h-3 mr-1.5" />
+                          <span className="hidden sm:inline">Download</span>
+                        </>
+                      )}
                     </Button>
                     <Button
                       size="sm"
@@ -2076,6 +2169,16 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
                       <Trash2 className="w-3 h-3" />
                     </Button>
                   </div>
+
+                  {/* Download Progress Bar */}
+                  {downloadProgress[audio.audio_id] && downloadProgress[audio.audio_id] < 100 && (
+                    <div className="absolute bottom-0 left-0 right-0 h-1 bg-gray-200 dark:bg-gray-700">
+                      <div 
+                        className="h-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all duration-300 ease-out"
+                        style={{ width: `${downloadProgress[audio.audio_id]}%` }} 
+                      />
+                    </div>
+                  )}
                 </CardContent>
             </Card>
           ))}
@@ -2189,7 +2292,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
               <div className="bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-lg p-6 text-center">
                 <Volume2 className="w-16 h-16 text-blue-600 dark:text-blue-400 mx-auto mb-4" />
                 <audio
-                  src={getAudioUrl(selectedAudio)}
+                  src={getAudioUrl(audios.find(a => a.audio_id === selectedAudio)!)}
                   controls
                   className="w-full"
                 />
@@ -2198,9 +2301,19 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
                 <Button
                   onClick={() => handleDownload(selectedAudio)}
                   variant="outline"
+                  disabled={downloadingAudios.has(selectedAudio)}
                 >
-                  <Download className="w-4 h-4 mr-2" />
-                  Download
+                  {downloadingAudios.has(selectedAudio) ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2"></div>
+                      {downloadProgress[selectedAudio] === 100 ? 'Complete!' : `Downloading ${downloadProgress[selectedAudio] || 0}%`}
+                    </>
+                  ) : (
+                    <>
+                      <Download className="w-4 h-4 mr-2" />
+                      Download
+                    </>
+                  )}
                 </Button>
                 <Button
                   onClick={() => handleShare(selectedAudio)}
@@ -2334,6 +2447,67 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
         </DialogContent>
       </Dialog>
 
+      {/* Delete Audio Modal */}
+      <Dialog open={deleteAudioModal.open} onOpenChange={(open) => !open && setDeleteAudioModal({ open: false, audio: null })}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-red-600 flex items-center gap-2">
+              <div className="w-8 h-8 bg-gradient-to-br from-red-500 to-red-600 rounded-lg flex items-center justify-center">
+                <Music className="w-4 h-4 text-white" />
+              </div>
+              Delete Audio
+            </DialogTitle>
+            <DialogDescription className="text-gray-600 dark:text-gray-400">
+              This action cannot be undone. The audio file will be permanently deleted.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            {deleteAudioModal.audio && (
+              <div className="p-4 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-gradient-to-br from-red-500 to-red-600 rounded-lg flex items-center justify-center">
+                    <Music className="w-6 h-6 text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-semibold text-gray-900 dark:text-gray-100">
+                      {deleteAudioModal.audio.filename || deleteAudioModal.audio.audio_id}
+                    </h4>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      Audio file
+                    </p>
+                    <p className="text-xs text-red-600 dark:text-red-400 font-medium">
+                      This will permanently delete the audio file and its database record
+                    </p>
+                    {deleteAudioModal.audio.prompt && (
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        Prompt: {deleteAudioModal.audio.prompt.substring(0, 60)}...
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+            <div className="flex justify-end gap-3">
+              <Button 
+                variant="outline" 
+                onClick={() => setDeleteAudioModal({ open: false, audio: null })}
+                className="px-6"
+              >
+                Cancel
+              </Button>
+              <Button 
+                variant="destructive" 
+                onClick={confirmDeleteAudio}
+                className="bg-red-600 hover:bg-red-700 px-6"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Delete Audio
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Folder Context Menu */}
       {contextMenu && (
         <div
@@ -2397,13 +2571,23 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
         >
           <button
             className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+            disabled={downloadingAudios.has(fileContextMenu.audio.audio_id)}
             onClick={() => {
               handleDownload(fileContextMenu.audio.audio_id);
               setFileContextMenu(null);
             }}
           >
-            <Download className="w-4 h-4" />
-            Download
+            {downloadingAudios.has(fileContextMenu.audio.audio_id) ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
+                {downloadProgress[fileContextMenu.audio.audio_id] === 100 ? 'Complete!' : `Downloading ${downloadProgress[fileContextMenu.audio.audio_id] || 0}%`}
+              </>
+            ) : (
+              <>
+                <Download className="w-4 h-4" />
+                Download
+              </>
+            )}
           </button>
           <button
             className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
@@ -2468,8 +2652,11 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
 
   // Helper function for social media sharing
   function shareToSocialMedia(platform: string, audioId: string) {
-    const audioUrl = getAudioUrl(audioId);
-    const text = 'Check out this amazing audio!';
+    const audio = audios.find(a => a.audio_id === audioId);
+    if (!audio) return;
+    
+    const audioUrl = audio.audio_path || getAudioUrl(audio);
+    const shareText = `Check out this audio: ${audio.filename}`;
     
     let shareUrl = '';
     switch (platform) {
@@ -2477,7 +2664,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
         shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(audioUrl)}`;
         break;
       case 'twitter':
-        shareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(audioUrl)}`;
+        shareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(audioUrl)}`;
         break;
       case 'instagram':
         // Instagram doesn't support direct sharing via URL

@@ -967,9 +967,267 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
         const sourceName = sourcePath.split('/').pop() || '';
         const destPath = currentPath ? `${currentPath}/${sourceName}` : sourceName;
 
-        if (clipboard.type === 'copy') {
-          // Copy folder
-          const response = await fetch('https://api.nymia.ai/v1/copyfolder', {
+        console.log(`Starting ${clipboard.type} operation for folder: ${sourcePath} to ${destPath}`);
+
+        // Step 1: Create the destination folder
+        const createResponse = await fetch('https://api.nymia.ai/v1/createfolder', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer WeInfl3nc3withAI'
+          },
+          body: JSON.stringify({
+            user: userData.id,
+            parentfolder: `audio/${currentPath ? currentPath + '/' : ''}`,
+            folder: sourceName
+          })
+        });
+
+        if (!createResponse.ok) {
+          throw new Error('Failed to create destination folder');
+        }
+
+        console.log('Destination folder created successfully');
+
+        // Step 2: Get all audios from the source folder and copy them
+        const allAudiosResponse = await fetch(`https://db.nymia.ai/rest/v1/audio?user_uuid=eq.${userData.id}`, {
+          method: 'GET',
+          headers: {
+            'Authorization': 'Bearer WeInfl3nc3withAI',
+            'Content-Type': 'application/json'
+          }
+        });
+
+        const allAudios = await allAudiosResponse.json();
+        const audiosInSourceFolder = allAudios.filter(audio => {
+          const audioUrl = audio.audio_url || getAudioUrl(audio.audio_id);
+          return audioUrl.includes(`/audio/${sourcePath}/`);
+        });
+        
+        if (audiosInSourceFolder.length > 0) {
+          console.log(`Copying ${audiosInSourceFolder.length} audios from source folder`);
+          
+          for (const audio of audiosInSourceFolder) {
+            const audioUrl = audio.audio_url || getAudioUrl(audio.audio_id);
+            const fileName = audioUrl.split('/').pop() || `${audio.audio_id}.mp3`;
+            
+            console.log(`Copying audio: ${fileName}`);
+            console.log(`From: audio/${sourcePath}/${fileName}`);
+            console.log(`To: audio/${destPath}/${fileName}`);
+            
+            // Copy the audio file
+            const copyResponse = await fetch('https://api.nymia.ai/v1/copyfile', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer WeInfl3nc3withAI'
+              },
+              body: JSON.stringify({
+                user: userData.id,
+                sourcefilename: `audio/${sourcePath}/${fileName}`,
+                destinationfilename: `audio/${destPath}/${fileName}`
+              })
+            });
+
+            if (!copyResponse.ok) {
+              const errorText = await copyResponse.text();
+              console.error(`Failed to copy audio file ${fileName}:`, errorText);
+              throw new Error(`Failed to copy audio file ${fileName}: ${errorText}`);
+            }
+
+            console.log(`Successfully copied audio file ${fileName}`);
+
+            if (clipboard.type === 'copy') {
+              // For copy operation, create a new database entry
+              const oldAudioUrl = audio.audio_url || getAudioUrl(audio.audio_id);
+              const newAudioUrl = oldAudioUrl.replace(`/audio/${sourcePath}/`, `/audio/${destPath}/`);
+              
+              const newAudioData = {
+                ...audio,
+                audio_url: newAudioUrl
+              };
+              delete newAudioData.audio_id; // Remove ID so database generates new one
+              delete newAudioData.id; // Remove ID so database generates new one
+
+              const createAudioResponse = await fetch(`https://db.nymia.ai/rest/v1/audio`, {
+                method: 'POST',
+                headers: {
+                  'Authorization': 'Bearer WeInfl3nc3withAI',
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(newAudioData)
+              });
+
+              if (!createAudioResponse.ok) {
+                const errorText = await createAudioResponse.text();
+                console.warn(`Failed to create new audio record for ${fileName}:`, errorText);
+              } else {
+                console.log(`Successfully created new audio record for ${fileName}`);
+              }
+            } else {
+              // For cut operation, update the existing database entry
+              const oldAudioUrl = audio.audio_url || getAudioUrl(audio.audio_id);
+              const newAudioUrl = oldAudioUrl.replace(`/audio/${sourcePath}/`, `/audio/${destPath}/`);
+              
+              const updateResponse = await fetch(`https://db.nymia.ai/rest/v1/audio?audio_id=eq.${audio.audio_id}`, {
+                method: 'PATCH',
+                headers: {
+                  'Authorization': 'Bearer WeInfl3nc3withAI',
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                  audio_url: newAudioUrl
+                })
+              });
+
+              if (!updateResponse.ok) {
+                const errorText = await updateResponse.text();
+                console.warn(`Failed to update audio URL for audio ${audio.audio_id}:`, errorText);
+              } else {
+                console.log(`Successfully updated audio URL for audio ${audio.audio_id}`);
+              }
+            }
+          }
+        }
+
+        // Step 3: Handle subfolders recursively
+        const getFoldersResponse = await fetch('https://api.nymia.ai/v1/getfoldernames', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer WeInfl3nc3withAI'
+          },
+          body: JSON.stringify({
+            user: userData.id,
+            folder: `audio/${sourcePath}`
+          })
+        });
+
+        if (getFoldersResponse.ok) {
+          const folders = await getFoldersResponse.json();
+          console.log('Subfolders to copy:', folders);
+
+          if (folders && folders.length > 0 && folders[0].Key) {
+            for (const folder of folders) {
+              const folderKey = folder.Key;
+              const re = new RegExp(`^.*?audio/${sourcePath}/`);
+              const relativePath = folderKey.replace(re, "").replace(/\/$/, "");
+
+              console.log("Processing subfolder:", relativePath);
+
+              if (relativePath && relativePath !== folderKey) {
+                // Create the subfolder in the destination
+                const subfolderCreateResponse = await fetch('https://api.nymia.ai/v1/createfolder', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer WeInfl3nc3withAI'
+                  },
+                  body: JSON.stringify({
+                    user: userData.id,
+                    parentfolder: `audio/${destPath}/`,
+                    folder: relativePath
+                  })
+                });
+
+                if (subfolderCreateResponse.ok) {
+                  // Copy audios in this subfolder
+                  const subfolderAudios = allAudios.filter(audio => {
+                    const audioUrl = audio.audio_url || getAudioUrl(audio.audio_id);
+                    return audioUrl.includes(`/audio/${sourcePath}/${relativePath}/`);
+                  });
+                  
+                  for (const audio of subfolderAudios) {
+                    const audioUrl = audio.audio_url || getAudioUrl(audio.audio_id);
+                    const fileName = audioUrl.split('/').pop() || `${audio.audio_id}.mp3`;
+                    
+                    console.log(`Copying audio in subfolder: ${fileName}`);
+                    console.log(`From: audio/${sourcePath}/${relativePath}/${fileName}`);
+                    console.log(`To: audio/${destPath}/${relativePath}/${fileName}`);
+                    
+                    // Copy the audio file
+                    const copyResponse = await fetch('https://api.nymia.ai/v1/copyfile', {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer WeInfl3nc3withAI'
+                      },
+                      body: JSON.stringify({
+                        user: userData.id,
+                        sourcefilename: `audio/${sourcePath}/${relativePath}/${fileName}`,
+                        destinationfilename: `audio/${destPath}/${relativePath}/${fileName}`
+                      })
+                    });
+
+                    if (!copyResponse.ok) {
+                      const errorText = await copyResponse.text();
+                      console.error(`Failed to copy audio file ${fileName} in subfolder ${relativePath}:`, errorText);
+                      throw new Error(`Failed to copy audio file ${fileName} in subfolder ${relativePath}: ${errorText}`);
+                    }
+
+                    console.log(`Successfully copied audio file ${fileName} in subfolder ${relativePath}`);
+
+                    if (clipboard.type === 'copy') {
+                      // For copy operation, create a new database entry
+                      const oldAudioUrl = audio.audio_url || getAudioUrl(audio.audio_id);
+                      const newAudioUrl = oldAudioUrl.replace(`/audio/${sourcePath}/${relativePath}/`, `/audio/${destPath}/${relativePath}/`);
+                      
+                      const newAudioData = {
+                        ...audio,
+                        audio_url: newAudioUrl
+                      };
+                      delete newAudioData.audio_id;
+                      delete newAudioData.id;
+
+                      const createAudioResponse = await fetch(`https://db.nymia.ai/rest/v1/audio`, {
+                        method: 'POST',
+                        headers: {
+                          'Authorization': 'Bearer WeInfl3nc3withAI',
+                          'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(newAudioData)
+                      });
+
+                      if (!createAudioResponse.ok) {
+                        const errorText = await createAudioResponse.text();
+                        console.warn(`Failed to create new audio record for ${fileName} in subfolder:`, errorText);
+                      } else {
+                        console.log(`Successfully created new audio record for ${fileName} in subfolder`);
+                      }
+                    } else {
+                      // For cut operation, update the existing database entry
+                      const oldAudioUrl = audio.audio_url || getAudioUrl(audio.audio_id);
+                      const newAudioUrl = oldAudioUrl.replace(`/audio/${sourcePath}/${relativePath}/`, `/audio/${destPath}/${relativePath}/`);
+                      
+                      const updateResponse = await fetch(`https://db.nymia.ai/rest/v1/audio?audio_id=eq.${audio.audio_id}`, {
+                        method: 'PATCH',
+                        headers: {
+                          'Authorization': 'Bearer WeInfl3nc3withAI',
+                          'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                          audio_url: newAudioUrl
+                        })
+                      });
+
+                      if (!updateResponse.ok) {
+                        const errorText = await updateResponse.text();
+                        console.warn(`Failed to update audio URL for audio ${audio.audio_id} in subfolder:`, errorText);
+                      } else {
+                        console.log(`Successfully updated audio URL for audio ${audio.audio_id} in subfolder`);
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+
+        // Step 4: For cut operation, delete the source folder
+        if (clipboard.type === 'cut') {
+          console.log(`Deleting source folder: audio/${sourcePath}`);
+          const deleteResponse = await fetch('https://api.nymia.ai/v1/deletefolder', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -977,28 +1235,15 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
             },
             body: JSON.stringify({
               user: userData.id,
-              source_folder: `audio/${sourcePath}`,
-              dest_folder: `audio/${destPath}`
+              folder: `audio/${sourcePath}`
             })
           });
 
-          if (!response.ok) throw new Error('Failed to copy folder');
-        } else {
-          // Move folder
-          const response = await fetch('https://api.nymia.ai/v1/movefolder', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': 'Bearer WeInfl3nc3withAI'
-            },
-            body: JSON.stringify({
-              user: userData.id,
-              source_folder: `audio/${sourcePath}`,
-              dest_folder: `audio/${destPath}`
-            })
-          });
-
-          if (!response.ok) throw new Error('Failed to move folder');
+          if (!deleteResponse.ok) {
+            console.warn('Failed to delete source folder, but cut operation completed');
+          } else {
+            console.log('Successfully deleted source folder');
+          }
         }
       }
 
@@ -1024,6 +1269,10 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
         setFolders(data);
         setFolderStructure(buildFolderStructure(data));
       }
+
+      // Refresh current folder content
+      await fetchFolderFiles(currentPath);
+
     } catch (error) {
       console.error('Error pasting folder:', error);
       toast.error('Failed to paste folder');

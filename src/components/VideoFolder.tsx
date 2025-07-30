@@ -1059,9 +1059,251 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
         const sourceName = sourcePath.split('/').pop() || '';
         const destPath = currentPath ? `${currentPath}/${sourceName}` : sourceName;
 
-        if (clipboard.type === 'copy') {
-          // Copy folder
-          const response = await fetch('https://api.nymia.ai/v1/copyfolder', {
+        console.log(`Starting ${clipboard.type} operation for folder: ${sourcePath} to ${destPath}`);
+
+        // Step 1: Create the destination folder
+        const createResponse = await fetch('https://api.nymia.ai/v1/createfolder', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer WeInfl3nc3withAI'
+          },
+          body: JSON.stringify({
+            user: userData.id,
+            parentfolder: `video/${currentPath ? currentPath + '/' : ''}`,
+            folder: sourceName
+          })
+        });
+
+        if (!createResponse.ok) {
+          throw new Error('Failed to create destination folder');
+        }
+
+        console.log('Destination folder created successfully');
+
+        // Step 2: Get all videos from the source folder and copy them
+        const allVideosResponse = await fetch(`https://db.nymia.ai/rest/v1/video?user_uuid=eq.${userData.id}`, {
+          method: 'GET',
+          headers: {
+            'Authorization': 'Bearer WeInfl3nc3withAI',
+            'Content-Type': 'application/json'
+          }
+        });
+
+        const allVideos = await allVideosResponse.json();
+        const videosInSourceFolder = allVideos.filter(video => video.video_path === sourcePath);
+        
+        if (videosInSourceFolder.length > 0) {
+          console.log(`Copying ${videosInSourceFolder.length} videos from source folder`);
+          
+          for (const video of videosInSourceFolder) {
+            const fileName = video.video_name && video.video_name.trim() !== '' ? video.video_name : video.video_id;
+            
+            console.log(`Copying video: ${fileName}.mp4`);
+            console.log(`From: video/${sourcePath}/${fileName}.mp4`);
+            console.log(`To: video/${destPath}/${fileName}.mp4`);
+            
+            // Copy the video file
+            const copyResponse = await fetch('https://api.nymia.ai/v1/copyfile', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer WeInfl3nc3withAI'
+              },
+              body: JSON.stringify({
+                user: userData.id,
+                sourcefilename: `video/${sourcePath}/${fileName}.mp4`,
+                destinationfilename: `video/${destPath}/${fileName}.mp4`
+              })
+            });
+
+            if (!copyResponse.ok) {
+              const errorText = await copyResponse.text();
+              console.error(`Failed to copy video file ${fileName}.mp4:`, errorText);
+              throw new Error(`Failed to copy video file ${fileName}.mp4: ${errorText}`);
+            }
+
+            console.log(`Successfully copied video file ${fileName}.mp4`);
+
+            if (clipboard.type === 'copy') {
+              // For copy operation, create a new database entry
+              const newVideoData = {
+                ...video,
+                video_path: destPath,
+                video_url: `https://images.nymia.ai/${userData.id}/video/${destPath}/${fileName}.mp4`
+              };
+              delete newVideoData.video_id; // Remove ID so database generates new one
+              delete newVideoData.id; // Remove ID so database generates new one
+
+              const createVideoResponse = await fetch(`https://db.nymia.ai/rest/v1/video`, {
+                method: 'POST',
+                headers: {
+                  'Authorization': 'Bearer WeInfl3nc3withAI',
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(newVideoData)
+              });
+
+              if (!createVideoResponse.ok) {
+                const errorText = await createVideoResponse.text();
+                console.warn(`Failed to create new video record for ${fileName}:`, errorText);
+              } else {
+                console.log(`Successfully created new video record for ${fileName}`);
+              }
+            } else {
+              // For cut operation, update the existing database entry
+              const updateResponse = await fetch(`https://db.nymia.ai/rest/v1/video?video_id=eq.${video.video_id}`, {
+                method: 'PATCH',
+                headers: {
+                  'Authorization': 'Bearer WeInfl3nc3withAI',
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                  video_path: destPath,
+                  video_url: `https://images.nymia.ai/${userData.id}/video/${destPath}/${fileName}.mp4`
+                })
+              });
+
+              if (!updateResponse.ok) {
+                const errorText = await updateResponse.text();
+                console.warn(`Failed to update video path for video ${video.video_id}:`, errorText);
+              } else {
+                console.log(`Successfully updated video path for video ${video.video_id}`);
+              }
+            }
+          }
+        }
+
+        // Step 3: Handle subfolders recursively
+        const getFoldersResponse = await fetch('https://api.nymia.ai/v1/getfoldernames', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer WeInfl3nc3withAI'
+          },
+          body: JSON.stringify({
+            user: userData.id,
+            folder: `video/${sourcePath}`
+          })
+        });
+
+        if (getFoldersResponse.ok) {
+          const folders = await getFoldersResponse.json();
+          console.log('Subfolders to copy:', folders);
+
+          if (folders && folders.length > 0 && folders[0].Key) {
+            for (const folder of folders) {
+              const folderKey = folder.Key;
+              const re = new RegExp(`^.*?video/${sourcePath}/`);
+              const relativePath = folderKey.replace(re, "").replace(/\/$/, "");
+
+              console.log("Processing subfolder:", relativePath);
+
+              if (relativePath && relativePath !== folderKey) {
+                // Create the subfolder in the destination
+                const subfolderCreateResponse = await fetch('https://api.nymia.ai/v1/createfolder', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer WeInfl3nc3withAI'
+                  },
+                  body: JSON.stringify({
+                    user: userData.id,
+                    parentfolder: `video/${destPath}/`,
+                    folder: relativePath
+                  })
+                });
+
+                if (subfolderCreateResponse.ok) {
+                  // Copy videos in this subfolder
+                  const subfolderVideos = allVideos.filter(video => video.video_path === `${sourcePath}/${relativePath}`);
+                  
+                  for (const video of subfolderVideos) {
+                    const fileName = video.video_name && video.video_name.trim() !== '' ? video.video_name : video.video_id;
+                    
+                    console.log(`Copying video in subfolder: ${fileName}.mp4`);
+                    console.log(`From: video/${sourcePath}/${relativePath}/${fileName}.mp4`);
+                    console.log(`To: video/${destPath}/${relativePath}/${fileName}.mp4`);
+                    
+                    // Copy the video file
+                    const copyResponse = await fetch('https://api.nymia.ai/v1/copyfile', {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer WeInfl3nc3withAI'
+                      },
+                      body: JSON.stringify({
+                        user: userData.id,
+                        sourcefilename: `video/${sourcePath}/${relativePath}/${fileName}.mp4`,
+                        destinationfilename: `video/${destPath}/${relativePath}/${fileName}.mp4`
+                      })
+                    });
+
+                    if (!copyResponse.ok) {
+                      const errorText = await copyResponse.text();
+                      console.error(`Failed to copy video file ${fileName}.mp4 in subfolder ${relativePath}:`, errorText);
+                      throw new Error(`Failed to copy video file ${fileName}.mp4 in subfolder ${relativePath}: ${errorText}`);
+                    }
+
+                    console.log(`Successfully copied video file ${fileName}.mp4 in subfolder ${relativePath}`);
+
+                    if (clipboard.type === 'copy') {
+                      // For copy operation, create a new database entry
+                      const newVideoData = {
+                        ...video,
+                        video_path: `${destPath}/${relativePath}`,
+                        video_url: `https://images.nymia.ai/${userData.id}/video/${destPath}/${relativePath}/${fileName}.mp4`
+                      };
+                      delete newVideoData.video_id;
+                      delete newVideoData.id;
+
+                      const createVideoResponse = await fetch(`https://db.nymia.ai/rest/v1/video`, {
+                        method: 'POST',
+                        headers: {
+                          'Authorization': 'Bearer WeInfl3nc3withAI',
+                          'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(newVideoData)
+                      });
+
+                      if (!createVideoResponse.ok) {
+                        const errorText = await createVideoResponse.text();
+                        console.warn(`Failed to create new video record for ${fileName} in subfolder:`, errorText);
+                      } else {
+                        console.log(`Successfully created new video record for ${fileName} in subfolder`);
+                      }
+                    } else {
+                      // For cut operation, update the existing database entry
+                      const updateResponse = await fetch(`https://db.nymia.ai/rest/v1/video?video_id=eq.${video.video_id}`, {
+                        method: 'PATCH',
+                        headers: {
+                          'Authorization': 'Bearer WeInfl3nc3withAI',
+                          'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                          video_path: `${destPath}/${relativePath}`,
+                          video_url: `https://images.nymia.ai/${userData.id}/video/${destPath}/${relativePath}/${fileName}.mp4`
+                        })
+                      });
+
+                      if (!updateResponse.ok) {
+                        const errorText = await updateResponse.text();
+                        console.warn(`Failed to update video path for video ${video.video_id} in subfolder:`, errorText);
+                      } else {
+                        console.log(`Successfully updated video path for video ${video.video_id} in subfolder`);
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+
+        // Step 4: For cut operation, delete the source folder
+        if (clipboard.type === 'cut') {
+          console.log(`Deleting source folder: video/${sourcePath}`);
+          const deleteResponse = await fetch('https://api.nymia.ai/v1/deletefolder', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -1069,28 +1311,15 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
             },
             body: JSON.stringify({
               user: userData.id,
-              source_folder: `video/${sourcePath}`,
-              dest_folder: `video/${destPath}`
+              folder: `video/${sourcePath}`
             })
           });
 
-          if (!response.ok) throw new Error('Failed to copy folder');
-        } else {
-          // Move folder
-          const response = await fetch('https://api.nymia.ai/v1/movefolder', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': 'Bearer WeInfl3nc3withAI'
-            },
-            body: JSON.stringify({
-              user: userData.id,
-              source_folder: `video/${sourcePath}`,
-              dest_folder: `video/${destPath}`
-            })
-          });
-
-          if (!response.ok) throw new Error('Failed to move folder');
+          if (!deleteResponse.ok) {
+            console.warn('Failed to delete source folder, but cut operation completed');
+          } else {
+            console.log('Successfully deleted source folder');
+          }
         }
       }
 
@@ -1116,6 +1345,10 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
         setFolders(data);
         setFolderStructure(buildFolderStructure(data));
       }
+
+      // Refresh current folder content
+      await fetchFolderFiles(currentPath);
+
     } catch (error) {
       console.error('Error pasting folder:', error);
       toast.error('Failed to paste folder');

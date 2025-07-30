@@ -120,7 +120,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
       console.warn('extractFolderName called with invalid path:', fullPath);
       return '';
     }
-    
+
     // Remove the user ID and "audio/" prefix
     const pathWithoutPrefix = fullPath.replace(/^[^\/]+\/audio\//, '');
     return pathWithoutPrefix;
@@ -227,7 +227,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
           console.log('Folder key is undefined in getAllSubfolders, skipping');
           continue;
         }
-        
+
         const extractedPath = extractFolderName(folder.Key);
         if (extractedPath && extractedPath.startsWith(folderPath + '/')) {
           subfolders.push(extractedPath);
@@ -361,10 +361,10 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
   // Fetch audios from current folder
   const fetchFolderFiles = async (folderPath: string) => {
     if (!userData.id) return;
-    
+
     try {
       setAudiosLoading(true);
-      
+
       console.log(`https://db.nymia.ai/rest/v1/audio?user_uuid=eq.${userData.id}&status=eq.created&order=created_at.desc`);
       // Fetch all audio files from the database
       const response = await fetch(`https://db.nymia.ai/rest/v1/audio?user_uuid=eq.${userData.id}&status=eq.created&order=created_at.desc`, {
@@ -377,7 +377,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
       if (response.ok) {
         const data = await response.json();
         console.log('Fetched audios:', data);
-        
+
         // Filter audios based on current path
         const filteredAudios = data.filter((audio: AudioData) => {
           if (folderPath === '') {
@@ -385,12 +385,10 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
             return !audio.audio_path || audio.audio_path === '' || audio.audio_path.trim() === '';
           } else {
             // Subfolder: show audios that are in the specific folder path
-            const audioPath = audio.audio_path;
-            const expectedPath = `${folderPath}`;
-            return audioPath.includes(expectedPath);
+            return audio.audio_path === folderPath;
           }
         });
-        
+
         console.log('Filtered audios for path:', folderPath, filteredAudios);
         setAudios(filteredAudios);
       }
@@ -427,15 +425,15 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
   const filteredAudios = audios
     .filter(audio => {
       const matchesSearch = audio.prompt.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           audio.filename.toLowerCase().includes(searchTerm.toLowerCase());
-      
+        audio.filename.toLowerCase().includes(searchTerm.toLowerCase());
+
       const matchesStatus = statusFilter === 'all' || audio.status === statusFilter;
-      
+
       return matchesSearch && matchesStatus;
     })
     .sort((a, b) => {
       let comparison = 0;
-      
+
       switch (sortBy) {
         case 'newest':
           comparison = new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
@@ -452,7 +450,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
         default:
           comparison = 0;
       }
-      
+
       return sortOrder === 'asc' ? comparison : -comparison;
     });
 
@@ -519,10 +517,10 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
       });
 
       const path = currentPath === "" ? "audio" : `audio/${currentPath}`;
-      
+
       // Update progress to 25%
       setDownloadProgress(prev => ({ ...prev, [audioId]: 25 }));
-      
+
       const response = await fetch('https://api.nymia.ai/v1/downloadfile', {
         method: 'POST',
         headers: {
@@ -569,7 +567,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
       // Cleanup
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
-      
+
       // Update progress to 100%
       setDownloadProgress(prev => ({ ...prev, [audioId]: 100 }));
 
@@ -595,10 +593,10 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
 
     } catch (error) {
       console.error('Error downloading audio:', error);
-      
+
       // Find audio again for error message
       const audio = audios.find(a => a.audio_id === audioId);
-      
+
       // Show error toast
       toast.error('Download failed', {
         description: `Failed to download "${audio?.filename || audioId}". Please try again.`,
@@ -623,7 +621,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
   const handleShare = (audioId: string) => {
     const audio = audios.find(a => a.audio_id === audioId);
     if (!audio) return;
-    
+
     const audioUrl = audio.audio_path || getAudioUrl(audio);
     navigator.clipboard.writeText(audioUrl);
     toast.success('Audio URL copied to clipboard');
@@ -637,9 +635,9 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
   // Confirm delete audio
   const confirmDeleteAudio = async () => {
     if (!deleteAudioModal.audio) return;
-    
+
     const audio = deleteAudioModal.audio;
-    
+
     try {
       // Show loading toast
       const loadingToast = toast.loading('Deleting audio...', {
@@ -658,7 +656,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
 
       // Delete the actual file
       const fileName = audio.filename || `${audio.audio_id}.mp3`;
-      
+
       await fetch('https://api.nymia.ai/v1/deletefile', {
         method: 'POST',
         headers: {
@@ -674,7 +672,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
       if (response.ok) {
         // Refresh current folder content
         await fetchFolderFiles(currentPath);
-        
+
         // Update toast to success
         toast.success('Audio deleted successfully!', {
           id: loadingToast,
@@ -737,7 +735,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
         toast.success('Folder created successfully');
         setShowNewFolderModal(false);
         setNewFolderName('');
-        
+
         // Refresh folders
         const updatedFolders = [...folders, { Key: `${newFolderPath}` }];
         setFolders(updatedFolders);
@@ -814,23 +812,29 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
       console.log('New folder created successfully');
 
       // Step 2: Get all files from the old folder and move them to the new folder
-      const audiosInFolder = audios.filter(audio => {
-        const audioPath = audio.audio_path || getAudioUrl(audio);
-        return audioPath.includes(`/audio/${oldPath}/`);
+      const allAudiosResponse = await fetch(`https://db.nymia.ai/rest/v1/audio?user_uuid=eq.${userData.id}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': 'Bearer WeInfl3nc3withAI',
+          'Content-Type': 'application/json'
+        }
       });
-      
+
+      const allAudios = await allAudiosResponse.json();
+      const audiosInFolder = allAudios.filter(audio => audio.audio_path === oldPath || (oldPath === "" && audio.audio_path === ""));
+
       if (audiosInFolder.length > 0) {
         console.log('Moving', audiosInFolder.length, 'audios from old folder to new folder');
-        
+
         for (const audio of audiosInFolder) {
           // Extract the filename from the audio path
           const audioPath = audio.audio_path || getAudioUrl(audio);
           const fileName = audio.filename || `${audio.audio_id}.mp3`;
-          
+
           console.log(`Attempting to move audio: ${fileName}`);
           console.log(`From: audio/${oldPath}/${fileName}`);
           console.log(`To: audio/${newPath}/${fileName}`);
-          
+
           // Copy the audio file from old location to new location
           const copyResponse = await fetch('https://api.nymia.ai/v1/copyfile', {
             method: 'POST',
@@ -855,9 +859,6 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
           console.log(`Successfully copied audio file ${fileName}`);
 
           // Update the audio_path in database
-          const oldAudioPath = audio.audio_path || getAudioUrl(audio);
-          const newAudioPath = oldAudioPath.replace(`/audio/${oldPath}/`, `/audio/${newPath}/`);
-          
           const updateResponse = await fetch(`https://db.nymia.ai/rest/v1/audio?audio_id=eq.${audio.audio_id}`, {
             method: 'PATCH',
             headers: {
@@ -865,7 +866,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
               'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-              audio_path: newAudioPath
+              audio_path: newPath
             })
           });
 
@@ -905,7 +906,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
               console.log('Skipping folder with invalid Key:', folder);
               continue;
             }
-            
+
             const folderKey = folder.Key;
             const re = new RegExp(`^.*?audio/${oldPath}/`);
             const relativePath = folderKey.replace(re, "").replace(/\/$/, "");
@@ -930,20 +931,17 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
 
               if (subfolderCreateResponse.ok) {
                 // Move audios in this subfolder
-                const subfolderAudios = audios.filter(audio => {
-                  const audioPath = audio.audio_path || getAudioUrl(audio);
-                  return audioPath.includes(`/audio/${oldPath}/${relativePath}/`);
-                });
-                
+                const subfolderAudios = allAudios.filter(audio => audio.audio_path === `${oldPath}/${relativePath}`);
+
                 for (const audio of subfolderAudios) {
                   // Extract the filename from the audio path
                   const audioPath = audio.audio_path || getAudioUrl(audio);
                   const fileName = audio.filename || `${audio.audio_id}.mp3`;
-                  
+
                   console.log(`Attempting to move audio in subfolder: ${fileName}`);
                   console.log(`From: audio/${oldPath}/${relativePath}/${fileName}`);
                   console.log(`To: audio/${newPath}/${relativePath}/${fileName}`);
-                  
+
                   // Copy the audio file from old subfolder location to new subfolder location
                   const copyResponse = await fetch('https://api.nymia.ai/v1/copyfile', {
                     method: 'POST',
@@ -967,9 +965,6 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
                   console.log(`Successfully copied audio file ${fileName} in subfolder ${relativePath}`);
 
                   // Update the audio_path in database
-                  const oldAudioPath = audio.audio_path || getAudioUrl(audio);
-                  const newAudioPath = oldAudioPath.replace(`/audio/${oldPath}/${relativePath}/`, `/audio/${newPath}/${relativePath}/`);
-                  
                   const updateResponse = await fetch(`https://db.nymia.ai/rest/v1/audio?audio_id=eq.${audio.audio_id}`, {
                     method: 'PATCH',
                     headers: {
@@ -977,7 +972,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
                       'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                      audio_path: newAudioPath
+                      audio_path: `${newPath}/${relativePath}`
                     })
                   });
 
@@ -1115,17 +1110,17 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
           setFolders(data);
           setFolderStructure(buildFolderStructure(data));
         }
-        
+
         // Refresh current folder content
         await fetchFolderFiles(currentPath);
-        
+
         // Update toast to success
         toast.success('Folder deleted successfully!', {
           id: loadingToast,
           description: `"${deleteFolderModal.folderName}" and all its contents have been permanently deleted`,
           duration: 3000
         });
-        
+
         // Close modal
         setDeleteFolderModal({ open: false, folderPath: null, folderName: null });
       } else {
@@ -1143,13 +1138,19 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
   const handleCopy = (folderPath: string) => {
     setClipboard({ type: 'copy', items: [folderPath] });
     setCopyState(1);
-    toast.success('Folder copied to clipboard');
+    toast.success('Folder copied to clipboard', {
+      description: `"${folderPath.split('/').pop() || folderPath}" is ready to be pasted`,
+      duration: 3000
+    });
   };
 
   const handleCut = (folderPath: string) => {
     setClipboard({ type: 'cut', items: [folderPath] });
     setCopyState(2);
-    toast.success('Folder cut to clipboard');
+    toast.success('Folder cut to clipboard', {
+      description: `"${folderPath.split('/').pop() || folderPath}" is ready to be moved`,
+      duration: 3000
+    });
   };
 
   const handlePaste = async () => {
@@ -1157,9 +1158,23 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
 
     setIsPasting(true);
     try {
+      // Show initial loading toast
+      const loadingToast = toast.loading(`${clipboard.type === 'copy' ? 'Copying' : 'Moving'} folder...`, {
+        description: `Processing "${clipboard.items[0].split('/').pop() || clipboard.items[0]}"`,
+        duration: Infinity
+      });
       for (const sourcePath of clipboard.items) {
         const sourceName = sourcePath.split('/').pop() || '';
         const destPath = currentPath ? `${currentPath}/${sourceName}` : sourceName;
+
+        // Check if trying to copy/move folder into itself or its subfolder
+        if (destPath === sourcePath || destPath.startsWith(sourcePath + '/')) {
+          toast.error('Cannot copy/move folder into itself or its subfolder', {
+            description: 'Please choose a different destination',
+            duration: 5000
+          });
+          return;
+        }
 
         console.log(`Starting ${clipboard.type} operation for folder: ${sourcePath} to ${destPath}`);
 
@@ -1178,7 +1193,15 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
         });
 
         if (!createResponse.ok) {
-          throw new Error('Failed to create destination folder');
+          const errorText = await createResponse.text();
+          if (errorText.includes('already exists') || errorText.includes('duplicate')) {
+            toast.error('Folder already exists', {
+              description: `A folder named "${sourceName}" already exists in this location`,
+              duration: 5000
+            });
+            return;
+          }
+          throw new Error(`Failed to create destination folder: ${errorText}`);
         }
 
         console.log('Destination folder created successfully');
@@ -1193,22 +1216,18 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
         });
 
         const allAudios = await allAudiosResponse.json();
-        const audiosInSourceFolder = allAudios.filter(audio => {
-          const audioUrl = audio.audio_url || getAudioUrl(audio.audio_id);
-          return audioUrl.includes(`/audio/${sourcePath}/`);
-        });
-        
+        const audiosInSourceFolder = allAudios.filter(audio => audio.audio_path === sourcePath);
+
         if (audiosInSourceFolder.length > 0) {
           console.log(`Copying ${audiosInSourceFolder.length} audios from source folder`);
-          
+
           for (const audio of audiosInSourceFolder) {
-            const audioUrl = audio.audio_url || getAudioUrl(audio.audio_id);
-            const fileName = audioUrl.split('/').pop() || `${audio.audio_id}.mp3`;
-            
+            const fileName = audio.filename || `${audio.audio_id}.mp3`;
+
             console.log(`Copying audio: ${fileName}`);
             console.log(`From: audio/${sourcePath}/${fileName}`);
             console.log(`To: audio/${destPath}/${fileName}`);
-            
+
             // Copy the audio file
             const copyResponse = await fetch('https://api.nymia.ai/v1/copyfile', {
               method: 'POST',
@@ -1233,15 +1252,11 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
 
             if (clipboard.type === 'copy') {
               // For copy operation, create a new database entry
-              const oldAudioUrl = audio.audio_url || getAudioUrl(audio.audio_id);
-              const newAudioUrl = oldAudioUrl.replace(`/audio/${sourcePath}/`, `/audio/${destPath}/`);
-              
               const newAudioData = {
                 ...audio,
-                audio_url: newAudioUrl
+                audio_path: destPath
               };
               delete newAudioData.audio_id; // Remove ID so database generates new one
-              delete newAudioData.id; // Remove ID so database generates new one
 
               const createAudioResponse = await fetch(`https://db.nymia.ai/rest/v1/audio`, {
                 method: 'POST',
@@ -1260,9 +1275,6 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
               }
             } else {
               // For cut operation, update the existing database entry
-              const oldAudioUrl = audio.audio_url || getAudioUrl(audio.audio_id);
-              const newAudioUrl = oldAudioUrl.replace(`/audio/${sourcePath}/`, `/audio/${destPath}/`);
-              
               const updateResponse = await fetch(`https://db.nymia.ai/rest/v1/audio?audio_id=eq.${audio.audio_id}`, {
                 method: 'PATCH',
                 headers: {
@@ -1270,15 +1282,15 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
                   'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                  audio_url: newAudioUrl
+                  audio_path: destPath
                 })
               });
 
               if (!updateResponse.ok) {
                 const errorText = await updateResponse.text();
-                console.warn(`Failed to update audio URL for audio ${audio.audio_id}:`, errorText);
+                console.warn(`Failed to update audio path for audio ${audio.audio_id}:`, errorText);
               } else {
-                console.log(`Successfully updated audio URL for audio ${audio.audio_id}`);
+                console.log(`Successfully updated audio path for audio ${audio.audio_id}`);
               }
             }
           }
@@ -1308,7 +1320,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
                 console.log('Skipping folder with invalid Key:', folder);
                 continue;
               }
-              
+
               const folderKey = folder.Key;
               const re = new RegExp(`^.*?audio/${sourcePath}/`);
               const relativePath = folderKey.replace(re, "").replace(/\/$/, "");
@@ -1332,19 +1344,15 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
 
                 if (subfolderCreateResponse.ok) {
                   // Copy audios in this subfolder
-                  const subfolderAudios = allAudios.filter(audio => {
-                    const audioUrl = audio.audio_url || getAudioUrl(audio.audio_id);
-                    return audioUrl.includes(`/audio/${sourcePath}/${relativePath}/`);
-                  });
-                  
+                  const subfolderAudios = allAudios.filter(audio => audio.audio_path === `${sourcePath}/${relativePath}`);
+
                   for (const audio of subfolderAudios) {
-                    const audioUrl = audio.audio_url || getAudioUrl(audio.audio_id);
-                    const fileName = audioUrl.split('/').pop() || `${audio.audio_id}.mp3`;
-                    
+                    const fileName = audio.filename || `${audio.audio_id}.mp3`;
+
                     console.log(`Copying audio in subfolder: ${fileName}`);
                     console.log(`From: audio/${sourcePath}/${relativePath}/${fileName}`);
                     console.log(`To: audio/${destPath}/${relativePath}/${fileName}`);
-                    
+
                     // Copy the audio file
                     const copyResponse = await fetch('https://api.nymia.ai/v1/copyfile', {
                       method: 'POST',
@@ -1369,15 +1377,11 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
 
                     if (clipboard.type === 'copy') {
                       // For copy operation, create a new database entry
-                      const oldAudioUrl = audio.audio_url || getAudioUrl(audio.audio_id);
-                      const newAudioUrl = oldAudioUrl.replace(`/audio/${sourcePath}/${relativePath}/`, `/audio/${destPath}/${relativePath}/`);
-                      
                       const newAudioData = {
                         ...audio,
-                        audio_url: newAudioUrl
+                        audio_path: `${destPath}/${relativePath}`
                       };
                       delete newAudioData.audio_id;
-                      delete newAudioData.id;
 
                       const createAudioResponse = await fetch(`https://db.nymia.ai/rest/v1/audio`, {
                         method: 'POST',
@@ -1396,9 +1400,6 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
                       }
                     } else {
                       // For cut operation, update the existing database entry
-                      const oldAudioUrl = audio.audio_url || getAudioUrl(audio.audio_id);
-                      const newAudioUrl = oldAudioUrl.replace(`/audio/${sourcePath}/${relativePath}/`, `/audio/${destPath}/${relativePath}/`);
-                      
                       const updateResponse = await fetch(`https://db.nymia.ai/rest/v1/audio?audio_id=eq.${audio.audio_id}`, {
                         method: 'PATCH',
                         headers: {
@@ -1406,15 +1407,15 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
                           'Content-Type': 'application/json'
                         },
                         body: JSON.stringify({
-                          audio_url: newAudioUrl
+                          audio_path: `${destPath}/${relativePath}`
                         })
                       });
 
                       if (!updateResponse.ok) {
                         const errorText = await updateResponse.text();
-                        console.warn(`Failed to update audio URL for audio ${audio.audio_id} in subfolder:`, errorText);
+                        console.warn(`Failed to update audio path for audio ${audio.audio_id} in subfolder:`, errorText);
                       } else {
-                        console.log(`Successfully updated audio URL for audio ${audio.audio_id} in subfolder`);
+                        console.log(`Successfully updated audio path for audio ${audio.audio_id} in subfolder`);
                       }
                     }
                   }
@@ -1447,10 +1448,17 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
         }
       }
 
-      toast.success(`Folder ${clipboard.type === 'copy' ? 'copied' : 'moved'} successfully`);
+      // Update toast to success
+      toast.success(`Folder ${clipboard.type === 'copy' ? 'copied' : 'moved'} successfully!`, {
+        id: loadingToast,
+        description: `"${clipboard.items[0].split('/').pop() || clipboard.items[0]}" has been ${clipboard.type === 'copy' ? 'copied' : 'moved'} to current location`,
+        duration: 3000
+      });
+
+      // Clear clipboard
       setClipboard(null);
       setCopyState(0);
-      
+
       // Refresh folders
       const response = await fetch('https://api.nymia.ai/v1/getfoldernames', {
         method: 'POST',
@@ -1475,7 +1483,10 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
 
     } catch (error) {
       console.error('Error pasting folder:', error);
-      toast.error('Failed to paste folder');
+      toast.error(`Failed to ${clipboard?.type === 'copy' ? 'copy' : 'move'} folder`, {
+        description: 'An error occurred during the operation. Please try again.',
+        duration: 5000
+      });
     } finally {
       setIsPasting(false);
     }
@@ -1522,22 +1533,15 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
 
       for (const audio of fileClipboard.items) {
         const fileName = audio.filename || `${audio.audio_id}.mp3`;
-        
+
         // Determine source path from audio's current location
-        let sourcePath = '';
-        if (audio.audio_path) {
-          // Extract path from audio_path if it exists
-          const pathMatch = audio.audio_path.match(/\/audio\/([^\/]+)\//);
-          if (pathMatch) {
-            sourcePath = pathMatch[1];
-          }
-        }
-        
+        const sourcePath = audio.audio_path || '';
+
         const targetPath = currentPath || '';
 
         // Check if file already exists in target folder
-        const existingAudio = audios.find(a => 
-          a.filename === fileName && 
+        const existingAudio = audios.find(a =>
+          a.filename === fileName &&
           (a.audio_path || getAudioUrl(a)).includes(`/audio/${targetPath}/`)
         );
 
@@ -1554,7 +1558,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
 
         if (fileClipboard.type === 'copy') {
           // Copy operation: Create new file and database entry
-          
+
           // Copy the file
           const copyResponse = await fetch('https://api.nymia.ai/v1/copyfile', {
             method: 'POST',
@@ -1599,7 +1603,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
 
         } else {
           // Cut operation: Move file and update database entry
-          
+
           // Copy the file to new location
           const copyResponse = await fetch('https://api.nymia.ai/v1/copyfile', {
             method: 'POST',
@@ -1621,7 +1625,6 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
           }
 
           // Update database entry
-          const newAudioPath = `https://images.nymia.ai/${userData.id}/audio/${targetPath}/${fileName}`;
           const updateResponse = await fetch(`https://db.nymia.ai/rest/v1/audio?audio_id=eq.${audio.audio_id}`, {
             method: 'PATCH',
             headers: {
@@ -1629,7 +1632,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
               'Authorization': 'Bearer WeInfl3nc3withAI'
             },
             body: JSON.stringify({
-              audio_path: newAudioPath
+              audio_path: targetPath
             })
           });
 
@@ -1716,7 +1719,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
           if (!file.Key || typeof file.Key !== 'string') {
             return false;
           }
-          
+
           const relativePath = file.Key.replace(`audio/${userData.id}/audio/${folderPath}/`, '');
           if (folderPath === '') {
             return !relativePath.includes('/');
@@ -1756,14 +1759,14 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
       if (!folder.Key || typeof folder.Key !== 'string') {
         return false;
       }
-      
+
       const folderPath = folder.Key;
       const currentPathParts = currentPath.split('/');
       const folderPathParts = folderPath.split('/');
-      
+
       // Check if this folder is an immediate child of current path
       return folderPathParts.length === currentPathParts.length + 1 &&
-             folderPathParts.slice(0, currentPathParts.length).join('/') === currentPath;
+        folderPathParts.slice(0, currentPathParts.length).join('/') === currentPath;
     });
   };
 
@@ -1805,7 +1808,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
     if (fileClipboard && fileCopyState > 0) {
       const originalPath = currentPath;
       setCurrentPath(targetFolderPath);
-      
+
       try {
         await handleFilePaste();
         toast.success(`Files ${fileClipboard.type === 'copy' ? 'copied' : 'moved'} to ${targetFolderPath}`);
@@ -1847,7 +1850,6 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
       });
 
       // Update the audio's audio_path in the database
-      const newAudioPath = `https://images.nymia.ai/${userData.id}/audio/${targetPath}/${fileName}`;
       const response = await fetch(`https://db.nymia.ai/rest/v1/audio?audio_id=eq.${draggedAudio.audio_id}`, {
         method: 'PATCH',
         headers: {
@@ -1855,7 +1857,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
           'Authorization': 'Bearer WeInfl3nc3withAI'
         },
         body: JSON.stringify({
-          audio_path: newAudioPath
+          audio_path: targetPath
         })
       });
 
@@ -2246,13 +2248,11 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
           {currentAudios.map((audio) => (
             <Card
               key={audio.audio_id}
-              className={`group cursor-pointer overflow-hidden bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-600 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 ${
-                isDragging && draggedAudio?.audio_id === audio.audio_id ? 'opacity-50 scale-95' : ''
-              } ${
-                fileClipboard && fileClipboard.items.some(item => item.audio_id === audio.audio_id) 
-                  ? 'ring-2 ring-green-500 ring-opacity-50 bg-green-50 dark:bg-green-950/20' 
+              className={`group cursor-pointer overflow-hidden bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-600 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 ${isDragging && draggedAudio?.audio_id === audio.audio_id ? 'opacity-50 scale-95' : ''
+                } ${fileClipboard && fileClipboard.items.some(item => item.audio_id === audio.audio_id)
+                  ? 'ring-2 ring-green-500 ring-opacity-50 bg-green-50 dark:bg-green-950/20'
                   : ''
-              }`}
+                }`}
               draggable
               onDragStart={(e) => handleDragStart(e, audio)}
               onDragEnd={handleDragEnd}
@@ -2261,134 +2261,134 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
             >
               {/* Audio Preview */}
               <div className="relative aspect-video bg-gradient-to-br from-purple-500 via-pink-500 to-orange-500 overflow-hidden">
-                    <div className="absolute inset-0 bg-gradient-to-br from-purple-600/20 to-pink-600/20"></div>
-                    
-                    {/* Audio waveform visualization */}
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="flex items-end gap-1 h-16">
-                        {[...Array(8)].map((_, i) => (
-                          <div
-                            key={i}
-                            className="w-1 bg-white/80 rounded-full animate-pulse"
-                            style={{
-                              height: `${Math.random() * 60 + 20}%`,
-                              animationDelay: `${i * 0.1}s`
-                            }}
-                          />
-                        ))}
-                      </div>
-                    </div>
+                <div className="absolute inset-0 bg-gradient-to-br from-purple-600/20 to-pink-600/20"></div>
 
-                    {/* Music icon */}
-                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                      <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">
-                        <Music className="w-8 h-8 text-white" />
-                      </div>
-                    </div>
-
-                    {/* Overlay with play button */}
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-300 flex items-center justify-center">
-                      <div className="w-16 h-16 bg-white/90 dark:bg-gray-800/90 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 transform scale-75 group-hover:scale-100">
-                        <Play className="w-6 h-6 text-gray-900 dark:text-white ml-1" />
-                      </div>
-                    </div>
-
-                    {/* Status badge */}
-                    <div className="absolute top-3 right-3">
-                      <Badge className={`${getAudioStatusColor(audio.status)} text-xs font-medium px-2 py-1`}>
-                        {audio.status}
-                      </Badge>
-                    </div>
-                  </div>
-
-                  {/* Audio Info */}
-                  <CardContent className="p-4 space-y-3">
-                    {/* Title and format */}
-                    <div className="space-y-2">
-                      <h4 className="font-semibold text-sm text-gray-900 dark:text-gray-100 line-clamp-2 leading-tight">
-                        {audio.filename || audio.prompt.substring(0, 60)}
-                      </h4>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="secondary" className="text-xs px-2 py-1 bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300">
-                          MP3
-                        </Badge>
-                        <Badge variant="outline" className="text-xs px-2 py-1">
-                          Audio
-                        </Badge>
-                      </div>
-                    </div>
-
-                    {/* Description */}
-                    <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2 leading-relaxed">
-                      {audio.prompt}
-                    </p>
-
-                    {/* Date */}
-                    <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-                      <Calendar className="w-3 h-3" />
-                      <span>{formatAudioDate(audio.created_at)}</span>
-                    </div>
-
-                  {/* Action Buttons */}
-                  <div className="flex gap-1.5 mt-3">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="flex-1 h-8 text-xs font-medium hover:bg-purple-700 hover:border-purple-500 transition-colors"
-                      disabled={downloadingAudios.has(audio.audio_id)}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDownload(audio.audio_id);
-                      }}
-                    >
-                      {downloadingAudios.has(audio.audio_id) ? (
-                        <>
-                          <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current mr-1.5"></div>
-                          <span className="hidden sm:inline">
-                            {downloadProgress[audio.audio_id] === 100 ? 'Complete!' : `Downloading ${downloadProgress[audio.audio_id] || 0}%`}
-                          </span>
-                        </>
-                      ) : (
-                        <>
-                          <Download className="w-3 h-3 mr-1.5" />
-                          <span className="hidden sm:inline">Download</span>
-                        </>
-                      )}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-8 w-8 p-0 hover:bg-green-50 hover:bg-green-700 hover:border-green-500 transition-colors"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleShare(audio.audio_id);
-                      }}
-                    >
-                      <Share className="w-3 h-3" />
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-amber-500 hover:border-amber-300 transition-colors"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDelete(audio);
-                      }}
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </Button>
-                  </div>
-
-                  {/* Download Progress Bar */}
-                  {downloadProgress[audio.audio_id] && downloadProgress[audio.audio_id] < 100 && (
-                    <div className="absolute bottom-0 left-0 right-0 h-1 bg-gray-200 dark:bg-gray-700">
-                      <div 
-                        className="h-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all duration-300 ease-out"
-                        style={{ width: `${downloadProgress[audio.audio_id]}%` }} 
+                {/* Audio waveform visualization */}
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="flex items-end gap-1 h-16">
+                    {[...Array(8)].map((_, i) => (
+                      <div
+                        key={i}
+                        className="w-1 bg-white/80 rounded-full animate-pulse"
+                        style={{
+                          height: `${Math.random() * 60 + 20}%`,
+                          animationDelay: `${i * 0.1}s`
+                        }}
                       />
-                    </div>
-                  )}
-                </CardContent>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Music icon */}
+                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                  <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">
+                    <Music className="w-8 h-8 text-white" />
+                  </div>
+                </div>
+
+                {/* Overlay with play button */}
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-300 flex items-center justify-center">
+                  <div className="w-16 h-16 bg-white/90 dark:bg-gray-800/90 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 transform scale-75 group-hover:scale-100">
+                    <Play className="w-6 h-6 text-gray-900 dark:text-white ml-1" />
+                  </div>
+                </div>
+
+                {/* Status badge */}
+                <div className="absolute top-3 right-3">
+                  <Badge className={`${getAudioStatusColor(audio.status)} text-xs font-medium px-2 py-1`}>
+                    {audio.status}
+                  </Badge>
+                </div>
+              </div>
+
+              {/* Audio Info */}
+              <CardContent className="p-4 space-y-3">
+                {/* Title and format */}
+                <div className="space-y-2">
+                  <h4 className="font-semibold text-sm text-gray-900 dark:text-gray-100 line-clamp-2 leading-tight">
+                    {audio.filename || audio.prompt.substring(0, 60)}
+                  </h4>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="secondary" className="text-xs px-2 py-1 bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300">
+                      MP3
+                    </Badge>
+                    <Badge variant="outline" className="text-xs px-2 py-1">
+                      Audio
+                    </Badge>
+                  </div>
+                </div>
+
+                {/* Description */}
+                <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2 leading-relaxed">
+                  {audio.prompt}
+                </p>
+
+                {/* Date */}
+                <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                  <Calendar className="w-3 h-3" />
+                  <span>{formatAudioDate(audio.created_at)}</span>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex gap-1.5 mt-3">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex-1 h-8 text-xs font-medium hover:bg-purple-700 hover:border-purple-500 transition-colors"
+                    disabled={downloadingAudios.has(audio.audio_id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDownload(audio.audio_id);
+                    }}
+                  >
+                    {downloadingAudios.has(audio.audio_id) ? (
+                      <>
+                        <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current mr-1.5"></div>
+                        <span className="hidden sm:inline">
+                          {downloadProgress[audio.audio_id] === 100 ? 'Complete!' : `Downloading ${downloadProgress[audio.audio_id] || 0}%`}
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <Download className="w-3 h-3 mr-1.5" />
+                        <span className="hidden sm:inline">Download</span>
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 w-8 p-0 hover:bg-green-50 hover:bg-green-700 hover:border-green-500 transition-colors"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleShare(audio.audio_id);
+                    }}
+                  >
+                    <Share className="w-3 h-3" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-amber-500 hover:border-amber-300 transition-colors"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDelete(audio);
+                    }}
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </Button>
+                </div>
+
+                {/* Download Progress Bar */}
+                {downloadProgress[audio.audio_id] && downloadProgress[audio.audio_id] < 100 && (
+                  <div className="absolute bottom-0 left-0 right-0 h-1 bg-gray-200 dark:bg-gray-700">
+                    <div
+                      className="h-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all duration-300 ease-out"
+                      style={{ width: `${downloadProgress[audio.audio_id]}%` }}
+                    />
+                  </div>
+                )}
+              </CardContent>
             </Card>
           ))}
         </div>
@@ -2636,15 +2636,15 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
               </div>
             )}
             <div className="flex justify-end gap-3">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={() => setDeleteFolderModal({ open: false, folderPath: null, folderName: null })}
                 className="px-6"
               >
                 Cancel
               </Button>
-              <Button 
-                variant="destructive" 
+              <Button
+                variant="destructive"
                 onClick={confirmDeleteFolder}
                 className="bg-red-600 hover:bg-red-700 px-6"
               >
@@ -2697,15 +2697,15 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
               </div>
             )}
             <div className="flex justify-end gap-3">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={() => setDeleteAudioModal({ open: false, audio: null })}
                 className="px-6"
               >
                 Cancel
               </Button>
-              <Button 
-                variant="destructive" 
+              <Button
+                variant="destructive"
                 onClick={confirmDeleteAudio}
                 className="bg-red-600 hover:bg-red-700 px-6"
               >
@@ -2863,10 +2863,10 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
   function shareToSocialMedia(platform: string, audioId: string) {
     const audio = audios.find(a => a.audio_id === audioId);
     if (!audio) return;
-    
+
     const audioUrl = audio.audio_path || getAudioUrl(audio);
     const shareText = `Check out this audio: ${audio.filename}`;
-    
+
     let shareUrl = '';
     switch (platform) {
       case 'facebook':
@@ -2881,7 +2881,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
         toast.success('Audio URL copied to clipboard for Instagram');
         return;
     }
-    
+
     window.open(shareUrl, '_blank');
   }
 } 

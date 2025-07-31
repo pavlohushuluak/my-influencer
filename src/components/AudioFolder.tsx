@@ -106,8 +106,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
   const [folderFileCounts, setFolderFileCounts] = useState<{ [key: string]: number }>({});
   const [loadingFileCounts, setLoadingFileCounts] = useState<{ [key: string]: boolean }>({});
 
-  // Filter state
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+
 
   // Download state
   const [downloadingAudios, setDownloadingAudios] = useState<Set<string>>(new Set());
@@ -427,9 +426,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
       const matchesSearch = audio.prompt.toLowerCase().includes(searchTerm.toLowerCase()) ||
         audio.filename.toLowerCase().includes(searchTerm.toLowerCase());
 
-      const matchesStatus = statusFilter === 'all' || audio.status === statusFilter;
-
-      return matchesSearch && matchesStatus;
+      return matchesSearch;
     })
     .sort((a, b) => {
       let comparison = 0;
@@ -700,12 +697,9 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
     toast.success('Audios refreshed');
   };
 
-  // Clear filters
-  const clearFilters = () => {
+  // Clear search
+  const clearSearch = () => {
     setSearchTerm('');
-    setStatusFilter('all');
-    setSortBy('newest');
-    setSortOrder('desc');
   };
 
   // Folder management functions
@@ -2080,21 +2074,6 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
         </div>
 
         <div className="flex gap-2">
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-32">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="completed">Completed</SelectItem>
-              <SelectItem value="processing">Processing</SelectItem>
-              <SelectItem value="failed">Failed</SelectItem>
-              <SelectItem value="pending">Pending</SelectItem>
-            </SelectContent>
-          </Select>
-
-
-
           <Select value={sortBy} onValueChange={setSortBy}>
             <SelectTrigger className="w-32">
               <SelectValue />
@@ -2118,7 +2097,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
           <Button
             variant="outline"
             size="sm"
-            onClick={clearFilters}
+            onClick={clearSearch}
           >
             Clear
           </Button>
@@ -2233,11 +2212,11 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
                 <Music className="w-10 h-10 text-white" />
               </div>
               <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">No audios found</h3>
-              <p className="text-gray-600 dark:text-gray-400 mb-6">Try adjusting your search criteria or filters to find what you're looking for.</p>
-              <Button onClick={clearFilters} variant="outline" className="gap-2">
-                <Filter className="w-4 h-4" />
-                Clear Filters
-              </Button>
+                              <p className="text-gray-600 dark:text-gray-400 mb-6">Try adjusting your search criteria to find what you're looking for.</p>
+                <Button onClick={clearSearch} variant="outline" className="gap-2">
+                  <Search className="w-4 h-4" />
+                  Clear Search
+                </Button>
             </div>
           </div>
         </div>

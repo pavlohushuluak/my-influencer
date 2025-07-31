@@ -653,31 +653,146 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
     const multiCopiedVideos = localStorage.getItem('multiCopiedVideos');
     if (!multiCopiedVideos) return;
 
+    setIsMultiPasting(true);
+    const processingToast = toast.loading('Processing files...', {
+      description: `Processing ${JSON.parse(multiCopiedVideos).length} video(s)`,
+      duration: Infinity
+    });
+
     try {
       const videos = JSON.parse(multiCopiedVideos) as VideoData[];
-      setIsMultiPasting(true);
+      const operationType = fileCopyState === 1 ? 'copy' : 'cut';
 
-      // Show initial toast
-      toast.info('Starting multi-paste operation...', {
-        description: `Processing ${videos.length} video${videos.length > 1 ? 's' : ''}`,
-        duration: 2000
-      });
+      for (let i = 0; i < videos.length; i++) {
+        const video = videos[i];
+        
+        // Update toast progress
+        toast.loading(`${operationType === 'copy' ? 'Copying' : 'Moving'} video ${i + 1}/${videos.length}...`, {
+          id: processingToast,
+          description: `Processing "${video.user_filename || video.video_id}"`
+        });
 
-      for (const video of videos) {
-        await handleFilePasteOperation(video);
+        const fileName = video.video_name && video.video_name.trim() !== '' ? video.video_name : video.video_id;
+        const sourcePath = video.video_path ? `video/${video.video_path}/${fileName}.mp4` : `video/${fileName}.mp4`;
+        const destinationPath = currentPath ? `video/${currentPath}/${fileName}.mp4` : `video/${fileName}.mp4`;
+
+        console.log(`Starting ${operationType} operation for video: ${fileName}`);
+        console.log(`From: ${sourcePath}`);
+        console.log(`To: ${destinationPath}`);
+
+        // Copy the video file
+        const copyResponse = await fetch('https://api.nymia.ai/v1/copyfile', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer WeInfl3nc3withAI'
+          },
+          body: JSON.stringify({
+            user: userData.id,
+            sourcefilename: sourcePath,
+            destinationfilename: destinationPath
+          })
+        });
+
+        if (!copyResponse.ok) {
+          const errorText = await copyResponse.text();
+          console.error(`Failed to copy video file ${fileName}.mp4:`, errorText);
+          throw new Error(`Failed to copy video file ${fileName}.mp4: ${errorText}`);
+        }
+
+        console.log(`Successfully copied video file ${fileName}.mp4`);
+
+        if (operationType === 'copy') {
+          // For copy operation, create a new database entry
+          const newVideoData = {
+            ...video,
+            video_path: currentPath || '',
+            video_url: `https://images.nymia.ai/${userData.id}/video/${currentPath ? currentPath + '/' : ''}${fileName}.mp4`,
+            task_created_at: new Date().toISOString()
+          };
+          delete newVideoData.video_id; // Remove ID so database generates new one
+          delete newVideoData.id; // Remove ID so database generates new one
+
+          const createVideoResponse = await fetch(`https://db.nymia.ai/rest/v1/video`, {
+            method: 'POST',
+            headers: {
+              'Authorization': 'Bearer WeInfl3nc3withAI',
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(newVideoData)
+          });
+
+          if (!createVideoResponse.ok) {
+            const errorText = await createVideoResponse.text();
+            console.warn(`Failed to create new video record for ${fileName}:`, errorText);
+          } else {
+            console.log(`Successfully created new video record for ${fileName}`);
+          }
+        } else {
+          // For cut operation, update the existing database entry
+          const updateResponse = await fetch(`https://db.nymia.ai/rest/v1/video?video_id=eq.${video.video_id}`, {
+            method: 'PATCH',
+            headers: {
+              'Authorization': 'Bearer WeInfl3nc3withAI',
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              video_path: currentPath || '',
+              video_url: `https://images.nymia.ai/${userData.id}/video/${currentPath ? currentPath + '/' : ''}${fileName}.mp4`
+            })
+          });
+
+          if (!updateResponse.ok) {
+            const errorText = await updateResponse.text();
+            console.warn(`Failed to update video path for video ${video.video_id}:`, errorText);
+          } else {
+            console.log(`Successfully updated video path for video ${video.video_id}`);
+          }
+
+          // Delete the original file for cut operation
+          const deleteResponse = await fetch('https://api.nymia.ai/v1/deletefile', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer WeInfl3nc3withAI'
+            },
+            body: JSON.stringify({
+              user: userData.id,
+              filename: sourcePath
+            })
+          });
+
+          if (!deleteResponse.ok) {
+            console.warn(`Failed to delete original file for video ${video.video_id}, but cut operation completed`);
+          } else {
+            console.log(`Successfully deleted original file for video ${video.video_id}`);
+          }
+        }
       }
 
+      toast.success(`${videos.length} video(s) ${operationType === 'copy' ? 'copied' : 'moved'} successfully!`, {
+        id: processingToast,
+        description: `Files are now in ${currentPath || 'root folder'}`,
+        duration: 4000
+      });
+      
       // Clear the multi-copy state
       localStorage.removeItem('multiCopiedVideos');
       setFileCopyState(0);
       setFileClipboard(null);
       setIsMultiCopyActive(false);
       clearSelection();
-
-      toast.success(`Successfully pasted ${videos.length} video${videos.length > 1 ? 's' : ''}`);
+      
+      // Refresh the current folder to show updated content
+      await fetchFolderFiles(currentPath);
+      await fetchVideosWithFilters();
     } catch (error) {
-      console.error('Multi-paste error:', error);
-      toast.error('Failed to paste some videos');
+      console.error('Error pasting videos:', error);
+      toast.error('Failed to paste videos', {
+        id: processingToast,
+        description: error instanceof Error ? error.message : 'An error occurred during the operation',
+        duration: 5000
+      });
     } finally {
       setIsMultiPasting(false);
     }
@@ -730,6 +845,7 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
   // Helper functions for file operations
   const checkFileExists = async (fileName: string): Promise<boolean> => {
     try {
+      const folderPath = currentPath ? `video/${currentPath}` : 'video';
       const response = await fetch(`https://api.nymia.ai/v1/getfilenames`, {
         method: 'POST',
         headers: {
@@ -738,7 +854,7 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
         },
         body: JSON.stringify({
           user: userData.id,
-          folder: `video/${currentPath}`
+          folder: folderPath
         })
       });
 
@@ -755,7 +871,8 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
 
   const checkFileExistsInDatabase = async (fileName: string): Promise<boolean> => {
     try {
-      const response = await fetch(`https://db.nymia.ai/rest/v1/video?user_uuid=eq.${userData.id}&video_name=eq.${encodeURIComponent(fileName)}&video_path=eq.${encodeURIComponent(currentPath)}`, {
+      const videoPath = currentPath || '';
+      const response = await fetch(`https://db.nymia.ai/rest/v1/video?user_uuid=eq.${userData.id}&video_name=eq.${encodeURIComponent(fileName)}&video_path=eq.${encodeURIComponent(videoPath)}`, {
         headers: {
           'Authorization': 'Bearer WeInfl3nc3withAI',
           'Content-Type': 'application/json'
@@ -776,9 +893,9 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
   // Helper function for paste operations
   const handleFilePasteOperation = async (video: VideoData) => {
     const operationType = fileCopyState === 1 ? 'copying' : 'moving';
-    const fileName = video.video_name || video.video_id;
-    const route = video.video_path === "" ? "video" : `video/${video.video_path}`;
-    const newRoute = `video/${currentPath}`;
+    const fileName = video.video_name && video.video_name.trim() !== '' ? video.video_name : video.video_id;
+    const sourcePath = video.video_path ? `video/${video.video_path}` : 'video';
+    const destinationPath = currentPath ? `video/${currentPath}` : 'video';
 
     // Check if file already exists in destination
     const fileExists = await checkFileExists(fileName);
@@ -792,10 +909,11 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
       return;
     }
 
-    console.log("Copied Video:", `${route}/${fileName}.mp4`);
-    console.log("New Route:", `${newRoute}/${fileName}.mp4`);
+    console.log("Source Video:", `${sourcePath}/${fileName}.mp4`);
+    console.log("Destination:", `${destinationPath}/${fileName}.mp4`);
 
-    await fetch('https://api.nymia.ai/v1/copyfile', {
+    // Copy the file
+    const copyResponse = await fetch('https://api.nymia.ai/v1/copyfile', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -803,30 +921,43 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
       },
       body: JSON.stringify({
         user: userData.id,
-        sourcefilename: `${route}/${fileName}.mp4`,
-        destinationfilename: `${newRoute}/${fileName}.mp4`
+        sourcefilename: `${sourcePath}/${fileName}.mp4`,
+        destinationfilename: `${destinationPath}/${fileName}.mp4`
       })
     });
 
-    const postVideo = {
+    if (!copyResponse.ok) {
+      throw new Error(`Failed to copy file for video ${video.video_id}`);
+    }
+
+    // Create new video data for the copy
+    const newVideoData = {
       ...video,
-      video_path: currentPath
+      video_path: currentPath || '',
+      video_name: fileName,
+      task_created_at: new Date().toISOString()
     };
 
-    delete postVideo.id;
+    // Remove the id field for new database entry
+    delete newVideoData.id;
 
-    await fetch(`https://db.nymia.ai/rest/v1/video`, {
+    // Create new database entry
+    const dbResponse = await fetch(`https://db.nymia.ai/rest/v1/video`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer WeInfl3nc3withAI'
       },
-      body: JSON.stringify(postVideo)
+      body: JSON.stringify(newVideoData)
     });
+
+    if (!dbResponse.ok) {
+      throw new Error(`Failed to create database entry for video ${video.video_id}`);
+    }
 
     if (fileCopyState === 2) {
       // Remove from current location if it's a cut operation
-      await fetch(`https://api.nymia.ai/v1/deletefile`, {
+      const deleteFileResponse = await fetch(`https://api.nymia.ai/v1/deletefile`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -834,17 +965,26 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
         },
         body: JSON.stringify({
           user: userData.id,
-          filename: `${route}/${fileName}.mp4`
+          filename: `${sourcePath}/${fileName}.mp4`
         })
       });
 
-      await fetch(`https://db.nymia.ai/rest/v1/video?id=eq.${video.id}`, {
+      if (!deleteFileResponse.ok) {
+        console.warn(`Failed to delete original file for video ${video.video_id}, but copy operation completed`);
+      }
+
+      // Delete the original database entry
+      const deleteDbResponse = await fetch(`https://db.nymia.ai/rest/v1/video?video_id=eq.${video.video_id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': 'Bearer WeInfl3nc3withAI',
           'Content-Type': 'application/json'
         }
       });
+
+      if (!deleteDbResponse.ok) {
+        console.warn(`Failed to delete original database entry for video ${video.video_id}, but copy operation completed`);
+      }
     }
   };
 
@@ -1583,7 +1723,8 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
               const newVideoData = {
                 ...video,
                 video_path: destPath,
-                video_url: `https://images.nymia.ai/${userData.id}/video/${destPath}/${fileName}.mp4`
+                video_url: `https://images.nymia.ai/${userData.id}/video/${destPath}/${fileName}.mp4`,
+                task_created_at: new Date().toISOString()
               };
               delete newVideoData.video_id; // Remove ID so database generates new one
               delete newVideoData.id; // Remove ID so database generates new one
@@ -1705,7 +1846,8 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
                       const newVideoData = {
                         ...video,
                         video_path: `${destPath}/${relativePath}`,
-                        video_url: `https://images.nymia.ai/${userData.id}/video/${destPath}/${relativePath}/${fileName}.mp4`
+                        video_url: `https://images.nymia.ai/${userData.id}/video/${destPath}/${relativePath}/${fileName}.mp4`,
+                        task_created_at: new Date().toISOString()
                       };
                       delete newVideoData.video_id;
                       delete newVideoData.id;
@@ -1848,119 +1990,84 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
           description: `Processing "${video.user_filename || video.video_id}"`
         });
 
+        const fileName = video.video_name && video.video_name.trim() !== '' ? video.video_name : video.video_id;
+        const sourcePath = video.video_path ? `video/${video.video_path}/${fileName}.mp4` : `video/${fileName}.mp4`;
+        const destinationPath = currentPath ? `video/${currentPath}/${fileName}.mp4` : `video/${fileName}.mp4`;
+
+        console.log(`Starting ${fileClipboard.type} operation for video: ${fileName}`);
+        console.log(`From: ${sourcePath}`);
+        console.log(`To: ${destinationPath}`);
+
+        // Copy the video file
+        const copyResponse = await fetch('https://api.nymia.ai/v1/copyfile', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer WeInfl3nc3withAI'
+          },
+          body: JSON.stringify({
+            user: userData.id,
+            sourcefilename: sourcePath,
+            destinationfilename: destinationPath
+          })
+        });
+
+        if (!copyResponse.ok) {
+          const errorText = await copyResponse.text();
+          console.error(`Failed to copy video file ${fileName}.mp4:`, errorText);
+          throw new Error(`Failed to copy video file ${fileName}.mp4: ${errorText}`);
+        }
+
+        console.log(`Successfully copied video file ${fileName}.mp4`);
+
         if (fileClipboard.type === 'copy') {
-          // Copy video - create a new entry with updated path
-          const newVideoPath = currentPath || '';
-          const fileName = video.video_name && video.video_name.trim() !== '' ? video.video_name : video.video_id;
-          
-          // Generate new video_id for the copy
-          const newVideoId = `copy_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
-          
-          // Construct source and destination paths
-          const sourcePath = video.video_path ? `video/${video.video_path}/${fileName}.mp4` : `video/${fileName}.mp4`;
-          const destinationPath = newVideoPath ? `video/${newVideoPath}/${fileName}.mp4` : `video/${fileName}.mp4`;
-
-          // Copy the actual file
-          const copyResponse = await fetch('https://api.nymia.ai/v1/copyfile', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': 'Bearer WeInfl3nc3withAI'
-            },
-            body: JSON.stringify({
-              user: userData.id,
-              sourcefilename: sourcePath,
-              destinationfilename: destinationPath
-            })
-          });
-
-          if (!copyResponse.ok) {
-            throw new Error(`Failed to copy file for video ${video.video_id}`);
-          }
-
-          // Create new video data for the copy
+          // For copy operation, create a new database entry
           const newVideoData = {
-            task_id: `copy_${Date.now()}`,
-            video_id: newVideoId,
-            user_uuid: userData.id,
-            model: video.model,
-            mode: video.mode,
-            prompt: video.prompt,
-            duration: video.duration,
-            start_image: video.start_image,
-            start_image_url: video.start_image_url,
-            negative_prompt: video.negative_prompt,
-            status: 'completed',
-            task_created_at: new Date().toISOString(),
-            task_completed_at: new Date().toISOString(),
-            lip_flag: video.lip_flag,
-            user_filename: video.user_filename,
-            user_notes: video.user_notes,
-            user_tags: video.user_tags,
-            rating: video.rating,
-            favorite: video.favorite,
-            video_path: newVideoPath,
-            video_name: fileName
+            ...video,
+            video_path: currentPath || '',
+            video_url: `https://images.nymia.ai/${userData.id}/video/${currentPath ? currentPath + '/' : ''}${fileName}.mp4`,
+            task_created_at: new Date().toISOString()
           };
-          
-          // Create new database entry
-          const response = await fetch('https://db.nymia.ai/rest/v1/video', {
+          delete newVideoData.video_id; // Remove ID so database generates new one
+          delete newVideoData.id; // Remove ID so database generates new one
+
+          const createVideoResponse = await fetch(`https://db.nymia.ai/rest/v1/video`, {
             method: 'POST',
             headers: {
               'Authorization': 'Bearer WeInfl3nc3withAI',
-              'Content-Type': 'application/json',
+              'Content-Type': 'application/json'
             },
             body: JSON.stringify(newVideoData)
           });
 
-          if (!response.ok) {
-            throw new Error(`Failed to create database entry for copied video ${video.video_id}`);
+          if (!createVideoResponse.ok) {
+            const errorText = await createVideoResponse.text();
+            console.warn(`Failed to create new video record for ${fileName}:`, errorText);
+          } else {
+            console.log(`Successfully created new video record for ${fileName}`);
           }
-
         } else {
-          // Move video - update the path in database
-          const newVideoPath = currentPath || '';
-          const fileName = video.video_name && video.video_name.trim() !== '' ? video.video_name : video.video_id;
-          
-          // Construct source and destination paths
-          const sourcePath = video.video_path ? `video/${video.video_path}/${fileName}.mp4` : `video/${fileName}.mp4`;
-          const destinationPath = newVideoPath ? `video/${newVideoPath}/${fileName}.mp4` : `video/${fileName}.mp4`;
-
-          // Update the video's path in the database first
-          const response = await fetch(`https://db.nymia.ai/rest/v1/video?video_id=eq.${video.video_id}`, {
+          // For cut operation, update the existing database entry
+          const updateResponse = await fetch(`https://db.nymia.ai/rest/v1/video?video_id=eq.${video.video_id}`, {
             method: 'PATCH',
             headers: {
               'Authorization': 'Bearer WeInfl3nc3withAI',
-              'Content-Type': 'application/json',
+              'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-              video_path: newVideoPath
+              video_path: currentPath || '',
+              video_url: `https://images.nymia.ai/${userData.id}/video/${currentPath ? currentPath + '/' : ''}${fileName}.mp4`
             })
           });
 
-          if (!response.ok) {
-            throw new Error(`Failed to update database for video ${video.video_id}`);
+          if (!updateResponse.ok) {
+            const errorText = await updateResponse.text();
+            console.warn(`Failed to update video path for video ${video.video_id}:`, errorText);
+          } else {
+            console.log(`Successfully updated video path for video ${video.video_id}`);
           }
 
-          // Move the actual file
-          const moveResponse = await fetch('https://api.nymia.ai/v1/copyfile', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': 'Bearer WeInfl3nc3withAI'
-            },
-            body: JSON.stringify({
-              user: userData.id,
-              sourcefilename: sourcePath,
-              destinationfilename: destinationPath
-            })
-          });
-
-          if (!moveResponse.ok) {
-            throw new Error(`Failed to move file for video ${video.video_id}`);
-          }
-
-          // Delete the original file
+          // Delete the original file for cut operation
           const deleteResponse = await fetch('https://api.nymia.ai/v1/deletefile', {
             method: 'POST',
             headers: {
@@ -1974,7 +2081,9 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
           });
 
           if (!deleteResponse.ok) {
-            console.warn(`Failed to delete original file for video ${video.video_id}, but move operation completed`);
+            console.warn(`Failed to delete original file for video ${video.video_id}, but cut operation completed`);
+          } else {
+            console.log(`Successfully deleted original file for video ${video.video_id}`);
           }
         }
       }
@@ -1990,6 +2099,7 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
       
       // Refresh the current folder to show updated content
       await fetchFolderFiles(currentPath);
+      await fetchVideosWithFilters();
     } catch (error) {
       console.error('Error pasting video:', error);
       toast.error('Failed to paste video', {

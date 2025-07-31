@@ -65,6 +65,7 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const [videos, setVideos] = useState<VideoData[]>([]);
+  const [totalVideosCount, setTotalVideosCount] = useState(0);
   const [folders, setFolders] = useState<FolderData[]>([]);
   const [foldersLoading, setFoldersLoading] = useState(true);
   const [videosLoading, setVideosLoading] = useState(true);
@@ -245,6 +246,7 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
   // Navigate to folder
   const navigateToFolder = (folderPath: string) => {
     setCurrentPath(folderPath);
+    setCurrentPage(1); // Reset to first page when changing folders
     fetchFolderFiles(folderPath);
   };
 
@@ -254,12 +256,14 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
     pathParts.pop();
     const parentPath = pathParts.join('/');
     setCurrentPath(parentPath);
+    setCurrentPage(1); // Reset to first page when changing folders
     fetchFolderFiles(parentPath);
   };
 
   // Navigate to home (video root)
   const navigateToHome = () => {
     setCurrentPath('');
+    setCurrentPage(1); // Reset to first page when changing folders
     fetchFolderFiles('');
   };
 
@@ -360,7 +364,21 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
     
     try {
       setVideosLoading(true);
-      const response = await fetch(`https://db.nymia.ai/rest/v1/video?user_uuid=eq.${userData.id}&status=eq.completed&order=task_created_at.desc`, {
+
+      // Build the query for counting videos in the current path
+      let countQuery = `https://db.nymia.ai/rest/v1/video?user_uuid=eq.${userData.id}&status=eq.completed&select=count`;
+      
+      if (folderPath === '') {
+        // Root folder: count videos where video_path is empty, null, or undefined
+        countQuery += `&or=(video_path.is.null,video_path.eq."")`;
+      } else {
+        // Subfolder: count videos that are in the specific folder path
+        countQuery += `&video_path=eq.${encodeURIComponent(folderPath)}`;
+      }
+
+      console.log('Count query:', countQuery);
+      
+      const response = await fetch(countQuery, {
         headers: {
           'Authorization': 'Bearer WeInfl3nc3withAI',
           'Content-Type': 'application/json'
@@ -369,42 +387,124 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
 
       if (response.ok) {
         const data = await response.json();
-        console.log('Fetched videos:', data);
+        const count = data[0]?.count || 0;
+        console.log('Total videos count for path:', folderPath, count);
+        setTotalVideosCount(count);
         
-        // Filter videos based on video_path matching current path
-        const filteredVideos = data.filter((video: VideoData) => {
-          // Filter completed videos only
-          if (video.status !== 'completed') {
-            return false;
-          }
-          
-          // Filter by video_path matching current path
-          if (folderPath === '') {
-            // Root folder: show videos with empty or null video_path
-            return !video.video_path || video.video_path === '';
-          } else {
-            // Subfolder: show videos with video_path matching current path
-            return video.video_path === folderPath;
-          }
-        });
-        
-        console.log('Filtered videos for path:', folderPath, filteredVideos);
-        setVideos(filteredVideos);
-      } else {
-        throw new Error('Failed to fetch videos');
+        // Set current path for future queries
+        setCurrentPath(folderPath);
       }
     } catch (error) {
-      console.error('Error fetching videos:', error);
-      toast.error('Failed to load videos');
+      console.error('Error fetching video count:', error);
+      toast.error('Failed to load video count');
     } finally {
       setVideosLoading(false);
     }
   };
 
-  // Fetch initial videos
+  // Function to fetch videos with search, sort, and pagination
+  const fetchVideosWithFilters = useCallback(async () => {
+    if (!userData.id) return;
+
+    try {
+      setVideosLoading(true);
+
+      // Build the base query
+      let query = `https://db.nymia.ai/rest/v1/video?user_uuid=eq.${userData.id}&status=eq.completed`;
+      
+      // Add path filter
+      if (currentPath === '') {
+        // Root folder: show videos where video_path is empty, null, or undefined
+        query += `&or=(video_path.is.null,video_path.eq."")`;
+      } else {
+        // Subfolder: show videos that are in the specific folder path
+        query += `&video_path=eq.${encodeURIComponent(currentPath)}`;
+      }
+
+      // Add search filter if search term exists
+      if (searchTerm.trim()) {
+        query += `&or=(prompt.ilike.*${encodeURIComponent(searchTerm)}*,model.ilike.*${encodeURIComponent(searchTerm)}*,user_filename.ilike.*${encodeURIComponent(searchTerm)}*)`;
+      }
+
+      // Add model filter
+      if (modelFilter !== 'all') {
+        query += `&model=eq.${encodeURIComponent(modelFilter)}`;
+      }
+
+      // Add lip sync filter
+      if (lipSyncFilter !== 'all') {
+        if (lipSyncFilter === 'lip_sync') {
+          query += `&lip_flag=eq.true`;
+        } else if (lipSyncFilter === 'regular') {
+          query += `&lip_flag=eq.false`;
+        }
+      }
+
+      // Add favorite filter
+      if (favoriteFilter !== null) {
+        query += `&favorite=eq.${favoriteFilter}`;
+      }
+
+      // Add sorting
+      let orderBy = '';
+      switch (sortBy) {
+        case 'newest':
+          orderBy = 'task_created_at.desc';
+          break;
+        case 'oldest':
+          orderBy = 'task_created_at.asc';
+          break;
+        case 'duration':
+          orderBy = sortOrder === 'asc' ? 'duration.asc' : 'duration.desc';
+          break;
+        case 'model':
+          orderBy = sortOrder === 'asc' ? 'model.asc' : 'model.desc';
+          break;
+        case 'name':
+          orderBy = sortOrder === 'asc' ? 'user_filename.asc' : 'user_filename.desc';
+          break;
+        default:
+          orderBy = 'task_created_at.desc';
+      }
+      query += `&order=${orderBy}`;
+
+      // Add pagination
+      const offset = (currentPage - 1) * itemsPerPage;
+      query += `&limit=${itemsPerPage}&offset=${offset}`;
+
+      console.log('Fetch videos query:', query);
+      
+      const response = await fetch(query, {
+        headers: {
+          'Authorization': 'Bearer WeInfl3nc3withAI',
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Fetched videos with filters:', data);
+        setVideos(data);
+      }
+    } catch (error) {
+      console.error('Error fetching videos with filters:', error);
+      toast.error('Failed to load videos');
+    } finally {
+      setVideosLoading(false);
+    }
+  }, [userData.id, currentPath, searchTerm, modelFilter, lipSyncFilter, favoriteFilter, sortBy, sortOrder, currentPage, itemsPerPage]);
+
+  // Fetch initial video count
   useEffect(() => {
     fetchFolderFiles('');
   }, [userData.id]);
+
+  // Fetch videos when search, sort, or pagination changes
+  useEffect(() => {
+    if (currentPath !== undefined && totalVideosCount > 0) {
+      fetchVideosWithFilters();
+    }
+  }, [fetchVideosWithFilters, totalVideosCount]);
 
   // Keyboard shortcuts for copy, cut, paste
   useEffect(() => {
@@ -455,53 +555,9 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [selectedVideos, videos, fileClipboard, fileCopyState]);
 
-  // Filter and sort videos
-  const filteredVideos = videos
-    .filter(video => {
-      const matchesSearch = video.prompt.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           video.model.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           (video.user_filename && video.user_filename.toLowerCase().includes(searchTerm.toLowerCase()));
-      
-      const matchesModel = modelFilter === 'all' || video.model === modelFilter;
-      const matchesLipSync = lipSyncFilter === 'all' || 
-                            (lipSyncFilter === 'lip_sync' && video.lip_flag) ||
-                            (lipSyncFilter === 'regular' && !video.lip_flag);
-      const matchesFavorite = favoriteFilter === null || video.favorite === favoriteFilter;
-      
-      return matchesSearch && matchesModel && matchesLipSync && matchesFavorite;
-    })
-    .sort((a, b) => {
-      let comparison = 0;
-      
-      switch (sortBy) {
-        case 'newest':
-          comparison = new Date(b.task_created_at).getTime() - new Date(a.task_created_at).getTime();
-          break;
-        case 'oldest':
-          comparison = new Date(a.task_created_at).getTime() - new Date(b.task_created_at).getTime();
-          break;
-        case 'duration':
-          comparison = b.duration - a.duration;
-          break;
-        case 'model':
-          comparison = a.model.localeCompare(b.model);
-          break;
-        case 'name':
-          comparison = (a.user_filename || a.task_id).localeCompare(b.user_filename || b.task_id);
-          break;
-        default:
-          comparison = 0;
-      }
-      
-      return sortOrder === 'asc' ? comparison : -comparison;
-    });
-
   // Pagination calculations
-  const totalItems = filteredVideos.length;
-  const totalPages = Math.ceil(totalItems / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const currentVideos = filteredVideos.slice(startIndex, endIndex);
+  const totalPages = Math.ceil(totalVideosCount / itemsPerPage);
+  const currentVideos = videos; // videos now contains only the current page data
 
   // Video helper functions
   const getVideoUrl = (video: VideoData) => {
@@ -740,6 +796,7 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
     setFavoriteFilter(null);
     setSortBy('newest');
     setSortOrder('desc');
+    setCurrentPage(1); // Reset to first page when clearing filters
   };
 
   // Folder management functions
@@ -2084,7 +2141,7 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
           </div>
           {searchTerm && (
             <p className="text-xs text-muted-foreground mt-1">
-              Found {filteredVideos.length} video{filteredVideos.length !== 1 ? 's' : ''} matching "{searchTerm}"
+                              Found {videos.length} video{videos.length !== 1 ? 's' : ''} matching "{searchTerm}"
             </p>
           )}
         </div>
@@ -2262,7 +2319,7 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
             </Card>
           ))}
         </div>
-      ) : totalItems === 0 ? (
+              ) : totalVideosCount === 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 md:gap-6">
           {/* Empty state message */}
           <div className="col-span-full text-center py-16 px-4">
@@ -2451,7 +2508,7 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
       )}
 
       {/* Pagination Controls */}
-      {totalItems > 0 && (
+              {totalVideosCount > 0 && (
         <div className="flex flex-col sm:flex-row justify-between items-center gap-4 py-6 border-t border-gray-200 dark:border-gray-700 mt-4">
           {/* Items per page selector */}
           <div className="flex items-center gap-2">
@@ -2473,7 +2530,7 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
 
           {/* Page info */}
           <div className="text-sm text-gray-600 dark:text-gray-400">
-            Showing {startIndex + 1}-{Math.min(endIndex, totalItems)} of {totalItems} videos
+                            Showing {((currentPage - 1) * itemsPerPage) + 1}-{Math.min(currentPage * itemsPerPage, totalVideosCount)} of {totalVideosCount} videos
           </div>
 
           {/* Pagination buttons */}

@@ -991,6 +991,9 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
   // Video helper functions
   const getVideoUrl = (video: VideoData) => {
     // Use video_name if available, otherwise use video_id
+    if(video.video_url){
+      return video.video_url;
+    }
     const fileName = video.video_name && video.video_name.trim() !== '' ? video.video_name : video.video_id;
     return `https://images.nymia.ai/${userData.id}/video/${video.video_path ? video.video_path + '/' : ''}${fileName}.mp4`;
   };

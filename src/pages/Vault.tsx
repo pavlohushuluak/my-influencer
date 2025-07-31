@@ -109,6 +109,8 @@ export default function Vault() {
   const [files, setFiles] = useState<FileData[]>([]);
   const [generatedImages, setGeneratedImages] = useState<GeneratedImageData[]>([]);
   const [filesLoading, setFilesLoading] = useState(false);
+  const [totalItems, setTotalItems] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Detailed image modal state
   const [detailedImageModal, setDetailedImageModal] = useState<{ open: boolean; image: GeneratedImageData | null }>({ open: false, image: null });
@@ -465,80 +467,11 @@ export default function Vault() {
   }, [folderStructure, userData.id, currentPath]);
 
   // Fetch files from home route
+  // Legacy function - replaced by fetchVaultDataWithFilters
   const fetchHomeFiles = async () => {
-    if (!userData.id) return; // Only fetch when on home route
-
-    const folder = currentPath === '' ? 'output' : `vault/${currentPath}`;
-
-    try {
-      setFilesLoading(true);
-
-      // Step 1: Get files from getfilenames API
-      const filesResponse = await fetch('https://api.nymia.ai/v1/getfilenames', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer WeInfl3nc3withAI'
-        },
-        body: JSON.stringify({
-          user: userData.id,
-          folder: folder
-        })
-      });
-
-      if (!filesResponse.ok) {
-        throw new Error('Failed to fetch files');
-      }
-
-      const filesData: FileData[] = await filesResponse.json();
-      console.log('Files from API:', filesData);
-      setFiles(filesData);
-
-      // Step 2: Get detailed information for each file from database
-      const detailedImages: GeneratedImageData[] = [];
-
-      for (const file of filesData) {
-        // Extract filename from the Key (remove path and get just the filename)
-        if (file.Key === undefined) continue;
-        const filename = file.Key.split('/').pop();
-        console.log('Filename:', filename);
-        console.log('Current path:', currentPath);
-        if (!filename) continue;
-
-        try {
-          const detailResponse = await fetch(`https://db.nymia.ai/rest/v1/generated_images?system_filename=eq.${filename}&user_filename=eq.${currentPath}`, {
-            headers: {
-              'Authorization': 'Bearer WeInfl3nc3withAI'
-            }
-          });
-
-          if (detailResponse.ok) {
-            const imageDetails: GeneratedImageData[] = await detailResponse.json();
-            if (imageDetails.length > 0) {
-              detailedImages.push(imageDetails[0]);
-            }
-          }
-        } catch (error) {
-          console.warn(`Failed to fetch details for ${filename}:`, error);
-        }
-      }
-
-      console.log('Detailed images:', detailedImages);
-      setGeneratedImages(detailedImages);
-
-    } catch (error) {
-      console.error('Error fetching home files:', error);
-      setFiles([]);
-      setGeneratedImages([]);
-    } finally {
-      setFilesLoading(false);
-    }
+    // This function is kept for compatibility but the actual data fetching
+    // is now handled by fetchVaultDataWithFilters
   };
-
-  // Fetch home files when on home route
-  useEffect(() => {
-    fetchHomeFiles();
-  }, [currentPath, userData.id]);
 
   // Update favorite status
   const updateFavorite = async (systemFilename: string, favorite: boolean) => {
@@ -668,63 +601,8 @@ export default function Vault() {
     }
   };
 
-  // Filter and sort generated images for home route
-  const filteredAndSortedGeneratedImages = generatedImages
-    .filter(image => {
-      // Search filter - search across multiple fields
-      const searchMatch = !searchTerm ||
-        (image.user_filename && image.user_filename.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (image.system_filename && image.system_filename.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (image.user_notes && image.user_notes.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (image.user_tags && image.user_tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase())));
-
-      // File type filter - multi-select
-      const fileTypeMatch = selectedFilters.fileTypes.length === 0 ||
-        selectedFilters.fileTypes.includes(image.file_type);
-
-      // Favorite filter
-      const favoriteMatch = selectedFilters.favorites === null ||
-        image.favorite === selectedFilters.favorites;
-
-      // Rating range filter
-      const ratingMatch = image.rating >= selectedFilters.ratingRange.min &&
-        image.rating <= selectedFilters.ratingRange.max;
-
-      // Notes filter
-      const notesMatch = selectedFilters.withNotes === null ||
-        (selectedFilters.withNotes === true && !!(image.user_notes && image.user_notes.trim() !== '')) ||
-        (selectedFilters.withNotes === false && !(image.user_notes && image.user_notes.trim() !== ''));
-
-      // Tags filter
-      const tagsMatch = selectedFilters.selectedTags.length === 0 ||
-        (image.user_tags && image.user_tags.some(tag => selectedFilters.selectedTags.includes(tag.trim())));
-
-      return searchMatch && fileTypeMatch && favoriteMatch && ratingMatch && notesMatch && tagsMatch;
-    })
-    .sort((a, b) => {
-      let comparison = 0;
-
-      switch (sortBy) {
-        case 'newest':
-          comparison = new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-          break;
-        case 'oldest':
-          comparison = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
-          break;
-        case 'rating':
-          comparison = b.rating - a.rating;
-          break;
-        case 'filename':
-          const aName = (a.user_filename || a.system_filename || '').toLowerCase();
-          const bName = (b.user_filename || b.system_filename || '').toLowerCase();
-          comparison = aName.localeCompare(bName);
-          break;
-        default:
-          comparison = 0;
-      }
-
-      return sortOrder === 'desc' ? comparison : -comparison;
-    });
+  // Use the data directly from the database (already filtered and sorted)
+  const filteredAndSortedGeneratedImages = generatedImages;
 
   const hasActiveFilters = searchTerm ||
     selectedFilters.fileTypes.length > 0 ||
@@ -782,6 +660,9 @@ export default function Vault() {
       }
 
       setGeneratedImages(prev => prev.filter(item => item.system_filename !== contentId));
+
+      // Refresh the current folder to show updated content
+      await fetchVaultDataWithFilters();
 
       toast.success('Item deleted successfully');
     } catch (error) {
@@ -2007,7 +1888,8 @@ export default function Vault() {
       setFileCopyState(0);
       setCopiedFile(null);
 
-      setGeneratedImages(prev => [...prev, { ...copiedFile, user_filename: `${currentPath}` }]);
+      // Refresh the current folder to show updated content
+      await fetchVaultDataWithFilters();
 
       toast.success(`File "${fileName}" ${operationType === 'copying' ? 'copied' : 'moved'} successfully!`);
 
@@ -2502,6 +2384,9 @@ export default function Vault() {
 
       // Remove from local state
       setGeneratedImages(prev => prev.filter(img => img.system_filename !== image.system_filename));
+
+      // Refresh the current folder to show updated content
+      await fetchVaultDataWithFilters();
 
       setFileContextMenu(null);
       toast.success(`File "${image.system_filename}" deleted successfully`);
@@ -3235,6 +3120,9 @@ export default function Vault() {
       setIsMultiCopyActive(false);
       clearSelection();
 
+      // Refresh the current folder to show updated content
+      await fetchVaultDataWithFilters();
+
       toast.success(`Successfully pasted ${files.length} file${files.length > 1 ? 's' : ''}`);
     } catch (error) {
       console.error('Multi-paste error:', error);
@@ -3280,6 +3168,10 @@ export default function Vault() {
           await handleFileDelete(image);
         }
         clearSelection();
+        
+        // Refresh the current folder to show updated content
+        await fetchVaultDataWithFilters();
+        
         toast.success(`Deleted ${selected.length} file${selected.length > 1 ? 's' : ''}`);
       } catch (error) {
         console.error('Multi-delete error:', error);
@@ -3367,11 +3259,10 @@ export default function Vault() {
   };
 
   // Pagination functions
-  const totalItems = filteredAndSortedGeneratedImages.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const currentItems = filteredAndSortedGeneratedImages.slice(startIndex, endIndex);
+  const currentItems = filteredAndSortedGeneratedImages;
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -3393,6 +3284,178 @@ export default function Vault() {
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm, sortBy, sortOrder, selectedFilters]);
+
+  // Professional data fetching with proper user_uuid filtering, search, and pagination
+  const fetchVaultDataWithFilters = useCallback(async () => {
+    if (!userData.id) return;
+
+    try {
+      setIsLoading(true);
+      setFilesLoading(true);
+
+      // Build query parameters for database
+      const queryParams = new URLSearchParams();
+      
+      // Base user filter
+      queryParams.append('user_uuid', 'eq.' + userData.id);
+      
+      // Current path filter - show files from current folder
+      if (currentPath === '') {
+        // Root folder - show files with empty user_filename or null
+        queryParams.append('or', '(user_filename.is.null,user_filename.eq.)');
+      } else {
+        // Specific folder - show files with matching user_filename
+        queryParams.append('user_filename', 'eq.' + currentPath);
+      }
+      
+      // Search filter
+      if (searchTerm.trim()) {
+        queryParams.append('or', `(system_filename.ilike.*${searchTerm}*,user_filename.ilike.*${searchTerm}*,user_notes.ilike.*${searchTerm}*,user_tags.cs.{${searchTerm}})`);
+      }
+      
+      // File type filter
+      if (selectedFilters.fileTypes.length > 0) {
+        queryParams.append('file_type', 'in.(' + selectedFilters.fileTypes.join(',') + ')');
+      }
+      
+      // Favorite filter
+      if (selectedFilters.favorites !== null) {
+        queryParams.append('favorite', 'eq.' + selectedFilters.favorites);
+      }
+      
+      // Rating range filter
+      if (selectedFilters.ratingRange.min > 0) {
+        queryParams.append('rating', 'gte.' + selectedFilters.ratingRange.min);
+      }
+      if (selectedFilters.ratingRange.max < 5) {
+        queryParams.append('rating', 'lte.' + selectedFilters.ratingRange.max);
+      }
+      
+      // Notes filter
+      if (selectedFilters.withNotes === true) {
+        queryParams.append('user_notes', 'not.is.null');
+        queryParams.append('user_notes', 'neq.');
+      } else if (selectedFilters.withNotes === false) {
+        queryParams.append('or', '(user_notes.is.null,user_notes.eq.)');
+      }
+      
+      // Tags filter
+      if (selectedFilters.selectedTags.length > 0) {
+        queryParams.append('user_tags', 'cs.{' + selectedFilters.selectedTags.join(',') + '}');
+      }
+      
+      // Sorting
+      let orderBy = 'created_at';
+      if (sortBy === 'newest' || sortBy === 'oldest') {
+        orderBy = 'created_at';
+      } else if (sortBy === 'rating') {
+        orderBy = 'rating';
+      } else if (sortBy === 'filename') {
+        orderBy = 'system_filename';
+      }
+      
+      queryParams.append('order', orderBy + '.' + (sortOrder === 'desc' ? 'desc' : 'asc'));
+      
+      // Pagination
+      const offset = (currentPage - 1) * itemsPerPage;
+      queryParams.append('limit', itemsPerPage.toString());
+      queryParams.append('offset', offset.toString());
+
+      // Fetch data from database with all filters
+      const response = await fetch(`https://db.nymia.ai/rest/v1/generated_images?${queryParams.toString()}`, {
+        headers: {
+          'Authorization': 'Bearer WeInfl3nc3withAI',
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch vault data');
+      }
+
+      const data: GeneratedImageData[] = await response.json();
+      
+      // Get total count for pagination
+      const countParams = new URLSearchParams();
+      countParams.append('user_uuid', 'eq.' + userData.id);
+      
+      // Current path filter for count query
+      if (currentPath === '') {
+        // Root folder - show files with empty user_filename or null
+        countParams.append('or', '(user_filename.is.null,user_filename.eq.)');
+      } else {
+        // Specific folder - show files with matching user_filename
+        countParams.append('user_filename', 'eq.' + currentPath);
+      }
+      
+      if (searchTerm.trim()) {
+        countParams.append('or', `(system_filename.ilike.*${searchTerm}*,user_filename.ilike.*${searchTerm}*,user_notes.ilike.*${searchTerm}*,user_tags.cs.{${searchTerm}})`);
+      }
+      
+      if (selectedFilters.fileTypes.length > 0) {
+        countParams.append('file_type', 'in.(' + selectedFilters.fileTypes.join(',') + ')');
+      }
+      
+      if (selectedFilters.favorites !== null) {
+        countParams.append('favorite', 'eq.' + selectedFilters.favorites);
+      }
+      
+      if (selectedFilters.ratingRange.min > 0) {
+        countParams.append('rating', 'gte.' + selectedFilters.ratingRange.min);
+      }
+      if (selectedFilters.ratingRange.max < 5) {
+        countParams.append('rating', 'lte.' + selectedFilters.ratingRange.max);
+      }
+      
+      if (selectedFilters.withNotes === true) {
+        countParams.append('user_notes', 'not.is.null');
+        countParams.append('user_notes', 'neq.');
+      } else if (selectedFilters.withNotes === false) {
+        countParams.append('or', '(user_notes.is.null,user_notes.eq.)');
+      }
+      
+      if (selectedFilters.selectedTags.length > 0) {
+        countParams.append('user_tags', 'cs.{' + selectedFilters.selectedTags.join(',') + '}');
+      }
+
+      const countResponse = await fetch(`https://db.nymia.ai/rest/v1/generated_images?${countParams.toString()}&select=count`, {
+        headers: {
+          'Authorization': 'Bearer WeInfl3nc3withAI',
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (countResponse.ok) {
+        const countData = await countResponse.json();
+        setTotalItems(countData[0]?.count || 0);
+      }
+
+      setGeneratedImages(data);
+      console.log('Fetched vault data:', data);
+
+    } catch (error) {
+      console.error('Error fetching vault data:', error);
+      toast.error('Failed to fetch vault data', {
+        description: 'Please try again later.',
+        duration: 5000
+      });
+      setGeneratedImages([]);
+      setTotalItems(0);
+    } finally {
+      setIsLoading(false);
+      setFilesLoading(false);
+    }
+  }, [userData.id, currentPath, searchTerm, selectedFilters, sortBy, sortOrder, currentPage, itemsPerPage]);
+
+  // Fetch data when filters or pagination changes
+  useEffect(() => {
+    fetchVaultDataWithFilters();
+  }, [fetchVaultDataWithFilters]);
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, selectedFilters, sortBy, sortOrder]);
 
   if (foldersLoading) {
     return (

@@ -328,11 +328,11 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
           const fallbackFolders = data
             .filter((folder: FolderData) => folder.Key) // Only process folders with valid Key
             .map((folder: FolderData) => ({
-              name: folder.Key || extractFolderName(folder.Key) || 'Unknown Folder',
-              path: folder.Key || extractFolderName(folder.Key) || 'unknown',
-              children: [],
-              isFolder: true
-            }));
+            name: folder.Key || extractFolderName(folder.Key) || 'Unknown Folder',
+            path: folder.Key || extractFolderName(folder.Key) || 'unknown',
+            children: [],
+            isFolder: true
+          }));
           console.log('Fallback folders:', fallbackFolders);
           setFolderStructure(fallbackFolders);
         }
@@ -369,10 +369,10 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
   // Fetch audios from current folder
   const fetchFolderFiles = async (folderPath: string) => {
     if (!userData.id) return;
-
+    
     try {
       setAudiosLoading(true);
-
+      
       // Build the query for counting audios in the current path
       let countQuery = `https://db.nymia.ai/rest/v1/audio?user_uuid=eq.${userData.id}&status=eq.created&select=count`;
       
@@ -424,8 +424,8 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
       if (currentPath === '') {
         // Root folder: show audios where audio_path is empty, null, or undefined
         query += `&or=(audio_path.is.null,audio_path.eq."")`;
-      } else {
-        // Subfolder: show audios that are in the specific folder path
+          } else {
+            // Subfolder: show audios that are in the specific folder path
         query += `&audio_path=eq.${encodeURIComponent(currentPath)}`;
       }
 
@@ -531,14 +531,14 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
             if (selectedAudios.size > 0 && !isMultiDownloading) {
               handleMultiDownload();
             }
-            break;
+          break;
           case 'Delete':
           case 'Backspace':
             e.preventDefault();
             if (selectedAudios.size > 0) {
               handleMultiDelete();
             }
-            break;
+          break;
         }
       } else {
         // Non-Ctrl/Cmd shortcuts
@@ -554,23 +554,23 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
             }
             clearSelection();
             setIsMultiSelectMode(false);
-            break;
+          break;
           case 'v':
             e.preventDefault();
             if (selectedAudios.size > 0 && !isMultiPasting) {
               handleMultiPaste();
             }
-            break;
+          break;
           case 'd':
             e.preventDefault();
             if (selectedAudios.size > 0 && !isMultiDownloading) {
               handleMultiDownload();
             }
-            break;
-        }
+          break;
+      }
       }
     };
-
+      
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [fileCopyState, selectedAudios, isMultiPasting, isMultiDownloading, isMultiSelectMode]);
@@ -1029,7 +1029,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
 
       // Delete the actual file
       const fileName = audio.filename || `${audio.audio_id}.mp3`;
-
+      
       await fetch('https://api.nymia.ai/v1/deletefile', {
         method: 'POST',
         headers: {
@@ -1106,7 +1106,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
         toast.success('Folder created successfully');
         setShowNewFolderModal(false);
         setNewFolderName('');
-
+        
         // Refresh folders
         const updatedFolders = [...folders, { Key: `${newFolderPath}` }];
         setFolders(updatedFolders);
@@ -1193,19 +1193,19 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
 
       const allAudios = await allAudiosResponse.json();
       const audiosInFolder = allAudios.filter(audio => audio.audio_path === oldPath || (oldPath === "" && audio.audio_path === ""));
-
+      
       if (audiosInFolder.length > 0) {
         console.log('Moving', audiosInFolder.length, 'audios from old folder to new folder');
-
+        
         for (const audio of audiosInFolder) {
           // Extract the filename from the audio path
           const audioPath = audio.audio_path || getAudioUrl(audio);
           const fileName = audio.filename || `${audio.audio_id}.mp3`;
-
+          
           console.log(`Attempting to move audio: ${fileName}`);
           console.log(`From: audio/${oldPath}/${fileName}`);
           console.log(`To: audio/${newPath}/${fileName}`);
-
+          
           // Copy the audio file from old location to new location
           const copyResponse = await fetch('https://api.nymia.ai/v1/copyfile', {
             method: 'POST',
@@ -1303,16 +1303,16 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
               if (subfolderCreateResponse.ok) {
                 // Move audios in this subfolder
                 const subfolderAudios = allAudios.filter(audio => audio.audio_path === `${oldPath}/${relativePath}`);
-
+                
                 for (const audio of subfolderAudios) {
                   // Extract the filename from the audio path
                   const audioPath = audio.audio_path || getAudioUrl(audio);
                   const fileName = audio.filename || `${audio.audio_id}.mp3`;
-
+                  
                   console.log(`Attempting to move audio in subfolder: ${fileName}`);
                   console.log(`From: audio/${oldPath}/${relativePath}/${fileName}`);
                   console.log(`To: audio/${newPath}/${relativePath}/${fileName}`);
-
+                  
                   // Copy the audio file from old subfolder location to new subfolder location
                   const copyResponse = await fetch('https://api.nymia.ai/v1/copyfile', {
                     method: 'POST',
@@ -1481,7 +1481,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
           setFolders(data);
           setFolderStructure(buildFolderStructure(data));
         }
-
+        
         // Refresh current folder content
         await fetchFolderFiles(currentPath);
 
@@ -1491,7 +1491,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
           description: `"${deleteFolderModal.folderName}" and all its contents have been permanently deleted`,
           duration: 3000
         });
-
+        
         // Close modal
         setDeleteFolderModal({ open: false, folderPath: null, folderName: null });
       } else {
@@ -1588,17 +1588,17 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
 
         const allAudios = await allAudiosResponse.json();
         const audiosInSourceFolder = allAudios.filter(audio => audio.audio_path === sourcePath);
-
+        
         if (audiosInSourceFolder.length > 0) {
           console.log(`Copying ${audiosInSourceFolder.length} audios from source folder`);
-
+          
           for (const audio of audiosInSourceFolder) {
             const fileName = audio.filename || `${audio.audio_id}.mp3`;
-
+            
             console.log(`Copying audio: ${fileName}`);
             console.log(`From: audio/${sourcePath}/${fileName}`);
             console.log(`To: audio/${destPath}/${fileName}`);
-
+            
             // Copy the audio file
             const copyResponse = await fetch('https://api.nymia.ai/v1/copyfile', {
               method: 'POST',
@@ -1716,14 +1716,14 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
                 if (subfolderCreateResponse.ok) {
                   // Copy audios in this subfolder
                   const subfolderAudios = allAudios.filter(audio => audio.audio_path === `${sourcePath}/${relativePath}`);
-
+                  
                   for (const audio of subfolderAudios) {
                     const fileName = audio.filename || `${audio.audio_id}.mp3`;
-
+                    
                     console.log(`Copying audio in subfolder: ${fileName}`);
                     console.log(`From: audio/${sourcePath}/${relativePath}/${fileName}`);
                     console.log(`To: audio/${destPath}/${relativePath}/${fileName}`);
-
+                    
                     // Copy the audio file
                     const copyResponse = await fetch('https://api.nymia.ai/v1/copyfile', {
                       method: 'POST',
@@ -1829,7 +1829,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
       // Clear clipboard
       setClipboard(null);
       setCopyState(0);
-
+      
       // Refresh folders
       const response = await fetch('https://api.nymia.ai/v1/getfoldernames', {
         method: 'POST',
@@ -2138,10 +2138,10 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
       const folderPath = folder.Key;
       const currentPathParts = currentPath.split('/');
       const folderPathParts = folderPath.split('/');
-
+      
       // Check if this folder is an immediate child of current path
       return folderPathParts.length === currentPathParts.length + 1 &&
-        folderPathParts.slice(0, currentPathParts.length).join('/') === currentPath;
+             folderPathParts.slice(0, currentPathParts.length).join('/') === currentPath;
     });
   };
 
@@ -2183,7 +2183,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
     if (fileClipboard && fileCopyState > 0) {
       const originalPath = currentPath;
       setCurrentPath(targetFolderPath);
-
+      
       try {
         await handleFilePaste();
         toast.success(`Files ${fileClipboard.type === 'copy' ? 'copied' : 'moved'} to ${targetFolderPath}`);
@@ -2583,24 +2583,24 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
       {/* Multi-selection toolbar */}
       {isMultiSelectMode && (
         <div className="flex items-center gap-2 p-3 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950/30 dark:to-pink-950/30 rounded-lg border border-purple-200 dark:border-purple-800 shadow-sm mb-4 justify-between">
-          <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2">
             <div className="w-6 h-6 bg-purple-500 rounded-full flex items-center justify-center">
               <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
               </svg>
-            </div>
+                </div>
             <span className="text-sm font-medium text-purple-900 dark:text-purple-100">
               {selectedAudios.size > 0 
                 ? `${selectedAudios.size} audio${selectedAudios.size > 1 ? 's' : ''} selected`
                 : 'Multi-select mode - Click audios to select'
               }
             </span>
-          </div>
-          
+              </div>
+
           <div className="flex items-center gap-1">
-            <Button
+                <Button
               variant="outline"
-              size="sm"
+                  size="sm"
               onClick={handleMultiCopy}
               disabled={selectedAudios.size === 0 || isMultiCopyActive}
               className="h-8 text-xs bg-white/80 hover:bg-white dark:bg-gray-800/80 dark:hover:bg-gray-800"
@@ -2611,7 +2611,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
               Copy
             </Button>
             <Button
-              variant="outline"
+                  variant="outline"
               size="sm"
               onClick={handleMultiCut}
               disabled={selectedAudios.size === 0 || isMultiCopyActive}
@@ -2682,8 +2682,8 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
             >
               <X className="w-3 h-3 mr-1" />
               Clear
-            </Button>
-          </div>
+                </Button>
+              </div>
         </div>
       )}
 
@@ -2722,7 +2722,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
                 <Button onClick={clearSearch} variant="outline" className="gap-2">
                   <Search className="w-4 h-4" />
                   Clear Search
-                </Button>
+              </Button>
             </div>
           </div>
         </div>
@@ -2760,7 +2760,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
             >
               {/* Audio Preview */}
               <div className="relative aspect-video bg-gradient-to-br from-purple-500 via-pink-500 to-orange-500 overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-br from-purple-600/20 to-pink-600/20"></div>
+                    <div className="absolute inset-0 bg-gradient-to-br from-purple-600/20 to-pink-600/20"></div>
 
                 {/* Selection indicator */}
                 {selectedAudios.has(audio.audio_id) && (
@@ -2770,85 +2770,85 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
                     </svg>
                   </div>
                 )}
+                    
+                    {/* Audio waveform visualization */}
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="flex items-end gap-1 h-16">
+                        {[...Array(8)].map((_, i) => (
+                          <div
+                            key={i}
+                            className="w-1 bg-white/80 rounded-full animate-pulse"
+                            style={{
+                              height: `${Math.random() * 60 + 20}%`,
+                              animationDelay: `${i * 0.1}s`
+                            }}
+                          />
+                        ))}
+                      </div>
+                    </div>
 
-                {/* Audio waveform visualization */}
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="flex items-end gap-1 h-16">
-                    {[...Array(8)].map((_, i) => (
-                      <div
-                        key={i}
-                        className="w-1 bg-white/80 rounded-full animate-pulse"
-                        style={{
-                          height: `${Math.random() * 60 + 20}%`,
-                          animationDelay: `${i * 0.1}s`
-                        }}
-                      />
-                    ))}
+                    {/* Music icon */}
+                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                      <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">
+                        <Music className="w-8 h-8 text-white" />
+                      </div>
+                    </div>
+
+                    {/* Overlay with play button */}
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-300 flex items-center justify-center">
+                      <div className="w-16 h-16 bg-white/90 dark:bg-gray-800/90 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 transform scale-75 group-hover:scale-100">
+                        <Play className="w-6 h-6 text-gray-900 dark:text-white ml-1" />
+                      </div>
+                    </div>
+
+                    {/* Status badge */}
+                    <div className="absolute top-3 right-3">
+                      <Badge className={`${getAudioStatusColor(audio.status)} text-xs font-medium px-2 py-1`}>
+                        {audio.status}
+                      </Badge>
+                    </div>
                   </div>
-                </div>
 
-                {/* Music icon */}
-                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                  <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">
-                    <Music className="w-8 h-8 text-white" />
-                  </div>
-                </div>
-
-                {/* Overlay with play button */}
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-300 flex items-center justify-center">
-                  <div className="w-16 h-16 bg-white/90 dark:bg-gray-800/90 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 transform scale-75 group-hover:scale-100">
-                    <Play className="w-6 h-6 text-gray-900 dark:text-white ml-1" />
-                  </div>
-                </div>
-
-                {/* Status badge */}
-                <div className="absolute top-3 right-3">
-                  <Badge className={`${getAudioStatusColor(audio.status)} text-xs font-medium px-2 py-1`}>
-                    {audio.status}
-                  </Badge>
-                </div>
-              </div>
-
-              {/* Audio Info */}
-              <CardContent className="p-4 space-y-3">
-                {/* Title and format */}
-                <div className="space-y-2">
-                  <h4 className="font-semibold text-sm text-gray-900 dark:text-gray-100 line-clamp-2 leading-tight">
+                  {/* Audio Info */}
+                  <CardContent className="p-4 space-y-3">
+                    {/* Title and format */}
+                    <div className="space-y-2">
+                      <h4 className="font-semibold text-sm text-gray-900 dark:text-gray-100 line-clamp-2 leading-tight">
                     {audio.filename || audio.prompt.substring(0, 60)}
-                  </h4>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="secondary" className="text-xs px-2 py-1 bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300">
+                      </h4>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary" className="text-xs px-2 py-1 bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300">
                       MP3
-                    </Badge>
-                    <Badge variant="outline" className="text-xs px-2 py-1">
-                      Audio
-                    </Badge>
-                  </div>
-                </div>
+                        </Badge>
+                        <Badge variant="outline" className="text-xs px-2 py-1">
+                          Audio
+                        </Badge>
+                      </div>
+                    </div>
 
-                {/* Description */}
-                <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2 leading-relaxed">
-                  {audio.prompt}
-                </p>
+                    {/* Description */}
+                    <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2 leading-relaxed">
+                      {audio.prompt}
+                    </p>
 
-                {/* Date */}
-                <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-                  <Calendar className="w-3 h-3" />
+                    {/* Date */}
+                    <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                      <Calendar className="w-3 h-3" />
                   <span>{formatAudioDate(audio.created_at)}</span>
-                </div>
+                    </div>
 
-                {/* Action Buttons */}
-                <div className="flex gap-1.5 mt-3">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="flex-1 h-8 text-xs font-medium hover:bg-purple-700 hover:border-purple-500 transition-colors"
+                  {/* Action Buttons */}
+                  <div className="flex gap-1.5 mt-3">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="flex-1 h-8 text-xs font-medium hover:bg-purple-700 hover:border-purple-500 transition-colors"
                     disabled={downloadingAudios.has(audio.audio_id)}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDownload(audio.audio_id);
-                    }}
-                  >
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDownload(audio.audio_id);
+                      }}
+                    >
                     {downloadingAudios.has(audio.audio_id) ? (
                       <>
                         <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current mr-1.5"></div>
@@ -2858,34 +2858,34 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
                       </>
                     ) : (
                       <>
-                        <Download className="w-3 h-3 mr-1.5" />
-                        <span className="hidden sm:inline">Download</span>
+                      <Download className="w-3 h-3 mr-1.5" />
+                      <span className="hidden sm:inline">Download</span>
                       </>
                     )}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-8 w-8 p-0 hover:bg-green-50 hover:bg-green-700 hover:border-green-500 transition-colors"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleShare(audio.audio_id);
-                    }}
-                  >
-                    <Share className="w-3 h-3" />
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-amber-500 hover:border-amber-300 transition-colors"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDelete(audio);
-                    }}
-                  >
-                    <Trash2 className="w-3 h-3" />
-                  </Button>
-                </div>
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-8 w-8 p-0 hover:bg-green-50 hover:bg-green-700 hover:border-green-500 transition-colors"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleShare(audio.audio_id);
+                      }}
+                    >
+                      <Share className="w-3 h-3" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-amber-500 hover:border-amber-300 transition-colors"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDelete(audio);
+                      }}
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </Button>
+                  </div>
 
                 {/* Download Progress Bar */}
                 {downloadProgress[audio.audio_id] && downloadProgress[audio.audio_id] < 100 && (
@@ -2896,7 +2896,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
                     />
                   </div>
                 )}
-              </CardContent>
+                </CardContent>
             </Card>
           ))}
         </div>
@@ -3027,8 +3027,8 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
                     </>
                   ) : (
                     <>
-                      <Download className="w-4 h-4 mr-2" />
-                      Download
+                  <Download className="w-4 h-4 mr-2" />
+                  Download
                     </>
                   )}
                 </Button>
@@ -3144,15 +3144,15 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
               </div>
             )}
             <div className="flex justify-end gap-3">
-              <Button
-                variant="outline"
+              <Button 
+                variant="outline" 
                 onClick={() => setDeleteFolderModal({ open: false, folderPath: null, folderName: null })}
                 className="px-6"
               >
                 Cancel
               </Button>
-              <Button
-                variant="destructive"
+              <Button 
+                variant="destructive" 
                 onClick={confirmDeleteFolder}
                 className="bg-red-600 hover:bg-red-700 px-6"
               >
@@ -3301,8 +3301,8 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
               </>
             ) : (
               <>
-                <Download className="w-4 h-4" />
-                Download
+            <Download className="w-4 h-4" />
+            Download
               </>
             )}
           </button>
@@ -3374,7 +3374,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
 
     const audioUrl = audio.audio_path || getAudioUrl(audio);
     const shareText = `Check out this audio: ${audio.filename}`;
-
+    
     let shareUrl = '';
     switch (platform) {
       case 'facebook':
@@ -3389,7 +3389,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
         toast.success('Audio URL copied to clipboard for Instagram');
         return;
     }
-
+    
     window.open(shareUrl, '_blank');
   }
 } 

@@ -421,7 +421,7 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
       if (currentPath === '') {
         // Root folder: show videos where video_path is empty, null, or undefined
         query += `&or=(video_path.is.null,video_path.eq."")`;
-      } else {
+          } else {
         // Subfolder: show videos that are in the specific folder path
         query += `&video_path=eq.${encodeURIComponent(currentPath)}`;
       }
@@ -1993,8 +1993,8 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
           description: `Processing "${video.user_filename || video.video_id}"`
         });
 
-        const fileName = video.video_name && video.video_name.trim() !== '' ? video.video_name : video.video_id;
-        const sourcePath = video.video_path ? `video/${video.video_path}/${fileName}.mp4` : `video/${fileName}.mp4`;
+          const fileName = video.video_name && video.video_name.trim() !== '' ? video.video_name : video.video_id;
+          const sourcePath = video.video_path ? `video/${video.video_path}/${fileName}.mp4` : `video/${fileName}.mp4`;
         const destinationPath = currentPath ? `video/${currentPath}/${fileName}.mp4` : `video/${fileName}.mp4`;
 
         console.log(`Starting ${fileClipboard.type} operation for video: ${fileName}`);
@@ -2002,24 +2002,24 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
         console.log(`To: ${destinationPath}`);
 
         // Copy the video file
-        const copyResponse = await fetch('https://api.nymia.ai/v1/copyfile', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer WeInfl3nc3withAI'
-          },
-          body: JSON.stringify({
-            user: userData.id,
-            sourcefilename: sourcePath,
-            destinationfilename: destinationPath
-          })
-        });
+          const copyResponse = await fetch('https://api.nymia.ai/v1/copyfile', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer WeInfl3nc3withAI'
+            },
+            body: JSON.stringify({
+              user: userData.id,
+              sourcefilename: sourcePath,
+              destinationfilename: destinationPath
+            })
+          });
 
-        if (!copyResponse.ok) {
+          if (!copyResponse.ok) {
           const errorText = await copyResponse.text();
           console.error(`Failed to copy video file ${fileName}.mp4:`, errorText);
           throw new Error(`Failed to copy video file ${fileName}.mp4: ${errorText}`);
-        }
+          }
 
         console.log(`Successfully copied video file ${fileName}.mp4`);
 
@@ -2416,11 +2416,11 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
           </div>
         </div>
 
-                <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3">
           {/* Multi-select Mode Toggle */}
-          <Button
+              <Button
             variant={isMultiSelectMode ? "default" : "outline"}
-            size="sm"
+                size="sm"
             onClick={() => {
               setIsMultiSelectMode(!isMultiSelectMode);
               if (!isMultiSelectMode) {
@@ -2433,7 +2433,7 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
             </svg>
             <span className="hidden sm:inline">Multi-select</span>
-          </Button>
+              </Button>
           
           <Button
             onClick={handleRefresh}
@@ -2871,7 +2871,7 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
                   e.preventDefault();
                   console.log('Calling toggleVideoSelection for:', video.video_id);
                   toggleVideoSelection(video.video_id);
-                } else {
+                    } else {
                   console.log('Calling handleVideoSelect for:', video.video_id);
                   handleVideoSelect(video);
                 }

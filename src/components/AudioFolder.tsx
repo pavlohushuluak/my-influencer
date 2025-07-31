@@ -49,6 +49,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const [audios, setAudios] = useState<AudioData[]>([]);
+  const [totalAudiosCount, setTotalAudiosCount] = useState(0);
   const [folders, setFolders] = useState<FolderData[]>([]);
   const [foldersLoading, setFoldersLoading] = useState(true);
   const [audiosLoading, setAudiosLoading] = useState(true);
@@ -246,6 +247,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
   // Navigate to folder
   const navigateToFolder = (folderPath: string) => {
     setCurrentPath(folderPath);
+    setCurrentPage(1); // Reset to first page when changing folders
     fetchFolderFiles(folderPath);
   };
 
@@ -255,12 +257,14 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
     pathParts.pop();
     const parentPath = pathParts.join('/');
     setCurrentPath(parentPath);
+    setCurrentPage(1); // Reset to first page when changing folders
     fetchFolderFiles(parentPath);
   };
 
   // Navigate to home (audio root)
   const navigateToHome = () => {
     setCurrentPath('');
+    setCurrentPage(1); // Reset to first page when changing folders
     fetchFolderFiles('');
   };
 
@@ -364,9 +368,20 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
     try {
       setAudiosLoading(true);
 
-      console.log(`https://db.nymia.ai/rest/v1/audio?user_uuid=eq.${userData.id}&status=eq.created&order=created_at.desc`);
-      // Fetch all audio files from the database
-      const response = await fetch(`https://db.nymia.ai/rest/v1/audio?user_uuid=eq.${userData.id}&status=eq.created&order=created_at.desc`, {
+      // Build the query for counting audios in the current path
+      let countQuery = `https://db.nymia.ai/rest/v1/audio?user_uuid=eq.${userData.id}&status=eq.created&select=count`;
+      
+      if (folderPath === '') {
+        // Root folder: count audios where audio_path is empty, null, or undefined
+        countQuery += `&or=(audio_path.is.null,audio_path.eq."")`;
+      } else {
+        // Subfolder: count audios that are in the specific folder path
+        countQuery += `&audio_path=eq.${encodeURIComponent(folderPath)}`;
+      }
+
+      console.log('Count query:', countQuery);
+      
+      const response = await fetch(countQuery, {
         headers: {
           'Authorization': 'Bearer WeInfl3nc3withAI',
           'Content-Type': 'application/json'
@@ -375,34 +390,102 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
 
       if (response.ok) {
         const data = await response.json();
-        console.log('Fetched audios:', data);
-
-        // Filter audios based on current path
-        const filteredAudios = data.filter((audio: AudioData) => {
-          if (folderPath === '') {
-            // Root folder: show audios where audio_path is empty, null, or undefined
-            return !audio.audio_path || audio.audio_path === '' || audio.audio_path.trim() === '';
-          } else {
-            // Subfolder: show audios that are in the specific folder path
-            return audio.audio_path === folderPath;
-          }
-        });
-
-        console.log('Filtered audios for path:', folderPath, filteredAudios);
-        setAudios(filteredAudios);
+        const count = data[0]?.count || 0;
+        console.log('Total audios count for path:', folderPath, count);
+        setTotalAudiosCount(count);
+        
+        // Set current path for future queries
+        setCurrentPath(folderPath);
       }
     } catch (error) {
-      console.error('Error fetching audios:', error);
-      toast.error('Failed to load audios');
+      console.error('Error fetching audio count:', error);
+      toast.error('Failed to load audio count');
     } finally {
       setAudiosLoading(false);
     }
   };
 
-  // Fetch initial audios
+  // Function to fetch audios with search, sort, and pagination
+  const fetchAudiosWithFilters = useCallback(async () => {
+    if (!userData.id) return;
+
+    try {
+      setAudiosLoading(true);
+
+      // Build the base query
+      let query = `https://db.nymia.ai/rest/v1/audio?user_uuid=eq.${userData.id}&status=eq.created`;
+      
+      // Add path filter
+      if (currentPath === '') {
+        // Root folder: show audios where audio_path is empty, null, or undefined
+        query += `&or=(audio_path.is.null,audio_path.eq."")`;
+      } else {
+        // Subfolder: show audios that are in the specific folder path
+        query += `&audio_path=eq.${encodeURIComponent(currentPath)}`;
+      }
+
+      // Add search filter if search term exists
+      if (searchTerm.trim()) {
+        query += `&or=(prompt.ilike.*${encodeURIComponent(searchTerm)}*,filename.ilike.*${encodeURIComponent(searchTerm)}*)`;
+      }
+
+      // Add sorting
+      let orderBy = '';
+      switch (sortBy) {
+        case 'newest':
+          orderBy = 'created_at.desc';
+          break;
+        case 'oldest':
+          orderBy = 'created_at.asc';
+          break;
+        case 'character_cost':
+          orderBy = sortOrder === 'asc' ? 'character_cost.asc' : 'character_cost.desc';
+          break;
+        case 'name':
+          orderBy = sortOrder === 'asc' ? 'filename.asc' : 'filename.desc';
+          break;
+        default:
+          orderBy = 'created_at.desc';
+      }
+      query += `&order=${orderBy}`;
+
+      // Add pagination
+      const offset = (currentPage - 1) * itemsPerPage;
+      query += `&limit=${itemsPerPage}&offset=${offset}`;
+
+      console.log('Fetch audios query:', query);
+      
+      const response = await fetch(query, {
+        headers: {
+          'Authorization': 'Bearer WeInfl3nc3withAI',
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Fetched audios with filters:', data);
+        setAudios(data);
+      }
+    } catch (error) {
+      console.error('Error fetching audios with filters:', error);
+      toast.error('Failed to load audios');
+    } finally {
+      setAudiosLoading(false);
+    }
+  }, [userData.id, currentPath, searchTerm, sortBy, sortOrder, currentPage, itemsPerPage]);
+
+  // Fetch initial audio count
   useEffect(() => {
     fetchFolderFiles('');
   }, [userData.id]);
+
+  // Fetch audios when search, sort, or pagination changes
+  useEffect(() => {
+    if (currentPath !== undefined && totalAudiosCount > 0) {
+      fetchAudiosWithFilters();
+    }
+  }, [fetchAudiosWithFilters, totalAudiosCount]);
 
   // Keyboard event listener for clipboard operations
   useEffect(() => {
@@ -420,43 +503,9 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [fileCopyState]);
 
-  // Filter and sort audios
-  const filteredAudios = audios
-    .filter(audio => {
-      const matchesSearch = audio.prompt.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        audio.filename.toLowerCase().includes(searchTerm.toLowerCase());
-
-      return matchesSearch;
-    })
-    .sort((a, b) => {
-      let comparison = 0;
-
-      switch (sortBy) {
-        case 'newest':
-          comparison = new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-          break;
-        case 'oldest':
-          comparison = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
-          break;
-        case 'character_cost':
-          comparison = b.character_cost - a.character_cost;
-          break;
-        case 'name':
-          comparison = a.filename.localeCompare(b.filename);
-          break;
-        default:
-          comparison = 0;
-      }
-
-      return sortOrder === 'asc' ? comparison : -comparison;
-    });
-
   // Pagination calculations
-  const totalItems = filteredAudios.length;
-  const totalPages = Math.ceil(totalItems / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const currentAudios = filteredAudios.slice(startIndex, endIndex);
+  const totalPages = Math.ceil(totalAudiosCount / itemsPerPage);
+  const currentAudios = audios; // audios now contains only the current page data
 
   // Audio helper functions
   const getAudioUrl = (audio: AudioData) => {
@@ -700,6 +749,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
   // Clear search
   const clearSearch = () => {
     setSearchTerm('');
+    setCurrentPage(1); // Reset to first page when clearing search
   };
 
   // Folder management functions
@@ -2202,7 +2252,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
             </Card>
           ))}
         </div>
-      ) : totalItems === 0 ? (
+              ) : totalAudiosCount === 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 md:gap-6">
 
           {/* Empty state message */}
@@ -2375,7 +2425,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
       )}
 
       {/* Pagination Controls */}
-      {totalItems > 0 && (
+              {totalAudiosCount > 0 && (
         <div className="flex flex-col sm:flex-row justify-between items-center gap-4 py-6 border-t border-gray-200 dark:border-gray-700 mt-4">
           {/* Items per page selector */}
           <div className="flex items-center gap-2">
@@ -2397,7 +2447,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
 
           {/* Page info */}
           <div className="text-sm text-gray-600 dark:text-gray-400">
-            Showing {startIndex + 1}-{Math.min(endIndex, totalItems)} of {totalItems} audios
+                            Showing {((currentPage - 1) * itemsPerPage) + 1}-{Math.min(currentPage * itemsPerPage, totalAudiosCount)} of {totalAudiosCount} audios
           </div>
 
           {/* Pagination buttons */}

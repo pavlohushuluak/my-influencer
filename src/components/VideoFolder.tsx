@@ -114,6 +114,11 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
 
   // Multi-selection state
   const [selectedVideos, setSelectedVideos] = useState<Set<string>>(new Set());
+  const [isMultiSelectMode, setIsMultiSelectMode] = useState<boolean>(false);
+  const [isMultiCopyActive, setIsMultiCopyActive] = useState<boolean>(false);
+  const [isMultiDownloading, setIsMultiDownloading] = useState<boolean>(false);
+  const [isMultiPasting, setIsMultiPasting] = useState<boolean>(false);
+  const [multiSelectContextMenu, setMultiSelectContextMenu] = useState<{ x: number; y: number } | null>(null);
 
   // Drag and drop state
   const [dragOverFolder, setDragOverFolder] = useState<string | null>(null);
@@ -484,6 +489,7 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
       if (response.ok) {
         const data = await response.json();
         console.log('Fetched videos with filters:', data);
+        console.log('Video IDs:', data.map(v => ({ id: v.id, task_id: v.task_id, video_id: v.video_id })));
         setVideos(data);
       }
     } catch (error) {
@@ -509,8 +515,9 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
   // Keyboard shortcuts for copy, cut, paste
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Only handle shortcuts when not typing in input fields
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+      // Only handle shortcuts when not typing in input fields or interacting with cards
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || 
+          e.target instanceof HTMLButtonElement || (e.target as Element)?.closest('[role="button"]')) {
         return;
       }
 
@@ -518,26 +525,18 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
         switch (e.key) {
           case 'c':
             e.preventDefault();
-            // Copy selected videos
             if (selectedVideos.size > 0) {
-              const selectedVideoList = videos.filter(video => selectedVideos.has(video.id));
-              if (selectedVideoList.length > 0) {
-                setFileClipboard({ type: 'copy', items: selectedVideoList });
-                setFileCopyState(1);
-                toast.success(`${selectedVideoList.length} video(s) copied to clipboard`);
-              }
+              handleMultiCopy();
+            } else if (fileCopyState > 0) {
+              handleFilePaste();
             }
             break;
           case 'x':
             e.preventDefault();
-            // Cut selected videos
             if (selectedVideos.size > 0) {
-              const selectedVideoList = videos.filter(video => selectedVideos.has(video.id));
-              if (selectedVideoList.length > 0) {
-                setFileClipboard({ type: 'cut', items: selectedVideoList });
-                setFileCopyState(2);
-                toast.success(`${selectedVideoList.length} video(s) cut to clipboard`);
-              }
+              handleMultiCut();
+            } else if (fileCopyState > 0) {
+              handleFilePaste();
             }
             break;
           case 'v':
@@ -547,17 +546,307 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
               handleFilePaste();
             }
             break;
+
+          case 'd':
+            e.preventDefault();
+            if (selectedVideos.size > 0 && !isMultiDownloading) {
+              handleMultiDownload();
+            }
+            break;
+          case 'Delete':
+          case 'Backspace':
+            e.preventDefault();
+            if (selectedVideos.size > 0) {
+              handleMultiDelete();
+            }
+            break;
+        }
+      } else {
+        // Non-Ctrl/Cmd shortcuts
+        switch (e.key) {
+          case 'Escape':
+            e.preventDefault();
+            setContextMenu(null);
+            setFileContextMenu(null);
+            clearSelection();
+            setIsMultiSelectMode(false);
+            break;
+          case 'v':
+            e.preventDefault();
+            if (selectedVideos.size > 0 && !isMultiPasting) {
+              handleMultiPaste();
+            }
+            break;
+          case 'd':
+            e.preventDefault();
+            if (selectedVideos.size > 0 && !isMultiDownloading) {
+              handleMultiDownload();
+            }
+            break;
         }
       }
     };
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [selectedVideos, videos, fileClipboard, fileCopyState]);
+  }, [selectedVideos, videos, fileClipboard, fileCopyState, isMultiPasting, isMultiDownloading, isMultiSelectMode]);
 
   // Pagination calculations
   const totalPages = Math.ceil(totalVideosCount / itemsPerPage);
   const currentVideos = videos; // videos now contains only the current page data
+
+  // Multi-selection helper functions
+  const toggleVideoSelection = (videoId: string) => {
+    console.log('toggleVideoSelection called with videoId:', videoId);
+    console.log('Current videos:', videos.map(v => ({ id: v.id, task_id: v.task_id, video_id: v.video_id })));
+    console.log('Current selectedVideos set:', Array.from(selectedVideos));
+    setSelectedVideos(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(videoId)) {
+        newSet.delete(videoId);
+        console.log('Removed videoId:', videoId);
+      } else {
+        newSet.add(videoId);
+        console.log('Added videoId:', videoId);
+      }
+      console.log('New selection set:', Array.from(newSet));
+      return newSet;
+    });
+  };
+
+
+
+  const clearSelection = () => {
+    setSelectedVideos(new Set());
+  };
+
+  const getSelectedVideos = () => {
+    return videos.filter(video => selectedVideos.has(video.video_id));
+  };
+
+  // Multi-operation functions
+  const handleMultiCopy = () => {
+    const selected = getSelectedVideos();
+    if (selected.length === 0) return;
+
+    // Store multiple videos for copy operation
+    localStorage.setItem('multiCopiedVideos', JSON.stringify(selected));
+    setFileCopyState(1); // Copy mode
+    setFileClipboard({ type: 'copy', items: selected });
+    setIsMultiCopyActive(true);
+    toast.success(`Copied ${selected.length} video${selected.length > 1 ? 's' : ''}`);
+  };
+
+  const handleMultiCut = () => {
+    const selected = getSelectedVideos();
+    if (selected.length === 0) return;
+
+    // Store multiple videos for cut operation
+    localStorage.setItem('multiCopiedVideos', JSON.stringify(selected));
+    setFileCopyState(2); // Cut mode
+    setFileClipboard({ type: 'cut', items: selected });
+    setIsMultiCopyActive(true);
+    toast.success(`Cut ${selected.length} video${selected.length > 1 ? 's' : ''}`);
+  };
+
+  const handleMultiPaste = async () => {
+    const multiCopiedVideos = localStorage.getItem('multiCopiedVideos');
+    if (!multiCopiedVideos) return;
+
+    try {
+      const videos = JSON.parse(multiCopiedVideos) as VideoData[];
+      setIsMultiPasting(true);
+
+      // Show initial toast
+      toast.info('Starting multi-paste operation...', {
+        description: `Processing ${videos.length} video${videos.length > 1 ? 's' : ''}`,
+        duration: 2000
+      });
+
+      for (const video of videos) {
+        await handleFilePasteOperation(video);
+      }
+
+      // Clear the multi-copy state
+      localStorage.removeItem('multiCopiedVideos');
+      setFileCopyState(0);
+      setFileClipboard(null);
+      setIsMultiCopyActive(false);
+      clearSelection();
+
+      toast.success(`Successfully pasted ${videos.length} video${videos.length > 1 ? 's' : ''}`);
+    } catch (error) {
+      console.error('Multi-paste error:', error);
+      toast.error('Failed to paste some videos');
+    } finally {
+      setIsMultiPasting(false);
+    }
+  };
+
+  const handleMultiDownload = async () => {
+    const selected = getSelectedVideos();
+    if (selected.length === 0) return;
+
+    try {
+      setIsMultiDownloading(true);
+
+      // Show initial toast
+      toast.info('Starting multi-download operation...', {
+        description: `Processing ${selected.length} video${selected.length > 1 ? 's' : ''}`,
+        duration: 2000
+      });
+
+      for (const video of selected) {
+        await handleDownload(video);
+      }
+
+      toast.success(`Successfully downloaded ${selected.length} video${selected.length > 1 ? 's' : ''}`);
+    } catch (error) {
+      console.error('Multi-download error:', error);
+      toast.error('Failed to download some videos');
+    } finally {
+      setIsMultiDownloading(false);
+    }
+  };
+
+  const handleMultiDelete = async () => {
+    const selected = getSelectedVideos();
+    if (selected.length === 0) return;
+
+    if (confirm(`Are you sure you want to delete ${selected.length} video${selected.length > 1 ? 's' : ''}?`)) {
+      try {
+        for (const video of selected) {
+          await handleDelete(video);
+        }
+        clearSelection();
+        toast.success(`Deleted ${selected.length} video${selected.length > 1 ? 's' : ''}`);
+      } catch (error) {
+        console.error('Multi-delete error:', error);
+        toast.error('Failed to delete some videos');
+      }
+    }
+  };
+
+  // Helper functions for file operations
+  const checkFileExists = async (fileName: string): Promise<boolean> => {
+    try {
+      const response = await fetch(`https://api.nymia.ai/v1/getfilenames`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          user: userData.id,
+          folder: `video/${currentPath}`
+        })
+      });
+
+      if (response.ok) {
+        const files = await response.json();
+        return files.some((file: any) => file.Key === `${fileName}.mp4`);
+      }
+      return false;
+    } catch (error) {
+      console.error('Error checking file existence:', error);
+      return false;
+    }
+  };
+
+  const checkFileExistsInDatabase = async (fileName: string): Promise<boolean> => {
+    try {
+      const response = await fetch(`https://db.nymia.ai/rest/v1/video?user_uuid=eq.${userData.id}&video_name=eq.${encodeURIComponent(fileName)}&video_path=eq.${encodeURIComponent(currentPath)}`, {
+        headers: {
+          'Authorization': 'Bearer WeInfl3nc3withAI',
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const videos = await response.json();
+        return videos.length > 0;
+      }
+      return false;
+    } catch (error) {
+      console.error('Error checking file existence in database:', error);
+      return false;
+    }
+  };
+
+  // Helper function for paste operations
+  const handleFilePasteOperation = async (video: VideoData) => {
+    const operationType = fileCopyState === 1 ? 'copying' : 'moving';
+    const fileName = video.video_name || video.video_id;
+    const route = video.video_path === "" ? "video" : `video/${video.video_path}`;
+    const newRoute = `video/${currentPath}`;
+
+    // Check if file already exists in destination
+    const fileExists = await checkFileExists(fileName);
+    const fileExistsInDb = await checkFileExistsInDatabase(fileName);
+
+    if (fileExists || fileExistsInDb) {
+      toast.warning(`Video "${fileName}" already exists in this location. Skipping paste operation.`, {
+        description: 'Please rename the existing video or choose a different location.',
+        duration: 5000
+      });
+      return;
+    }
+
+    console.log("Copied Video:", `${route}/${fileName}.mp4`);
+    console.log("New Route:", `${newRoute}/${fileName}.mp4`);
+
+    await fetch('https://api.nymia.ai/v1/copyfile', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer WeInfl3nc3withAI'
+      },
+      body: JSON.stringify({
+        user: userData.id,
+        sourcefilename: `${route}/${fileName}.mp4`,
+        destinationfilename: `${newRoute}/${fileName}.mp4`
+      })
+    });
+
+    const postVideo = {
+      ...video,
+      video_path: currentPath
+    };
+
+    delete postVideo.id;
+
+    await fetch(`https://db.nymia.ai/rest/v1/video`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer WeInfl3nc3withAI'
+      },
+      body: JSON.stringify(postVideo)
+    });
+
+    if (fileCopyState === 2) {
+      // Remove from current location if it's a cut operation
+      await fetch(`https://api.nymia.ai/v1/deletefile`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          user: userData.id,
+          filename: `${route}/${fileName}.mp4`
+        })
+      });
+
+      await fetch(`https://db.nymia.ai/rest/v1/video?id=eq.${video.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': 'Bearer WeInfl3nc3withAI',
+          'Content-Type': 'application/json'
+        }
+      });
+    }
+  };
 
   // Video helper functions
   const getVideoUrl = (video: VideoData) => {
@@ -1529,12 +1818,14 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
   const handleFileCopy = (video: VideoData) => {
     setFileClipboard({ type: 'copy', items: [video] });
     setFileCopyState(1);
+    setIsMultiCopyActive(false);
     toast.success('Video copied to clipboard');
   };
 
   const handleFileCut = (video: VideoData) => {
     setFileClipboard({ type: 'cut', items: [video] });
     setFileCopyState(2);
+    setIsMultiCopyActive(false);
     toast.success('Video cut to clipboard');
   };
 
@@ -2012,23 +2303,24 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          {/* Selection controls */}
-          {selectedVideos.size > 0 && (
-            <div className="flex items-center gap-2 mr-4">
-              <span className="text-sm text-muted-foreground">
-                {selectedVideos.size} selected
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setSelectedVideos(new Set())}
-                className="h-8 px-2"
-              >
-                Clear
-              </Button>
-            </div>
-          )}
+                <div className="flex items-center gap-3">
+          {/* Multi-select Mode Toggle */}
+          <Button
+            variant={isMultiSelectMode ? "default" : "outline"}
+            size="sm"
+            onClick={() => {
+              setIsMultiSelectMode(!isMultiSelectMode);
+              if (!isMultiSelectMode) {
+                clearSelection();
+              }
+            }}
+            className="flex items-center gap-2"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+            </svg>
+            <span className="hidden sm:inline">Multi-select</span>
+          </Button>
           
           <Button
             onClick={handleRefresh}
@@ -2299,6 +2591,113 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
         </div>
       </div>
 
+      {/* Multi-selection toolbar */}
+      {isMultiSelectMode && (
+        <div className="flex items-center gap-2 p-3 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30 rounded-lg border border-blue-200 dark:border-blue-800 shadow-sm mb-4 justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+              <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <span className="text-sm font-medium text-blue-900 dark:text-blue-100">
+              {selectedVideos.size > 0 
+                ? `${selectedVideos.size} video${selectedVideos.size > 1 ? 's' : ''} selected`
+                : 'Multi-select mode - Click videos to select'
+              }
+            </span>
+          </div>
+          
+          <div className="flex items-center gap-1">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleMultiCopy}
+              disabled={selectedVideos.size === 0 || isMultiCopyActive}
+              className="h-8 text-xs bg-white/80 hover:bg-white dark:bg-gray-800/80 dark:hover:bg-gray-800"
+            >
+              <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+              Copy
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleMultiCut}
+              disabled={selectedVideos.size === 0 || isMultiCopyActive}
+              className="h-8 text-xs bg-white/80 hover:bg-white dark:bg-gray-800/80 dark:hover:bg-gray-800"
+            >
+              <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 4v16a2 2 0 002 2h8a2 2 0 002-2V4a2 2 0 00-2-2H8a2 2 0 00-2 2z" />
+              </svg>
+              Cut
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleMultiPaste}
+              disabled={fileCopyState === 0 || isMultiPasting}
+              className="h-8 text-xs bg-white/80 hover:bg-white dark:bg-gray-800/80 dark:hover:bg-gray-800"
+            >
+              {isMultiPasting ? (
+                <>
+                  <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current mr-1"></div>
+                  Processing...
+                </>
+              ) : (
+                <>
+                  <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                  </svg>
+                  Paste
+                </>
+              )}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleMultiDownload}
+              disabled={selectedVideos.size === 0 || isMultiDownloading}
+              className="h-8 text-xs bg-white/80 hover:bg-white dark:bg-gray-800/80 dark:hover:bg-gray-800"
+            >
+              {isMultiDownloading ? (
+                <>
+                  <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current mr-1"></div>
+                  Downloading...
+                </>
+              ) : (
+                <>
+                  <Download className="w-3 h-3 mr-1" />
+                  Download
+                </>
+              )}
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={handleMultiDelete}
+              disabled={selectedVideos.size === 0}
+              className="h-8 text-xs bg-red-50 hover:bg-red-100 dark:bg-red-950/30 dark:hover:bg-red-950/50 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800"
+            >
+              <Trash2 className="w-3 h-3 mr-1" />
+              Delete
+            </Button>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={clearSelection}
+              disabled={selectedVideos.size === 0}
+              className="h-8 text-xs bg-white/80 hover:bg-white dark:bg-gray-800/80 dark:hover:bg-gray-800"
+            >
+              <X className="w-3 h-3 mr-1" />
+              Clear
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Video Grid with Upload Card */}
       {videosLoading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 md:gap-6">
@@ -2341,27 +2740,26 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
           {/* Video Cards */}
           {currentVideos.map((video) => (
             <Card
-              key={video.id}
+              key={`${video.id}-${video.task_id}-${video.video_id}`}
               className={`group cursor-pointer overflow-hidden bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 ${
-                selectedVideos.has(video.id) ? 'ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-950/20' : ''
-              } ${isDragging && draggedVideo?.id === video.id ? 'opacity-50 scale-95' : ''}`}
+                selectedVideos.has(video.video_id) ? 'ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-950/20' : ''
+              } ${isDragging && draggedVideo?.video_id === video.video_id ? 'opacity-50 scale-95' : ''}`}
               draggable
               onDragStart={(e) => handleDragStart(e, video)}
               onDragEnd={handleDragEnd}
               onClick={(e) => {
-                // Handle multi-selection with Ctrl/Cmd key
-                if (e.ctrlKey || e.metaKey) {
+                console.log('Video card clicked:', video.video_id);
+                console.log('Video data:', { id: video.id, task_id: video.task_id, video_id: video.video_id });
+                console.log('isMultiSelectMode:', isMultiSelectMode);
+                console.log('e.ctrlKey:', e.ctrlKey, 'e.metaKey:', e.metaKey);
+                
+                // Handle multi-selection with Ctrl/Cmd key or multi-select mode
+                if (e.ctrlKey || e.metaKey || isMultiSelectMode) {
                   e.preventDefault();
-                  setSelectedVideos(prev => {
-                    const newSet = new Set(prev);
-                    if (newSet.has(video.id)) {
-                      newSet.delete(video.id);
-                    } else {
-                      newSet.add(video.id);
-                    }
-                    return newSet;
-                  });
+                  console.log('Calling toggleVideoSelection for:', video.video_id);
+                  toggleVideoSelection(video.video_id);
                 } else {
+                  console.log('Calling handleVideoSelect for:', video.video_id);
                   handleVideoSelect(video);
                 }
               }}
@@ -2370,7 +2768,7 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
               {/* Video Preview */}
               <div className="relative aspect-video bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 overflow-hidden">
                 {/* Selection indicator */}
-                {selectedVideos.has(video.id) && (
+                {selectedVideos.has(video.video_id) && (
                   <div className="absolute top-2 left-2 z-10 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center shadow-lg">
                     <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />

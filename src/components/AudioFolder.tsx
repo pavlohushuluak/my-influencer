@@ -97,6 +97,11 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
 
   // Multi-selection state
   const [selectedAudios, setSelectedAudios] = useState<Set<string>>(new Set());
+  const [isMultiSelectMode, setIsMultiSelectMode] = useState<boolean>(false);
+  const [isMultiCopyActive, setIsMultiCopyActive] = useState<boolean>(false);
+  const [isMultiDownloading, setIsMultiDownloading] = useState<boolean>(false);
+  const [isMultiPasting, setIsMultiPasting] = useState<boolean>(false);
+  const [multiSelectContextMenu, setMultiSelectContextMenu] = useState<{ x: number; y: number } | null>(null);
 
   // Drag and drop state
   const [dragOverFolder, setDragOverFolder] = useState<string | null>(null);
@@ -490,22 +495,340 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
   // Keyboard event listener for clipboard operations
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && fileCopyState > 0) {
-        clearFileClipboard();
-        toast.info('Clipboard cleared', {
-          description: 'Audio clipboard has been cleared',
-          duration: 2000
-        });
+      // Only handle shortcuts when not typing in input fields
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+
+      if (e.ctrlKey || e.metaKey) {
+        switch (e.key) {
+          case 'c':
+            e.preventDefault();
+            if (selectedAudios.size > 0) {
+              handleMultiCopy();
+            } else if (fileCopyState > 0) {
+              handleFilePaste();
+            }
+            break;
+          case 'x':
+            e.preventDefault();
+            if (selectedAudios.size > 0) {
+              handleMultiCut();
+            } else if (fileCopyState > 0) {
+              handleFilePaste();
+            }
+            break;
+          case 'v':
+            e.preventDefault();
+            // Paste audios
+            if (fileClipboard && fileCopyState > 0) {
+              handleFilePaste();
+            }
+            break;
+
+          case 'd':
+            e.preventDefault();
+            if (selectedAudios.size > 0 && !isMultiDownloading) {
+              handleMultiDownload();
+            }
+            break;
+          case 'Delete':
+          case 'Backspace':
+            e.preventDefault();
+            if (selectedAudios.size > 0) {
+              handleMultiDelete();
+            }
+            break;
+        }
+      } else {
+        // Non-Ctrl/Cmd shortcuts
+        switch (e.key) {
+          case 'Escape':
+            e.preventDefault();
+            if (fileCopyState > 0) {
+              clearFileClipboard();
+              toast.info('Clipboard cleared', {
+                description: 'Audio clipboard has been cleared',
+                duration: 2000
+              });
+            }
+            clearSelection();
+            setIsMultiSelectMode(false);
+            break;
+          case 'v':
+            e.preventDefault();
+            if (selectedAudios.size > 0 && !isMultiPasting) {
+              handleMultiPaste();
+            }
+            break;
+          case 'd':
+            e.preventDefault();
+            if (selectedAudios.size > 0 && !isMultiDownloading) {
+              handleMultiDownload();
+            }
+            break;
+        }
       }
     };
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [fileCopyState]);
+  }, [fileCopyState, selectedAudios, isMultiPasting, isMultiDownloading, isMultiSelectMode]);
 
   // Pagination calculations
   const totalPages = Math.ceil(totalAudiosCount / itemsPerPage);
   const currentAudios = audios; // audios now contains only the current page data
+
+  // Multi-selection helper functions
+  const toggleAudioSelection = (audioId: string) => {
+    console.log('toggleAudioSelection called with audioId:', audioId);
+    setSelectedAudios(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(audioId)) {
+        newSet.delete(audioId);
+        console.log('Removed audioId:', audioId);
+      } else {
+        newSet.add(audioId);
+        console.log('Added audioId:', audioId);
+      }
+      console.log('New selection set:', Array.from(newSet));
+      return newSet;
+    });
+  };
+
+
+
+  const clearSelection = () => {
+    setSelectedAudios(new Set());
+  };
+
+  const getSelectedAudios = () => {
+    return audios.filter(audio => selectedAudios.has(audio.audio_id));
+  };
+
+  // Multi-operation functions
+  const handleMultiCopy = () => {
+    const selected = getSelectedAudios();
+    if (selected.length === 0) return;
+
+    // Store multiple audios for copy operation
+    localStorage.setItem('multiCopiedAudios', JSON.stringify(selected));
+    setFileCopyState(1); // Copy mode
+    setFileClipboard({ type: 'copy', items: selected });
+    setIsMultiCopyActive(true);
+    toast.success(`Copied ${selected.length} audio${selected.length > 1 ? 's' : ''}`);
+  };
+
+  const handleMultiCut = () => {
+    const selected = getSelectedAudios();
+    if (selected.length === 0) return;
+
+    // Store multiple audios for cut operation
+    localStorage.setItem('multiCopiedAudios', JSON.stringify(selected));
+    setFileCopyState(2); // Cut mode
+    setFileClipboard({ type: 'cut', items: selected });
+    setIsMultiCopyActive(true);
+    toast.success(`Cut ${selected.length} audio${selected.length > 1 ? 's' : ''}`);
+  };
+
+  const handleMultiPaste = async () => {
+    const multiCopiedAudios = localStorage.getItem('multiCopiedAudios');
+    if (!multiCopiedAudios) return;
+
+    try {
+      const audios = JSON.parse(multiCopiedAudios) as AudioData[];
+      setIsMultiPasting(true);
+
+      // Show initial toast
+      toast.info('Starting multi-paste operation...', {
+        description: `Processing ${audios.length} audio${audios.length > 1 ? 's' : ''}`,
+        duration: 2000
+      });
+
+      for (const audio of audios) {
+        await handleFilePasteOperation(audio);
+      }
+
+      // Clear the multi-copy state
+      localStorage.removeItem('multiCopiedAudios');
+      setFileCopyState(0);
+      setFileClipboard(null);
+      setIsMultiCopyActive(false);
+      clearSelection();
+
+      toast.success(`Successfully pasted ${audios.length} audio${audios.length > 1 ? 's' : ''}`);
+    } catch (error) {
+      console.error('Multi-paste error:', error);
+      toast.error('Failed to paste some audios');
+    } finally {
+      setIsMultiPasting(false);
+    }
+  };
+
+  const handleMultiDownload = async () => {
+    const selected = getSelectedAudios();
+    if (selected.length === 0) return;
+
+    try {
+      setIsMultiDownloading(true);
+
+      // Show initial toast
+      toast.info('Starting multi-download operation...', {
+        description: `Processing ${selected.length} audio${selected.length > 1 ? 's' : ''}`,
+        duration: 2000
+      });
+
+      for (const audio of selected) {
+        await handleDownload(audio.audio_id);
+      }
+
+      toast.success(`Successfully downloaded ${selected.length} audio${selected.length > 1 ? 's' : ''}`);
+    } catch (error) {
+      console.error('Multi-download error:', error);
+      toast.error('Failed to download some audios');
+    } finally {
+      setIsMultiDownloading(false);
+    }
+  };
+
+  const handleMultiDelete = async () => {
+    const selected = getSelectedAudios();
+    if (selected.length === 0) return;
+
+    if (confirm(`Are you sure you want to delete ${selected.length} audio${selected.length > 1 ? 's' : ''}?`)) {
+      try {
+        for (const audio of selected) {
+          await handleDelete(audio);
+        }
+        clearSelection();
+        toast.success(`Deleted ${selected.length} audio${selected.length > 1 ? 's' : ''}`);
+      } catch (error) {
+        console.error('Multi-delete error:', error);
+        toast.error('Failed to delete some audios');
+      }
+    }
+  };
+
+  // Helper functions for file operations
+  const checkFileExists = async (fileName: string): Promise<boolean> => {
+    try {
+      const response = await fetch(`https://api.nymia.ai/v1/getfilenames`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          user: userData.id,
+          folder: `audio/${currentPath}`
+        })
+      });
+
+      if (response.ok) {
+        const files = await response.json();
+        return files.some((file: any) => file.Key === fileName);
+      }
+      return false;
+    } catch (error) {
+      console.error('Error checking file existence:', error);
+      return false;
+    }
+  };
+
+  const checkFileExistsInDatabase = async (fileName: string): Promise<boolean> => {
+    try {
+      const response = await fetch(`https://db.nymia.ai/rest/v1/audio?user_uuid=eq.${userData.id}&filename=eq.${encodeURIComponent(fileName)}&audio_path=eq.${encodeURIComponent(currentPath)}`, {
+        headers: {
+          'Authorization': 'Bearer WeInfl3nc3withAI',
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const audios = await response.json();
+        return audios.length > 0;
+      }
+      return false;
+    } catch (error) {
+      console.error('Error checking file existence in database:', error);
+      return false;
+    }
+  };
+
+  // Helper function for paste operations
+  const handleFilePasteOperation = async (audio: AudioData) => {
+    const operationType = fileCopyState === 1 ? 'copying' : 'moving';
+    const fileName = audio.filename;
+    const route = audio.audio_path === "" ? "audio" : `audio/${audio.audio_path}`;
+    const newRoute = `audio/${currentPath}`;
+
+    // Check if file already exists in destination
+    const fileExists = await checkFileExists(fileName);
+    const fileExistsInDb = await checkFileExistsInDatabase(fileName);
+
+    if (fileExists || fileExistsInDb) {
+      toast.warning(`Audio "${fileName}" already exists in this location. Skipping paste operation.`, {
+        description: 'Please rename the existing audio or choose a different location.',
+        duration: 5000
+      });
+      return;
+    }
+
+    console.log("Copied Audio:", `${route}/${fileName}`);
+    console.log("New Route:", `${newRoute}/${fileName}`);
+
+    await fetch('https://api.nymia.ai/v1/copyfile', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer WeInfl3nc3withAI'
+      },
+      body: JSON.stringify({
+        user: userData.id,
+        sourcefilename: `${route}/${fileName}`,
+        destinationfilename: `${newRoute}/${fileName}`
+      })
+    });
+
+    const postAudio = {
+      ...audio,
+      audio_path: currentPath
+    };
+
+    delete postAudio.audio_id;
+
+    await fetch(`https://db.nymia.ai/rest/v1/audio`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer WeInfl3nc3withAI'
+      },
+      body: JSON.stringify(postAudio)
+    });
+
+    if (fileCopyState === 2) {
+      // Remove from current location if it's a cut operation
+      await fetch(`https://api.nymia.ai/v1/deletefile`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          user: userData.id,
+          filename: `${route}/${fileName}`
+        })
+      });
+
+      await fetch(`https://db.nymia.ai/rest/v1/audio?audio_id=eq.${audio.audio_id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': 'Bearer WeInfl3nc3withAI',
+          'Content-Type': 'application/json'
+        }
+      });
+    }
+  };
 
   // Audio helper functions
   const getAudioUrl = (audio: AudioData) => {
@@ -2021,6 +2344,24 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
         </div>
 
         <div className="flex items-center gap-3">
+          {/* Multi-select Mode Toggle */}
+          <Button
+            variant={isMultiSelectMode ? "default" : "outline"}
+            size="sm"
+            onClick={() => {
+              setIsMultiSelectMode(!isMultiSelectMode);
+              if (!isMultiSelectMode) {
+                clearSelection();
+              }
+            }}
+            className="flex items-center gap-2"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+            </svg>
+            <span className="hidden sm:inline">Multi-select</span>
+          </Button>
+          
           <Button
             onClick={handleRefresh}
             variant="outline"
@@ -2231,6 +2572,113 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
         </div>
       </div>
 
+      {/* Multi-selection toolbar */}
+      {isMultiSelectMode && (
+        <div className="flex items-center gap-2 p-3 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950/30 dark:to-pink-950/30 rounded-lg border border-purple-200 dark:border-purple-800 shadow-sm mb-4 justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 bg-purple-500 rounded-full flex items-center justify-center">
+              <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <span className="text-sm font-medium text-purple-900 dark:text-purple-100">
+              {selectedAudios.size > 0 
+                ? `${selectedAudios.size} audio${selectedAudios.size > 1 ? 's' : ''} selected`
+                : 'Multi-select mode - Click audios to select'
+              }
+            </span>
+          </div>
+          
+          <div className="flex items-center gap-1">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleMultiCopy}
+              disabled={selectedAudios.size === 0 || isMultiCopyActive}
+              className="h-8 text-xs bg-white/80 hover:bg-white dark:bg-gray-800/80 dark:hover:bg-gray-800"
+            >
+              <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+              Copy
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleMultiCut}
+              disabled={selectedAudios.size === 0 || isMultiCopyActive}
+              className="h-8 text-xs bg-white/80 hover:bg-white dark:bg-gray-800/80 dark:hover:bg-gray-800"
+            >
+              <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 4v16a2 2 0 002 2h8a2 2 0 002-2V4a2 2 0 00-2-2H8a2 2 0 00-2 2z" />
+              </svg>
+              Cut
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleMultiPaste}
+              disabled={fileCopyState === 0 || isMultiPasting}
+              className="h-8 text-xs bg-white/80 hover:bg-white dark:bg-gray-800/80 dark:hover:bg-gray-800"
+            >
+              {isMultiPasting ? (
+                <>
+                  <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current mr-1"></div>
+                  Processing...
+                </>
+              ) : (
+                <>
+                  <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                  </svg>
+                  Paste
+                </>
+              )}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleMultiDownload}
+              disabled={selectedAudios.size === 0 || isMultiDownloading}
+              className="h-8 text-xs bg-white/80 hover:bg-white dark:bg-gray-800/80 dark:hover:bg-gray-800"
+            >
+              {isMultiDownloading ? (
+                <>
+                  <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current mr-1"></div>
+                  Downloading...
+                </>
+              ) : (
+                <>
+                  <Download className="w-3 h-3 mr-1" />
+                  Download
+                </>
+              )}
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={handleMultiDelete}
+              disabled={selectedAudios.size === 0}
+              className="h-8 text-xs bg-red-50 hover:bg-red-100 dark:bg-red-950/30 dark:hover:bg-red-950/50 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800"
+            >
+              <Trash2 className="w-3 h-3 mr-1" />
+              Delete
+            </Button>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={clearSelection}
+              disabled={selectedAudios.size === 0}
+              className="h-8 text-xs bg-white/80 hover:bg-white dark:bg-gray-800/80 dark:hover:bg-gray-800"
+            >
+              <X className="w-3 h-3 mr-1" />
+              Clear
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Audio Grid */}
       {audiosLoading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 md:gap-6">
@@ -2281,16 +2729,39 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
                 } ${fileClipboard && fileClipboard.items.some(item => item.audio_id === audio.audio_id)
                   ? 'ring-2 ring-green-500 ring-opacity-50 bg-green-50 dark:bg-green-950/20'
                   : ''
-                }`}
+                } ${selectedAudios.has(audio.audio_id) ? 'ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-950/20' : ''}`}
               draggable
               onDragStart={(e) => handleDragStart(e, audio)}
               onDragEnd={handleDragEnd}
-              onClick={() => handleAudioSelect(audio)}
+              onClick={(e) => {
+                console.log('Audio card clicked:', audio.audio_id);
+                console.log('isMultiSelectMode:', isMultiSelectMode);
+                console.log('e.ctrlKey:', e.ctrlKey, 'e.metaKey:', e.metaKey);
+                
+                // Handle multi-selection with Ctrl/Cmd key or multi-select mode
+                if (e.ctrlKey || e.metaKey || isMultiSelectMode) {
+                  e.preventDefault();
+                  console.log('Calling toggleAudioSelection for:', audio.audio_id);
+                  toggleAudioSelection(audio.audio_id);
+                } else {
+                  console.log('Calling handleAudioSelect for:', audio.audio_id);
+                  handleAudioSelect(audio);
+                }
+              }}
               onContextMenu={(e) => handleFileContextMenu(e, audio)}
             >
               {/* Audio Preview */}
               <div className="relative aspect-video bg-gradient-to-br from-purple-500 via-pink-500 to-orange-500 overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-br from-purple-600/20 to-pink-600/20"></div>
+
+                {/* Selection indicator */}
+                {selectedAudios.has(audio.audio_id) && (
+                  <div className="absolute top-2 left-2 z-10 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center shadow-lg">
+                    <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                )}
 
                 {/* Audio waveform visualization */}
                 <div className="absolute inset-0 flex items-center justify-center">

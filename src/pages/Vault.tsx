@@ -171,8 +171,11 @@ export default function Vault() {
 
   // File copy/cut state
   const [fileCopyState, setFileCopyState] = useState<number>(0); // 0 = none, 1 = copy, 2 = cut
+  const [isMultiCopyActive, setIsMultiCopyActive] = useState<boolean>(false);
   const [copiedFile, setCopiedFile] = useState<GeneratedImageData | null>(null);
   const [isPastingFile, setIsPastingFile] = useState<boolean>(false);
+  const [isMultiDownloading, setIsMultiDownloading] = useState<boolean>(false);
+  const [isMultiPasting, setIsMultiPasting] = useState<boolean>(false);
 
   // File context menu state
   const [fileContextMenu, setFileContextMenu] = useState<{ x: number; y: number; image: GeneratedImageData } | null>(null);
@@ -1427,7 +1430,7 @@ export default function Vault() {
           break;
         case 'v':
           e.preventDefault();
-          if (selectedImages.size > 0 || fileCopyState > 0) {
+          if ((selectedImages.size > 0 || fileCopyState > 0) && !isMultiPasting) {
             handleMultiPaste();
           }
           break;
@@ -1439,7 +1442,7 @@ export default function Vault() {
           break;
         case 'd':
           e.preventDefault();
-          if (selectedImages.size > 0) {
+          if (selectedImages.size > 0 && !isMultiDownloading) {
             handleMultiDownload();
           }
           break;
@@ -1463,7 +1466,7 @@ export default function Vault() {
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [contextMenu, filterMenuOpen, selectedImages, fileCopyState, isMultiSelectMode]);
+  }, [contextMenu, filterMenuOpen, selectedImages, fileCopyState, isMultiSelectMode, isMultiPasting, isMultiDownloading]);
 
   // Handle right-click context menu
   const handleContextMenu = (e: React.MouseEvent, folderPath: string) => {
@@ -1895,6 +1898,7 @@ export default function Vault() {
   const handleFileCopy = (image: GeneratedImageData) => {
     setFileCopyState(1);
     setCopiedFile(image);
+    setIsMultiCopyActive(false);
     setFileContextMenu(null);
     toast.success(`File "${image.system_filename}" copied to clipboard`);
   };
@@ -1902,6 +1906,7 @@ export default function Vault() {
   const handleFileCut = (image: GeneratedImageData) => {
     setFileCopyState(2);
     setCopiedFile(image);
+    setIsMultiCopyActive(false);
     setFileContextMenu(null);
     toast.success(`File "${image.system_filename}" cut to clipboard`);
   };
@@ -3189,6 +3194,7 @@ export default function Vault() {
     localStorage.setItem('multiCopiedFiles', JSON.stringify(selected));
     setFileCopyState(1); // Copy mode
     setCopiedFile(selected[0]); // Show indicator for first file
+    setIsMultiCopyActive(true);
     toast.success(`Copied ${selected.length} file${selected.length > 1 ? 's' : ''}`);
   };
 
@@ -3200,6 +3206,7 @@ export default function Vault() {
     localStorage.setItem('multiCopiedFiles', JSON.stringify(selected));
     setFileCopyState(2); // Cut mode
     setCopiedFile(selected[0]); // Show indicator for first file
+    setIsMultiCopyActive(true);
     toast.success(`Cut ${selected.length} file${selected.length > 1 ? 's' : ''}`);
   };
 
@@ -3209,7 +3216,13 @@ export default function Vault() {
 
     try {
       const files = JSON.parse(multiCopiedFiles) as GeneratedImageData[];
-      setIsPastingFile(true);
+      setIsMultiPasting(true);
+
+      // Show initial toast
+      toast.info('Starting multi-paste operation...', {
+        description: `Processing ${files.length} file${files.length > 1 ? 's' : ''}`,
+        duration: 2000
+      });
 
       for (const file of files) {
         await handleFilePasteOperation(file);
@@ -3219,14 +3232,15 @@ export default function Vault() {
       localStorage.removeItem('multiCopiedFiles');
       setFileCopyState(0);
       setCopiedFile(null);
+      setIsMultiCopyActive(false);
       clearSelection();
 
-      toast.success(`Pasted ${files.length} file${files.length > 1 ? 's' : ''}`);
+      toast.success(`Successfully pasted ${files.length} file${files.length > 1 ? 's' : ''}`);
     } catch (error) {
       console.error('Multi-paste error:', error);
-      toast.error('Failed to paste files');
+      toast.error('Failed to paste some files');
     } finally {
-      setIsPastingFile(false);
+      setIsMultiPasting(false);
     }
   };
 
@@ -3235,13 +3249,24 @@ export default function Vault() {
     if (selected.length === 0) return;
 
     try {
+      setIsMultiDownloading(true);
+
+      // Show initial toast
+      toast.info('Starting multi-download operation...', {
+        description: `Processing ${selected.length} file${selected.length > 1 ? 's' : ''}`,
+        duration: 2000
+      });
+
       for (const image of selected) {
         await handleDownload(image.system_filename);
       }
-      toast.success(`Downloaded ${selected.length} file${selected.length > 1 ? 's' : ''}`);
+
+      toast.success(`Successfully downloaded ${selected.length} file${selected.length > 1 ? 's' : ''}`);
     } catch (error) {
       console.error('Multi-download error:', error);
       toast.error('Failed to download some files');
+    } finally {
+      setIsMultiDownloading(false);
     }
   };
 
@@ -3849,11 +3874,11 @@ export default function Vault() {
 
               {/* File Paste Button */}
               <Button
-                variant={fileCopyState > 0 ? "default" : "outline"}
+                variant={fileCopyState > 0 && !isMultiCopyActive ? "default" : "outline"}
                 size="sm"
                 onClick={handleFilePaste}
-                disabled={fileCopyState === 0 || isPastingFile || currentPath === ''}
-                className={`flex items-center gap-1.5 transition-all duration-200 ${fileCopyState > 0
+                disabled={fileCopyState === 0 || isPastingFile || currentPath === '' || isMultiCopyActive}
+                className={`flex items-center gap-1.5 transition-all duration-200 ${fileCopyState > 0 && !isMultiCopyActive
                   ? 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-md'
                   : 'text-muted-foreground'
                   }`}
@@ -3868,7 +3893,7 @@ export default function Vault() {
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
                     </svg>
-                    {fileCopyState === 1 ? 'Paste File Copy' : fileCopyState === 2 ? 'Paste File Move' : 'Paste File'}
+                    {isMultiCopyActive ? 'Multi-Copy Active' : fileCopyState === 1 ? 'Paste File Copy' : fileCopyState === 2 ? 'Paste File Move' : 'Paste File'}
                   </>
                 )}
               </Button>
@@ -4137,23 +4162,41 @@ export default function Vault() {
               variant="outline"
               size="sm"
               onClick={handleMultiPaste}
-              disabled={fileCopyState === 0}
+              disabled={fileCopyState === 0 || isMultiPasting}
               className="h-8 text-xs"
             >
-              <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-              </svg>
-              Paste
+              {isMultiPasting ? (
+                <>
+                  <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current mr-1"></div>
+                  Processing...
+                </>
+              ) : (
+                <>
+                  <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                  </svg>
+                  Paste
+                </>
+              )}
             </Button>
             <Button
               variant="outline"
               size="sm"
               onClick={handleMultiDownload}
-              disabled={selectedImages.size === 0}
+              disabled={selectedImages.size === 0 || isMultiDownloading}
               className="h-8 text-xs"
             >
-              <Download className="w-3 h-3 mr-1" />
-              Download
+              {isMultiDownloading ? (
+                <>
+                  <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current mr-1"></div>
+                  Downloading...
+                </>
+              ) : (
+                <>
+                  <Download className="w-3 h-3 mr-1" />
+                  Download
+                </>
+              )}
             </Button>
             <Button
               variant="destructive"

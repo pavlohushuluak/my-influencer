@@ -656,6 +656,10 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
       setIsMultiCopyActive(false);
       clearSelection();
 
+      // Refresh the current folder to show updated content
+      await fetchFolderFiles(currentPath);
+      await fetchAudiosWithFilters();
+
       toast.success(`Successfully pasted ${audios.length} audio${audios.length > 1 ? 's' : ''}`);
     } catch (error) {
       console.error('Multi-paste error:', error);
@@ -2044,6 +2048,10 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
       // Clear clipboard
       setFileClipboard(null);
       setFileCopyState(0);
+      
+      // Refresh the current folder to show updated content
+      await fetchFolderFiles(currentPath);
+      await fetchAudiosWithFilters();
 
     } catch (error) {
       console.error('Error pasting audio:', error);

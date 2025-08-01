@@ -888,7 +888,7 @@ export default function VaultSelector({
                     onClick={() => handleImageSelect(image)}
                   >
                     <CardContent className="p-2">
-                      <div className="relative aspect-square bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-600 rounded-lg overflow-hidden mb-2">
+                      <div className="relative bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-600 rounded-lg overflow-hidden mb-2">
                         <img
                           src={getImageUrl(image)}
                           alt={decodeName(image.system_filename)}

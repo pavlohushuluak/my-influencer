@@ -1336,12 +1336,12 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label>Please select video start image</Label>
-                <div className="aspect-square bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-600 rounded-lg border-2 border-dashed border-slate-300 dark:border-slate-600 flex items-center justify-center">
+                <div className="bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-600 rounded-lg border-2 border-dashed border-slate-300 dark:border-slate-600 flex items-center justify-center">
                   {modelData?.image_url ? (
                     <img
                       src={modelData.image_url}
                       alt={`${modelData.name_first} ${modelData.name_last}`}
-                      className="w-full h-full object-cover rounded-lg"
+                      className="w-full h-full object-contained rounded-lg"
                     />
                   ) : (
                     <div className="text-center">

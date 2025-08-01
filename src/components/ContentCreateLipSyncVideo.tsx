@@ -13,6 +13,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
 import { Mic, Upload, Play, Pause, Volume2, ArrowLeft, Wand2, Loader2, RotateCcw, Calendar, BookOpen, Save, FolderOpen, Star, User, Settings, Video, X, Search, Clock, Eye, Download, Share2, Sparkles, Square } from 'lucide-react';
 import VaultSelector from '@/components/VaultSelector';
+import VideoSelector from '@/components/VideoSelector';
 import { AudioPlayer } from '@/components/ui/audio-player';
 
 interface ContentCreateLipSyncVideoProps {
@@ -1510,160 +1511,16 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
 
       {/* Modals */}
       {/* Video Selector Modal */}
-      {showVideoSelector && (
-        <Dialog open={showVideoSelector} onOpenChange={setShowVideoSelector}>
-          <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <Video className="w-5 h-5 text-blue-500" />
-                Select Video for LipSync
-              </DialogTitle>
-              <DialogDescription>
-                Choose an existing video to apply lip-sync audio to.
-              </DialogDescription>
-            </DialogHeader>
-
-            {/* Search and Filter Controls */}
-            <div className="space-y-4">
-              <div className="flex flex-col sm:flex-row gap-3">
-                <div className="flex-1">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                    <Input
-                      placeholder="Search videos by prompt or model..."
-                      value={videoSearchTerm}
-                      onChange={(e) => setVideoSearchTerm(e.target.value)}
-                      className="pl-10"
-                    />
-                  </div>
-                </div>
-                <Select value={videoFilterStatus} onValueChange={setVideoFilterStatus}>
-                  <SelectTrigger className="w-full sm:w-48">
-                    <SelectValue placeholder="Filter by status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Videos</SelectItem>
-                    <SelectItem value="completed">Completed</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select value={videoSortBy} onValueChange={setVideoSortBy}>
-                  <SelectTrigger className="w-full sm:w-48">
-                    <SelectValue placeholder="Sort by" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="newest">Newest First</SelectItem>
-                    <SelectItem value="oldest">Oldest First</SelectItem>
-                    <SelectItem value="duration">Duration</SelectItem>
-                    <SelectItem value="model">Model</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {/* Video Grid */}
-            <ScrollArea>
-              {loadingVideos ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {[...Array(6)].map((_, i) => (
-                    <div key={i} className="animate-pulse">
-                      <div className="aspect-video bg-slate-200 dark:bg-slate-700 rounded-lg mb-2"></div>
-                      <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded mb-2"></div>
-                      <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-2/3"></div>
-                    </div>
-                  ))}
-                </div>
-              ) : filteredVideos.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {filteredVideos.map((video) => (
-                    <Card
-                      key={video.video_id}
-                      className="group cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-105"
-                      onClick={() => handleVideoSelect(video)}
-                    >
-                      <CardContent className="p-3">
-                        <div className="aspect-video bg-slate-100 dark:bg-slate-800 rounded-lg mb-3 relative">
-                          <video
-                            src={getVideoUrl(video.video_id)}
-                            className="w-full h-full object-cover"
-                            muted
-                            loop
-                          />
-                        </div>
-
-                        <div className="space-y-2">
-                          <div className="flex items-start justify-between">
-                            <h4 className="font-medium text-sm line-clamp-2">
-                              {video.prompt.substring(0, 60)}...
-                            </h4>
-                            <div className="flex items-center gap-1">
-                              <Badge
-                                variant="outline"
-                                className={`text-xs ${getVideoStatusColor(video.status)}`}
-                              >
-                                {video.status}
-                              </Badge>
-                              {video.lip_flag && (
-                                <Badge className="bg-gradient-to-r from-pink-500 to-purple-500 text-white border-0 shadow-sm text-xs">
-                                  <Sparkles className="w-2 h-2 mr-1" />
-                                  LipSync
-                                </Badge>
-                              )}
-                            </div>
-                          </div>
-
-                          <div className="flex items-center justify-between text-xs text-muted-foreground">
-                            <span>{getVideoModelDisplayName(video.model)}</span>
-                            <span>{formatVideoDuration(video.duration)}</span>
-                          </div>
-
-                          <div className="text-xs text-muted-foreground">
-                            {formatVideoDate(video.task_created_at)}
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <Video className="w-12 h-12 text-slate-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-slate-900 dark:text-slate-100 mb-2">
-                    No videos found
-                  </h3>
-                  <p className="text-sm text-slate-500 dark:text-slate-400">
-                    {videoSearchTerm || videoFilterStatus !== 'all'
-                      ? 'Try adjusting your search or filter criteria.'
-                      : 'Create your first video to get started.'
-                    }
-                  </p>
-                </div>
-              )}
-            </ScrollArea>
-
-            <div className="flex justify-between items-center pt-4 border-t">
-              <div className="text-sm text-muted-foreground">
-                {filteredVideos.length} of {videos.length} videos
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => setShowVideoSelector(false)}
-                >
-                  Cancel
-                </Button>
-                {selectedVideo && (
-                  <Button
-                    onClick={() => setShowVideoSelector(false)}
-                    className="bg-blue-600 hover:bg-blue-700"
-                  >
-                    Use Selected Video
-                  </Button>
-                )}
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
+      <VideoSelector
+        open={showVideoSelector}
+        onOpenChange={setShowVideoSelector}
+        onVideoSelect={(video) => {
+          setSelectedVideo(video);
+          setShowVideoSelector(false);
+        }}
+        title="Select Video for LipSync"
+        description="Choose an existing video to apply lip-sync audio to"
+      />
 
       {showHistory && (
         <Dialog open={showHistory} onOpenChange={setShowHistory}>

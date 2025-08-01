@@ -3310,6 +3310,9 @@ export default function Vault() {
       // Base user filter
       queryParams.append('user_uuid', 'eq.' + userData.id);
       
+      // Generation status filter - only show completed images
+      queryParams.append('generation_status', 'eq.completed');
+      
       // Current path filter - show files from current folder
       if (currentPath === '') {
         // Root folder - show files with empty user_filename or null
@@ -3389,6 +3392,9 @@ export default function Vault() {
       // Get total count for pagination
       const countParams = new URLSearchParams();
       countParams.append('user_uuid', 'eq.' + userData.id);
+      
+      // Generation status filter for count query - only show completed images
+      countParams.append('generation_status', 'eq.completed');
       
       // Current path filter for count query
       if (currentPath === '') {

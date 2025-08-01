@@ -2890,7 +2890,7 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
               onContextMenu={(e) => handleFileContextMenu(e, video)}
             >
               {/* Video Preview */}
-              <div className="relative aspect-video bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 overflow-hidden">
+              <div className="relative bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 overflow-hidden">
                 {/* Selection indicator */}
                 {selectedVideos.has(video.video_id) && (
                   <div className="absolute top-2 left-2 z-10 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center shadow-lg">
@@ -2900,11 +2900,21 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
                   </div>
                 )}
                 
-                <video
-                  src={getVideoUrl(video)}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  preload="metadata"
-                />
+                {video.start_image_url ? (
+                  <img
+                    src={video.start_image_url}
+                    alt={video.user_filename || video.prompt}
+                    className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300"
+                    style={{ maxHeight: '100%', maxWidth: '100%' }}
+                  />
+                ) : (
+                  <video
+                    src={getVideoUrl(video)}
+                    className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300"
+                    preload="metadata"
+                    style={{ maxHeight: '100%', maxWidth: '100%' }}
+                  />
+                )}
                 
                 {/* Overlay with play button */}
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-300 flex items-center justify-center">
@@ -2953,11 +2963,6 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
                     </Badge>
                   </div>
                 </div>
-
-                {/* Description */}
-                <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2 leading-relaxed">
-                  {video.prompt}
-                </p>
 
                 {/* Date */}
                 <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">

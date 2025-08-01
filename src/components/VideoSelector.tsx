@@ -756,7 +756,7 @@ export default function VideoSelector({
                     onClick={() => handleVideoSelect(video)}
                   >
                     <CardContent className="p-4">
-                      <div className="relative aspect-video bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-600 rounded-lg overflow-hidden mb-3">
+                      <div className="relative bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-600 rounded-lg overflow-hidden mb-3">
                         <video
                           src={getVideoUrl(video)}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"

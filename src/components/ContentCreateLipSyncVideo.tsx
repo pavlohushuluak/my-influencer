@@ -1442,7 +1442,7 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label>Choose a video to apply lip-sync to</Label>
-                <div className="aspect-video bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-600 rounded-lg border-2 border-dashed border-slate-300 dark:border-slate-600 flex items-center justify-center">
+                <div className="bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-600 rounded-lg border-2 border-dashed border-slate-300 dark:border-slate-600 flex items-center justify-center">
                   {selectedVideo ? (
                     <div className="w-full h-full relative">
                       <video

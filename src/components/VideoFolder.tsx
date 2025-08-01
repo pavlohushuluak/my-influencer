@@ -111,6 +111,7 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(5);
+  const [goToPageInput, setGoToPageInput] = useState('');
 
   // Multi-selection state
   const [selectedVideos, setSelectedVideos] = useState<Set<string>>(new Set());
@@ -2391,6 +2392,16 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
   const goToLastPage = () => handlePageChange(totalPages);
   const goToPreviousPage = () => handlePageChange(Math.max(1, currentPage - 1));
   const goToNextPage = () => handlePageChange(Math.min(totalPages, currentPage + 1));
+  
+  const handleGoToPage = () => {
+    const pageNumber = parseInt(goToPageInput);
+    if (pageNumber >= 1 && pageNumber <= totalPages) {
+      handlePageChange(pageNumber);
+      setGoToPageInput('');
+    } else {
+      toast.error(`Please enter a page number between 1 and ${totalPages}`);
+    }
+  };
 
   return (
     <div className="px-6 space-y-4">
@@ -3091,6 +3102,33 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
                   </Button>
                 );
               })}
+            </div>
+
+            {/* Go to page input */}
+            <div className="flex items-center gap-2 ml-4">
+              <span className="text-sm text-gray-600 dark:text-gray-400">Go to:</span>
+              <Input
+                type="number"
+                min="1"
+                max={totalPages}
+                value={goToPageInput}
+                onChange={(e) => setGoToPageInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleGoToPage();
+                  }
+                }}
+                className="w-16 h-8 text-center text-sm"
+                placeholder="Page"
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleGoToPage}
+                className="h-8 px-2 text-sm"
+              >
+                Go
+              </Button>
             </div>
 
             <Button

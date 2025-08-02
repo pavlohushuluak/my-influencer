@@ -28,7 +28,7 @@ import VaultSelector from '@/components/VaultSelector';
 import PresetsManager from '@/components/PresetsManager';
 import LibraryManager from '@/components/LibraryManager';
 import VideoPresetsManager from '@/components/VideoPresetsManager';
-import { Video, Play, Settings, Sparkles, Loader2, Camera, Search, X, Filter, Plus, RotateCcw, Download, Trash2, Calendar, Share, Pencil, Edit3, BookOpen, Save, FolderOpen, Upload, Edit, AlertTriangle, Eye, User, Monitor, ZoomIn, SortAsc, SortDesc, Wand2, Image as ImageIcon, ArrowLeft, Share2, Clock } from 'lucide-react';
+import { Video, Play, Settings, Sparkles, Loader2, Camera, Search, X, Filter, Plus, RotateCcw, Download, Trash2, Calendar, Share, Pencil, Edit3, BookOpen, Save, FolderOpen, Upload, Edit, AlertTriangle, Eye, User, Monitor, ZoomIn, SortAsc, SortDesc, Wand2, Image as ImageIcon, ArrowLeft, Share2, Clock, Heart } from 'lucide-react';
 import HistoryCard from '@/components/HistoryCard';
 
 const VIDEO_OPTIONS = [
@@ -237,6 +237,11 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
   const [showSavePresetModal, setShowSavePresetModal] = useState(false);
   const [presetName, setPresetName] = useState('');
   const [presetDescription, setPresetDescription] = useState('');
+  const [selectedPresetImage, setSelectedPresetImage] = useState<any>(null);
+  const [presetImageSource, setPresetImageSource] = useState<'vault' | 'upload' | 'recent'>('vault');
+  const [showVaultSelectorForPreset, setShowVaultSelectorForPreset] = useState(false);
+  const [showRecentRendersModal, setShowRecentRendersModal] = useState(false);
+  const [isSavingPreset, setIsSavingPreset] = useState(false);
 
   // Fetch videos from Supabase
   useEffect(() => {
@@ -736,73 +741,25 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
       return;
     }
 
+    if (!selectedPresetImage) {
+      toast.error('Please select a preset image');
+      return;
+    }
+
     try {
       const presetData = {
         user_id: userData.id,
         name: presetName.trim(),
         description: presetDescription.trim(),
-        route: '', // Root folder for now
-        video_name: '', // No video file for now
         
         // Video generation settings
         prompt: formData.prompt,
         negative_prompt: formData.negative_prompt,
-        model: formData.engine,
+        video_model: formData.engine,
         resolution: formData.format,
         video_length: parseInt(formData.duration),
         seed: formData.seed ? parseInt(formData.seed) : null,
-        start_image: modelData?.image_url ? modelData.image_url.split('/').pop() || '' : '',
-        start_image_url: modelData?.image_url || '',
-        
-        // Additional video settings
-        fps: formData.fps,
-        motion_strength: formData.motion_strength,
-        camera_movement: formData.camera_movement,
-        transition_type: formData.transition_type,
-        guidance: formData.guidance,
-        nsfw_strength: formData.nsfw_strength,
-        lora_strength: formData.lora_strength,
-        quality: formData.quality,
-        mode: formData.mode,
-        use_prompt_only: formData.usePromptOnly,
-        
-        // Model data (influencer or custom model)
-        model_data: modelData || null,
-        
-        // Scene specifications
-        scene_framing: sceneSpecs.framing,
-        scene_rotation: sceneSpecs.rotation,
-        scene_lighting_preset: sceneSpecs.lighting_preset,
-        scene_setting: sceneSpecs.scene_setting,
-        scene_pose: sceneSpecs.pose,
-        scene_clothes: sceneSpecs.clothes,
-        
-        // Model description (detailed model specifications)
-        model_appearance: modelDescription.appearance,
-        model_cultural_background: modelDescription.culturalBackground,
-        model_body_type: modelDescription.bodyType,
-        model_facial_features: modelDescription.facialFeatures,
-        model_hair_color: modelDescription.hairColor,
-        model_hair_length: modelDescription.hairLength,
-        model_hair_style: modelDescription.hairStyle,
-        model_skin: modelDescription.skin,
-        model_lips: modelDescription.lips,
-        model_eyes: modelDescription.eyes,
-        model_nose: modelDescription.nose,
-        model_makeup: modelDescription.makeup,
-        model_bust: modelDescription.bust,
-        model_clothing: modelDescription.clothing,
-        model_sex: modelDescription.sex,
-        model_eyebrow_style: modelDescription.eyebrowStyle,
-        model_face_shape: modelDescription.faceShape,
-        model_color_palette: modelDescription.colorPalette,
-        model_age: modelDescription.age,
-        model_lifestyle: modelDescription.lifestyle,
-        
-        // Additional settings
-        lora: formData.lora,
-        no_ai: formData.noAI,
-        regenerated_from: formData.regenerated_from
+        influencer_image: selectedPresetImage.preview_url || `https://images.nymia.ai/cdn-cgi/image/w=400/${userData.id}/${selectedPresetImage.user_filename === "" ? "output" : "vault/" + selectedPresetImage.user_filename}/${selectedPresetImage.system_filename}`
       };
 
       const response = await fetch('https://db.nymia.ai/rest/v1/video_presets', {
@@ -819,6 +776,7 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
         setShowSavePresetModal(false);
         setPresetName('');
         setPresetDescription('');
+        setSelectedPresetImage(null);
       } else {
         throw new Error('Failed to save video preset');
       }
@@ -830,79 +788,25 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
 
   const handleApplyVideoPreset = (preset: any) => {
     // Apply the preset data to the form
-    // Apply main form data
     setFormData(prev => ({
       ...prev,
       task: 'generate_video',
-      engine: preset.model || 'kling-v2.1',
+      engine: preset.video_model || 'kling-v2.1',
       format: preset.resolution || '720p',
       duration: preset.video_length?.toString() || '10',
       numberOfVideos: 1,
       seed: preset.seed?.toString() || '',
-      guidance: preset.guidance || 3.5,
-      negative_prompt: preset.negative_prompt || '',
-      nsfw_strength: preset.nsfw_strength || 0,
-      lora_strength: preset.lora_strength || 1.0,
-      quality: preset.quality || 'Quality',
-      mode: preset.mode || 'standard',
-      usePromptOnly: preset.use_prompt_only || false,
-      fps: preset.fps || 24,
-      motion_strength: preset.motion_strength || 0.8,
-      camera_movement: preset.camera_movement || 'static',
-      transition_type: preset.transition_type || 'fade',
       prompt: preset.prompt || '',
-      lora: preset.lora || false,
-      noAI: preset.no_ai !== undefined ? preset.no_ai : true,
-      regenerated_from: preset.regenerated_from || ''
+      negative_prompt: preset.negative_prompt || ''
     }));
 
-    // Apply scene specifications
-    setSceneSpecs({
-      framing: preset.scene_framing || '',
-      rotation: preset.scene_rotation || '',
-      lighting_preset: preset.scene_lighting_preset || '',
-      scene_setting: preset.scene_setting || '',
-      pose: preset.scene_pose || '',
-      clothes: preset.scene_clothes || ''
-    });
-
-    // Apply model description
-    setModelDescription({
-      appearance: preset.model_appearance || '',
-      culturalBackground: preset.model_cultural_background || '',
-      bodyType: preset.model_body_type || '',
-      facialFeatures: preset.model_facial_features || '',
-      hairColor: preset.model_hair_color || '',
-      hairLength: preset.model_hair_length || '',
-      hairStyle: preset.model_hair_style || '',
-      skin: preset.model_skin || '',
-      lips: preset.model_lips || '',
-      eyes: preset.model_eyes || '',
-      nose: preset.model_nose || '',
-      makeup: preset.model_makeup || 'Natural / No-Makeup Look',
-      bust: preset.model_bust || '',
-      clothing: preset.model_clothing || '',
-      sex: preset.model_sex || '',
-      eyebrowStyle: preset.model_eyebrow_style || '',
-      faceShape: preset.model_face_shape || '',
-      colorPalette: preset.model_color_palette || '',
-      age: preset.model_age || '',
-      lifestyle: preset.model_lifestyle || ''
-    });
-
-    // Apply model data (influencer) if available
-    if (preset.model_data) {
-      console.log('Applying model data from preset:', preset.model_data);
-      setModelData(preset.model_data);
-    }
-
-    // Apply start image if available
-    if (preset.start_image_url) {
+    // Apply influencer image if available
+    if (preset.influencer_image) {
       const selectedImage = {
         id: preset.id,
-        image_url: preset.start_image_url,
-        name_first: preset.model_data?.name_first || 'Preset',
-        name_last: preset.model_data?.name_last || 'Image',
+        image_url: preset.influencer_image,
+        name_first: 'Preset',
+        name_last: 'Image',
         influencer_type: 'Video Start Image',
         lorastatus: 0
       };
@@ -910,6 +814,30 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
     }
 
     toast.success(`Applied video preset: ${preset.name}`);
+  };
+
+  // Helper functions for preset image selection
+  const handlePresetImageSelect = (image: any, source: 'vault' | 'upload' | 'recent') => {
+    setSelectedPresetImage(image);
+    setPresetImageSource(source);
+  };
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // Create a mock image object for uploaded files
+      const uploadedImage = {
+        task_id: `upload_${Date.now()}`,
+        system_filename: file.name,
+        user_filename: '',
+        preview_url: URL.createObjectURL(file),
+        created_at: new Date().toISOString(),
+        rating: 0,
+        favorite: false,
+        file_type: 'image'
+      };
+      handlePresetImageSelect(uploadedImage, 'upload');
+    }
   };
 
   const handleClear = () => {
@@ -1785,55 +1713,248 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
 
       {showSavePresetModal && (
         <Dialog open={showSavePresetModal} onOpenChange={setShowSavePresetModal}>
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
-                <Save className="w-5 h-5 text-emerald-500" />
-                Save Video Preset
+                <div className="p-2 bg-gradient-to-br from-emerald-500 to-green-600 rounded-lg">
+                  <Save className="w-5 h-5 text-white" />
+                </div>
+                Save as Video Preset
               </DialogTitle>
-              <DialogDescription>
-                Save your current video generation settings as a preset for future use.
-              </DialogDescription>
+              <p className="text-sm text-muted-foreground">
+                Save your current video generation settings as a reusable preset with an image
+              </p>
             </DialogHeader>
-            
-            <div className="space-y-4">
+
+            <div className="space-y-6">
+              {/* Preset Name Input */}
               <div className="space-y-2">
-                <Label htmlFor="preset-name">Preset Name</Label>
+                <Label htmlFor="preset-name" className="text-sm font-medium">
+                  Preset Name
+                </Label>
                 <Input
                   id="preset-name"
-                  placeholder="Enter preset name..."
                   value={presetName}
                   onChange={(e) => setPresetName(e.target.value)}
+                  placeholder="Enter a descriptive name for your video preset..."
+                  className="w-full"
                 />
               </div>
-              
+
+              {/* Preset Description Input */}
               <div className="space-y-2">
-                <Label htmlFor="preset-description">Description (Optional)</Label>
+                <Label htmlFor="preset-description" className="text-sm font-medium flex items-center gap-2">
+                  <div className="p-1 bg-gradient-to-br from-blue-500 to-purple-600 rounded-md">
+                    <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                  </div>
+                  Preset Description
+                </Label>
                 <Textarea
                   id="preset-description"
-                  placeholder="Describe this preset..."
                   value={presetDescription}
                   onChange={(e) => setPresetDescription(e.target.value)}
-                  rows={3}
+                  placeholder="Describe your video preset's purpose, style, or any special notes..."
+                  className="w-full min-h-[80px] resize-none border-2 border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200"
+                  maxLength={500}
                 />
+                <div className="flex justify-between items-center text-xs text-muted-foreground">
+                  <span>Add context to help you remember what this preset is for</span>
+                  <span>{presetDescription.length}/500</span>
+                </div>
               </div>
-            </div>
 
-            <div className="flex gap-3 pt-4">
-              <Button
-                onClick={handleSavePreset}
-                className="bg-gradient-to-r from-emerald-600 to-green-600"
-                disabled={!presetName.trim()}
-              >
-                <Save className="w-4 h-4 mr-2" />
-                Save Preset
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => setShowSavePresetModal(false)}
-              >
-                Cancel
-              </Button>
+              {/* Image Selection Section */}
+              <div className="space-y-4">
+                <Label className="text-sm font-medium">Preset Image</Label>
+
+                {/* Selected Image Display */}
+                {selectedPresetImage && (
+                  <div className="relative">
+                    <Card className={`justify-center flex group hover:shadow-xl transition-all duration-300 border-border/50 hover:border-yellow-500/30 backdrop-blur-sm ${selectedPresetImage.task_id?.startsWith('upload_')
+                      ? 'bg-gradient-to-br from-purple-50/20 to-pink-50/20 dark:from-purple-950/5 dark:to-pink-950/5 hover:border-purple-500/30'
+                      : 'bg-gradient-to-br from-yellow-50/20 to-orange-50/20 dark:from-yellow-950/5 dark:to-orange-950/5'
+                      }`}>
+                      <CardContent className="p-4">
+                        {/* Top Row: File Type, Ratings, Favorite */}
+                        <div className="flex items-center justify-between mb-3">
+                          {/* File Type Icon */}
+                          <div className={`rounded-full w-8 h-8 flex items-center justify-center shadow-md ${selectedPresetImage.task_id?.startsWith('upload_')
+                            ? 'bg-gradient-to-br from-purple-500 to-pink-600'
+                            : 'bg-gradient-to-br from-blue-500 to-purple-600'
+                            }`}>
+                            {selectedPresetImage.task_id?.startsWith('upload_') ? (
+                              <Upload className="w-4 h-4 text-white" />
+                            ) : (
+                              <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z" />
+                                <circle cx="8.5" cy="8.5" r="1.5" opacity="0.8" />
+                              </svg>
+                            )}
+                          </div>
+
+                          {/* Rating Stars */}
+                          <div className="flex gap-1">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <svg
+                                key={star}
+                                className={`w-4 h-4 ${star <= (selectedPresetImage.rating || 0) ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
+                                viewBox="0 0 24 24"
+                              >
+                                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                              </svg>
+                            ))}
+                          </div>
+
+                          {/* Favorite Heart */}
+                          <div>
+                            {selectedPresetImage.favorite ? (
+                              <div className="bg-red-500 rounded-full w-8 h-8 flex items-center justify-center">
+                                <svg className="w-4 h-4 text-white fill-current" viewBox="0 0 24 24">
+                                  <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                                </svg>
+                              </div>
+                            ) : (
+                              <div className="bg-black/50 rounded-full w-8 h-8 flex items-center justify-center">
+                                <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                  <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                                </svg>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Image */}
+                        <div className="relative w-full group mb-4" style={{ paddingBottom: '100%' }}>
+                          {/* Source Badge */}
+                          <div className="absolute top-2 left-2 z-10">
+                            <Badge variant="secondary" className="bg-black/70 text-white text-xs font-medium shadow-lg">
+                              {presetImageSource}
+                            </Badge>
+                          </div>
+
+                          <img
+                            src={selectedPresetImage.preview_url || `https://images.nymia.ai/cdn-cgi/image/w=400/${userData.id}/${selectedPresetImage.user_filename === "" ? "output" : "vault/" + selectedPresetImage.user_filename}/${selectedPresetImage.system_filename}`}
+                            alt="Selected preset image"
+                            className="absolute inset-0 w-full h-full object-cover rounded-md shadow-sm cursor-pointer transition-all duration-200 hover:scale-105"
+                          />
+                        </div>
+
+                        {/* Filename and Date */}
+                        <div className="space-y-2">
+                          <h3 className="font-medium text-sm text-gray-800 dark:text-gray-200 truncate">
+                            {selectedPresetImage.system_filename}
+                          </h3>
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <Calendar className="w-3 h-3" />
+                            {new Date(selectedPresetImage.created_at).toLocaleDateString()}
+                          </div>
+                        </div>
+
+                        {/* Action Button */}
+                        <div className="flex gap-1.5 mt-3">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="flex-1 h-8 text-xs font-medium"
+                            onClick={() => setSelectedPresetImage(null)}
+                          >
+                            <X className="w-3 h-3 mr-1.5" />
+                            Remove Image
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                )}
+
+                {/* Image Source Selection */}
+                {!selectedPresetImage && (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <Card
+                      className="group hover:shadow-lg transition-all duration-300 cursor-pointer border-2 border-dashed border-gray-300 hover:border-emerald-500"
+                      onClick={() => setShowVaultSelectorForPreset(true)}
+                    >
+                      <CardContent className="p-6 text-center">
+                        <div className="p-3 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg w-12 h-12 mx-auto mb-3 flex items-center justify-center">
+                          <FolderOpen className="w-6 h-6 text-white" />
+                        </div>
+                        <h3 className="font-semibold mb-2">From Vault</h3>
+                        <p className="text-sm text-muted-foreground">
+                          Select from your saved images
+                        </p>
+                      </CardContent>
+                    </Card>
+
+                    <Card
+                      className="group hover:shadow-lg transition-all duration-300 cursor-pointer border-2 border-dashed border-gray-300 hover:border-emerald-500"
+                      onClick={() => {
+                        // Trigger file selection directly
+                        document.getElementById('file-upload-direct')?.click();
+                      }}
+                    >
+                      <CardContent className="p-6 text-center">
+                        <div className="p-3 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg w-12 h-12 mx-auto mb-3 flex items-center justify-center">
+                          <Upload className="w-6 h-6 text-white" />
+                        </div>
+                        <h3 className="font-semibold mb-2">Upload Image</h3>
+                        <p className="text-sm text-muted-foreground">
+                          Upload a new image
+                        </p>
+                      </CardContent>
+                    </Card>
+
+                    <Card
+                      className="group hover:shadow-lg transition-all duration-300 cursor-pointer border-2 border-dashed border-gray-300 hover:border-emerald-500"
+                      onClick={() => setShowRecentRendersModal(true)}
+                    >
+                      <CardContent className="p-6 text-center">
+                        <div className="p-3 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg w-12 h-12 mx-auto mb-3 flex items-center justify-center">
+                          <ImageIcon className="w-6 h-6 text-white" />
+                        </div>
+                        <h3 className="font-semibold mb-2">Recent Renders</h3>
+                        <p className="text-sm text-muted-foreground">
+                          Select from recent generations
+                        </p>
+                      </CardContent>
+                    </Card>
+                  </div>
+                )}
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-3 pt-4">
+                <Button
+                  onClick={() => {
+                    setShowSavePresetModal(false);
+                    setPresetName('');
+                    setPresetDescription('');
+                    setSelectedPresetImage(null);
+                  }}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleSavePreset}
+                  disabled={!presetName.trim() || !selectedPresetImage || isSavingPreset}
+                  className="flex-1 bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600"
+                >
+                  {isSavingPreset ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-4 h-4 mr-2" />
+                      Save Preset
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
           </DialogContent>
         </Dialog>
@@ -2445,57 +2566,261 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
 
       {/* Save Video Preset Modal */}
       <Dialog open={showSavePresetModal} onOpenChange={setShowSavePresetModal}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Save className="w-5 h-5 text-emerald-500" />
-              Save Video Preset
+              <div className="p-2 bg-gradient-to-br from-emerald-500 to-green-600 rounded-lg">
+                <Save className="w-5 h-5 text-white" />
+              </div>
+              Save as Video Preset
             </DialogTitle>
+            <p className="text-sm text-muted-foreground">
+              Save your current video generation settings as a reusable preset with an image
+            </p>
           </DialogHeader>
-          
-          <div className="space-y-4">
+
+          <div className="space-y-6">
+            {/* Preset Name Input */}
             <div className="space-y-2">
-              <Label htmlFor="preset-name">Preset Name</Label>
+              <Label htmlFor="preset-name" className="text-sm font-medium">
+                Preset Name
+              </Label>
               <Input
                 id="preset-name"
-                placeholder="Enter preset name..."
                 value={presetName}
                 onChange={(e) => setPresetName(e.target.value)}
+                placeholder="Enter a descriptive name for your video preset..."
+                className="w-full"
               />
             </div>
-            
+
+            {/* Preset Description Input */}
             <div className="space-y-2">
-              <Label htmlFor="preset-description">Description (Optional)</Label>
-              <Input
+              <Label htmlFor="preset-description" className="text-sm font-medium flex items-center gap-2">
+                <div className="p-1 bg-gradient-to-br from-blue-500 to-purple-600 rounded-md">
+                  <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                Preset Description
+              </Label>
+              <Textarea
                 id="preset-description"
-                placeholder="Enter description..."
                 value={presetDescription}
                 onChange={(e) => setPresetDescription(e.target.value)}
+                placeholder="Describe your video preset's purpose, style, or any special notes..."
+                className="w-full min-h-[80px] resize-none border-2 border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200"
+                maxLength={500}
               />
+              <div className="flex justify-between items-center text-xs text-muted-foreground">
+                <span>Add context to help you remember what this preset is for</span>
+                <span>{presetDescription.length}/500</span>
+              </div>
             </div>
-          </div>
 
-          <div className="flex justify-end gap-3 pt-4">
-            <Button
-              variant="outline"
-              onClick={() => {
-                setShowSavePresetModal(false);
-                setPresetName('');
-                setPresetDescription('');
-              }}
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleSavePreset}
-              className="bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700"
-            >
-              <Save className="w-4 h-4 mr-2" />
-              Save Preset
-            </Button>
+            {/* Image Selection Section */}
+            <div className="space-y-4">
+              <Label className="text-sm font-medium">Preset Image</Label>
+
+              {/* Selected Image Display */}
+              {selectedPresetImage && (
+                <div className="relative">
+                  <Card className={`justify-center flex group hover:shadow-xl transition-all duration-300 border-border/50 hover:border-yellow-500/30 backdrop-blur-sm ${selectedPresetImage.task_id?.startsWith('upload_')
+                    ? 'bg-gradient-to-br from-purple-50/20 to-pink-50/20 dark:from-purple-950/5 dark:to-pink-950/5 hover:border-purple-500/30'
+                    : 'bg-gradient-to-br from-yellow-50/20 to-orange-50/20 dark:from-yellow-950/5 dark:to-orange-950/5'
+                    }`}>
+                    <CardContent className="p-4">
+                      {/* Top Row: File Type, Ratings, Favorite */}
+                      <div className="flex items-center justify-between mb-3">
+                        {/* File Type Icon */}
+                        <div className={`rounded-full w-8 h-8 flex items-center justify-center shadow-md ${selectedPresetImage.task_id?.startsWith('upload_')
+                          ? 'bg-gradient-to-br from-purple-500 to-pink-600'
+                          : 'bg-gradient-to-br from-blue-500 to-purple-600'
+                          }`}>
+                          {selectedPresetImage.task_id?.startsWith('upload_') ? (
+                            <Upload className="w-4 h-4 text-white" />
+                          ) : (
+                            <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="currentColor">
+                              <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z" />
+                              <circle cx="8.5" cy="8.5" r="1.5" opacity="0.8" />
+                            </svg>
+                          )}
+                        </div>
+
+                        {/* Rating Stars */}
+                        <div className="flex gap-1">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <svg
+                              key={star}
+                              className={`w-4 h-4 ${star <= (selectedPresetImage.rating || 0) ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
+                              viewBox="0 0 24 24"
+                            >
+                              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                            </svg>
+                          ))}
+                        </div>
+
+                        {/* Favorite Heart */}
+                        <div>
+                          {selectedPresetImage.favorite ? (
+                            <div className="bg-red-500 rounded-full w-8 h-8 flex items-center justify-center">
+                              <svg className="w-4 h-4 text-white fill-current" viewBox="0 0 24 24">
+                                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                              </svg>
+                            </div>
+                          ) : (
+                            <div className="bg-black/50 rounded-full w-8 h-8 flex items-center justify-center">
+                              <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                              </svg>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Image */}
+                      <div className="relative w-full group mb-4" style={{ paddingBottom: '100%' }}>
+                        {/* Source Badge */}
+                        <div className="absolute top-2 left-2 z-10">
+                          <Badge variant="secondary" className="bg-black/70 text-white text-xs font-medium shadow-lg">
+                            {presetImageSource}
+                          </Badge>
+                        </div>
+
+                        <img
+                          src={selectedPresetImage.preview_url || `https://images.nymia.ai/cdn-cgi/image/w=400/${userData.id}/${selectedPresetImage.user_filename === "" ? "output" : "vault/" + selectedPresetImage.user_filename}/${selectedPresetImage.system_filename}`}
+                          alt="Selected preset image"
+                          className="absolute inset-0 w-full h-full object-cover rounded-md shadow-sm cursor-pointer transition-all duration-200 hover:scale-105"
+                        />
+                      </div>
+
+                      {/* Filename and Date */}
+                      <div className="space-y-2">
+                        <h3 className="font-medium text-sm text-gray-800 dark:text-gray-200 truncate">
+                          {selectedPresetImage.system_filename}
+                        </h3>
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <Calendar className="w-3 h-3" />
+                          {new Date(selectedPresetImage.created_at).toLocaleDateString()}
+                        </div>
+                      </div>
+
+                      {/* Action Button */}
+                      <div className="flex gap-1.5 mt-3">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="flex-1 h-8 text-xs font-medium"
+                          onClick={() => setSelectedPresetImage(null)}
+                        >
+                          <X className="w-3 h-3 mr-1.5" />
+                          Remove Image
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+
+              {/* Image Source Selection */}
+              {!selectedPresetImage && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Card
+                    className="group hover:shadow-lg transition-all duration-300 cursor-pointer border-2 border-dashed border-gray-300 hover:border-emerald-500"
+                    onClick={() => setShowVaultSelectorForPreset(true)}
+                  >
+                    <CardContent className="p-6 text-center">
+                      <div className="p-3 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg w-12 h-12 mx-auto mb-3 flex items-center justify-center">
+                        <FolderOpen className="w-6 h-6 text-white" />
+                      </div>
+                      <h3 className="font-semibold mb-2">From Vault</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Select from your saved images
+                      </p>
+                    </CardContent>
+                  </Card>
+
+                  <Card
+                    className="group hover:shadow-lg transition-all duration-300 cursor-pointer border-2 border-dashed border-gray-300 hover:border-emerald-500"
+                    onClick={() => {
+                      // Trigger file selection directly
+                      document.getElementById('file-upload-direct')?.click();
+                    }}
+                  >
+                    <CardContent className="p-6 text-center">
+                      <div className="p-3 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg w-12 h-12 mx-auto mb-3 flex items-center justify-center">
+                        <Upload className="w-6 h-6 text-white" />
+                      </div>
+                      <h3 className="font-semibold mb-2">Upload Image</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Upload a new image
+                      </p>
+                    </CardContent>
+                  </Card>
+
+
+                </div>
+              )}
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-3 pt-4">
+              <Button
+                onClick={() => {
+                  setShowSavePresetModal(false);
+                  setPresetName('');
+                  setPresetDescription('');
+                  setSelectedPresetImage(null);
+                }}
+                variant="outline"
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSavePreset}
+                disabled={!presetName.trim() || !selectedPresetImage || isSavingPreset}
+                className="flex-1 bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600"
+              >
+                {isSavingPreset ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4 mr-2" />
+                    Save Preset
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Hidden file input for direct upload */}
+      <input
+        type="file"
+        id="file-upload-direct"
+        accept="image/*"
+        onChange={handleFileUpload}
+        className="hidden"
+      />
+
+      {/* Vault Selector for Preset */}
+      {showVaultSelectorForPreset && (
+        <VaultSelector
+          open={showVaultSelectorForPreset}
+          onOpenChange={setShowVaultSelectorForPreset}
+          onImageSelect={(image) => {
+            handlePresetImageSelect(image, 'vault');
+            setShowVaultSelectorForPreset(false);
+          }}
+          title="Select Preset Image"
+          description="Choose an image to represent your video preset"
+        />
+      )}
 
       {/* Video Presets Manager Modal */}
       {showVideoPresetsModal && (

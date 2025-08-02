@@ -15,6 +15,7 @@ import { Mic, Upload, Play, Pause, Volume2, ArrowLeft, Wand2, Loader2, RotateCcw
 import VaultSelector from '@/components/VaultSelector';
 import VideoSelector from '@/components/VideoSelector';
 import { AudioPlayer } from '@/components/ui/audio-player';
+import LipsyncPresetsManager from '@/components/LipsyncPresetsManager';
 
 interface ContentCreateLipSyncVideoProps {
   influencerData?: any;
@@ -95,6 +96,16 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
   const [showVaultModal, setShowVaultModal] = useState(false);
   const [showVideoModal, setShowVideoModal] = useState(false);
   const [selectedVideoForModal, setSelectedVideoForModal] = useState<any>(null);
+
+  // Lipsync presets state
+  const [showLipsyncPresetsModal, setShowLipsyncPresetsModal] = useState(false);
+  const [showSavePresetModal, setShowSavePresetModal] = useState(false);
+  const [presetName, setPresetName] = useState('');
+  const [presetDescription, setPresetDescription] = useState('');
+  const [selectedPresetImage, setSelectedPresetImage] = useState<any>(null);
+  const [presetImageSource, setPresetImageSource] = useState<'vault' | 'upload' | 'recent'>('vault');
+  const [showVaultSelectorForPreset, setShowVaultSelectorForPreset] = useState(false);
+  const [isSavingPreset, setIsSavingPreset] = useState(false);
 
   // ElevenLabs voices (will be fetched from voice table)
   const [elevenLabsVoices, setElevenLabsVoices] = useState<VoiceOption[]>([]);
@@ -674,6 +685,128 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
     toast.success('Video URL copied to clipboard');
   };
 
+  // Lipsync preset functions
+  const handleSavePreset = async () => {
+    if (!presetName.trim()) {
+      toast.error('Please enter a preset name');
+      return;
+    }
+
+    if (!selectedPresetImage) {
+      toast.error('Please select a preset image');
+      return;
+    }
+
+    try {
+      setIsSavingPreset(true);
+
+      // Determine upload_flag based on active phase
+      const upload_flag = activePhase === 'upload';
+
+      // Get the appropriate URLs based on the active phase
+      let video_url = '';
+      let voice_url = '';
+
+      if (activePhase === 'upload') {
+        voice_url = uploadedAudioUrl || '';
+      } else if (activePhase === 'elevenlabs') {
+        voice_url = selectedElevenLabsVoice?.preview_url || '';
+      }
+
+      // Get video URL from selected video
+      if (selectedVideo) {
+        video_url = `https://images.nymia.ai/cdn-cgi/image/w=400/${userData.id}/${selectedVideo.user_filename === "" ? "output" : "vault/" + selectedVideo.user_filename}/${selectedVideo.system_filename}`;
+      }
+
+      const presetData = {
+        user_id: userData.id,
+        name: presetName.trim(),
+        description: presetDescription.trim(),
+        prompt: textToSpeak,
+        video_url: video_url,
+        voice_url: voice_url,
+        preset_image: selectedPresetImage.preview_url || `https://images.nymia.ai/cdn-cgi/image/w=400/${userData.id}/${selectedPresetImage.user_filename === "" ? "output" : "vault/" + selectedPresetImage.user_filename}/${selectedPresetImage.system_filename}`,
+        upload_flag: upload_flag
+      };
+
+      const response = await fetch('https://db.nymia.ai/rest/v1/lipsync_presets', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify(presetData)
+      });
+
+      if (response.ok) {
+        toast.success('Lipsync preset saved successfully!');
+        setShowSavePresetModal(false);
+        setPresetName('');
+        setPresetDescription('');
+        setSelectedPresetImage(null);
+      } else {
+        throw new Error('Failed to save lipsync preset');
+      }
+    } catch (error) {
+      console.error('Error saving lipsync preset:', error);
+      toast.error('Failed to save lipsync preset');
+    } finally {
+      setIsSavingPreset(false);
+    }
+  };
+
+  const handleApplyLipsyncPreset = (preset: any) => {
+    // Apply the preset data to the form
+    setTextToSpeak(preset.prompt || '');
+    
+    // Set the appropriate phase based on upload_flag
+    if (preset.upload_flag) {
+      setActivePhase('upload');
+      // Note: We can't restore the uploaded file, but we can show the URL
+      if (preset.voice_url) {
+        setUploadedAudioUrl(preset.voice_url);
+      }
+    } else {
+      setActivePhase('elevenlabs');
+      // Note: We can't restore the exact voice selection, but we can show the URL
+      if (preset.voice_url) {
+        // This would need to be handled differently based on your voice selection logic
+      }
+    }
+
+    // Apply video if available
+    if (preset.video_url) {
+      // This would need to be handled based on your video selection logic
+      // For now, we'll just store the URL
+    }
+
+    toast.success(`Applied lipsync preset: ${preset.name}`);
+  };
+
+  // Helper functions for preset image selection
+  const handlePresetImageSelect = (image: any, source: 'vault' | 'upload' | 'recent') => {
+    setSelectedPresetImage(image);
+    setPresetImageSource(source);
+  };
+
+  const handlePresetFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // Create a mock image object for uploaded files
+      const uploadedImage = {
+        task_id: `upload_${Date.now()}`,
+        system_filename: file.name,
+        user_filename: '',
+        preview_url: URL.createObjectURL(file),
+        created_at: new Date().toISOString(),
+        rating: 0,
+        favorite: false,
+        file_type: 'image'
+      };
+      handlePresetImageSelect(uploadedImage, 'upload');
+    }
+  };
+
   return (
     <div className="px-6 space-y-4">
       {/* Header */}
@@ -712,7 +845,7 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
             </Button>
 
             <Button
-              onClick={() => setShowPresetModal(true)}
+              onClick={() => setShowLipsyncPresetsModal(true)}
               variant="outline"
               size="sm"
               className="h-10 px-4 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border-amber-200 dark:border-amber-700 hover:from-amber-100 hover:to-orange-100 dark:hover:from-amber-800/30 dark:hover:to-orange-800/30 text-amber-700 dark:text-amber-300 font-medium shadow-sm hover:shadow-md transition-all duration-200"
@@ -722,7 +855,7 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
             </Button>
 
             <Button
-              onClick={() => {/* handleSavePreset */ }}
+              onClick={() => setShowSavePresetModal(true)}
               variant="outline"
               size="sm"
               className="h-10 px-4 bg-gradient-to-r from-emerald-50 to-green-50 dark:from-emerald-900/20 dark:to-green-900/20 border-emerald-200 dark:border-emerald-700 hover:from-emerald-100 hover:to-green-100 dark:hover:from-emerald-800/30 dark:hover:to-green-800/30 text-emerald-700 dark:text-emerald-300 font-medium shadow-sm hover:shadow-md transition-all duration-200"
@@ -792,7 +925,7 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
           </Button>
 
           <Button
-            onClick={() => setShowPresetModal(true)}
+            onClick={() => setShowLipsyncPresetsModal(true)}
             variant="outline"
             className="w-full h-10 px-4 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border-amber-200 dark:border-amber-700 hover:from-amber-100 hover:to-orange-100 dark:hover:from-amber-800/30 dark:hover:to-orange-800/30 text-amber-700 dark:text-amber-300 font-medium shadow-sm hover:shadow-md transition-all duration-200"
           >
@@ -801,7 +934,7 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
           </Button>
 
           <Button
-            onClick={() => {/* handleSavePreset */ }}
+            onClick={() => setShowSavePresetModal(true)}
             variant="outline"
             className="h-10 px-4 bg-gradient-to-r from-emerald-50 to-green-50 dark:from-emerald-900/20 dark:to-green-900/20 border-emerald-200 dark:border-emerald-700 hover:from-emerald-100 hover:to-green-100 dark:hover:from-emerald-800/30 dark:hover:to-green-800/30 text-emerald-700 dark:text-emerald-300 font-medium shadow-sm hover:shadow-md transition-all duration-200"
           >
@@ -1823,6 +1956,270 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Save Lipsync Preset Modal */}
+      <Dialog open={showSavePresetModal} onOpenChange={setShowSavePresetModal}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <div className="p-2 bg-gradient-to-br from-emerald-500 to-green-600 rounded-lg">
+                <Save className="w-5 h-5 text-white" />
+              </div>
+              Save as Lipsync Preset
+            </DialogTitle>
+            <p className="text-sm text-muted-foreground">
+              Save your current lipsync generation settings as a reusable preset with an image
+            </p>
+          </DialogHeader>
+
+          <div className="space-y-6">
+            {/* Preset Name Input */}
+            <div className="space-y-2">
+              <Label htmlFor="preset-name" className="text-sm font-medium">
+                Preset Name
+              </Label>
+              <Input
+                id="preset-name"
+                value={presetName}
+                onChange={(e) => setPresetName(e.target.value)}
+                placeholder="Enter a descriptive name for your lipsync preset..."
+                className="w-full"
+              />
+            </div>
+
+            {/* Preset Description Input */}
+            <div className="space-y-2">
+              <Label htmlFor="preset-description" className="text-sm font-medium flex items-center gap-2">
+                <div className="p-1 bg-gradient-to-br from-blue-500 to-purple-600 rounded-md">
+                  <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                Preset Description
+              </Label>
+              <Textarea
+                id="preset-description"
+                value={presetDescription}
+                onChange={(e) => setPresetDescription(e.target.value)}
+                placeholder="Describe your lipsync preset's purpose, style, or any special notes..."
+                className="w-full min-h-[80px] resize-none border-2 border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200"
+                maxLength={500}
+              />
+              <div className="flex justify-between items-center text-xs text-muted-foreground">
+                <span>Add context to help you remember what this preset is for</span>
+                <span>{presetDescription.length}/500</span>
+              </div>
+            </div>
+
+            {/* Image Selection Section */}
+            <div className="space-y-4">
+              <Label className="text-sm font-medium">Preset Image</Label>
+
+              {/* Selected Image Display */}
+              {selectedPresetImage && (
+                <div className="relative">
+                  <Card className={`justify-center flex group hover:shadow-xl transition-all duration-300 border-border/50 hover:border-yellow-500/30 backdrop-blur-sm ${selectedPresetImage.task_id?.startsWith('upload_')
+                    ? 'bg-gradient-to-br from-purple-50/20 to-pink-50/20 dark:from-purple-950/5 dark:to-pink-950/5 hover:border-purple-500/30'
+                    : 'bg-gradient-to-br from-yellow-50/20 to-orange-50/20 dark:from-yellow-950/5 dark:to-orange-950/5'
+                    }`}>
+                    <CardContent className="p-4">
+                      {/* Top Row: File Type, Ratings, Favorite */}
+                      <div className="flex items-center justify-between mb-3">
+                        {/* File Type Icon */}
+                        <div className={`rounded-full w-8 h-8 flex items-center justify-center shadow-md ${selectedPresetImage.task_id?.startsWith('upload_')
+                          ? 'bg-gradient-to-br from-purple-500 to-pink-600'
+                          : 'bg-gradient-to-br from-blue-500 to-purple-600'
+                          }`}>
+                          {selectedPresetImage.task_id?.startsWith('upload_') ? (
+                            <Upload className="w-4 h-4 text-white" />
+                          ) : (
+                            <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="currentColor">
+                              <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z" />
+                              <circle cx="8.5" cy="8.5" r="1.5" opacity="0.8" />
+                            </svg>
+                          )}
+                        </div>
+
+                        {/* Rating Stars */}
+                        <div className="flex gap-1">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <svg
+                              key={star}
+                              className={`w-4 h-4 ${star <= (selectedPresetImage.rating || 0) ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
+                              viewBox="0 0 24 24"
+                            >
+                              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                            </svg>
+                          ))}
+                        </div>
+
+                        {/* Favorite Heart */}
+                        <div>
+                          {selectedPresetImage.favorite ? (
+                            <div className="bg-red-500 rounded-full w-8 h-8 flex items-center justify-center">
+                              <svg className="w-4 h-4 text-white fill-current" viewBox="0 0 24 24">
+                                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                              </svg>
+                            </div>
+                          ) : (
+                            <div className="bg-black/50 rounded-full w-8 h-8 flex items-center justify-center">
+                              <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                              </svg>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Image */}
+                      <div className="relative w-full group mb-4" style={{ paddingBottom: '100%' }}>
+                        {/* Source Badge */}
+                        <div className="absolute top-2 left-2 z-10">
+                          <Badge variant="secondary" className="bg-black/70 text-white text-xs font-medium shadow-lg">
+                            {presetImageSource}
+                          </Badge>
+                        </div>
+
+                        <img
+                          src={selectedPresetImage.preview_url || `https://images.nymia.ai/cdn-cgi/image/w=400/${userData.id}/${selectedPresetImage.user_filename === "" ? "output" : "vault/" + selectedPresetImage.user_filename}/${selectedPresetImage.system_filename}`}
+                          alt="Selected preset image"
+                          className="absolute inset-0 w-full h-full object-cover rounded-md shadow-sm cursor-pointer transition-all duration-200 hover:scale-105"
+                        />
+                      </div>
+
+                      {/* Filename and Date */}
+                      <div className="space-y-2">
+                        <h3 className="font-medium text-sm text-gray-800 dark:text-gray-200 truncate">
+                          {selectedPresetImage.system_filename}
+                        </h3>
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <Calendar className="w-3 h-3" />
+                          {new Date(selectedPresetImage.created_at).toLocaleDateString()}
+                        </div>
+                      </div>
+
+                      {/* Action Button */}
+                      <div className="flex gap-1.5 mt-3">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="flex-1 h-8 text-xs font-medium"
+                          onClick={() => setSelectedPresetImage(null)}
+                        >
+                          <X className="w-3 h-3 mr-1.5" />
+                          Remove Image
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+
+              {/* Image Source Selection */}
+              {!selectedPresetImage && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Card
+                    className="group hover:shadow-lg transition-all duration-300 cursor-pointer border-2 border-dashed border-gray-300 hover:border-emerald-500"
+                    onClick={() => setShowVaultSelectorForPreset(true)}
+                  >
+                    <CardContent className="p-6 text-center">
+                      <div className="p-3 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg w-12 h-12 mx-auto mb-3 flex items-center justify-center">
+                        <FolderOpen className="w-6 h-6 text-white" />
+                      </div>
+                      <h3 className="font-semibold mb-2">From Vault</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Select from your saved images
+                      </p>
+                    </CardContent>
+                  </Card>
+
+                  <Card
+                    className="group hover:shadow-lg transition-all duration-300 cursor-pointer border-2 border-dashed border-gray-300 hover:border-emerald-500"
+                    onClick={() => {
+                      // Trigger file selection directly
+                      document.getElementById('preset-file-upload-direct')?.click();
+                    }}
+                  >
+                    <CardContent className="p-6 text-center">
+                      <div className="p-3 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg w-12 h-12 mx-auto mb-3 flex items-center justify-center">
+                        <Upload className="w-6 h-6 text-white" />
+                      </div>
+                      <h3 className="font-semibold mb-2">Upload Image</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Upload a new image
+                      </p>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-3 pt-4">
+              <Button
+                onClick={() => {
+                  setShowSavePresetModal(false);
+                  setPresetName('');
+                  setPresetDescription('');
+                  setSelectedPresetImage(null);
+                }}
+                variant="outline"
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSavePreset}
+                disabled={!presetName.trim() || !selectedPresetImage || isSavingPreset}
+                className="flex-1 bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600"
+              >
+                {isSavingPreset ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4 mr-2" />
+                    Save Preset
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Hidden file input for direct upload */}
+      <input
+        type="file"
+        id="preset-file-upload-direct"
+        accept="image/*"
+        onChange={handlePresetFileUpload}
+        className="hidden"
+      />
+
+      {/* Vault Selector for Preset */}
+      {showVaultSelectorForPreset && (
+        <VaultSelector
+          open={showVaultSelectorForPreset}
+          onOpenChange={setShowVaultSelectorForPreset}
+          onImageSelect={(image) => {
+            handlePresetImageSelect(image, 'vault');
+            setShowVaultSelectorForPreset(false);
+          }}
+          title="Select Preset Image"
+          description="Choose an image to represent your lipsync preset"
+        />
+      )}
+
+      {/* Lipsync Presets Manager Modal */}
+      {showLipsyncPresetsModal && (
+        <LipsyncPresetsManager
+          onClose={() => setShowLipsyncPresetsModal(false)}
+          onApplyPreset={handleApplyLipsyncPreset}
+        />
+      )}
     </div>
   );
 }

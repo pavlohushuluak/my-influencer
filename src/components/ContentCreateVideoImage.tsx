@@ -759,7 +759,8 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
         resolution: formData.format,
         video_length: parseInt(formData.duration),
         seed: formData.seed ? parseInt(formData.seed) : null,
-        influencer_image: selectedPresetImage.preview_url || `https://images.nymia.ai/cdn-cgi/image/w=400/${userData.id}/${selectedPresetImage.user_filename === "" ? "output" : "vault/" + selectedPresetImage.user_filename}/${selectedPresetImage.system_filename}`
+        influencer_image: modelData?.image_url || '',
+        preset_image: selectedPresetImage.preview_url || `https://images.nymia.ai/cdn-cgi/image/w=400/${userData.id}/${selectedPresetImage.user_filename === "" ? "output" : "vault/" + selectedPresetImage.user_filename}/${selectedPresetImage.system_filename}`
       };
 
       const response = await fetch('https://db.nymia.ai/rest/v1/video_presets', {

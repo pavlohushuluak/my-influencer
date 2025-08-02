@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS video_presets (
     video_length INTEGER NOT NULL, -- Video duration in seconds
     seed INTEGER, -- Random seed for generation
     influencer_image TEXT, -- Influencer image URL
+    preset_image TEXT, -- Preset image URL (selected image for the preset)
     
     -- Metadata
     rating INTEGER CHECK (rating >= 1 AND rating <= 5),
@@ -81,5 +82,6 @@ COMMENT ON COLUMN video_presets.resolution IS 'Video resolution (e.g., 720p, 108
 COMMENT ON COLUMN video_presets.video_length IS 'Video duration in seconds';
 COMMENT ON COLUMN video_presets.seed IS 'Random seed for reproducible generation';
 COMMENT ON COLUMN video_presets.influencer_image IS 'URL to the influencer image used for video generation';
+COMMENT ON COLUMN video_presets.preset_image IS 'URL to the preset image (selected image for the preset)';
 COMMENT ON COLUMN video_presets.rating IS 'User rating from 1-5 stars';
 COMMENT ON COLUMN video_presets.favorite IS 'Whether the preset is marked as favorite by the user'; 

@@ -41,79 +41,78 @@ import {
   SortAsc,
   SortDesc,
   Wand2,
-  Image as ImageIcon,
+  ImageIcon,
   AlertTriangle,
   CheckCircle,
   Info,
   BookOpen,
   Calendar,
   Heart,
-  Upload
+  Upload,
+  Mic,
+  Volume2
 } from 'lucide-react';
 
-  // Interface for video preset data from API
-  interface VideoPresetData {
-    id: number;
-    created_at: string;
-    updated_at: string;
-    user_id: string;
-    name: string;
-    description?: string;
-    
-    // Video generation settings
-    prompt: string;
-    negative_prompt?: string;
-    video_model: string;
-    resolution: string;
-    video_length: number;
-    seed?: number;
-    influencer_image?: string;
-    preset_image?: string; // Preset image URL (selected image for the preset)
-    
-    // Metadata
-    rating?: number;
-    favorite?: boolean;
-    
-    // Computed properties
-    createdDate?: string;
-    createdTime?: string;
-    imageUrl?: string | null;
-  }
+// Interface for lipsync preset data from API
+interface LipsyncPresetData {
+  id: number;
+  created_at: string;
+  updated_at: string;
+  user_id: string;
+  name: string;
+  description?: string;
+  
+  // Lipsync generation settings
+  prompt: string;
+  video_url?: string;
+  voice_url?: string;
+  preset_image?: string; // Preset image URL (selected image for the preset)
+  upload_flag: boolean; // Flag to determine if using option 1 or 2
+  
+  // Metadata
+  rating?: number;
+  favorite?: boolean;
+  
+  // Computed properties
+  createdDate?: string;
+  createdTime?: string;
+  imageUrl?: string | null;
+}
 
-export default function VideoPresetsManager({ onClose, onApplyPreset }: {
+export default function LipsyncPresetsManager({ onClose, onApplyPreset }: {
   onClose: () => void;
-  onApplyPreset?: (preset: VideoPresetData) => void;
+  onApplyPreset?: (preset: LipsyncPresetData) => void;
 }) {
   const userData = useSelector((state: RootState) => state.user);
   const navigate = useNavigate();
-  const [presets, setPresets] = useState<VideoPresetData[]>([]);
+  const [presets, setPresets] = useState<LipsyncPresetData[]>([]);
   const [presetsLoading, setPresetsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('newest');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-  const [selectedPreset, setSelectedPreset] = useState<VideoPresetData | null>(null);
-  const [detailedPresetModal, setDetailedPresetModal] = useState<{ open: boolean; preset: VideoPresetData | null }>({ open: false, preset: null });
+  const [selectedPreset, setSelectedPreset] = useState<LipsyncPresetData | null>(null);
+  const [detailedPresetModal, setDetailedPresetModal] = useState<{ open: boolean; preset: LipsyncPresetData | null }>({ open: false, preset: null });
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   
   // View mode state
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
-  // Fetch video presets
+  // Fetch lipsync presets
   const fetchPresets = async () => {
     try {
       setPresetsLoading(true);
 
-      const response = await fetch(`https://db.nymia.ai/rest/v1/video_presets?user_id=eq.${userData.id}`, {
+      const response = await fetch(`https://db.nymia.ai/rest/v1/lipsync_presets?user_id=eq.${userData.id}`, {
         headers: {
           'Authorization': 'Bearer WeInfl3nc3withAI'
         }
       });
 
       if (!response.ok) {
-        throw new Error('Failed to fetch video presets');
+        throw new Error('Failed to fetch lipsync presets');
       }
 
-      const data: VideoPresetData[] = await response.json();
+      const data: LipsyncPresetData[] = await response.json();
 
       // Transform the data to add computed properties
       const transformedPresets = data.map(preset => {
@@ -123,14 +122,14 @@ export default function VideoPresetsManager({ onClose, onApplyPreset }: {
           ...preset,
           createdDate: createdDate.toLocaleDateString(),
           createdTime: createdDate.toLocaleTimeString(),
-          imageUrl: preset.preset_image || preset.influencer_image || null
+          imageUrl: preset.preset_image || null
         };
       });
 
       setPresets(transformedPresets);
     } catch (error) {
-      console.error('Error fetching video presets:', error);
-      toast.error('Failed to fetch video presets');
+      console.error('Error fetching lipsync presets:', error);
+      toast.error('Failed to fetch lipsync presets');
     } finally {
       setPresetsLoading(false);
     }
@@ -146,8 +145,7 @@ export default function VideoPresetsManager({ onClose, onApplyPreset }: {
     const matchesSearch = searchTerm === '' || 
       preset.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       preset.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      preset.prompt.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      preset.video_model.toLowerCase().includes(searchTerm.toLowerCase());
+      preset.prompt.toLowerCase().includes(searchTerm.toLowerCase());
 
     return matchesSearch;
   });
@@ -167,15 +165,7 @@ export default function VideoPresetsManager({ onClose, onApplyPreset }: {
       case 'rating':
         comparison = (a.rating || 0) - (b.rating || 0);
         break;
-      case 'model':
-        comparison = a.video_model.localeCompare(b.video_model);
-        break;
-      case 'resolution':
-        comparison = a.resolution.localeCompare(b.resolution);
-        break;
-      case 'duration':
-        comparison = a.video_length - b.video_length;
-        default:
+      default:
         comparison = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
     }
 
@@ -183,7 +173,7 @@ export default function VideoPresetsManager({ onClose, onApplyPreset }: {
   });
 
   // Handle preset application
-  const handleApplyPreset = (preset: VideoPresetData) => {
+  const handleApplyPreset = (preset: LipsyncPresetData) => {
     if (onApplyPreset) {
       onApplyPreset(preset);
       onClose();
@@ -191,9 +181,9 @@ export default function VideoPresetsManager({ onClose, onApplyPreset }: {
   };
 
   // Handle preset deletion
-  const handlePresetDelete = async (preset: VideoPresetData) => {
+  const handlePresetDelete = async (preset: LipsyncPresetData) => {
     try {
-      const response = await fetch(`https://db.nymia.ai/rest/v1/video_presets?id=eq.${preset.id}`, {
+      const response = await fetch(`https://db.nymia.ai/rest/v1/lipsync_presets?id=eq.${preset.id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': 'Bearer WeInfl3nc3withAI'
@@ -202,13 +192,13 @@ export default function VideoPresetsManager({ onClose, onApplyPreset }: {
 
       if (response.ok) {
         setPresets(prev => prev.filter(p => p.id !== preset.id));
-        toast.success('Video preset deleted successfully');
+        toast.success('Lipsync preset deleted successfully');
       } else {
-        throw new Error('Failed to delete video preset');
+        throw new Error('Failed to delete lipsync preset');
       }
     } catch (error) {
-      console.error('Error deleting video preset:', error);
-      toast.error('Failed to delete video preset');
+      console.error('Error deleting lipsync preset:', error);
+      toast.error('Failed to delete lipsync preset');
     }
   };
 
@@ -217,25 +207,12 @@ export default function VideoPresetsManager({ onClose, onApplyPreset }: {
     setIsRefreshing(true);
     try {
       await fetchPresets();
-      toast.success('Video presets refreshed successfully');
+      toast.success('Lipsync presets refreshed successfully');
     } catch (error) {
       console.error('Error refreshing:', error);
-      toast.error('Failed to refresh video presets');
+      toast.error('Failed to refresh lipsync presets');
     } finally {
       setIsRefreshing(false);
-    }
-  };
-
-  // Get model display name
-  const getModelDisplayName = (model: string) => {
-    switch (model) {
-      case 'kling-v2.1': return 'Kling 2.1';
-      case 'kling-v2.1-master': return 'Kling 2.1 Master';
-      case 'seedance-1-lite': return 'Seedance 1 Lite';
-      case 'seedance-1-pro': return 'Seedance 1 Pro';
-      case 'wan-2.1-i2v-480p': return 'WAN 2.1 480p';
-      case 'wan-2.1-i2v-720p': return 'WAN 2.1 720p';
-      default: return model;
     }
   };
 
@@ -246,7 +223,7 @@ export default function VideoPresetsManager({ onClose, onApplyPreset }: {
           <DialogTitle className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <BookOpen className="w-5 h-5" />
-              My Video Presets
+              My Lipsync Presets
             </div>
             <div className="flex items-center gap-2">
               <Button
@@ -276,7 +253,7 @@ export default function VideoPresetsManager({ onClose, onApplyPreset }: {
           <div className="relative flex-1 max-w-md">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
             <Input
-              placeholder="Search video presets..."
+              placeholder="Search lipsync presets..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10"
@@ -292,9 +269,6 @@ export default function VideoPresetsManager({ onClose, onApplyPreset }: {
                 <SelectItem value="oldest">Oldest</SelectItem>
                 <SelectItem value="name">Name</SelectItem>
                 <SelectItem value="rating">Rating</SelectItem>
-                <SelectItem value="model">Model</SelectItem>
-                <SelectItem value="resolution">Resolution</SelectItem>
-                <SelectItem value="duration">Duration</SelectItem>
               </SelectContent>
             </Select>
             <Button
@@ -320,16 +294,16 @@ export default function VideoPresetsManager({ onClose, onApplyPreset }: {
             <div className="flex items-center justify-center h-64">
               <div className="text-center">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
-                <p className="text-gray-600 dark:text-gray-400 mt-2">Loading video presets...</p>
+                <p className="text-gray-600 dark:text-gray-400 mt-2">Loading lipsync presets...</p>
               </div>
             </div>
           ) : sortedPresets.length === 0 ? (
             <div className="flex items-center justify-center h-64">
               <div className="text-center">
-                <Video className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-600 dark:text-gray-400">No video presets found</p>
+                <Mic className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-600 dark:text-gray-400">No lipsync presets found</p>
                 <p className="text-sm text-gray-500 dark:text-gray-500 mt-1">
-                  Create your first video preset to get started
+                  Create your first lipsync preset to get started
                 </p>
               </div>
             </div>
@@ -346,7 +320,7 @@ export default function VideoPresetsManager({ onClose, onApplyPreset }: {
                 >
                   <CardContent className="p-4">
                     <div className="space-y-3">
-                      {/* Video Preview */}
+                      {/* Preset Preview */}
                       <div className="relative aspect-video bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden">
                         {preset.preset_image ? (
                           <img
@@ -356,7 +330,7 @@ export default function VideoPresetsManager({ onClose, onApplyPreset }: {
                           />
                         ) : (
                           <div className="flex items-center justify-center h-full">
-                            <ImageIcon className="w-8 h-8 text-gray-400" />
+                            <Mic className="w-8 h-8 text-gray-400" />
                           </div>
                         )}
                         
@@ -394,14 +368,20 @@ export default function VideoPresetsManager({ onClose, onApplyPreset }: {
                         {/* Preset Details */}
                         <div className="flex flex-wrap gap-1">
                           <Badge variant="outline" className="text-xs">
-                            {getModelDisplayName(preset.video_model)}
+                            {preset.upload_flag ? 'Upload' : 'Option 2'}
                           </Badge>
-                          <Badge variant="outline" className="text-xs">
-                            {preset.resolution}
-                          </Badge>
-                          <Badge variant="outline" className="text-xs">
-                            {preset.video_length}s
-                          </Badge>
+                          {preset.video_url && (
+                            <Badge variant="outline" className="text-xs">
+                              <Video className="w-3 h-3 mr-1" />
+                              Video
+                            </Badge>
+                          )}
+                          {preset.voice_url && (
+                            <Badge variant="outline" className="text-xs">
+                              <Volume2 className="w-3 h-3 mr-1" />
+                              Voice
+                            </Badge>
+                          )}
                         </div>
 
                         {/* Prompt Preview */}
@@ -424,11 +404,11 @@ export default function VideoPresetsManager({ onClose, onApplyPreset }: {
           <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
-                <Video className="w-5 h-5 text-blue-500" />
-                Video Preset Details
+                <Mic className="w-5 h-5 text-blue-500" />
+                Lipsync Preset Details
               </DialogTitle>
               <DialogDescription>
-                Review and apply this video generation preset
+                Review and apply this lipsync generation preset
               </DialogDescription>
             </DialogHeader>
             
@@ -455,35 +435,14 @@ export default function VideoPresetsManager({ onClose, onApplyPreset }: {
                         {detailedPresetModal.preset.prompt}
                       </p>
                     </div>
-
-                    {detailedPresetModal.preset.negative_prompt && (
-                      <div>
-                        <Label className="text-sm font-medium text-muted-foreground">Negative Prompt</Label>
-                        <p className="text-sm bg-red-50 dark:bg-red-900/20 p-3 rounded-lg text-red-700 dark:text-red-300">
-                          {detailedPresetModal.preset.negative_prompt}
-                        </p>
-                      </div>
-                    )}
                   </div>
 
                   <div className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <Label className="text-sm font-medium text-muted-foreground">Model</Label>
+                        <Label className="text-sm font-medium text-muted-foreground">Type</Label>
                         <Badge variant="outline" className="mt-1">
-                          {getModelDisplayName(detailedPresetModal.preset.video_model)}
-                        </Badge>
-                      </div>
-                      <div>
-                        <Label className="text-sm font-medium text-muted-foreground">Resolution</Label>
-                        <Badge variant="outline" className="mt-1">
-                          {detailedPresetModal.preset.resolution}
-                        </Badge>
-                      </div>
-                      <div>
-                        <Label className="text-sm font-medium text-muted-foreground">Duration</Label>
-                        <Badge variant="outline" className="mt-1">
-                          {detailedPresetModal.preset.video_length}s
+                          {detailedPresetModal.preset.upload_flag ? 'Upload' : 'Option 2'}
                         </Badge>
                       </div>
                       <div>
@@ -492,20 +451,27 @@ export default function VideoPresetsManager({ onClose, onApplyPreset }: {
                       </div>
                     </div>
 
-                    {detailedPresetModal.preset.seed && (
+                    {detailedPresetModal.preset.video_url && (
                       <div>
-                        <Label className="text-sm font-medium text-muted-foreground">Seed</Label>
-                        <p className="text-sm">{detailedPresetModal.preset.seed}</p>
+                        <Label className="text-sm font-medium text-muted-foreground">Video URL</Label>
+                        <p className="text-sm break-all">{detailedPresetModal.preset.video_url}</p>
                       </div>
                     )}
 
-                    {detailedPresetModal.preset.influencer_image && (
+                    {detailedPresetModal.preset.voice_url && (
                       <div>
-                        <Label className="text-sm font-medium text-muted-foreground">Influencer Image</Label>
+                        <Label className="text-sm font-medium text-muted-foreground">Voice URL</Label>
+                        <p className="text-sm break-all">{detailedPresetModal.preset.voice_url}</p>
+                      </div>
+                    )}
+
+                    {detailedPresetModal.preset.preset_image && (
+                      <div>
+                        <Label className="text-sm font-medium text-muted-foreground">Preset Image</Label>
                         <div className="mt-2 w-32 h-32 rounded-lg overflow-hidden border">
                           <img
-                            src={detailedPresetModal.preset.influencer_image}
-                            alt="Influencer image"
+                            src={detailedPresetModal.preset.preset_image}
+                            alt="Preset image"
                             className="w-full h-full object-cover"
                           />
                         </div>

@@ -27,6 +27,7 @@ import { DialogZoom, DialogContentZoom } from '@/components/ui/zoomdialog';
 import VaultSelector from '@/components/VaultSelector';
 import PresetsManager from '@/components/PresetsManager';
 import LibraryManager from '@/components/LibraryManager';
+import VideoPresetsManager from '@/components/VideoPresetsManager';
 import { Video, Play, Settings, Sparkles, Loader2, Camera, Search, X, Filter, Plus, RotateCcw, Download, Trash2, Calendar, Share, Pencil, Edit3, BookOpen, Save, FolderOpen, Upload, Edit, AlertTriangle, Eye, User, Monitor, ZoomIn, SortAsc, SortDesc, Wand2, Image as ImageIcon, ArrowLeft, Share2, Clock } from 'lucide-react';
 import HistoryCard from '@/components/HistoryCard';
 
@@ -230,6 +231,12 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
 
   // Validation errors state
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
+
+  // Video presets state
+  const [showVideoPresetsModal, setShowVideoPresetsModal] = useState(false);
+  const [showSavePresetModal, setShowSavePresetModal] = useState(false);
+  const [presetName, setPresetName] = useState('');
+  const [presetDescription, setPresetDescription] = useState('');
 
   // Fetch videos from Supabase
   useEffect(() => {
@@ -723,6 +730,188 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
     }
   };
 
+  const handleSavePreset = async () => {
+    if (!presetName.trim()) {
+      toast.error('Please enter a preset name');
+      return;
+    }
+
+    try {
+      const presetData = {
+        user_id: userData.id,
+        name: presetName.trim(),
+        description: presetDescription.trim(),
+        route: '', // Root folder for now
+        video_name: '', // No video file for now
+        
+        // Video generation settings
+        prompt: formData.prompt,
+        negative_prompt: formData.negative_prompt,
+        model: formData.engine,
+        resolution: formData.format,
+        video_length: parseInt(formData.duration),
+        seed: formData.seed ? parseInt(formData.seed) : null,
+        start_image: modelData?.image_url ? modelData.image_url.split('/').pop() || '' : '',
+        start_image_url: modelData?.image_url || '',
+        
+        // Additional video settings
+        fps: formData.fps,
+        motion_strength: formData.motion_strength,
+        camera_movement: formData.camera_movement,
+        transition_type: formData.transition_type,
+        guidance: formData.guidance,
+        nsfw_strength: formData.nsfw_strength,
+        lora_strength: formData.lora_strength,
+        quality: formData.quality,
+        mode: formData.mode,
+        use_prompt_only: formData.usePromptOnly,
+        
+        // Model data (influencer or custom model)
+        model_data: modelData || null,
+        
+        // Scene specifications
+        scene_framing: sceneSpecs.framing,
+        scene_rotation: sceneSpecs.rotation,
+        scene_lighting_preset: sceneSpecs.lighting_preset,
+        scene_setting: sceneSpecs.scene_setting,
+        scene_pose: sceneSpecs.pose,
+        scene_clothes: sceneSpecs.clothes,
+        
+        // Model description (detailed model specifications)
+        model_appearance: modelDescription.appearance,
+        model_cultural_background: modelDescription.culturalBackground,
+        model_body_type: modelDescription.bodyType,
+        model_facial_features: modelDescription.facialFeatures,
+        model_hair_color: modelDescription.hairColor,
+        model_hair_length: modelDescription.hairLength,
+        model_hair_style: modelDescription.hairStyle,
+        model_skin: modelDescription.skin,
+        model_lips: modelDescription.lips,
+        model_eyes: modelDescription.eyes,
+        model_nose: modelDescription.nose,
+        model_makeup: modelDescription.makeup,
+        model_bust: modelDescription.bust,
+        model_clothing: modelDescription.clothing,
+        model_sex: modelDescription.sex,
+        model_eyebrow_style: modelDescription.eyebrowStyle,
+        model_face_shape: modelDescription.faceShape,
+        model_color_palette: modelDescription.colorPalette,
+        model_age: modelDescription.age,
+        model_lifestyle: modelDescription.lifestyle,
+        
+        // Additional settings
+        lora: formData.lora,
+        no_ai: formData.noAI,
+        regenerated_from: formData.regenerated_from
+      };
+
+      const response = await fetch('https://db.nymia.ai/rest/v1/video_presets', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify(presetData)
+      });
+
+      if (response.ok) {
+        toast.success('Video preset saved successfully!');
+        setShowSavePresetModal(false);
+        setPresetName('');
+        setPresetDescription('');
+      } else {
+        throw new Error('Failed to save video preset');
+      }
+    } catch (error) {
+      console.error('Error saving video preset:', error);
+      toast.error('Failed to save video preset');
+    }
+  };
+
+  const handleApplyVideoPreset = (preset: any) => {
+    // Apply the preset data to the form
+    // Apply main form data
+    setFormData(prev => ({
+      ...prev,
+      task: 'generate_video',
+      engine: preset.model || 'kling-v2.1',
+      format: preset.resolution || '720p',
+      duration: preset.video_length?.toString() || '10',
+      numberOfVideos: 1,
+      seed: preset.seed?.toString() || '',
+      guidance: preset.guidance || 3.5,
+      negative_prompt: preset.negative_prompt || '',
+      nsfw_strength: preset.nsfw_strength || 0,
+      lora_strength: preset.lora_strength || 1.0,
+      quality: preset.quality || 'Quality',
+      mode: preset.mode || 'standard',
+      usePromptOnly: preset.use_prompt_only || false,
+      fps: preset.fps || 24,
+      motion_strength: preset.motion_strength || 0.8,
+      camera_movement: preset.camera_movement || 'static',
+      transition_type: preset.transition_type || 'fade',
+      prompt: preset.prompt || '',
+      lora: preset.lora || false,
+      noAI: preset.no_ai !== undefined ? preset.no_ai : true,
+      regenerated_from: preset.regenerated_from || ''
+    }));
+
+    // Apply scene specifications
+    setSceneSpecs({
+      framing: preset.scene_framing || '',
+      rotation: preset.scene_rotation || '',
+      lighting_preset: preset.scene_lighting_preset || '',
+      scene_setting: preset.scene_setting || '',
+      pose: preset.scene_pose || '',
+      clothes: preset.scene_clothes || ''
+    });
+
+    // Apply model description
+    setModelDescription({
+      appearance: preset.model_appearance || '',
+      culturalBackground: preset.model_cultural_background || '',
+      bodyType: preset.model_body_type || '',
+      facialFeatures: preset.model_facial_features || '',
+      hairColor: preset.model_hair_color || '',
+      hairLength: preset.model_hair_length || '',
+      hairStyle: preset.model_hair_style || '',
+      skin: preset.model_skin || '',
+      lips: preset.model_lips || '',
+      eyes: preset.model_eyes || '',
+      nose: preset.model_nose || '',
+      makeup: preset.model_makeup || 'Natural / No-Makeup Look',
+      bust: preset.model_bust || '',
+      clothing: preset.model_clothing || '',
+      sex: preset.model_sex || '',
+      eyebrowStyle: preset.model_eyebrow_style || '',
+      faceShape: preset.model_face_shape || '',
+      colorPalette: preset.model_color_palette || '',
+      age: preset.model_age || '',
+      lifestyle: preset.model_lifestyle || ''
+    });
+
+    // Apply model data (influencer) if available
+    if (preset.model_data) {
+      console.log('Applying model data from preset:', preset.model_data);
+      setModelData(preset.model_data);
+    }
+
+    // Apply start image if available
+    if (preset.start_image_url) {
+      const selectedImage = {
+        id: preset.id,
+        image_url: preset.start_image_url,
+        name_first: preset.model_data?.name_first || 'Preset',
+        name_last: preset.model_data?.name_last || 'Image',
+        influencer_type: 'Video Start Image',
+        lorastatus: 0
+      };
+      setModelData(selectedImage);
+    }
+
+    toast.success(`Applied video preset: ${preset.name}`);
+  };
+
   const handleClear = () => {
     setValidationErrors([]);
     setFormData({
@@ -954,15 +1143,15 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
               My Presets
             </Button>
 
-            <Button
-              onClick={() => {/* handleSavePreset */ }}
-              variant="outline"
-              size="sm"
-              className="h-10 px-4 bg-gradient-to-r from-emerald-50 to-green-50 dark:from-emerald-900/20 dark:to-green-900/20 border-emerald-200 dark:border-emerald-700 hover:from-emerald-100 hover:to-green-100 dark:hover:from-emerald-800/30 dark:hover:to-green-800/30 text-emerald-700 dark:text-emerald-300 font-medium shadow-sm hover:shadow-md transition-all duration-200"
-            >
-              <Save className="w-4 h-4 mr-2" />
-              Save as Preset
-            </Button>
+                      <Button
+            onClick={() => setShowSavePresetModal(true)}
+            variant="outline"
+            size="sm"
+            className="h-10 px-4 bg-gradient-to-r from-emerald-50 to-green-50 dark:from-emerald-900/20 dark:to-green-900/20 border-emerald-200 dark:border-emerald-700 hover:from-emerald-100 hover:to-green-100 dark:hover:from-emerald-800/30 dark:hover:to-green-800/30 text-emerald-700 dark:text-emerald-300 font-medium shadow-sm hover:shadow-md transition-all duration-200"
+          >
+            <Save className="w-4 h-4 mr-2" />
+            Save as Preset
+          </Button>
           </div>
         </div>
 
@@ -1037,12 +1226,21 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
           </Button>
 
           <Button
-            onClick={() => {/* handleSavePreset */ }}
+            onClick={() => setShowSavePresetModal(true)}
             variant="outline"
             className="h-10 px-4 bg-gradient-to-r from-emerald-50 to-green-50 dark:from-emerald-900/20 dark:to-green-900/20 border-emerald-200 dark:border-emerald-700 hover:from-emerald-100 hover:to-green-100 dark:hover:from-emerald-800/30 dark:hover:to-green-800/30 text-emerald-700 dark:text-emerald-300 font-medium shadow-sm hover:shadow-md transition-all duration-200"
           >
             <Save className="w-4 h-4 mr-2" />
             Save as Preset
+          </Button>
+
+          <Button
+            onClick={() => setShowVideoPresetsModal(true)}
+            variant="outline"
+            className="h-10 px-4 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 border-purple-200 dark:border-purple-700 hover:from-purple-100 hover:to-pink-100 dark:hover:from-purple-800/30 dark:hover:to-pink-800/30 text-purple-700 dark:text-purple-300 font-medium shadow-sm hover:shadow-md transition-all duration-200"
+          >
+            <Video className="w-4 h-4 mr-2" />
+            Video Presets
           </Button>
         </div>
       </div>
@@ -1138,17 +1336,25 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="negative-prompt" className="text-sm font-medium">
-                  Negative Prompt
-                </Label>
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="negative-prompt" className="text-sm font-medium">
+                    Negative Prompt
+                  </Label>
+                  <Badge variant="outline" className="text-xs text-orange-600 border-orange-200 dark:text-orange-400 dark:border-orange-700">
+                    Optional
+                  </Badge>
+                </div>
                 <Textarea
                   id="negative-prompt"
-                  placeholder="Describe what you want to see... (e.g., 'Model is sitting at the beach and enjoys the sun' or 'white shirt and blue jeans')"
+                  placeholder="Describe what you DON'T want to see... (e.g., 'blurry, low quality, distorted')"
                   value={formData.negative_prompt}
                   onChange={(e) => handleInputChange('negative_prompt', e.target.value)}
                   rows={3}
                   className="resize-none"
                 />
+                <p className="text-xs text-muted-foreground">
+                  Note: Negative prompts are not supported by all video models. Leave empty if your model doesn't support them.
+                </p>
               </div>
             </CardContent>
           </Card>
@@ -1571,14 +1777,64 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
       )}
 
       {showPresetModal && (
-        <Dialog open={showPresetModal} onOpenChange={setShowPresetModal}>
-          <DialogContent>
+        <VideoPresetsManager
+          onClose={() => setShowPresetModal(false)}
+          onApplyPreset={handleApplyVideoPreset}
+        />
+      )}
+
+      {showSavePresetModal && (
+        <Dialog open={showSavePresetModal} onOpenChange={setShowSavePresetModal}>
+          <DialogContent className="max-w-md">
             <DialogHeader>
-              <DialogTitle>Video Presets</DialogTitle>
+              <DialogTitle className="flex items-center gap-2">
+                <Save className="w-5 h-5 text-emerald-500" />
+                Save Video Preset
+              </DialogTitle>
               <DialogDescription>
-                Save and load video generation presets.
+                Save your current video generation settings as a preset for future use.
               </DialogDescription>
             </DialogHeader>
+            
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="preset-name">Preset Name</Label>
+                <Input
+                  id="preset-name"
+                  placeholder="Enter preset name..."
+                  value={presetName}
+                  onChange={(e) => setPresetName(e.target.value)}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="preset-description">Description (Optional)</Label>
+                <Textarea
+                  id="preset-description"
+                  placeholder="Describe this preset..."
+                  value={presetDescription}
+                  onChange={(e) => setPresetDescription(e.target.value)}
+                  rows={3}
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3 pt-4">
+              <Button
+                onClick={handleSavePreset}
+                className="bg-gradient-to-r from-emerald-600 to-green-600"
+                disabled={!presetName.trim()}
+              >
+                <Save className="w-4 h-4 mr-2" />
+                Save Preset
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setShowSavePresetModal(false)}
+              >
+                Cancel
+              </Button>
+            </div>
           </DialogContent>
         </Dialog>
       )}
@@ -2186,6 +2442,68 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Save Video Preset Modal */}
+      <Dialog open={showSavePresetModal} onOpenChange={setShowSavePresetModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Save className="w-5 h-5 text-emerald-500" />
+              Save Video Preset
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="preset-name">Preset Name</Label>
+              <Input
+                id="preset-name"
+                placeholder="Enter preset name..."
+                value={presetName}
+                onChange={(e) => setPresetName(e.target.value)}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="preset-description">Description (Optional)</Label>
+              <Input
+                id="preset-description"
+                placeholder="Enter description..."
+                value={presetDescription}
+                onChange={(e) => setPresetDescription(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowSavePresetModal(false);
+                setPresetName('');
+                setPresetDescription('');
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSavePreset}
+              className="bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700"
+            >
+              <Save className="w-4 h-4 mr-2" />
+              Save Preset
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Video Presets Manager Modal */}
+      {showVideoPresetsModal && (
+        <VideoPresetsManager
+          onClose={() => setShowVideoPresetsModal(false)}
+          onApplyPreset={handleApplyVideoPreset}
+        />
+      )}
     </div>
   );
 }

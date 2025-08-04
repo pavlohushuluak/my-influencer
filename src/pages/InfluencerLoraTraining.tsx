@@ -319,15 +319,6 @@ export default function InfluencerLoraTraining() {
           source: 'upload' as const,
           size: file.size
         };
-
-        // await fetch('${config.supabase_server_url}/training_images', {
-        //   method: 'POST',
-        //   headers: {
-        //     'Content-Type': 'application/json',
-        //     'Authorization': 'Bearer WeInfl3nc3withAI'
-        //   },
-        //   body: JSON.stringify(trainingImageData)
-        // });
       }
 
       toast.success(`${uploadFiles.length} images uploaded successfully`);

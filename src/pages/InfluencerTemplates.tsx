@@ -37,7 +37,7 @@ export default function InfluencerTemplates() {
     try {
       console.log(template);
       // Create a new influencer with default values for required fields
-      const response = await fetch('${config.supabase_server_url}/influencer', {
+      const response = await fetch(`${config.supabase_server_url}/influencer`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

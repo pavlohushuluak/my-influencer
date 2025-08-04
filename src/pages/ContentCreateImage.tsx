@@ -1931,7 +1931,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
       }
 
       console.log('Saving preset to database:', JSON.stringify(presetData, null, 2));
-      console.log('Database URL:', '${config.supabase_server_url}/presets');
+      console.log('Database URL:', `${config.supabase_server_url}/presets`);
       console.log('User ID:', userData.id);
 
       // Save to database with retry mechanism
@@ -1941,7 +1941,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
 
       while (retryCount < maxRetries) {
         try {
-          response = await fetch('${config.supabase_server_url}/presets', {
+          response = await fetch(`${config.supabase_server_url}/presets`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',

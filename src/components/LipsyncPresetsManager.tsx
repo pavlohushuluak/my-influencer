@@ -52,6 +52,7 @@ import {
   Mic,
   Volume2
 } from 'lucide-react';
+import config from '@/config/config';
 
 // Interface for lipsync preset data from API
 interface LipsyncPresetData {
@@ -225,7 +226,7 @@ export default function LipsyncPresetsManager({ onClose, onApplyPreset }: {
               <BookOpen className="w-5 h-5" />
               My Lipsync Presets
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 mr-4">
               <Button
                 variant="outline"
                 size="sm"
@@ -234,15 +235,6 @@ export default function LipsyncPresetsManager({ onClose, onApplyPreset }: {
               >
                 <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
                 Refresh
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={onClose}
-                className="flex items-center gap-2"
-              >
-                <X className="w-4 h-4" />
-                <span>Close</span>
               </Button>
             </div>
           </DialogTitle>

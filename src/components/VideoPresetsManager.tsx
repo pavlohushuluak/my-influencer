@@ -249,7 +249,7 @@ export default function VideoPresetsManager({ onClose, onApplyPreset }: {
               <BookOpen className="w-5 h-5" />
               My Video Presets
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 mr-4">
               <Button
                 variant="outline"
                 size="sm"
@@ -258,15 +258,6 @@ export default function VideoPresetsManager({ onClose, onApplyPreset }: {
               >
                 <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
                 Refresh
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={onClose}
-                className="flex items-center gap-2"
-              >
-                <X className="w-4 h-4" />
-                <span>Close</span>
               </Button>
             </div>
           </DialogTitle>

@@ -209,7 +209,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
   // Get all subfolders recursively
   const getAllSubfolders = async (folderPath: string): Promise<string[]> => {
     try {
-      const response = await fetch('https://api.nymia.ai/v1/getfoldernames', {
+      const response = await fetch(`${config.backend_url}/getfoldernames`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -299,7 +299,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
     const fetchFolders = async () => {
       try {
         setFoldersLoading(true);
-        const response = await fetch('https://api.nymia.ai/v1/getfoldernames', {
+        const response = await fetch(`${config.backend_url}/getfoldernames`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -718,7 +718,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
   // Helper functions for file operations
   const checkFileExists = async (fileName: string): Promise<boolean> => {
     try {
-      const response = await fetch(`https://api.nymia.ai/v1/getfilenames`, {
+      const response = await fetch(`${config.backend_url}/getfilenames`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -783,7 +783,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
     console.log("Copied Audio:", `${route}/${fileName}`);
     console.log("New Route:", `${newRoute}/${fileName}`);
 
-    await fetch('https://api.nymia.ai/v1/copyfile', {
+    await fetch(`${config.backend_url}/copyfile`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -814,7 +814,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
 
     if (fileCopyState === 2) {
       // Remove from current location if it's a cut operation
-      await fetch(`https://api.nymia.ai/v1/deletefile`, {
+      await fetch(`${config.backend_url}/deletefile`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -896,7 +896,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
       // Update progress to 25%
       setDownloadProgress(prev => ({ ...prev, [audioId]: 25 }));
 
-      const response = await fetch('https://api.nymia.ai/v1/downloadfile', {
+      const response = await fetch(`${config.backend_url}/downloadfile`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1032,7 +1032,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
       // Delete the actual file
       const fileName = audio.filename || `${audio.audio_id}.mp3`;
       
-      await fetch('https://api.nymia.ai/v1/deletefile', {
+      await fetch(`${config.backend_url}/deletefile`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1092,7 +1092,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
       const encodedName = encodeName(newFolderName.trim());
       const newFolderPath = currentPath ? `${currentPath}/${encodedName}` : encodedName;
 
-      const response = await fetch('https://api.nymia.ai/v1/createfolder', {
+      const response = await fetch(`${config.backend_url}/createfolder`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1165,7 +1165,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
       console.log('New path:', newPath);
 
       // Step 1: Create the new folder
-      const createResponse = await fetch('https://api.nymia.ai/v1/createfolder', {
+      const createResponse = await fetch(`${config.backend_url}/createfolder`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1209,7 +1209,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
           console.log(`To: audio/${newPath}/${fileName}`);
           
           // Copy the audio file from old location to new location
-          const copyResponse = await fetch('https://api.nymia.ai/v1/copyfile', {
+          const copyResponse = await fetch(`${config.backend_url}/copyfile`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -1255,7 +1255,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
       }
 
       // Step 3: Get all subfolders from the old folder
-      const getFoldersResponse = await fetch('https://api.nymia.ai/v1/getfoldernames', {
+      const getFoldersResponse = await fetch(`${config.backend_url}/getfoldernames`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1289,7 +1289,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
 
             if (relativePath && relativePath !== folderKey) {
               // Create the subfolder in the new location
-              const subfolderCreateResponse = await fetch('https://api.nymia.ai/v1/createfolder', {
+              const subfolderCreateResponse = await fetch(`${config.backend_url}/createfolder`, {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
@@ -1316,7 +1316,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
                   console.log(`To: audio/${newPath}/${relativePath}/${fileName}`);
                   
                   // Copy the audio file from old subfolder location to new subfolder location
-                  const copyResponse = await fetch('https://api.nymia.ai/v1/copyfile', {
+                  const copyResponse = await fetch(`${config.backend_url}/copyfile`, {
                     method: 'POST',
                     headers: {
                       'Content-Type': 'application/json',
@@ -1365,7 +1365,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
       }
 
       // Step 5: Delete the old folder
-      const deleteResponse = await fetch('https://api.nymia.ai/v1/deletefolder', {
+      const deleteResponse = await fetch(`${config.backend_url}/deletefolder`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1382,7 +1382,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
       }
 
       // Step 6: Refresh folder structure
-      const refreshResponse = await fetch('https://api.nymia.ai/v1/getfoldernames', {
+      const refreshResponse = await fetch(`${config.backend_url}/getfoldernames`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1452,7 +1452,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
         duration: Infinity
       });
 
-      const response = await fetch('https://api.nymia.ai/v1/deletefolder', {
+      const response = await fetch(`${config.backend_url}/deletefolder`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1466,7 +1466,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
 
       if (response.ok) {
         // Refresh folders from API
-        const refreshResponse = await fetch('https://api.nymia.ai/v1/getfoldernames', {
+        const refreshResponse = await fetch(`${config.backend_url}/getfoldernames`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -1552,7 +1552,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
         console.log(`Starting ${clipboard.type} operation for folder: ${sourcePath} to ${destPath}`);
 
         // Step 1: Create the destination folder
-        const createResponse = await fetch('https://api.nymia.ai/v1/createfolder', {
+        const createResponse = await fetch(`${config.backend_url}/createfolder`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -1602,7 +1602,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
             console.log(`To: audio/${destPath}/${fileName}`);
             
             // Copy the audio file
-            const copyResponse = await fetch('https://api.nymia.ai/v1/copyfile', {
+            const copyResponse = await fetch(`${config.backend_url}/copyfile`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -1670,7 +1670,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
         }
 
         // Step 3: Handle subfolders recursively
-        const getFoldersResponse = await fetch('https://api.nymia.ai/v1/getfoldernames', {
+        const getFoldersResponse = await fetch(`${config.backend_url}/getfoldernames`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -1702,7 +1702,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
 
               if (relativePath && relativePath !== folderKey) {
                 // Create the subfolder in the destination
-                const subfolderCreateResponse = await fetch('https://api.nymia.ai/v1/createfolder', {
+                const subfolderCreateResponse = await fetch(`${config.backend_url}/createfolder`, {
                   method: 'POST',
                   headers: {
                     'Content-Type': 'application/json',
@@ -1727,7 +1727,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
                     console.log(`To: audio/${destPath}/${relativePath}/${fileName}`);
                     
                     // Copy the audio file
-                    const copyResponse = await fetch('https://api.nymia.ai/v1/copyfile', {
+                    const copyResponse = await fetch(`${config.backend_url}/copyfile`, {
                       method: 'POST',
                       headers: {
                         'Content-Type': 'application/json',
@@ -1801,7 +1801,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
         // Step 4: For cut operation, delete the source folder
         if (clipboard.type === 'cut') {
           console.log(`Deleting source folder: audio/${sourcePath}`);
-          const deleteResponse = await fetch('https://api.nymia.ai/v1/deletefolder', {
+          const deleteResponse = await fetch(`${config.backend_url}/deletefolder`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -1833,7 +1833,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
       setCopyState(0);
       
       // Refresh folders
-      const response = await fetch('https://api.nymia.ai/v1/getfoldernames', {
+      const response = await fetch(`${config.backend_url}/getfoldernames`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1933,7 +1933,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
           // Copy operation: Create new file and database entry
 
           // Copy the file
-          const copyResponse = await fetch('https://api.nymia.ai/v1/copyfile', {
+          const copyResponse = await fetch(`${config.backend_url}/copyfile`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -1978,7 +1978,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
           // Cut operation: Move file and update database entry
 
           // Copy the file to new location
-          const copyResponse = await fetch('https://api.nymia.ai/v1/copyfile', {
+          const copyResponse = await fetch(`${config.backend_url}/copyfile`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -2017,7 +2017,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
           }
 
           // Delete the file from the source location
-          const deleteResponse = await fetch('https://api.nymia.ai/v1/deletefile', {
+          const deleteResponse = await fetch(`${config.backend_url}/deletefile`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -2077,7 +2077,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
     setLoadingFileCounts(prev => ({ ...prev, [folderPath]: true }));
 
     try {
-      const response = await fetch('https://api.nymia.ai/v1/getfilenames', {
+      const response = await fetch(`${config.backend_url}/getfilenames`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -2248,7 +2248,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
         description: `Copying "${fileName}" to new location`
       });
 
-      const copyResponse = await fetch('https://api.nymia.ai/v1/copyfile', {
+      const copyResponse = await fetch(`${config.backend_url}/copyfile`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -2271,7 +2271,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
         description: `Removing file from original location`
       });
 
-      const deleteResponse = await fetch('https://api.nymia.ai/v1/deletefile', {
+      const deleteResponse = await fetch(`${config.backend_url}/deletefile`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

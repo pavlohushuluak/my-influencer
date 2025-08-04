@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CreditPurchaseDialog } from '@/components/Payment/CreditPurchaseDialog';
+import { config } from '@/config/config';
 
 export default function Settings() {
   const dispatch = useDispatch();
@@ -39,7 +40,7 @@ export default function Settings() {
 
     try {
       const accessToken = sessionStorage.getItem('access_token');
-      const response = await fetch('https://api.nymia.ai/v1/user', {
+      const response = await fetch(`${config.backend_url}/user`, {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${accessToken}`,

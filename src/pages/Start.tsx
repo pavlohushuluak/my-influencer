@@ -512,7 +512,7 @@ export default function Start() {
         const loraFilePath = `models/${trainingInfluencer.id}/loratraining/${uploadedFile.name}`;
 
         // Upload file directly to LoRA folder
-        const uploadResponse = await fetch(`https://api.nymia.ai/v1/uploadfile?user=${userData.id}&filename=${loraFilePath}`, {
+        const uploadResponse = await fetch(`${config.backend_url}/uploadfile?user=${userData.id}&filename=${loraFilePath}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/octet-stream',
@@ -534,7 +534,7 @@ export default function Start() {
 
         const useridData = await useridResponse.json();
 
-        await fetch(`https://api.nymia.ai/v1/createtask?userid=${useridData[0].userid}&type=createlora`, {
+        await fetch(`${config.backend_url}/createtask?userid=${useridData[0].userid}&type=createlora`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -562,7 +562,7 @@ export default function Start() {
 
         const useridData = await useridResponse.json();
 
-        await fetch(`https://api.nymia.ai/v1/createtask?userid=${useridData[0].userid}&type=createlora`, {
+        await fetch(`${config.backend_url}/createtask?userid=${useridData[0].userid}&type=createlora`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

@@ -552,7 +552,7 @@ export default function PresetsManager({ onClose, onApplyPreset }: {
       console.log('New path:', newPath);
 
       // Step 1: Create the new folder
-      const createResponse = await fetch('https://api.nymia.ai/v1/createfolder', {
+      const createResponse = await fetch(`${config.backend_url}/createfolder`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -572,7 +572,7 @@ export default function PresetsManager({ onClose, onApplyPreset }: {
       console.log('New folder created successfully');
 
       // Step 2: Get all files from the old folder
-      const getFilesResponse = await fetch('https://api.nymia.ai/v1/getfilenames', {
+      const getFilesResponse = await fetch(`${config.backend_url}/getfilenames`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -597,7 +597,7 @@ export default function PresetsManager({ onClose, onApplyPreset }: {
             const fileName = fileKey.replace(re, "");
             console.log("File Name:", fileName);
 
-            const copyResponse = await fetch('https://api.nymia.ai/v1/copyfile', {
+            const copyResponse = await fetch(`${config.backend_url}/copyfile`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -678,7 +678,7 @@ export default function PresetsManager({ onClose, onApplyPreset }: {
       });
 
       // Create new folder in destination
-      const createResponse = await fetch('https://api.nymia.ai/v1/createfolder', {
+      const createResponse = await fetch(`${config.backend_url}/createfolder`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -696,7 +696,7 @@ export default function PresetsManager({ onClose, onApplyPreset }: {
       }
 
       // Copy all files from source to destination
-      const getFilesResponse = await fetch('https://api.nymia.ai/v1/getfilenames', {
+      const getFilesResponse = await fetch(`${config.backend_url}/getfilenames`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -716,7 +716,7 @@ export default function PresetsManager({ onClose, onApplyPreset }: {
             const re = new RegExp(`^.*?presets/${draggedFolder}/`);
             const fileName = fileKey.replace(re, "");
 
-            const copyResponse = await fetch('https://api.nymia.ai/v1/copyfile', {
+            const copyResponse = await fetch(`${config.backend_url}/copyfile`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -936,7 +936,7 @@ export default function PresetsManager({ onClose, onApplyPreset }: {
 
   const getAllSubfolders = async (folderPath: string): Promise<string[]> => {
     try {
-      const response = await fetch('https://api.nymia.ai/v1/getfoldernames', {
+      const response = await fetch(`${config.backend_url}/getfoldernames`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -975,7 +975,7 @@ export default function PresetsManager({ onClose, onApplyPreset }: {
   // Fetch folders from API
   const fetchFolders = async () => {
     try {
-      const response = await fetch('https://api.nymia.ai/v1/getfoldernames', {
+      const response = await fetch(`${config.backend_url}/getfoldernames`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1079,7 +1079,7 @@ export default function PresetsManager({ onClose, onApplyPreset }: {
       const folderPath = currentPath ? `${currentPath}/${enFolderName}` : enFolderName;
 
       // Create folder in storage
-      const response = await fetch('https://api.nymia.ai/v1/createfolder', {
+      const response = await fetch(`${config.backend_url}/createfolder`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1528,7 +1528,7 @@ export default function PresetsManager({ onClose, onApplyPreset }: {
       }
 
       // Copy the file to the new location
-      await fetch('https://api.nymia.ai/v1/copyfile', {
+      await fetch(`${config.backend_url}/copyfile`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1545,7 +1545,7 @@ export default function PresetsManager({ onClose, onApplyPreset }: {
       console.log(`presets/${targetFolderPath}/${draggedPreset.image_name}`);
 
       // Delete the original file
-      await fetch('https://api.nymia.ai/v1/deletefile', {
+      await fetch(`${config.backend_url}/deletefile`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1711,7 +1711,7 @@ export default function PresetsManager({ onClose, onApplyPreset }: {
     // Copy the file
     const copiedFileRoute = preset.route === '' ? '' : `${preset.route}/`;
 
-    const copyResponse = await fetch('https://api.nymia.ai/v1/copyfile', {
+    const copyResponse = await fetch(`${config.backend_url}/copyfile`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -1757,7 +1757,7 @@ export default function PresetsManager({ onClose, onApplyPreset }: {
     if (fileCopyState === 2) {
       try {
         // Delete file from original location
-        const deleteFileResponse = await fetch(`https://api.nymia.ai/v1/deletefile`, {
+        const deleteFileResponse = await fetch(`${config.backend_url}/deletefile`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

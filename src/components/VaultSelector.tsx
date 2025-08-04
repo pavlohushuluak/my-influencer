@@ -486,7 +486,7 @@ export default function VaultSelector({
       try {
         setFoldersLoading(true);
 
-        const response = await fetch('https://api.nymia.ai/v1/getfoldernames', {
+        const response = await fetch(`${config.backend_url}/getfoldernames`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

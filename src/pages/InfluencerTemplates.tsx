@@ -104,7 +104,7 @@ export default function InfluencerTemplates() {
 
       const data = await responseId.json();
 
-      await fetch('https://api.nymia.ai/v1/createfolder', {
+      await fetch(`${config.backend_url}/createfolder`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -117,7 +117,7 @@ export default function InfluencerTemplates() {
         })
       });
 
-      await fetch('https://api.nymia.ai/v1/createfolder', {
+      await fetch(`${config.backend_url}/createfolder`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -130,7 +130,7 @@ export default function InfluencerTemplates() {
         })
       });
 
-      await fetch('https://api.nymia.ai/v1/createfolder', {
+      await fetch(`${config.backend_url}/createfolder`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -145,7 +145,7 @@ export default function InfluencerTemplates() {
 
 
 
-      await fetch('https://api.nymia.ai/v1/createfolder', {
+      await fetch(`${config.backend_url}/createfolder`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -160,7 +160,7 @@ export default function InfluencerTemplates() {
 
       console.log(template);
 
-      const copyResponse = await fetch('https://api.nymia.ai/v1/copyrootfile', {
+      const copyResponse = await fetch(`${config.backend_url}/copyrootfile`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

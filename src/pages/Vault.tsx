@@ -401,7 +401,7 @@ export default function Vault() {
     const fetchFolders = async () => {
       try {
         setFoldersLoading(true);
-        const response = await fetch('https://api.nymia.ai/v1/getfoldernames', {
+        const response = await fetch(`${config.backend_url}/getfoldernames`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -645,7 +645,7 @@ export default function Vault() {
       const path = currentPath === "" ? "output" : "vault/" + currentPath;
 
       // Delete file from API
-      const fileResponse = await fetch('https://api.nymia.ai/v1/deletefile', {
+      const fileResponse = await fetch(`${config.backend_url}/deletefile`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -676,7 +676,7 @@ export default function Vault() {
   const handleDownload = async (itemId: string) => {
     try {
       const path = currentPath === "" ? "output" : "vault/" + currentPath;
-      const response = await fetch('https://api.nymia.ai/v1/downloadfile', {
+      const response = await fetch(`${config.backend_url}/downloadfile`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -764,7 +764,7 @@ export default function Vault() {
     try {
       const folderPath = currentPath ? `${currentPath}/${enFolderName}` : enFolderName;
 
-      const response = await fetch('https://api.nymia.ai/v1/createfolder', {
+      const response = await fetch(`${config.backend_url}/createfolder`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -893,7 +893,7 @@ export default function Vault() {
   // Get all subfolders in a folder recursively
   const getAllSubfolders = async (folderPath: string): Promise<string[]> => {
     try {
-      const response = await fetch('https://api.nymia.ai/v1/getfoldernames', {
+      const response = await fetch(`${config.backend_url}/getfoldernames`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -968,7 +968,7 @@ export default function Vault() {
       console.log('New path:', newPath);
 
       // Step 1: Create the new folder
-      const createResponse = await fetch('https://api.nymia.ai/v1/createfolder', {
+      const createResponse = await fetch(`${config.backend_url}/createfolder`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -989,7 +989,7 @@ export default function Vault() {
 
       // Step 2: Get all files and subfolders from the old folder
       console.log(`vault/${oldPath}`);
-      const getFilesResponse = await fetch('https://api.nymia.ai/v1/getfilenames', {
+      const getFilesResponse = await fetch(`${config.backend_url}/getfilenames`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1014,7 +1014,7 @@ export default function Vault() {
             const fileName = fileKey.replace(re, "");
             console.log("File Name:", fileName);
 
-            const copyResponse = await fetch('https://api.nymia.ai/v1/copyfile', {
+            const copyResponse = await fetch(`${config.backend_url}/copyfile`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -1050,7 +1050,7 @@ export default function Vault() {
       }
 
       // Step 4: Get all subfolders from the old folder
-      const getFoldersResponse = await fetch('https://api.nymia.ai/v1/getfoldernames', {
+      const getFoldersResponse = await fetch(`${config.backend_url}/getfoldernames`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1080,7 +1080,7 @@ export default function Vault() {
 
             if (relativePath && relativePath !== folderKey) {
               // Create the subfolder in the new location
-              const subfolderCreateResponse = await fetch('https://api.nymia.ai/v1/createfolder', {
+              const subfolderCreateResponse = await fetch(`${config.backend_url}/createfolder`, {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
@@ -1098,7 +1098,7 @@ export default function Vault() {
                 await copyFilesFromFolder(`${oldPath}/${relativePath}`, `${newPath}/${relativePath}`);
               }
 
-              const getFilesResponse = await fetch('https://api.nymia.ai/v1/getfilenames', {
+              const getFilesResponse = await fetch(`${config.backend_url}/getfilenames`, {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
@@ -1133,7 +1133,7 @@ export default function Vault() {
                       return; // Skip this file
                     }
 
-                    const copyResponse = await fetch('https://api.nymia.ai/v1/copyfile', {
+                    const copyResponse = await fetch(`${config.backend_url}/copyfile`, {
                       method: 'POST',
                       headers: {
                         'Content-Type': 'application/json',
@@ -1162,7 +1162,7 @@ export default function Vault() {
       }
 
       // Step 6: Delete the old folder
-      const deleteResponse = await fetch('https://api.nymia.ai/v1/deletefolder', {
+      const deleteResponse = await fetch(`${config.backend_url}/deletefolder`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1179,7 +1179,7 @@ export default function Vault() {
       }
 
       // Step 7: Refresh folder structure
-      const refreshResponse = await fetch('https://api.nymia.ai/v1/getfoldernames', {
+      const refreshResponse = await fetch(`${config.backend_url}/getfoldernames`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1228,7 +1228,7 @@ export default function Vault() {
   // Helper function to copy files from a specific folder
   const copyFilesFromFolder = async (sourceFolder: string, destFolder: string): Promise<void> => {
     try {
-      const getFilesResponse = await fetch('https://api.nymia.ai/v1/getfilenames', {
+      const getFilesResponse = await fetch(`${config.backend_url}/getfilenames`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1250,7 +1250,7 @@ export default function Vault() {
 
       if (filesData && filesData.length > 0) {
         const copyPromises = filesData.map(async (file: any) => {
-          const copyResponse = await fetch('https://api.nymia.ai/v1/copyfile', {
+          const copyResponse = await fetch(`${config.backend_url}/copyfile`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -1374,7 +1374,7 @@ export default function Vault() {
   const deleteFolderRecursively = async (folderPath: string): Promise<void> => {
     try {
       // Use the correct deletefolder API endpoint
-      const response = await fetch('https://api.nymia.ai/v1/deletefolder', {
+      const response = await fetch(`${config.backend_url}/deletefolder`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1407,7 +1407,7 @@ export default function Vault() {
       await deleteFolderRecursively(folderPath);
 
       // Refresh folders from API to get updated structure
-      const response = await fetch('https://api.nymia.ai/v1/getfoldernames', {
+      const response = await fetch(`${config.backend_url}/getfoldernames`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1490,7 +1490,7 @@ export default function Vault() {
 
       const newFolderName = copiedPath.split('/').pop() || '';
 
-      const createResponse = await fetch('https://api.nymia.ai/v1/createfolder', {
+      const createResponse = await fetch(`${config.backend_url}/createfolder`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1511,7 +1511,7 @@ export default function Vault() {
 
       console.log('New folder created successfully');
 
-      const getFilesResponse = await fetch('https://api.nymia.ai/v1/getfilenames', {
+      const getFilesResponse = await fetch(`${config.backend_url}/getfilenames`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1546,7 +1546,7 @@ export default function Vault() {
               return; // Skip this file
             }
 
-            const copyResponse = await fetch('https://api.nymia.ai/v1/copyfile', {
+            const copyResponse = await fetch(`${config.backend_url}/copyfile`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -1602,7 +1602,7 @@ export default function Vault() {
         }
       }
 
-      const getFoldersResponse = await fetch('https://api.nymia.ai/v1/getfoldernames', {
+      const getFoldersResponse = await fetch(`${config.backend_url}/getfoldernames`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1632,7 +1632,7 @@ export default function Vault() {
 
             if (relativePath && relativePath !== folderKey) {
               // Create the subfolder in the new location
-              const subfolderCreateResponse = await fetch('https://api.nymia.ai/v1/createfolder', {
+              const subfolderCreateResponse = await fetch(`${config.backend_url}/createfolder`, {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
@@ -1650,7 +1650,7 @@ export default function Vault() {
                 await copyFilesFromFolder(`${copiedPath}/${relativePath}`, `${currentPath}/${newFolderName}/${relativePath}`);
               }
 
-              const getFilesResponse = await fetch('https://api.nymia.ai/v1/getfilenames', {
+              const getFilesResponse = await fetch(`${config.backend_url}/getfilenames`, {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
@@ -1685,7 +1685,7 @@ export default function Vault() {
                       return; // Skip this file
                     }
 
-                    const copyResponse = await fetch('https://api.nymia.ai/v1/copyfile', {
+                    const copyResponse = await fetch(`${config.backend_url}/copyfile`, {
                       method: 'POST',
                       headers: {
                         'Content-Type': 'application/json',
@@ -1714,7 +1714,7 @@ export default function Vault() {
       }
 
       if (copyState === 2) {
-        const deleteResponse = await fetch('https://api.nymia.ai/v1/deletefolder', {
+        const deleteResponse = await fetch(`${config.backend_url}/deletefolder`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -1734,7 +1734,7 @@ export default function Vault() {
       }
 
       // Refresh folder structure
-      const response = await fetch('https://api.nymia.ai/v1/getfoldernames', {
+      const response = await fetch(`${config.backend_url}/getfoldernames`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1824,7 +1824,7 @@ export default function Vault() {
       console.log("Copied File:", `${route}/${fileName}`);
       console.log("New Route:", `${newRoute}/${fileName}`);
 
-      await fetch('https://api.nymia.ai/v1/copyfile', {
+      await fetch(`${config.backend_url}/copyfile`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1865,7 +1865,7 @@ export default function Vault() {
       // Simulate API call
       if (fileCopyState === 2) {
         // Remove from current location if it's a cut operation
-        await fetch(`https://api.nymia.ai/v1/deletefile`, {
+        await fetch(`${config.backend_url}/deletefile`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -1928,7 +1928,7 @@ export default function Vault() {
       });
 
       // Get existing files to check for duplicates
-      const getFilesResponse = await fetch('https://api.nymia.ai/v1/getfilenames', {
+      const getFilesResponse = await fetch(`${config.backend_url}/getfilenames`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -2012,7 +2012,7 @@ export default function Vault() {
       });
 
       // Copy file with new name
-      const copyResponse = await fetch('https://api.nymia.ai/v1/copyfile', {
+      const copyResponse = await fetch(`${config.backend_url}/copyfile`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -2036,7 +2036,7 @@ export default function Vault() {
       });
 
       // Delete old file
-      const deleteResponse = await fetch('https://api.nymia.ai/v1/deletefile', {
+      const deleteResponse = await fetch(`${config.backend_url}/deletefile`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -2094,7 +2094,7 @@ export default function Vault() {
       const fullOldPath = oldPath === "" ? "output" : "vault/" + oldPath;
 
       // Delete the conflicting file first
-      const deleteResponse = await fetch('https://api.nymia.ai/v1/deletefile', {
+      const deleteResponse = await fetch(`${config.backend_url}/deletefile`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -2152,7 +2152,7 @@ export default function Vault() {
       });
 
       // Copy file with new name
-      const copyResponse = await fetch('https://api.nymia.ai/v1/copyfile', {
+      const copyResponse = await fetch(`${config.backend_url}/copyfile`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -2176,7 +2176,7 @@ export default function Vault() {
       });
 
       // Delete old file
-      const deleteOldResponse = await fetch('https://api.nymia.ai/v1/deletefile', {
+      const deleteOldResponse = await fetch(`${config.backend_url}/deletefile`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -2232,7 +2232,7 @@ export default function Vault() {
       const fullOldPath = oldPath === "" ? "output" : "vault/" + oldPath;
 
       // Get existing files to check for duplicates
-      const getFilesResponse = await fetch('https://api.nymia.ai/v1/getfilenames', {
+      const getFilesResponse = await fetch(`${config.backend_url}/getfilenames`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -2307,7 +2307,7 @@ export default function Vault() {
       });
 
       // Copy file with new name
-      const copyResponse = await fetch('https://api.nymia.ai/v1/copyfile', {
+      const copyResponse = await fetch(`${config.backend_url}/copyfile`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -2331,7 +2331,7 @@ export default function Vault() {
       });
 
       // Delete old file
-      const deleteResponse = await fetch('https://api.nymia.ai/v1/deletefile', {
+      const deleteResponse = await fetch(`${config.backend_url}/deletefile`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -2430,7 +2430,7 @@ export default function Vault() {
   // Helper function to check if a file exists in the current path
   const checkFileExists = async (fileName: string): Promise<boolean> => {
     try {
-      const response = await fetch('https://api.nymia.ai/v1/getfilenames', {
+      const response = await fetch(`${config.backend_url}/getfilenames`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -2528,7 +2528,7 @@ export default function Vault() {
 
       console.log(formData);
       // Upload file
-      const uploadResponse = await fetch(`https://api.nymia.ai/v1/uploadfile?user=${userData.id}&filename=${'vault/' + currentPath + '/' + uploadModelData.system_filename}`, {
+      const uploadResponse = await fetch(`${config.backend_url}/uploadfile?user=${userData.id}&filename=${'vault/' + currentPath + '/' + uploadModelData.system_filename}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/octet-stream',
@@ -2577,7 +2577,7 @@ export default function Vault() {
         file_type: uploadModelData.file_type
       };
 
-      const dbResponse = await fetch('${config.supabase_server_url}/generated_images', {
+      const dbResponse = await fetch(`${config.supabase_server_url}/generated_images`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -2721,7 +2721,7 @@ export default function Vault() {
         description: `Copying "${draggedImage.system_filename}" to new location`
       });
 
-      const copyResponse = await fetch('https://api.nymia.ai/v1/copyfile', {
+      const copyResponse = await fetch(`${config.backend_url}/copyfile`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -2744,7 +2744,7 @@ export default function Vault() {
         description: `Removing file from original location`
       });
 
-      const deleteResponse = await fetch('https://api.nymia.ai/v1/deletefile', {
+      const deleteResponse = await fetch(`${config.backend_url}/deletefile`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -2855,7 +2855,7 @@ export default function Vault() {
       const sourcePath = image.user_filename === "" ? "output" : `vault/${image.user_filename}`;
 
       // Copy the image to the influencer's profile picture folder
-      await fetch('https://api.nymia.ai/v1/copyfile', {
+      await fetch(`${config.backend_url}/copyfile`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -2909,7 +2909,7 @@ export default function Vault() {
     setLoadingFileCounts(prev => ({ ...prev, [folderPath]: true }));
 
     try {
-      const response = await fetch('https://api.nymia.ai/v1/getfilenames', {
+      const response = await fetch(`${config.backend_url}/getfilenames`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -3204,7 +3204,7 @@ export default function Vault() {
     console.log("Copied File:", `${route}/${fileName}`);
     console.log("New Route:", `${newRoute}/${fileName}`);
 
-    await fetch('https://api.nymia.ai/v1/copyfile', {
+    await fetch(`${config.backend_url}/copyfile`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -3236,7 +3236,7 @@ export default function Vault() {
     // Simulate API call
     if (fileCopyState === 2) {
       // Remove from current location if it's a cut operation
-      await fetch(`https://api.nymia.ai/v1/deletefile`, {
+      await fetch(`${config.backend_url}/deletefile`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

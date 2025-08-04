@@ -436,7 +436,7 @@ export default function InfluencerEdit() {
       const allImages: any[] = [];
 
       // Get images from vault/Inbox folder
-      const inboxResponse = await fetch(`https://api.nymia.ai/v1/getfilenames`, {
+      const inboxResponse = await fetch(`${config.backend_url}/getfilenames`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -522,7 +522,7 @@ export default function InfluencerEdit() {
 
     if (profileImageId) {
       const extension = profileImageId.split('.').pop();
-      await fetch('https://api.nymia.ai/v1/copyfile', {
+      await fetch(`${config.backend_url}/copyfile`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -541,7 +541,7 @@ export default function InfluencerEdit() {
 
     try {
       if (location.state?.create) {
-        const response = await fetch('${config.supabase_server_url}/influencer', {
+        const response = await fetch(`${config.supabase_server_url}/influencer`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -561,7 +561,7 @@ export default function InfluencerEdit() {
 
         dispatch(addInfluencer(influencerData));
 
-        await fetch('https://api.nymia.ai/v1/createfolder', {
+        await fetch(`${config.backend_url}/createfolder`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -574,7 +574,7 @@ export default function InfluencerEdit() {
           })
         });
 
-        await fetch('https://api.nymia.ai/v1/createfolder', {
+        await fetch(`${config.backend_url}/createfolder`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -587,7 +587,7 @@ export default function InfluencerEdit() {
           })
         });
 
-        await fetch('https://api.nymia.ai/v1/createfolder', {
+        await fetch(`${config.backend_url}/createfolder`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -600,7 +600,7 @@ export default function InfluencerEdit() {
           })
         });
 
-        await fetch('https://api.nymia.ai/v1/createfolder', {
+        await fetch(`${config.backend_url}/createfolder`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -737,7 +737,7 @@ export default function InfluencerEdit() {
 
     if (profileImageId) {
       const extension = profileImageId.substring(profileImageId.lastIndexOf('.') + 1);
-      await fetch('https://api.nymia.ai/v1/copyfile', {
+      await fetch(`${config.backend_url}/copyfile`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -788,7 +788,7 @@ export default function InfluencerEdit() {
         
         // Check if LoRA exists (only for non-Build from Scratch users)
         try {
-          const loraCheckResponse = await fetch(`https://api.nymia.ai/v1/listfiles?user=${userData.id}&folder=models/${influencerData.id}/lora`, {
+          const loraCheckResponse = await fetch(`${config.backend_url}/listfiles?user=${userData.id}&folder=models/${influencerData.id}/lora`, {
             headers: {
               'Authorization': 'Bearer WeInfl3nc3withAI'
             }
@@ -904,7 +904,7 @@ export default function InfluencerEdit() {
           negative_prompt: request.negative_prompt
         };
 
-        const response = await fetch(`https://api.nymia.ai/v1/createtask?userid=${useridData[0].userid}&type=createimage`, {
+        const response = await fetch(`${config.backend_url}/createtask?userid=${useridData[0].userid}&type=createimage`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -1041,7 +1041,7 @@ export default function InfluencerEdit() {
     try {
       console.log(influencerData.image_num);
       const num = influencerData.image_num === null || influencerData.image_num === undefined ? 0 : influencerData.image_num;
-      const copyResponse = await fetch('https://api.nymia.ai/v1/copyfile', {
+      const copyResponse = await fetch(`${config.backend_url}/copyfile`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1163,7 +1163,7 @@ export default function InfluencerEdit() {
       setIsOptionsLoading(true);
       try {
         // Fetch cultural background options first
-        const backgroundResponse = await fetch('https://api.nymia.ai/v1/fieldoptions?fieldtype=background', {
+        const backgroundResponse = await fetch(`${config.backend_url}/fieldoptions?fieldtype=background`, {
           headers: {
             'Authorization': 'Bearer WeInfl3nc3withAI'
           }
@@ -1219,7 +1219,7 @@ export default function InfluencerEdit() {
         };
 
         const promises = Object.entries(endpoints).map(async ([fieldtype, setter]) => {
-          const response = await fetch(`https://api.nymia.ai/v1/fieldoptions?fieldtype=${fieldtype}`, {
+          const response = await fetch(`${config.backend_url}/fieldoptions?fieldtype=${fieldtype}`, {
             headers: {
               'Authorization': 'Bearer WeInfl3nc3withAI'
             }
@@ -1723,7 +1723,7 @@ export default function InfluencerEdit() {
         const loraFilePath = `models/${influencerData.id}/loratraining/${uploadedFile.name}`;
 
         // Upload file directly to LoRA folder
-        const uploadResponse = await fetch(`https://api.nymia.ai/v1/uploadfile?user=${userData.id}&filename=${loraFilePath}`, {
+        const uploadResponse = await fetch(`${config.backend_url}/uploadfile?user=${userData.id}&filename=${loraFilePath}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/octet-stream',
@@ -1745,7 +1745,7 @@ export default function InfluencerEdit() {
   
         const useridData = await useridResponse.json();
 
-        await fetch(`https://api.nymia.ai/v1/createtask?userid=${useridData[0].userid}&type=createlora`, {
+        await fetch(`${config.backend_url}/createtask?userid=${useridData[0].userid}&type=createlora`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -1773,7 +1773,7 @@ export default function InfluencerEdit() {
   
         const useridData = await useridResponse.json();
 
-        await fetch(`https://api.nymia.ai/v1/createtask?userid=${useridData[0].userid}&type=createlora`, {
+        await fetch(`${config.backend_url}/createtask?userid=${useridData[0].userid}&type=createlora`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -4465,7 +4465,7 @@ export default function InfluencerEdit() {
                                     const num = influencerData.image_num === null || influencerData.image_num === undefined || isNaN(influencerData.image_num) ? 0 : influencerData.image_num;
                                     
                                     // Copy the generated image to the profile picture location
-                                    const copyResponse = await fetch('https://api.nymia.ai/v1/copyfile', {
+                                    const copyResponse = await fetch(`${config.backend_url}/copyfile`, {
                                       method: 'POST',
                                       headers: {
                                         'Content-Type': 'application/json',

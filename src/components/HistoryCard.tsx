@@ -191,7 +191,7 @@ export default function HistoryCard({ userId }: { userId: string }) {
       const filename = image.file_path.split('/').pop();
       console.log(filename);
 
-      const response = await fetch('https://api.nymia.ai/v1/downloadfile', {
+      const response = await fetch(`${config.backend_url}/downloadfile`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -248,7 +248,7 @@ export default function HistoryCard({ userId }: { userId: string }) {
 
       const filename = image.file_path.split('/').pop();
 
-      await fetch(`https://api.nymia.ai/v1/deletefile`, {
+      await fetch(`${config.backend_url}/deletefile`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -586,7 +586,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
       const filename = image.file_path.split('/').pop();
       console.log(filename);
 
-      const response = await fetch('https://api.nymia.ai/v1/downloadfile', {
+      const response = await fetch(`${config.backend_url}/downloadfile`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -633,7 +633,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
 
       const filename = image.file_path.split('/').pop();
 
-      await fetch(`https://api.nymia.ai/v1/deletefile`, {
+      await fetch(`${config.backend_url}/deletefile`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -896,7 +896,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
       const useridData = await useridResponse.json();
 
       console.log(requestData);
-      const response = await fetch(`https://api.nymia.ai/v1/createtask?userid=${useridData[0].userid}&type=createimage`, {
+      const response = await fetch(`${config.backend_url}/createtask?userid=${useridData[0].userid}&type=createimage`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1771,7 +1771,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
   // Helper function to check for file conflicts
   const checkFileConflict = async (filename: string): Promise<{ hasConflict: boolean; existingFilenames: string[] }> => {
     try {
-      const getFilesResponse = await fetch('https://api.nymia.ai/v1/getfilenames', {
+      const getFilesResponse = await fetch(`${config.backend_url}/getfilenames`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1846,7 +1846,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
 
         console.log('Uploading file:', filename, 'Size:', file.size, 'Type:', file.type);
 
-        const uploadResponse = await fetch(`https://api.nymia.ai/v1/uploadfile?user=${userData.id}&filename=presets/${filename}`, {
+        const uploadResponse = await fetch(`${config.backend_url}/uploadfile?user=${userData.id}&filename=presets/${filename}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/octet-stream',
@@ -1872,7 +1872,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
 
         console.log('Copying file:', copyRequest);
 
-        const copyResponse = await fetch('https://api.nymia.ai/v1/copyfile', {
+        const copyResponse = await fetch(`${config.backend_url}/copyfile`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

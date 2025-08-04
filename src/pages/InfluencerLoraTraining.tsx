@@ -247,7 +247,7 @@ export default function InfluencerLoraTraining() {
         const systemFilename = `upload_${timestamp}_${Math.random().toString(36).substring(2, 15)}.${extension}`;
         
         // Upload file to loratraining folder
-        const uploadResponse = await fetch(`https://api.nymia.ai/v1/uploadfile?user=${userData.id}&filename=models/${selectedInfluencer.id}/loratraining/${systemFilename}`, {
+        const uploadResponse = await fetch(`${config.backend_url}/uploadfile?user=${userData.id}&filename=models/${selectedInfluencer.id}/loratraining/${systemFilename}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/octet-stream',
@@ -297,7 +297,7 @@ export default function InfluencerLoraTraining() {
         };
 
         // Save to generated_images table
-        const dbResponse = await fetch('${config.supabase_server_url}/generated_images', {
+        const dbResponse = await fetch(`${config.supabase_server_url}/generated_images`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -346,7 +346,7 @@ export default function InfluencerLoraTraining() {
     setIsLoadingVault(true);
     try {
       // First, get all files from the user's Inbox folder
-      const response = await fetch(`https://api.nymia.ai/v1/getfilenames`, {
+      const response = await fetch(`${config.backend_url}/getfilenames`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -414,7 +414,7 @@ export default function InfluencerLoraTraining() {
       // Copy files to loratraining folder
       for (const image of selectedImages) {
         const extension = image.system_filename.split('.').pop();
-        await fetch('https://api.nymia.ai/v1/copyfile', {
+        await fetch(`${config.backend_url}/copyfile`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -438,7 +438,7 @@ export default function InfluencerLoraTraining() {
         size: img.file_size_bytes
       }));
 
-      await fetch('${config.supabase_server_url}/training_images', {
+      await fetch(`${config.supabase_server_url}/training_images`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -508,7 +508,7 @@ export default function InfluencerLoraTraining() {
 
     setIsTraining(true);
     try {
-      const response = await fetch('https://api.nymia.ai/v1/startloratraining', {
+      const response = await fetch(`${config.backend_url}/startloratraining`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

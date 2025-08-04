@@ -259,7 +259,7 @@ export default function ContentEdit() {
       // Image writer configuration
       imageWriter: {
         store: {
-          url: 'https://api.nymia.ai/v1/uploadfile',
+          url: `${config.backend_url}/uploadfile`,
           headers: {
             'Authorization': 'Bearer WeInfl3nc3withAI'
           },
@@ -289,7 +289,7 @@ export default function ContentEdit() {
       });
 
       // Download the image file
-      const response = await fetch('https://api.nymia.ai/v1/downloadfile', {
+      const response = await fetch(`${config.backend_url}/downloadfile`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -475,7 +475,7 @@ export default function ContentEdit() {
       const blob = await response.blob();
 
       // Get existing files to check for duplicates
-      const getFilesResponse = await fetch('https://api.nymia.ai/v1/getfilenames', {
+      const getFilesResponse = await fetch(`${config.backend_url}/getfilenames`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -542,7 +542,7 @@ export default function ContentEdit() {
       const file = new File([blob], finalFilename, { type: 'image/jpeg' });
 
       // Upload file to API
-      const uploadResponse = await fetch(`https://api.nymia.ai/v1/uploadfile?user=${userData.id}&filename=output/${finalFilename}`, {
+      const uploadResponse = await fetch(`${config.backend_url}/uploadfile?user=${userData.id}&filename=output/${finalFilename}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/octet-stream',
@@ -640,7 +640,7 @@ export default function ContentEdit() {
       });
 
       // Delete old file first
-      const deleteResponse = await fetch('https://api.nymia.ai/v1/deletefile', {
+      const deleteResponse = await fetch(`${config.backend_url}/deletefile`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -679,7 +679,7 @@ export default function ContentEdit() {
       const file = new File([pendingUploadData.blob], conflictFilename, { type: 'image/jpeg' });
 
       // Upload new file
-      const uploadResponse = await fetch(`https://api.nymia.ai/v1/uploadfile?user=${userData.id}&filename=output/${conflictFilename}`, {
+      const uploadResponse = await fetch(`${config.backend_url}/uploadfile?user=${userData.id}&filename=output/${conflictFilename}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/octet-stream',
@@ -771,7 +771,7 @@ export default function ContentEdit() {
       });
 
       // Get existing files to check for duplicates
-      const getFilesResponse = await fetch('https://api.nymia.ai/v1/getfilenames', {
+      const getFilesResponse = await fetch(`${config.backend_url}/getfilenames`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -826,7 +826,7 @@ export default function ContentEdit() {
       const file = new File([pendingUploadData.blob], finalFilename, { type: 'image/jpeg' });
 
       // Upload file to API
-      const uploadResponse = await fetch(`https://api.nymia.ai/v1/uploadfile?user=${userData.id}&filename=output/${finalFilename}`, {
+      const uploadResponse = await fetch(`${config.backend_url}/uploadfile?user=${userData.id}&filename=output/${finalFilename}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/octet-stream',

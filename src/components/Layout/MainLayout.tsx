@@ -29,7 +29,7 @@ export function MainLayout() {
       // If no access token but refresh token exists, try to get new access token
       if (!accessToken && refreshToken) {
         try {
-          const refreshResponse = await fetch('https://api.nymia.ai/v1/refresh', {
+          const refreshResponse = await fetch(`${config.backend_url}/refresh`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -56,7 +56,7 @@ export function MainLayout() {
       }
 
       try {
-        const response = await fetch('https://api.nymia.ai/v1/user', {
+        const response = await fetch(`${config.backend_url}/user`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

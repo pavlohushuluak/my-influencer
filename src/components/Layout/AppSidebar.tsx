@@ -92,7 +92,7 @@ const menuItems = [
       { title: "Vault", url: "/content/vault", icon: Layers },
       { title: "Images", url: "/content/create-image", icon: Image },
       { title: "Videos", url: "/content/create-video", icon: Video },
-      { title: "Upscaler", url: "/content/enhance", icon: Maximize2 },
+      { title: "Upscaler", url: "/content/upscaler", icon: Maximize2 },
       { title: "Edit", url: "/content/edit", icon: Edit },
       { title: "Story", url: "/content/story", icon: BookOpen },
       { title: "Schedule", url: "/content/schedule", icon: Clock },

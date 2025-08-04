@@ -394,7 +394,7 @@ export default function Start() {
       if (localGuideStep === 3) {
         navigate('/content/create');
       } else if (localGuideStep === 4) {
-        navigate('/content/enhance');
+        navigate('/content/upscaler');
       } else {
         // Default to content creation for any step > 2
         navigate('/content/create');

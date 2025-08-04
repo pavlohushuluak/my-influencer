@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Slider } from '@/components/ui/slider';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
@@ -29,6 +30,7 @@ import {
 } from 'lucide-react';
 import VaultSelector from '@/components/VaultSelector';
 import config from '@/config/config';
+import { toast } from 'sonner';
 
 interface UpscaleResult {
   id: string;
@@ -80,6 +82,8 @@ export default function ContentEnhance() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [upscaleScale, setUpscaleScale] = useState('2');
+  const [useSlider, setUseSlider] = useState(false);
+  const [sliderScale, setSliderScale] = useState([2.0]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
   const [upscaleResults, setUpscaleResults] = useState<UpscaleResult[]>([]);
@@ -132,62 +136,238 @@ export default function ContentEnhance() {
     setShowImageSelectionModal(false);
   };
 
-  const handleUpscale = () => {
-    if (!selectedFile && !previewUrl) return;
+  const handleUpscale = async () => {
+    if (!previewUrl) {
+      toast.error('Please select an image first');
+      return;
+    }
 
     setIsProcessing(true);
-    const resultId = Date.now().toString();
-    
-    // Add new upscale job
-    const newResult: UpscaleResult = {
-      id: resultId,
-      originalUrl: previewUrl!,
-      upscaledUrl: '',
-      scale: parseInt(upscaleScale),
-      status: 'processing',
-      progress: 0
-    };
 
-    setUpscaleResults(prev => [...prev, newResult]);
+    try {
+      // If it's a local file, upload it to Vault first
+      let referenceImageUrl = previewUrl;
+      let uploadedImageData = null;
 
-    // Simulate processing
-    const interval = setInterval(() => {
-      setUpscaleResults(prev => 
-        prev.map(result => 
-          result.id === resultId 
-            ? { 
-                ...result, 
-                progress: Math.min(result.progress + Math.random() * 20, 100),
-                status: result.progress >= 100 ? 'completed' : 'processing'
-              }
-            : result
-        )
-      );
-    }, 500);
+      if (selectedFile) {
+        // Upload local file to Vault
+        const uploadResult = await uploadImageToVault(selectedFile);
+        if (uploadResult) {
+          referenceImageUrl = uploadResult.imageUrl;
+          uploadedImageData = uploadResult.imageData;
+        }
+      }
 
-    // Complete after 3-5 seconds
-    setTimeout(() => {
-      clearInterval(interval);
-      setUpscaleResults(prev => 
-        prev.map(result => 
-          result.id === resultId 
-            ? { 
-                ...result, 
-                progress: 100,
-                status: 'completed',
-                upscaledUrl: previewUrl // In real app, this would be the processed image
-              }
-            : result
-        )
-      );
+      // Get userid for API request
+      const useridResponse = await fetch(`${config.supabase_server_url}/user?uuid=eq.${userData.id}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        }
+      });
+
+      const useridData = await useridResponse.json();
+
+      // Prepare request data
+      const requestData = {
+        task: "image_upscale",
+        reference_image: referenceImageUrl,
+        scaling_factor: getCurrentScale()
+      };
+
+      // Create upscale task
+      const response = await fetch(`${config.backend_url}/createtask?userid=${useridData[0].userid}&type=createimage`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify(requestData)
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      const taskId = result.id;
+
+      // Add new upscale job to results
+      const newResult: UpscaleResult = {
+        id: taskId,
+        originalUrl: previewUrl,
+        upscaledUrl: '',
+        scale: getCurrentScale(),
+        status: 'processing',
+        progress: 0
+      };
+
+      setUpscaleResults(prev => [newResult, ...prev]);
+
+      // Start polling for results
+      pollForUpscaleResult(taskId, newResult);
+
+    } catch (error) {
+      console.error('Upscale error:', error);
+      toast.error('Failed to start upscaling process');
       setIsProcessing(false);
-    }, 3000 + Math.random() * 2000);
+    }
   };
 
-  const getScaleDescription = (scale: string) => {
-    const scaleNum = parseInt(scale);
+  const uploadImageToVault = async (file: File): Promise<{ imageUrl: string; imageData: any } | null> => {
+    try {
+      // Generate unique filename
+      const timestamp = Date.now();
+      const extension = file.name.split('.').pop();
+      const baseName = file.name.replace(`.${extension}`, '');
+      const uniqueFilename = `${baseName}_${timestamp}.${extension}`;
+
+      // Upload file to backend
+      const uploadResponse = await fetch(`${config.backend_url}/uploadfile?user=${userData.id}&filename=output/${uniqueFilename}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/octet-stream',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: file
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error('Failed to upload file');
+      }
+
+      // Create database entry
+      const imageData = {
+        task_id: `upscale_${timestamp}`,
+        image_sequence_number: 1,
+        system_filename: uniqueFilename,
+        user_filename: "",
+        user_notes: '',
+        user_tags: [],
+        file_path: `output/${uniqueFilename}`,
+        file_size_bytes: file.size,
+        image_format: extension || 'jpeg',
+        seed: 0,
+        guidance: 0,
+        steps: 0,
+        nsfw_strength: 0,
+        lora_strength: 0,
+        model_version: 'uploaded',
+        t5xxl_prompt: '',
+        clip_l_prompt: '',
+        negative_prompt: '',
+        generation_status: 'completed',
+        generation_started_at: new Date().toISOString(),
+        generation_completed_at: new Date().toISOString(),
+        generation_time_seconds: 0,
+        error_message: '',
+        retry_count: 0,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        actual_seed_used: 0,
+        prompt_file_used: '',
+        quality_setting: 'uploaded',
+        rating: 0,
+        favorite: false,
+        file_type: file.type
+      };
+
+      const dbResponse = await fetch(`${config.supabase_server_url}/generated_images`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify(imageData)
+      });
+
+      if (!dbResponse.ok) {
+        throw new Error('Failed to create database entry');
+      }
+
+      const imageUrl = `${config.data_url}/cdn-cgi/image/w=800/${userData.id}/output/${uniqueFilename}`;
+
+      return { imageUrl, imageData };
+    } catch (error) {
+      console.error('Error uploading to vault:', error);
+      toast.error('Failed to upload image to vault');
+      return null;
+    }
+  };
+
+  const pollForUpscaleResult = async (taskId: string, result: UpscaleResult) => {
+    const pollInterval = setInterval(async () => {
+      try {
+        const imagesResponse = await fetch(`${config.supabase_server_url}/generated_images?task_id=eq.${taskId}`, {
+          headers: {
+            'Authorization': 'Bearer WeInfl3nc3withAI'
+          }
+        });
+
+        const imagesData = await imagesResponse.json();
+
+        if (imagesData.length > 0 && imagesData[0].generation_status === 'completed' && imagesData[0].system_filename) {
+          const completedImage = imagesData[0];
+          const upscaledUrl = `${config.data_url}/cdn-cgi/image/w=800/${userData.id}/${completedImage.user_filename === "" || completedImage.user_filename === null ? "output" : "vault/" + completedImage.user_filename}/${completedImage.system_filename}`;
+          
+          // Update the result
+          setUpscaleResults(prev => prev.map(r => 
+            r.id === taskId 
+              ? { 
+                  ...r, 
+                  status: 'completed', 
+                  progress: 100,
+                  upscaledUrl
+                }
+              : r
+          ));
+
+          clearInterval(pollInterval);
+          setIsProcessing(false);
+          toast.success('Image upscaled successfully!');
+        } else if (imagesData.length > 0 && imagesData[0].generation_status === 'failed') {
+          // Handle failure
+          setUpscaleResults(prev => prev.map(r => 
+            r.id === taskId 
+              ? { 
+                  ...r, 
+                  status: 'failed', 
+                  progress: 0
+                }
+              : r
+          ));
+
+          clearInterval(pollInterval);
+          setIsProcessing(false);
+          toast.error('Upscaling failed. Please try again.');
+        } else {
+          // Update progress (simulate based on time elapsed)
+          const elapsed = Date.now() - parseInt(taskId.split('_')[1] || '0');
+          const estimatedProgress = Math.min((elapsed / 30000) * 100, 95); // Assume 30 seconds total
+          
+          setUpscaleResults(prev => prev.map(r => 
+            r.id === taskId 
+              ? { ...r, progress: estimatedProgress }
+              : r
+          ));
+        }
+      } catch (error) {
+        console.error('Error polling for upscale result:', error);
+        clearInterval(pollInterval);
+        setIsProcessing(false);
+        toast.error('Failed to check upscale status');
+      }
+    }, 1000); // Poll every 1 second
+  };
+
+  const getScaleDescription = (scale: string | number) => {
+    const scaleNum = typeof scale === 'string' ? parseFloat(scale) : scale;
     const multiplier = scaleNum * scaleNum;
-    return `${multiplier}x more pixels`;
+    return `${multiplier.toFixed(1)}x more pixels`;
+  };
+
+  const getCurrentScale = () => {
+    return useSlider ? sliderScale[0] : parseFloat(upscaleScale);
   };
 
   return (
@@ -256,21 +436,69 @@ export default function ContentEnhance() {
               {/* Upscale Settings */}
               <div className="space-y-4">
                 <div>
-                  <Label className="text-sm font-medium">Upscale Factor</Label>
-                  <Select value={upscaleScale} onValueChange={setUpscaleScale}>
-                    <SelectTrigger className="mt-2">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="2">2x Upscale</SelectItem>
-                      <SelectItem value="3">3x Upscale</SelectItem>
-                      <SelectItem value="4">4x Upscale</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {getScaleDescription(upscaleScale)}
-                  </p>
+                  <Label className="text-sm font-medium">Scale Control Method</Label>
+                  <div className="flex gap-2 mt-2">
+                    <Button
+                      type="button"
+                      variant={!useSlider ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setUseSlider(false)}
+                      className="flex-1"
+                    >
+                      Preset
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={useSlider ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setUseSlider(true)}
+                      className="flex-1"
+                    >
+                      Custom
+                    </Button>
+                  </div>
                 </div>
+
+                {!useSlider ? (
+                  <div>
+                    <Label className="text-sm font-medium">Upscale Factor</Label>
+                    <Select value={upscaleScale} onValueChange={setUpscaleScale}>
+                      <SelectTrigger className="mt-2">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="2">2x Upscale</SelectItem>
+                        <SelectItem value="3">3x Upscale</SelectItem>
+                        <SelectItem value="4">4x Upscale</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {getScaleDescription(upscaleScale)}
+                    </p>
+                  </div>
+                ) : (
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <Label className="text-sm font-medium">Custom Scale: {sliderScale[0].toFixed(1)}x</Label>
+                      <Badge variant="secondary" className="text-xs">
+                        {getScaleDescription(sliderScale[0])}
+                      </Badge>
+                    </div>
+                    <Slider
+                      value={sliderScale}
+                      onValueChange={setSliderScale}
+                      max={4}
+                      min={1}
+                      step={0.1}
+                      className="mt-2"
+                    />
+                    <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                      <span>1.0x</span>
+                      <span>2.5x</span>
+                      <span>4.0x</span>
+                    </div>
+                  </div>
+                )}
 
                 <Button 
                   onClick={handleUpscale}

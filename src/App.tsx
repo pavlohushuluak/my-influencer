@@ -88,7 +88,7 @@ const App = () => {
                   <Route path='/content/vault' element={<Vault />} />
                   <Route path='/content/create-image' element={<ContentCreateImageWrapper />} />
                   <Route path='/content/create-video' element={<ContentCreateVideoWrapper />} />
-                  <Route path='/content/enhance' element={<ContentEnhance />} />
+                  <Route path='/content/upscaler' element={<ContentEnhance />} />
                   <Route path='/content/edit' element={<ContentEdit />} />
                   <Route path='/content/story' element={<ContentStory />} />
                   <Route path='/content/schedule' element={<ContentSchedule />} />

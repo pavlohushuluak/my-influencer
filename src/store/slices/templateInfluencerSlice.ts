@@ -1,4 +1,5 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
+import config from '@/config/config';
 
 export interface TemplateInfluencer {
     id: string;
@@ -69,7 +70,7 @@ const initialState: TemplateInfluencerState = {
 export const fetchTemplateInfluencers = createAsyncThunk(
     'templateInfluencer/fetchAll',
     async () => {
-        const response = await fetch(`https://db.nymia.ai/rest/v1/influencer?user_id=eq.21df831a-4ed7-4b40-abd0-bf568b132134`, {
+        const response = await fetch(`${config.supabase_server_url}/influencer?user_id=eq.21df831a-4ed7-4b40-abd0-bf568b132134`, {
             headers: {
                 'Authorization': 'Bearer WeInfl3nc3withAI'
             }

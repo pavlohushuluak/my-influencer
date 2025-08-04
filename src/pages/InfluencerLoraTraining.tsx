@@ -115,7 +115,7 @@ export default function InfluencerLoraTraining() {
     setIsLoading(true);
     try {
       dispatch(setLoading(true));
-      const response = await fetch(`https://db.nymia.ai/rest/v1/influencer?user_id=eq.${userData.id}`, {
+      const response = await fetch(`${config.supabase_server_url}/influencer?user_id=eq.${userData.id}`, {
         headers: {
           'Authorization': 'Bearer WeInfl3nc3withAI'
         }
@@ -153,7 +153,7 @@ export default function InfluencerLoraTraining() {
     setIsLoadingImages(true);
     try {
       // Fetch from training_images table
-      const trainingResponse = await fetch(`https://db.nymia.ai/rest/v1/training_images?influencer_id=eq.${selectedInfluencer.id}`, {
+      const trainingResponse = await fetch(`${config.supabase_server_url}/training_images?influencer_id=eq.${selectedInfluencer.id}`, {
         headers: {
           'Authorization': 'Bearer WeInfl3nc3withAI'
         }
@@ -166,7 +166,7 @@ export default function InfluencerLoraTraining() {
       const trainingData = await trainingResponse.json();
 
       // Fetch from generated_images table where user_filename is 'loratraining'
-      const generatedResponse = await fetch(`https://db.nymia.ai/rest/v1/generated_images?user_filename=eq.loratraining`, {
+      const generatedResponse = await fetch(`${config.supabase_server_url}/generated_images?user_filename=eq.loratraining`, {
         headers: {
           'Authorization': 'Bearer WeInfl3nc3withAI'
         }
@@ -211,7 +211,7 @@ export default function InfluencerLoraTraining() {
 
     setIsLoadingVersions(true);
     try {
-      const response = await fetch(`https://db.nymia.ai/rest/v1/lora_versions?influencer_id=eq.${selectedInfluencer.id}`, {
+      const response = await fetch(`${config.supabase_server_url}/lora_versions?influencer_id=eq.${selectedInfluencer.id}`, {
         headers: {
           'Authorization': 'Bearer WeInfl3nc3withAI'
         }
@@ -297,7 +297,7 @@ export default function InfluencerLoraTraining() {
         };
 
         // Save to generated_images table
-        const dbResponse = await fetch('https://db.nymia.ai/rest/v1/generated_images', {
+        const dbResponse = await fetch('${config.supabase_server_url}/generated_images', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -320,7 +320,7 @@ export default function InfluencerLoraTraining() {
           size: file.size
         };
 
-        // await fetch('https://db.nymia.ai/rest/v1/training_images', {
+        // await fetch('${config.supabase_server_url}/training_images', {
         //   method: 'POST',
         //   headers: {
         //     'Content-Type': 'application/json',
@@ -376,7 +376,7 @@ export default function InfluencerLoraTraining() {
         const user_filename = "Inbox";
 
         try {
-          const detailResponse = await fetch(`https://db.nymia.ai/rest/v1/generated_images?system_filename=eq.${filename}&user_filename=eq.${user_filename}`, {
+          const detailResponse = await fetch(`${config.supabase_server_url}/generated_images?system_filename=eq.${filename}&user_filename=eq.${user_filename}`, {
             headers: {
               'Authorization': 'Bearer WeInfl3nc3withAI'
             }
@@ -438,7 +438,7 @@ export default function InfluencerLoraTraining() {
         size: img.file_size_bytes
       }));
 
-      await fetch('https://db.nymia.ai/rest/v1/training_images', {
+      await fetch('${config.supabase_server_url}/training_images', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -459,7 +459,7 @@ export default function InfluencerLoraTraining() {
 
   const handleToggleExclude = async (imageId: string, excluded: boolean) => {
     try {
-      await fetch(`https://db.nymia.ai/rest/v1/training_images?id=eq.${imageId}`, {
+      await fetch(`${config.supabase_server_url}/training_images?id=eq.${imageId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -483,7 +483,7 @@ export default function InfluencerLoraTraining() {
 
   const handleDeleteImage = async (imageId: string) => {
     try {
-      await fetch(`https://db.nymia.ai/rest/v1/training_images?id=eq.${imageId}`, {
+      await fetch(`${config.supabase_server_url}/training_images?id=eq.${imageId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': 'Bearer WeInfl3nc3withAI'

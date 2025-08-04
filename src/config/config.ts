@@ -1,7 +1,7 @@
 // Configuration file for API endpoints and URLs
 export const config = {
   // Supabase database URL
-  supabase_server_url: 'https://db.nymia.ai/rest/v1',
+  supabase_server_url: '${config.supabase_server_url}',
   
   // Backend API URL
   backend_url: 'https://api.nymia.ai/v1',

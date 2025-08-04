@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { Star, Search, Folder, ChevronRight, Home, ArrowLeft, Calendar, Video, Download, Upload, Edit, Share, Trash2, RefreshCcw, Filter, SortAsc, SortDesc, X, Plus, File, User, Play, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
-import { config } from '@/config/config';
+import config from '@/config/config';
 
 // Interface for video data from database
 interface VideoData {
@@ -288,7 +288,7 @@ export default function VideoSelector({
       setVideosLoading(true);
 
       // Build the query for counting videos in the current path
-      let countQuery = `https://db.nymia.ai/rest/v1/video?user_uuid=eq.${userData.id}&status=eq.completed&select=count`;
+      let countQuery = `${config.supabase_server_url}/video?user_uuid=eq.${userData.id}&status=eq.completed&select=count`;
       
       if (folderPath === '') {
         // Root folder: count videos where video_path is empty, null, or undefined
@@ -332,7 +332,7 @@ export default function VideoSelector({
       setVideosLoading(true);
 
       // Build the base query
-      let query = `https://db.nymia.ai/rest/v1/video?user_uuid=eq.${userData.id}&status=eq.completed`;
+      let query = `${config.supabase_server_url}/video?user_uuid=eq.${userData.id}&status=eq.completed`;
       
       // Add path filter
       if (currentPath === '') {
@@ -431,7 +431,7 @@ export default function VideoSelector({
     try {
       setLoadingFileCounts(prev => ({ ...prev, [folderPath]: true }));
 
-      const response = await fetch(`https://db.nymia.ai/rest/v1/video?user_uuid=eq.${userData.id}&status=eq.completed&video_path=eq.${encodeURIComponent(folderPath)}&select=count`, {
+      const response = await fetch(`${config.supabase_server_url}/video?user_uuid=eq.${userData.id}&status=eq.completed&video_path=eq.${encodeURIComponent(folderPath)}&select=count`, {
         headers: {
           'Authorization': 'Bearer WeInfl3nc3withAI',
           'Content-Type': 'application/json'

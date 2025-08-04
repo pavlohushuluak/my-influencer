@@ -251,7 +251,7 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
 
       try {
         setLoadingVideos(true);
-        const response = await fetch(`https://db.nymia.ai/rest/v1/video?user_uuid=eq.${userData.id}&status=eq.completed&order=task_created_at.desc`, {
+        const response = await fetch(`${config.supabase_server_url}/video?user_uuid=eq.${userData.id}&status=eq.completed&order=task_created_at.desc`, {
           headers: {
             'Authorization': 'Bearer WeInfl3nc3withAI',
             'Content-Type': 'application/json'

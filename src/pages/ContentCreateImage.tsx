@@ -645,7 +645,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
         })
       });
 
-      await fetch(`https://db.nymia.ai/rest/v1/generated_images?id=eq.${image.id}`, {
+      await fetch(`${config.supabase_server_url}/generated_images?id=eq.${image.id}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -823,7 +823,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
 
     setIsGenerating(true);
 
-    const response = await fetch(`https://db.nymia.ai/rest/v1/influencer?id=eq.${modelData.id}`, {
+    const response = await fetch(`${config.supabase_server_url}/influencer?id=eq.${modelData.id}`, {
       method: 'GET',
       headers: {
         'Authorization': 'Bearer WeInfl3nc3withAI'
@@ -886,7 +886,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
         }
       };
 
-      const useridResponse = await fetch(`https://db.nymia.ai/rest/v1/user?uuid=eq.${userData.id}`, {
+      const useridResponse = await fetch(`${config.supabase_server_url}/user?uuid=eq.${userData.id}`, {
         method: 'GET',
         headers: {
           'Authorization': 'Bearer WeInfl3nc3withAI'
@@ -918,7 +918,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
       // Update guide_step if it's currently 3
       if (userData.guide_step === 3) {
         try {
-          const guideStepResponse = await fetch(`https://db.nymia.ai/rest/v1/user?uuid=eq.${userData.id}`, {
+          const guideStepResponse = await fetch(`${config.supabase_server_url}/user?uuid=eq.${userData.id}`, {
             method: 'PATCH',
             headers: {
               'Content-Type': 'application/json',
@@ -1262,7 +1262,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
           // Fetch the influencer data from the database
           const fetchInfluencerData = async () => {
             try {
-              const response = await fetch(`https://db.nymia.ai/rest/v1/influencer?id=eq.${regenerationData.model.id}`, {
+              const response = await fetch(`${config.supabase_server_url}/influencer?id=eq.${regenerationData.model.id}`, {
                 headers: {
                   'Authorization': 'Bearer WeInfl3nc3withAI'
                 }
@@ -1388,7 +1388,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
   // Vault-style functions
   const updateFavorite = async (systemFilename: string, favorite: boolean) => {
     try {
-      const response = await fetch(`https://db.nymia.ai/rest/v1/generated_images?system_filename=eq.${systemFilename}`, {
+      const response = await fetch(`${config.supabase_server_url}/generated_images?system_filename=eq.${systemFilename}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -1413,7 +1413,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
 
   const updateRating = async (systemFilename: string, rating: number) => {
     try {
-      const response = await fetch(`https://db.nymia.ai/rest/v1/generated_images?system_filename=eq.${systemFilename}`, {
+      const response = await fetch(`${config.supabase_server_url}/generated_images?system_filename=eq.${systemFilename}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -1931,7 +1931,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
       }
 
       console.log('Saving preset to database:', JSON.stringify(presetData, null, 2));
-      console.log('Database URL:', 'https://db.nymia.ai/rest/v1/presets');
+      console.log('Database URL:', '${config.supabase_server_url}/presets');
       console.log('User ID:', userData.id);
 
       // Save to database with retry mechanism
@@ -1941,7 +1941,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
 
       while (retryCount < maxRetries) {
         try {
-          response = await fetch('https://db.nymia.ai/rest/v1/presets', {
+          response = await fetch('${config.supabase_server_url}/presets', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -2344,7 +2344,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
     try {
       console.log('Fetching presets for user:', userData.id);
 
-      const response = await fetch(`https://db.nymia.ai/rest/v1/presets?user_id=eq.${userData.id}`, {
+      const response = await fetch(`${config.supabase_server_url}/presets?user_id=eq.${userData.id}`, {
         headers: {
           'Authorization': 'Bearer WeInfl3nc3withAI',
           'Content-Type': 'application/json'
@@ -2436,7 +2436,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
   // Delete preset
   const handleDeletePreset = async (preset: any) => {
     try {
-      const response = await fetch(`https://db.nymia.ai/rest/v1/presets?id=eq.${preset.id}`, {
+      const response = await fetch(`${config.supabase_server_url}/presets?id=eq.${preset.id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': 'Bearer WeInfl3nc3withAI'

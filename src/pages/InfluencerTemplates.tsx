@@ -37,7 +37,7 @@ export default function InfluencerTemplates() {
     try {
       console.log(template);
       // Create a new influencer with default values for required fields
-      const response = await fetch('https://db.nymia.ai/rest/v1/influencer', {
+      const response = await fetch('${config.supabase_server_url}/influencer', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -95,7 +95,7 @@ export default function InfluencerTemplates() {
         })
       });
 
-      const responseId = await fetch(`https://db.nymia.ai/rest/v1/influencer?user_id=eq.${userData.id}&new=eq.true`, {
+      const responseId = await fetch(`${config.supabase_server_url}/influencer?user_id=eq.${userData.id}&new=eq.true`, {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer WeInfl3nc3withAI'
@@ -180,7 +180,7 @@ export default function InfluencerTemplates() {
         throw new Error('Failed to copy image to profile picture');
       }
 
-      const responseUpdate = await fetch(`https://db.nymia.ai/rest/v1/influencer?id=eq.${data[0].id}`, {
+      const responseUpdate = await fetch(`${config.supabase_server_url}/influencer?id=eq.${data[0].id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

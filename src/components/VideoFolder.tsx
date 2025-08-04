@@ -715,7 +715,7 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
           delete newVideoData.video_id; // Remove ID so database generates new one
           delete newVideoData.id; // Remove ID so database generates new one
 
-          const createVideoResponse = await fetch(`https://db.nymia.ai/rest/v1/video`, {
+          const createVideoResponse = await fetch(`${config.supabase_server_url}/video`, {
             method: 'POST',
             headers: {
               'Authorization': 'Bearer WeInfl3nc3withAI',
@@ -732,7 +732,7 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
           }
         } else {
           // For cut operation, update the existing database entry
-          const updateResponse = await fetch(`https://db.nymia.ai/rest/v1/video?video_id=eq.${video.video_id}`, {
+          const updateResponse = await fetch(`${config.supabase_server_url}/video?video_id=eq.${video.video_id}`, {
             method: 'PATCH',
             headers: {
               'Authorization': 'Bearer WeInfl3nc3withAI',
@@ -874,7 +874,7 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
   const checkFileExistsInDatabase = async (fileName: string): Promise<boolean> => {
     try {
       const videoPath = currentPath || '';
-      const response = await fetch(`https://db.nymia.ai/rest/v1/video?user_uuid=eq.${userData.id}&video_name=eq.${encodeURIComponent(fileName)}&video_path=eq.${encodeURIComponent(videoPath)}`, {
+      const response = await fetch(`${config.supabase_server_url}/video?user_uuid=eq.${userData.id}&video_name=eq.${encodeURIComponent(fileName)}&video_path=eq.${encodeURIComponent(videoPath)}`, {
         headers: {
           'Authorization': 'Bearer WeInfl3nc3withAI',
           'Content-Type': 'application/json'
@@ -944,7 +944,7 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
     delete newVideoData.id;
 
     // Create new database entry
-    const dbResponse = await fetch(`https://db.nymia.ai/rest/v1/video`, {
+    const dbResponse = await fetch(`${config.supabase_server_url}/video`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -976,7 +976,7 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
       }
 
       // Delete the original database entry
-      const deleteDbResponse = await fetch(`https://db.nymia.ai/rest/v1/video?video_id=eq.${video.video_id}`, {
+      const deleteDbResponse = await fetch(`${config.supabase_server_url}/video?video_id=eq.${video.video_id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': 'Bearer WeInfl3nc3withAI',
@@ -1182,7 +1182,7 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
     if (!deleteModal.video) return;
     
     try {
-      const response = await fetch(`https://db.nymia.ai/rest/v1/video?video_id=eq.${deleteModal.video.video_id}`, {
+      const response = await fetch(`${config.supabase_server_url}/video?video_id=eq.${deleteModal.video.video_id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': 'Bearer WeInfl3nc3withAI',
@@ -1337,7 +1337,7 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
       console.log('New folder created successfully');
 
       // Step 2: Get all files from the old folder and move them to the new folder
-      const allVideosResponse = await fetch(`https://db.nymia.ai/rest/v1/video?user_uuid=eq.${userData.id}`, {
+      const allVideosResponse = await fetch(`${config.supabase_server_url}/video?user_uuid=eq.${userData.id}`, {
         method: 'GET',
         headers: {
           'Authorization': 'Bearer WeInfl3nc3withAI',
@@ -1384,7 +1384,7 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
           console.log(`Successfully copied video file ${fileName}.mp4`);
 
           // Update the video_path in database
-          const updateResponse = await fetch(`https://db.nymia.ai/rest/v1/video?video_id=eq.${video.video_id}`, {
+          const updateResponse = await fetch(`${config.supabase_server_url}/video?video_id=eq.${video.video_id}`, {
             method: 'PATCH',
             headers: {
               'Authorization': 'Bearer WeInfl3nc3withAI',
@@ -1483,7 +1483,7 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
                   console.log(`Successfully copied video file ${fileName}.mp4 in subfolder ${relativePath}`);
 
                   // Update the video_path in database
-                  const updateResponse = await fetch(`https://db.nymia.ai/rest/v1/video?video_id=eq.${video.video_id}`, {
+                  const updateResponse = await fetch(`${config.supabase_server_url}/video?video_id=eq.${video.video_id}`, {
                     method: 'PATCH',
                     headers: {
                       'Authorization': 'Bearer WeInfl3nc3withAI',
@@ -1680,7 +1680,7 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
         console.log('Destination folder created successfully');
 
         // Step 2: Get all videos from the source folder and copy them
-        const allVideosResponse = await fetch(`https://db.nymia.ai/rest/v1/video?user_uuid=eq.${userData.id}`, {
+        const allVideosResponse = await fetch(`${config.supabase_server_url}/video?user_uuid=eq.${userData.id}`, {
           method: 'GET',
           headers: {
             'Authorization': 'Bearer WeInfl3nc3withAI',
@@ -1734,7 +1734,7 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
               delete newVideoData.video_id; // Remove ID so database generates new one
               delete newVideoData.id; // Remove ID so database generates new one
 
-              const createVideoResponse = await fetch(`https://db.nymia.ai/rest/v1/video`, {
+              const createVideoResponse = await fetch(`${config.supabase_server_url}/video`, {
                 method: 'POST',
                 headers: {
                   'Authorization': 'Bearer WeInfl3nc3withAI',
@@ -1751,7 +1751,7 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
               }
             } else {
               // For cut operation, update the existing database entry
-              const updateResponse = await fetch(`https://db.nymia.ai/rest/v1/video?video_id=eq.${video.video_id}`, {
+              const updateResponse = await fetch(`${config.supabase_server_url}/video?video_id=eq.${video.video_id}`, {
                 method: 'PATCH',
                 headers: {
                   'Authorization': 'Bearer WeInfl3nc3withAI',
@@ -1857,7 +1857,7 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
                       delete newVideoData.video_id;
                       delete newVideoData.id;
 
-                      const createVideoResponse = await fetch(`https://db.nymia.ai/rest/v1/video`, {
+                      const createVideoResponse = await fetch(`${config.supabase_server_url}/video`, {
                         method: 'POST',
                         headers: {
                           'Authorization': 'Bearer WeInfl3nc3withAI',
@@ -1874,7 +1874,7 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
                       }
                     } else {
                       // For cut operation, update the existing database entry
-                      const updateResponse = await fetch(`https://db.nymia.ai/rest/v1/video?video_id=eq.${video.video_id}`, {
+                      const updateResponse = await fetch(`${config.supabase_server_url}/video?video_id=eq.${video.video_id}`, {
                         method: 'PATCH',
                         headers: {
                           'Authorization': 'Bearer WeInfl3nc3withAI',
@@ -2036,7 +2036,7 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
           delete newVideoData.video_id; // Remove ID so database generates new one
           delete newVideoData.id; // Remove ID so database generates new one
 
-          const createVideoResponse = await fetch(`https://db.nymia.ai/rest/v1/video`, {
+          const createVideoResponse = await fetch(`${config.supabase_server_url}/video`, {
             method: 'POST',
             headers: {
               'Authorization': 'Bearer WeInfl3nc3withAI',
@@ -2053,7 +2053,7 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
           }
         } else {
           // For cut operation, update the existing database entry
-          const updateResponse = await fetch(`https://db.nymia.ai/rest/v1/video?video_id=eq.${video.video_id}`, {
+          const updateResponse = await fetch(`${config.supabase_server_url}/video?video_id=eq.${video.video_id}`, {
             method: 'PATCH',
             headers: {
               'Authorization': 'Bearer WeInfl3nc3withAI',
@@ -2288,7 +2288,7 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
       });
 
       // Update the video's video_path in the database
-      const response = await fetch(`https://db.nymia.ai/rest/v1/video?video_id=eq.${draggedVideo.video_id}`, {
+      const response = await fetch(`${config.supabase_server_url}/video?video_id=eq.${draggedVideo.video_id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

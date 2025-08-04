@@ -376,7 +376,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
       setAudiosLoading(true);
       
       // Build the query for counting audios in the current path
-      let countQuery = `https://db.nymia.ai/rest/v1/audio?user_uuid=eq.${userData.id}&status=eq.created&select=count`;
+      let countQuery = `${config.supabase_server_url}/audio?user_uuid=eq.${userData.id}&status=eq.created&select=count`;
       
       if (folderPath === '') {
         // Root folder: count audios where audio_path is empty, null, or undefined
@@ -420,7 +420,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
       setAudiosLoading(true);
 
       // Build the base query
-      let query = `https://db.nymia.ai/rest/v1/audio?user_uuid=eq.${userData.id}&status=eq.created`;
+      let query = `${config.supabase_server_url}/audio?user_uuid=eq.${userData.id}&status=eq.created`;
       
       // Add path filter
       if (currentPath === '') {
@@ -743,7 +743,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
 
   const checkFileExistsInDatabase = async (fileName: string): Promise<boolean> => {
     try {
-      const response = await fetch(`https://db.nymia.ai/rest/v1/audio?user_uuid=eq.${userData.id}&filename=eq.${encodeURIComponent(fileName)}&audio_path=eq.${encodeURIComponent(currentPath)}`, {
+      const response = await fetch(`${config.supabase_server_url}/audio?user_uuid=eq.${userData.id}&filename=eq.${encodeURIComponent(fileName)}&audio_path=eq.${encodeURIComponent(currentPath)}`, {
         headers: {
           'Authorization': 'Bearer WeInfl3nc3withAI',
           'Content-Type': 'application/json'
@@ -803,7 +803,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
 
     delete postAudio.audio_id;
 
-    await fetch(`https://db.nymia.ai/rest/v1/audio`, {
+    await fetch(`${config.supabase_server_url}/audio`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -826,7 +826,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
         })
       });
 
-      await fetch(`https://db.nymia.ai/rest/v1/audio?audio_id=eq.${audio.audio_id}`, {
+      await fetch(`${config.supabase_server_url}/audio?audio_id=eq.${audio.audio_id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': 'Bearer WeInfl3nc3withAI',
@@ -1021,7 +1021,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
       });
 
       // Delete from database
-      const response = await fetch(`https://db.nymia.ai/rest/v1/audio?audio_id=eq.${audio.audio_id}`, {
+      const response = await fetch(`${config.supabase_server_url}/audio?audio_id=eq.${audio.audio_id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': 'Bearer WeInfl3nc3withAI',
@@ -1185,7 +1185,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
       console.log('New folder created successfully');
 
       // Step 2: Get all files from the old folder and move them to the new folder
-      const allAudiosResponse = await fetch(`https://db.nymia.ai/rest/v1/audio?user_uuid=eq.${userData.id}`, {
+      const allAudiosResponse = await fetch(`${config.supabase_server_url}/audio?user_uuid=eq.${userData.id}`, {
         method: 'GET',
         headers: {
           'Authorization': 'Bearer WeInfl3nc3withAI',
@@ -1232,7 +1232,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
           console.log(`Successfully copied audio file ${fileName}`);
 
           // Update the audio_path in database
-          const updateResponse = await fetch(`https://db.nymia.ai/rest/v1/audio?audio_id=eq.${audio.audio_id}`, {
+          const updateResponse = await fetch(`${config.supabase_server_url}/audio?audio_id=eq.${audio.audio_id}`, {
             method: 'PATCH',
             headers: {
               'Authorization': 'Bearer WeInfl3nc3withAI',
@@ -1338,7 +1338,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
                   console.log(`Successfully copied audio file ${fileName} in subfolder ${relativePath}`);
 
                   // Update the audio_path in database
-                  const updateResponse = await fetch(`https://db.nymia.ai/rest/v1/audio?audio_id=eq.${audio.audio_id}`, {
+                  const updateResponse = await fetch(`${config.supabase_server_url}/audio?audio_id=eq.${audio.audio_id}`, {
                     method: 'PATCH',
                     headers: {
                       'Authorization': 'Bearer WeInfl3nc3withAI',
@@ -1580,7 +1580,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
         console.log('Destination folder created successfully');
 
         // Step 2: Get all audios from the source folder and copy them
-        const allAudiosResponse = await fetch(`https://db.nymia.ai/rest/v1/audio?user_uuid=eq.${userData.id}`, {
+        const allAudiosResponse = await fetch(`${config.supabase_server_url}/audio?user_uuid=eq.${userData.id}`, {
           method: 'GET',
           headers: {
             'Authorization': 'Bearer WeInfl3nc3withAI',
@@ -1631,7 +1631,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
               };
               delete newAudioData.audio_id; // Remove ID so database generates new one
 
-              const createAudioResponse = await fetch(`https://db.nymia.ai/rest/v1/audio`, {
+              const createAudioResponse = await fetch(`${config.supabase_server_url}/audio`, {
                 method: 'POST',
                 headers: {
                   'Authorization': 'Bearer WeInfl3nc3withAI',
@@ -1648,7 +1648,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
               }
             } else {
               // For cut operation, update the existing database entry
-              const updateResponse = await fetch(`https://db.nymia.ai/rest/v1/audio?audio_id=eq.${audio.audio_id}`, {
+              const updateResponse = await fetch(`${config.supabase_server_url}/audio?audio_id=eq.${audio.audio_id}`, {
                 method: 'PATCH',
                 headers: {
                   'Authorization': 'Bearer WeInfl3nc3withAI',
@@ -1756,7 +1756,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
                       };
                       delete newAudioData.audio_id;
 
-                      const createAudioResponse = await fetch(`https://db.nymia.ai/rest/v1/audio`, {
+                      const createAudioResponse = await fetch(`${config.supabase_server_url}/audio`, {
                         method: 'POST',
                         headers: {
                           'Authorization': 'Bearer WeInfl3nc3withAI',
@@ -1773,7 +1773,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
                       }
                     } else {
                       // For cut operation, update the existing database entry
-                      const updateResponse = await fetch(`https://db.nymia.ai/rest/v1/audio?audio_id=eq.${audio.audio_id}`, {
+                      const updateResponse = await fetch(`${config.supabase_server_url}/audio?audio_id=eq.${audio.audio_id}`, {
                         method: 'PATCH',
                         headers: {
                           'Authorization': 'Bearer WeInfl3nc3withAI',
@@ -1958,7 +1958,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
           };
           delete newAudioData.audio_id; // Remove ID so database generates new one
 
-          const createResponse = await fetch(`https://db.nymia.ai/rest/v1/audio`, {
+          const createResponse = await fetch(`${config.supabase_server_url}/audio`, {
             method: 'POST',
             headers: {
               'Authorization': 'Bearer WeInfl3nc3withAI',
@@ -1998,7 +1998,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
           }
 
           // Update database entry
-          const updateResponse = await fetch(`https://db.nymia.ai/rest/v1/audio?audio_id=eq.${audio.audio_id}`, {
+          const updateResponse = await fetch(`${config.supabase_server_url}/audio?audio_id=eq.${audio.audio_id}`, {
             method: 'PATCH',
             headers: {
               'Content-Type': 'application/json',
@@ -2227,7 +2227,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
       });
 
       // Update the audio's audio_path in the database
-      const response = await fetch(`https://db.nymia.ai/rest/v1/audio?audio_id=eq.${draggedAudio.audio_id}`, {
+      const response = await fetch(`${config.supabase_server_url}/audio?audio_id=eq.${draggedAudio.audio_id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

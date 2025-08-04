@@ -7,6 +7,7 @@ import { Outlet, useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
 import { setUser, setLoading, setError } from '@/store/slices/userSlice';
 import { toast } from 'sonner';
+import config from '@/config/config';
 
 export function MainLayout() {
   const dispatch = useDispatch();
@@ -72,7 +73,7 @@ export function MainLayout() {
 
         const data = await response.json();
 
-        const userResponse = await fetch(`https://db.nymia.ai/rest/v1/user?uuid=eq.${data.id}`, {
+        const userResponse = await fetch(`${config.supabase_server_url}/user?uuid=eq.${data.id}`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',

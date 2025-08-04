@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import React from 'react';
 import { useDispatch } from 'react-redux';
 import { setBio } from '@/store/slices/bioSlice';
+import config from '@/config/config';
 
 // PDF Generation
 const generatePDF = async (influencer: any, bio: any, platforms: any) => {
@@ -658,7 +659,7 @@ export default function InfluencerBio() {
         // If influencer not in Redux, fetch from database
         if (!influencer) {
           console.log('Influencer not in Redux, fetching from database...');
-          const response = await fetch(`https://db.nymia.ai/rest/v1/influencer?id=eq.${influencerId}`, {
+          const response = await fetch(`${config.supabase_server_url}/influencer?id=eq.${influencerId}`, {
             headers: {
               'Authorization': 'Bearer WeInfl3nc3withAI',
             },

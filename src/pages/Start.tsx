@@ -12,6 +12,7 @@ import InstructionVideo from '@/components/InstructionVideo';
 import { getInstructionVideoConfig } from '@/config/instructionVideos';
 import { toast } from 'sonner';
 import axios from 'axios';
+import config from '@/config/config';
 
 export default function Start() {
   const navigate = useNavigate();
@@ -71,7 +72,7 @@ export default function Start() {
       }
       if (userData.billing_date <= Date.now() && userData.subscription !== 'free') {
         try {
-          const response = await axios.patch(`https://db.nymia.ai/rest/v1/user?uuid=eq.${userData.id}`, JSON.stringify({
+          const response = await axios.patch(`${config.supabase_server_url}/user?uuid=eq.${userData.id}`, JSON.stringify({
             subscription: 'free',
             billing_date: 0,
             free_purchase: true,
@@ -90,7 +91,7 @@ export default function Start() {
       }
       else if (userData.billing_date > Date.now() && userData.subscription !== 'free' && userData.billed_date + 1 * 30 * 24 * 60 * 60 * 1000 >= Date.now()) {
         try {
-          const response = await axios.patch(`https://db.nymia.ai/rest/v1/user?uuid=eq.${userData.id}`, JSON.stringify({
+          const response = await axios.patch(`${config.supabase_server_url}/user?uuid=eq.${userData.id}`, JSON.stringify({
             billed_date: userData.billed_date + 1 * 30 * 24 * 60 * 60 * 1000,
             credits: credits
           }), {
@@ -123,7 +124,7 @@ export default function Start() {
     const fetchInfluencers = async () => {
       try {
         dispatch(setLoading(true));
-        const response = await fetch(`https://db.nymia.ai/rest/v1/influencer?user_id=eq.${userData.id}`, {
+        const response = await fetch(`${config.supabase_server_url}/influencer?user_id=eq.${userData.id}`, {
           headers: {
             'Authorization': 'Bearer WeInfl3nc3withAI'
           }
@@ -286,7 +287,7 @@ export default function Start() {
     } else if (currentPhase === 4) {
       // Update guide_step to 5 when user clicks "Organize Content"
       try {
-        const response = await fetch(`https://db.nymia.ai/rest/v1/user?uuid=eq.${userData.id}`, {
+        const response = await fetch(`${config.supabase_server_url}/user?uuid=eq.${userData.id}`, {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
@@ -335,7 +336,7 @@ export default function Start() {
   const handlePhaseClick = async (phaseId: number) => {
     try {
       // Fetch current guide_step from database
-      const response = await fetch(`https://db.nymia.ai/rest/v1/user?uuid=eq.${userData.id}`, {
+      const response = await fetch(`${config.supabase_server_url}/user?uuid=eq.${userData.id}`, {
         headers: {
           'Authorization': 'Bearer WeInfl3nc3withAI'
         }
@@ -406,7 +407,7 @@ export default function Start() {
 
   const handleConfirmContinueWork = async () => {
     try {
-      const response = await fetch(`https://db.nymia.ai/rest/v1/user?uuid=eq.${userData.id}`, {
+      const response = await fetch(`${config.supabase_server_url}/user?uuid=eq.${userData.id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -524,7 +525,7 @@ export default function Start() {
           throw new Error('Failed to upload image to LoRA folder');
         }
 
-        const useridResponse = await fetch(`https://db.nymia.ai/rest/v1/user?uuid=eq.${userData.id}`, {
+        const useridResponse = await fetch(`${config.supabase_server_url}/user?uuid=eq.${userData.id}`, {
           method: 'GET',
           headers: {
             'Authorization': 'Bearer WeInfl3nc3withAI'
@@ -552,7 +553,7 @@ export default function Start() {
         // Copy existing profile picture to LoRA folder
         const latestImageNum = trainingInfluencer.image_num - 1;
 
-        const useridResponse = await fetch(`https://db.nymia.ai/rest/v1/user?uuid=eq.${userData.id}`, {
+        const useridResponse = await fetch(`${config.supabase_server_url}/user?uuid=eq.${userData.id}`, {
           method: 'GET',
           headers: {
             'Authorization': 'Bearer WeInfl3nc3withAI'
@@ -581,7 +582,7 @@ export default function Start() {
       // Update guide_step if it's currently 2
       if (userData.guide_step === 2) {
         try {
-          const guideStepResponse = await fetch(`https://db.nymia.ai/rest/v1/user?uuid=eq.${userData.id}`, {
+          const guideStepResponse = await fetch(`${config.supabase_server_url}/user?uuid=eq.${userData.id}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer WeInfl3nc3withAI' },
             body: JSON.stringify({ guide_step: 3 })

@@ -16,6 +16,8 @@ import { updatePlan, updateBillingCycle, updatePaymentMethod } from '@/store/sli
 import { subscriptionService } from '@/services/subscriptionService';
 import { setUser } from '@/store/slices/userSlice';
 import axios from 'axios';
+import config from '@/config/config';
+
 const SUBSCRIPTION_FEATURES = {
   starter: {
     name: 'Starter',
@@ -86,7 +88,7 @@ export default function Pricing() {
     try {
       const newBillingDate = userData.billing_date - 1 * 30 * 24 * 60 * 60 * 1000;
       const response = await axios.patch(
-        `https://db.nymia.ai/rest/v1/user?uuid=eq.${userData.id}`, 
+        `${config.supabase_server_url}/user?uuid=eq.${userData.id}`, 
         JSON.stringify({ billing_date: newBillingDate }), 
         {
           headers: {

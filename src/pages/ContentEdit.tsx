@@ -597,7 +597,7 @@ export default function ContentEdit() {
         file_type: selectedImage.file_type || 'image/jpeg'
       };
 
-      const dbResponse = await fetch('https://db.nymia.ai/rest/v1/generated_images', {
+      const dbResponse = await fetch('${config.supabase_server_url}/generated_images', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -657,7 +657,7 @@ export default function ContentEdit() {
       }
 
       // Delete from database
-      const dbDeleteResponse = await fetch(`https://db.nymia.ai/rest/v1/generated_images?system_filename=eq.${conflictFilename}&user_filename=eq.`, {
+      const dbDeleteResponse = await fetch(`${config.supabase_server_url}/generated_images?system_filename=eq.${conflictFilename}&user_filename=eq.`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -734,7 +734,7 @@ export default function ContentEdit() {
         file_type: selectedImage?.file_type || 'image/jpeg'
       };
 
-      const dbResponse = await fetch('https://db.nymia.ai/rest/v1/generated_images', {
+      const dbResponse = await fetch('${config.supabase_server_url}/generated_images', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -881,7 +881,7 @@ export default function ContentEdit() {
         file_type: selectedImage.file_type || 'image/jpeg'
       };
 
-      const dbResponse = await fetch('https://db.nymia.ai/rest/v1/generated_images', {
+      const dbResponse = await fetch('${config.supabase_server_url}/generated_images', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

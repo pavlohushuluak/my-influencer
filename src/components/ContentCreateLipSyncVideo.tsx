@@ -144,7 +144,7 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
 
       try {
         setLoadingVideos(true);
-        const response = await fetch(`https://db.nymia.ai/rest/v1/video?user_uuid=eq.${userData.id}&status=eq.completed&order=task_created_at.desc`, {
+        const response = await fetch(`${config.supabase_server_url}/video?user_uuid=eq.${userData.id}&status=eq.completed&order=task_created_at.desc`, {
           headers: {
             'Authorization': 'Bearer WeInfl3nc3withAI',
             'Content-Type': 'application/json'
@@ -200,7 +200,7 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
     const fetchVoices = async () => {
       try {
         setLoadingVoices(true);
-        const response = await fetch('https://db.nymia.ai/rest/v1/voice?order=name.asc', {
+        const response = await fetch('${config.supabase_server_url}/voice?order=name.asc', {
           headers: {
             'Authorization': 'Bearer WeInfl3nc3withAI',
             'Content-Type': 'application/json'
@@ -731,7 +731,7 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
         upload_flag: upload_flag
       };
 
-      const response = await fetch('https://db.nymia.ai/rest/v1/lipsync_presets', {
+      const response = await fetch('${config.supabase_server_url}/lipsync_presets', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

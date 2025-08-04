@@ -1022,7 +1022,7 @@ export default function PresetsManager({ onClose, onApplyPreset }: {
     try {
       setPresetsLoading(true);
 
-      const response = await fetch(`https://db.nymia.ai/rest/v1/presets?user_id=eq.${userData.id}`, {
+      const response = await fetch(`${config.supabase_server_url}/presets?user_id=eq.${userData.id}`, {
         headers: {
           'Authorization': 'Bearer WeInfl3nc3withAI'
         }
@@ -1140,7 +1140,7 @@ export default function PresetsManager({ onClose, onApplyPreset }: {
   // Handle preset delete
   const handlePresetDelete = async (preset: PresetData) => {
     try {
-      const response = await fetch(`https://db.nymia.ai/rest/v1/presets?id=eq.${preset.id}`, {
+      const response = await fetch(`${config.supabase_server_url}/presets?id=eq.${preset.id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': 'Bearer WeInfl3nc3withAI'
@@ -1207,7 +1207,7 @@ export default function PresetsManager({ onClose, onApplyPreset }: {
   const fetchInfluencerData = async (influencerId: string) => {
     setLoadingInfluencer(true);
     try {
-      const response = await fetch(`https://db.nymia.ai/rest/v1/influencer?id=eq.${influencerId}`, {
+      const response = await fetch(`${config.supabase_server_url}/influencer?id=eq.${influencerId}`, {
         headers: {
           'Authorization': 'Bearer WeInfl3nc3withAI'
         }
@@ -1232,7 +1232,7 @@ export default function PresetsManager({ onClose, onApplyPreset }: {
   // Update rating for preset
   const updatePresetRating = async (presetId: number, rating: number) => {
     try {
-      const response = await fetch(`https://db.nymia.ai/rest/v1/presets?id=eq.${presetId}`, {
+      const response = await fetch(`${config.supabase_server_url}/presets?id=eq.${presetId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -1271,7 +1271,7 @@ export default function PresetsManager({ onClose, onApplyPreset }: {
   // Update favorite for preset
   const updatePresetFavorite = async (presetId: number, favorite: boolean) => {
     try {
-      const response = await fetch(`https://db.nymia.ai/rest/v1/presets?id=eq.${presetId}`, {
+      const response = await fetch(`${config.supabase_server_url}/presets?id=eq.${presetId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -1341,7 +1341,7 @@ export default function PresetsManager({ onClose, onApplyPreset }: {
       }
 
       // Update preset name in database
-      const response = await fetch(`https://db.nymia.ai/rest/v1/presets?id=eq.${preset.id}`, {
+      const response = await fetch(`${config.supabase_server_url}/presets?id=eq.${preset.id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -1512,7 +1512,7 @@ export default function PresetsManager({ onClose, onApplyPreset }: {
       });
 
       // Update the preset route in the database
-      const response = await fetch(`https://db.nymia.ai/rest/v1/presets?id=eq.${draggedPreset.id}`, {
+      const response = await fetch(`${config.supabase_server_url}/presets?id=eq.${draggedPreset.id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -1740,7 +1740,7 @@ export default function PresetsManager({ onClose, onApplyPreset }: {
       description: preset.description || ''
     };
 
-    const createResponse = await fetch(`https://db.nymia.ai/rest/v1/presets`, {
+    const createResponse = await fetch(`${config.supabase_server_url}/presets`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -1774,7 +1774,7 @@ export default function PresetsManager({ onClose, onApplyPreset }: {
         }
 
         // Delete from database
-        const deleteDbResponse = await fetch(`https://db.nymia.ai/rest/v1/presets?id=eq.${preset.id}`, {
+        const deleteDbResponse = await fetch(`${config.supabase_server_url}/presets?id=eq.${preset.id}`, {
           method: 'DELETE',
           headers: {
             'Content-Type': 'application/json',

@@ -471,7 +471,7 @@ export default function InfluencerEdit() {
         const user_filename = "Inbox";
 
         try {
-          const detailResponse = await fetch(`https://db.nymia.ai/rest/v1/generated_images?system_filename=eq.${filename}&user_filename=eq.${user_filename}`, {
+          const detailResponse = await fetch(`${config.supabase_server_url}/generated_images?system_filename=eq.${filename}&user_filename=eq.${user_filename}`, {
             headers: {
               'Authorization': 'Bearer WeInfl3nc3withAI'
             }
@@ -541,7 +541,7 @@ export default function InfluencerEdit() {
 
     try {
       if (location.state?.create) {
-        const response = await fetch('https://db.nymia.ai/rest/v1/influencer', {
+        const response = await fetch('${config.supabase_server_url}/influencer', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -550,7 +550,7 @@ export default function InfluencerEdit() {
           body: JSON.stringify({ ...influencerData, new: true })
         });
 
-        const responseId = await fetch(`https://db.nymia.ai/rest/v1/influencer?user_id=eq.${userData.id}&new=eq.true`, {
+        const responseId = await fetch(`${config.supabase_server_url}/influencer?user_id=eq.${userData.id}&new=eq.true`, {
           headers: {
             'Content-Type': 'application/json',
             'Authorization': 'Bearer WeInfl3nc3withAI'
@@ -613,7 +613,7 @@ export default function InfluencerEdit() {
           })
         });
 
-        await fetch(`https://db.nymia.ai/rest/v1/influencer?id=eq.${data[0].id}`, {
+        await fetch(`${config.supabase_server_url}/influencer?id=eq.${data[0].id}`, {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
@@ -628,7 +628,7 @@ export default function InfluencerEdit() {
           // Update guide_step if it's currently 1
           if (userData.guide_step === 1) {
             try {
-              const guideStepResponse = await fetch(`https://db.nymia.ai/rest/v1/user?uuid=eq.${userData.id}`, {
+              const guideStepResponse = await fetch(`${config.supabase_server_url}/user?uuid=eq.${userData.id}`, {
                 method: 'PATCH',
                 headers: {
                   'Content-Type': 'application/json',
@@ -672,7 +672,7 @@ export default function InfluencerEdit() {
           updated_at: new Date().toISOString()
         };
 
-        const response = await fetch(`https://db.nymia.ai/rest/v1/influencer?id=eq.${influencerData.id}`, {
+        const response = await fetch(`${config.supabase_server_url}/influencer?id=eq.${influencerData.id}`, {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
@@ -695,7 +695,7 @@ export default function InfluencerEdit() {
           
           if (userData.guide_step === 1) {
             try {
-              const guideStepResponse = await fetch(`https://db.nymia.ai/rest/v1/user?uuid=eq.${userData.id}`, {
+              const guideStepResponse = await fetch(`${config.supabase_server_url}/user?uuid=eq.${userData.id}`, {
                 method: 'PATCH',
                 headers: {
                   'Content-Type': 'application/json',
@@ -761,7 +761,7 @@ export default function InfluencerEdit() {
         updated_at: new Date().toISOString()
       };
 
-      const response = await fetch(`https://db.nymia.ai/rest/v1/influencer?id=eq.${influencerData.id}`, {
+      const response = await fetch(`${config.supabase_server_url}/influencer?id=eq.${influencerData.id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -836,7 +836,7 @@ export default function InfluencerEdit() {
     setShowPreviewModal(true);
 
     try {
-      const useridResponse = await fetch(`https://db.nymia.ai/rest/v1/user?uuid=eq.${userData.id}`, {
+      const useridResponse = await fetch(`${config.supabase_server_url}/user?uuid=eq.${userData.id}`, {
         method: 'GET',
         headers: {
           'Authorization': 'Bearer WeInfl3nc3withAI'
@@ -935,7 +935,7 @@ export default function InfluencerEdit() {
           let allCompleted = true;
 
           for (const taskResult of taskResults) {
-            const imagesResponse = await fetch(`https://db.nymia.ai/rest/v1/generated_images?task_id=eq.${taskResult.taskId}`, {
+            const imagesResponse = await fetch(`${config.supabase_server_url}/generated_images?task_id=eq.${taskResult.taskId}`, {
               headers: {
                 'Authorization': 'Bearer WeInfl3nc3withAI'
               }
@@ -976,7 +976,7 @@ export default function InfluencerEdit() {
             setTimeout(async () => {
               try {
                 for (const taskResult of taskResults) {
-                  const imagesResponse = await fetch(`https://db.nymia.ai/rest/v1/generated_images?task_id=eq.${taskResult.taskId}`, {
+                  const imagesResponse = await fetch(`${config.supabase_server_url}/generated_images?task_id=eq.${taskResult.taskId}`, {
                     headers: {
                       'Authorization': 'Bearer WeInfl3nc3withAI'
                     }
@@ -1067,7 +1067,7 @@ export default function InfluencerEdit() {
         image_num: num + 1
       }));
 
-      await fetch(`https://db.nymia.ai/rest/v1/influencer?id=eq.${influencerData.id}`, {
+      await fetch(`${config.supabase_server_url}/influencer?id=eq.${influencerData.id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -1252,7 +1252,7 @@ export default function InfluencerEdit() {
     setIsLoading(true);
     try {
       dispatch(setLoading(true));
-      const response = await fetch(`https://db.nymia.ai/rest/v1/influencer?user_id=eq.${userData.id}`, {
+      const response = await fetch(`${config.supabase_server_url}/influencer?user_id=eq.${userData.id}`, {
         headers: {
           'Authorization': 'Bearer WeInfl3nc3withAI'
         }
@@ -1585,7 +1585,7 @@ export default function InfluencerEdit() {
   // Function to fetch facial template details
   const fetchFacialTemplateDetails = async (templateName: string) => {
     try {
-      const response = await fetch(`https://db.nymia.ai/rest/v1/facial_templates_global?template_name=eq.${templateName}`, {
+      const response = await fetch(`${config.supabase_server_url}/facial_templates_global?template_name=eq.${templateName}`, {
         headers: {
           'Authorization': 'Bearer WeInfl3nc3withAI'
         }
@@ -1736,7 +1736,7 @@ export default function InfluencerEdit() {
           throw new Error('Failed to upload image to LoRA folder');
         }
 
-        const useridResponse = await fetch(`https://db.nymia.ai/rest/v1/user?uuid=eq.${userData.id}`, {
+        const useridResponse = await fetch(`${config.supabase_server_url}/user?uuid=eq.${userData.id}`, {
           method: 'GET',
           headers: {
             'Authorization': 'Bearer WeInfl3nc3withAI'
@@ -1764,7 +1764,7 @@ export default function InfluencerEdit() {
         // Copy existing profile picture to LoRA folder
         const latestImageNum = influencerData.image_num - 1;
 
-        const useridResponse = await fetch(`https://db.nymia.ai/rest/v1/user?uuid=eq.${userData.id}`, {
+        const useridResponse = await fetch(`${config.supabase_server_url}/user?uuid=eq.${userData.id}`, {
           method: 'GET',
           headers: {
             'Authorization': 'Bearer WeInfl3nc3withAI'
@@ -1793,7 +1793,7 @@ export default function InfluencerEdit() {
       // Update guide_step if it's currently 2
       if (userData.guide_step === 2) {
         try {
-          const guideStepResponse = await fetch(`https://db.nymia.ai/rest/v1/user?uuid=eq.${userData.id}`, {
+          const guideStepResponse = await fetch(`${config.supabase_server_url}/user?uuid=eq.${userData.id}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer WeInfl3nc3withAI' },
             body: JSON.stringify({ guide_step: 3 })
@@ -4448,7 +4448,7 @@ export default function InfluencerEdit() {
                                   }
                                   
                                   // Find the generated image data using the taskId
-                                  const imageResponse = await fetch(`https://db.nymia.ai/rest/v1/generated_images?task_id=eq.${preview.taskId}`, {
+                                  const imageResponse = await fetch(`${config.supabase_server_url}/generated_images?task_id=eq.${preview.taskId}`, {
                                     method: 'GET',
                                     headers: {
                                       'Authorization': 'Bearer WeInfl3nc3withAI'
@@ -4495,7 +4495,7 @@ export default function InfluencerEdit() {
                                     }));
 
                                     // Update the database
-                                    const updateResponse = await fetch(`https://db.nymia.ai/rest/v1/influencer?id=eq.${influencerData.id}`, {
+                                    const updateResponse = await fetch(`${config.supabase_server_url}/influencer?id=eq.${influencerData.id}`, {
                                       method: 'PATCH',
                                       headers: {
                                         'Content-Type': 'application/json',

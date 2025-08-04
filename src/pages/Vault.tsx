@@ -478,7 +478,7 @@ export default function Vault() {
   // Update favorite status
   const updateFavorite = async (systemFilename: string, favorite: boolean) => {
     try {
-      const response = await fetch(`https://db.nymia.ai/rest/v1/generated_images?system_filename=eq.${systemFilename}&user_filename=eq.${currentPath}`, {
+      const response = await fetch(`${config.supabase_server_url}/generated_images?system_filename=eq.${systemFilename}&user_filename=eq.${currentPath}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -510,7 +510,7 @@ export default function Vault() {
   // Update rating
   const updateRating = async (systemFilename: string, rating: number) => {
     try {
-      const response = await fetch(`https://db.nymia.ai/rest/v1/generated_images?system_filename=eq.${systemFilename}&user_filename=eq.${currentPath}`, {
+      const response = await fetch(`${config.supabase_server_url}/generated_images?system_filename=eq.${systemFilename}&user_filename=eq.${currentPath}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -542,7 +542,7 @@ export default function Vault() {
   // Update user notes
   const updateUserNotes = async (systemFilename: string, userNotes: string) => {
     try {
-      const response = await fetch(`https://db.nymia.ai/rest/v1/generated_images?system_filename=eq.${systemFilename}&user_filename=eq.${currentPath}`, {
+      const response = await fetch(`${config.supabase_server_url}/generated_images?system_filename=eq.${systemFilename}&user_filename=eq.${currentPath}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -574,7 +574,7 @@ export default function Vault() {
   // Update user tags
   const updateUserTags = async (systemFilename: string, userTags: string[]) => {
     try {
-      const response = await fetch(`https://db.nymia.ai/rest/v1/generated_images?system_filename=eq.${systemFilename}&user_filename=eq.${currentPath}`, {
+      const response = await fetch(`${config.supabase_server_url}/generated_images?system_filename=eq.${systemFilename}&user_filename=eq.${currentPath}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -631,7 +631,7 @@ export default function Vault() {
   const handleRemoveFromVault = async (contentId: string) => {
     try {
       // Delete from database
-      const dbResponse = await fetch(`https://db.nymia.ai/rest/v1/generated_images?system_filename=eq.${contentId}&user_filename=eq.${currentPath}`, {
+      const dbResponse = await fetch(`${config.supabase_server_url}/generated_images?system_filename=eq.${contentId}&user_filename=eq.${currentPath}`, {
         method: 'DELETE',
         headers: {
           'Authorization': 'Bearer WeInfl3nc3withAI'
@@ -1027,7 +1027,7 @@ export default function Vault() {
               })
             });
 
-            await fetch(`https://db.nymia.ai/rest/v1/generated_images?system_filename=eq.${fileName}&user_filename=eq.${oldPath}`, {
+            await fetch(`${config.supabase_server_url}/generated_images?system_filename=eq.${fileName}&user_filename=eq.${oldPath}`, {
               method: 'PATCH',
               headers: {
                 'Content-Type': 'application/json',
@@ -1559,7 +1559,7 @@ export default function Vault() {
               })
             });
 
-            const postFile = await fetch(`https://db.nymia.ai/rest/v1/generated_images?system_filename=eq.${fileName}&user_filename=eq.${copiedPath}`, {
+            const postFile = await fetch(`${config.supabase_server_url}/generated_images?system_filename=eq.${fileName}&user_filename=eq.${copiedPath}`, {
               method: 'GET',
               headers: {
                 'Content-Type': 'application/json',
@@ -1577,7 +1577,7 @@ export default function Vault() {
               console.log("Post File Data:", postFileData.user_filename);
               console.log("Current Path:", `${currentPath}/${newFolderName}`);
 
-              await fetch(`https://db.nymia.ai/rest/v1/generated_images`, {
+              await fetch(`${config.supabase_server_url}/generated_images`, {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
@@ -1844,7 +1844,7 @@ export default function Vault() {
 
       delete postFile.id;
 
-      await fetch(`https://db.nymia.ai/rest/v1/generated_images`, {
+      await fetch(`${config.supabase_server_url}/generated_images`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1877,7 +1877,7 @@ export default function Vault() {
           })
         });
 
-        await fetch(`https://db.nymia.ai/rest/v1/generated_images?id=eq.${copiedFile.id}`, {
+        await fetch(`${config.supabase_server_url}/generated_images?id=eq.${copiedFile.id}`, {
           method: 'DELETE',
           headers: {
             'Content-Type': 'application/json',
@@ -1990,7 +1990,7 @@ export default function Vault() {
       });
 
       // Update database with new filename
-      const dbResponse = await fetch(`https://db.nymia.ai/rest/v1/generated_images?system_filename=eq.${oldFilename}&user_filename=eq.${comparePath}`, {
+      const dbResponse = await fetch(`${config.supabase_server_url}/generated_images?system_filename=eq.${oldFilename}&user_filename=eq.${comparePath}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -2111,7 +2111,7 @@ export default function Vault() {
       }
 
       // Delete from database
-      const dbDeleteResponse = await fetch(`https://db.nymia.ai/rest/v1/generated_images?system_filename=eq.${conflictRenameFilename}&user_filename=eq.${comparePath}`, {
+      const dbDeleteResponse = await fetch(`${config.supabase_server_url}/generated_images?system_filename=eq.${conflictRenameFilename}&user_filename=eq.${comparePath}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -2130,7 +2130,7 @@ export default function Vault() {
       });
 
       // Update database with new filename
-      const dbResponse = await fetch(`https://db.nymia.ai/rest/v1/generated_images?system_filename=eq.${oldFilename}&user_filename=eq.${comparePath}`, {
+      const dbResponse = await fetch(`${config.supabase_server_url}/generated_images?system_filename=eq.${oldFilename}&user_filename=eq.${comparePath}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -2285,7 +2285,7 @@ export default function Vault() {
       });
 
       // Update database with new filename
-      const dbResponse = await fetch(`https://db.nymia.ai/rest/v1/generated_images?system_filename=eq.${oldFilename}&user_filename=eq.${comparePath}`, {
+      const dbResponse = await fetch(`${config.supabase_server_url}/generated_images?system_filename=eq.${oldFilename}&user_filename=eq.${comparePath}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -2460,7 +2460,7 @@ export default function Vault() {
   // Helper function to check if a file exists in database
   const checkFileExistsInDatabase = async (fileName: string): Promise<boolean> => {
     try {
-      const response = await fetch(`https://db.nymia.ai/rest/v1/generated_images?system_filename=eq.${fileName}&user_filename=eq.${currentPath}`, {
+      const response = await fetch(`${config.supabase_server_url}/generated_images?system_filename=eq.${fileName}&user_filename=eq.${currentPath}`, {
         headers: {
           'Authorization': 'Bearer WeInfl3nc3withAI'
         }
@@ -2480,7 +2480,7 @@ export default function Vault() {
   // Helper function to check if a file exists in a specific folder path
   const checkFileExistsInFolder = async (fileName: string, folderPath: string): Promise<boolean> => {
     try {
-      const response = await fetch(`https://db.nymia.ai/rest/v1/generated_images?system_filename=eq.${fileName}&user_filename=eq.${folderPath}`, {
+      const response = await fetch(`${config.supabase_server_url}/generated_images?system_filename=eq.${fileName}&user_filename=eq.${folderPath}`, {
         headers: {
           'Authorization': 'Bearer WeInfl3nc3withAI'
         }
@@ -2577,7 +2577,7 @@ export default function Vault() {
         file_type: uploadModelData.file_type
       };
 
-      const dbResponse = await fetch('https://db.nymia.ai/rest/v1/generated_images', {
+      const dbResponse = await fetch('${config.supabase_server_url}/generated_images', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -2697,7 +2697,7 @@ export default function Vault() {
         description: `Updating file location in database`
       });
 
-      const response = await fetch(`https://db.nymia.ai/rest/v1/generated_images?id=eq.${draggedImage.id}`, {
+      const response = await fetch(`${config.supabase_server_url}/generated_images?id=eq.${draggedImage.id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -2826,7 +2826,7 @@ export default function Vault() {
   const fetchInfluencers = async () => {
     setLoadingInfluencers(true);
     try {
-      const response = await fetch(`https://db.nymia.ai/rest/v1/influencer?user_id=eq.${userData.id}`, {
+      const response = await fetch(`${config.supabase_server_url}/influencer?user_id=eq.${userData.id}`, {
         headers: {
           'Authorization': 'Bearer WeInfl3nc3withAI'
         }
@@ -2869,7 +2869,7 @@ export default function Vault() {
       });
 
       // Update the influencer's profile picture in the database
-      await fetch(`https://db.nymia.ai/rest/v1/influencer?id=eq.${influencer.id}`, {
+      await fetch(`${config.supabase_server_url}/influencer?id=eq.${influencer.id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -2880,7 +2880,7 @@ export default function Vault() {
         })
       });
 
-      await fetch(`https://db.nymia.ai/rest/v1/influencer?id=eq.${influencer.id}`, {
+      await fetch(`${config.supabase_server_url}/influencer?id=eq.${influencer.id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -2976,7 +2976,7 @@ export default function Vault() {
       });
 
       // Step 1: Get the task_id from the generated image
-      const imageResponse = await fetch(`https://db.nymia.ai/rest/v1/generated_images?file_path=eq.${image.file_path}`, {
+      const imageResponse = await fetch(`${config.supabase_server_url}/generated_images?file_path=eq.${image.file_path}`, {
         headers: {
           'Authorization': 'Bearer WeInfl3nc3withAI'
         }
@@ -2994,7 +2994,7 @@ export default function Vault() {
       const taskId = imageData[0].task_id;
 
       // Step 2: Get the original task data
-      const taskResponse = await fetch(`https://db.nymia.ai/rest/v1/tasks?id=eq.${taskId}`, {
+      const taskResponse = await fetch(`${config.supabase_server_url}/tasks?id=eq.${taskId}`, {
         headers: {
           'Authorization': 'Bearer WeInfl3nc3withAI'
         }
@@ -3224,7 +3224,7 @@ export default function Vault() {
 
     delete postFile.id;
 
-    await fetch(`https://db.nymia.ai/rest/v1/generated_images`, {
+    await fetch(`${config.supabase_server_url}/generated_images`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -3248,7 +3248,7 @@ export default function Vault() {
         })
       });
 
-      await fetch(`https://db.nymia.ai/rest/v1/generated_images?id=eq.${file.id}`, {
+      await fetch(`${config.supabase_server_url}/generated_images?id=eq.${file.id}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -3377,7 +3377,7 @@ export default function Vault() {
       queryParams.append('offset', offset.toString());
 
       // Fetch data from database with all filters
-      const response = await fetch(`https://db.nymia.ai/rest/v1/generated_images?${queryParams.toString()}`, {
+      const response = await fetch(`${config.supabase_server_url}/generated_images?${queryParams.toString()}`, {
         headers: {
           'Authorization': 'Bearer WeInfl3nc3withAI',
           'Content-Type': 'application/json'
@@ -3436,7 +3436,7 @@ export default function Vault() {
         countParams.append('user_tags', 'cs.{' + selectedFilters.selectedTags.join(',') + '}');
       }
 
-      const countResponse = await fetch(`https://db.nymia.ai/rest/v1/generated_images?${countParams.toString()}&select=count`, {
+      const countResponse = await fetch(`${config.supabase_server_url}/generated_images?${countParams.toString()}&select=count`, {
         headers: {
           'Authorization': 'Bearer WeInfl3nc3withAI',
           'Content-Type': 'application/json'

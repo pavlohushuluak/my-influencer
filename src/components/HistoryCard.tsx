@@ -47,7 +47,7 @@ export default function HistoryCard({ userId }: { userId: string }) {
   useEffect(() => {
     setIsLoading(true);
     setError(null);
-    fetch(`https://db.nymia.ai/rest/v1/tasks?uuid=eq.${userId}&type=eq.generate_image&order=id.desc`, {
+    fetch(`${config.supabase_server_url}/tasks?uuid=eq.${userId}&type=eq.generate_image&order=id.desc`, {
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer WeInfl3nc3withAI'
@@ -68,7 +68,7 @@ export default function HistoryCard({ userId }: { userId: string }) {
       tasks.map(task =>
         imagesByTask[task.id]
           ? Promise.resolve()
-          : fetch(`https://db.nymia.ai/rest/v1/generated_images?task_id=eq.${task.id}&generation_status=eq.completed`, {
+          : fetch(`${config.supabase_server_url}/generated_images?task_id=eq.${task.id}&generation_status=eq.completed`, {
               headers: {
                 'Content-Type': 'application/json',
                 'Authorization': 'Bearer WeInfl3nc3withAI'
@@ -260,7 +260,7 @@ export default function HistoryCard({ userId }: { userId: string }) {
         })
       });
 
-      await fetch(`https://db.nymia.ai/rest/v1/generated_images?id=eq.${image.id}`, {
+      await fetch(`${config.supabase_server_url}/generated_images?id=eq.${image.id}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -364,7 +364,7 @@ export default function HistoryCard({ userId }: { userId: string }) {
       });
 
       // Step 1: Get the task_id from the generated image
-      const imageResponse = await fetch(`https://db.nymia.ai/rest/v1/generated_images?file_path=eq.${image.file_path}`, {
+      const imageResponse = await fetch(`${config.supabase_server_url}/generated_images?file_path=eq.${image.file_path}`, {
         headers: {
           'Authorization': 'Bearer WeInfl3nc3withAI'
         }
@@ -382,7 +382,7 @@ export default function HistoryCard({ userId }: { userId: string }) {
       const taskId = imageData[0].task_id;
 
       // Step 2: Get the original task data
-      const taskResponse = await fetch(`https://db.nymia.ai/rest/v1/tasks?id=eq.${taskId}`, {
+      const taskResponse = await fetch(`${config.supabase_server_url}/tasks?id=eq.${taskId}`, {
         headers: {
           'Authorization': 'Bearer WeInfl3nc3withAI'
         }

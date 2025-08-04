@@ -4491,7 +4491,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                                   }
                                   
                                   // Find the generated image data using the taskId
-                                  const imageResponse = await fetch(`https://db.nymia.ai/rest/v1/generated_images?task_id=eq.${preview.taskId}`, {
+                                  const imageResponse = await fetch(`${config.supabase_server_url}/generated_images?task_id=eq.${preview.taskId}`, {
                                     method: 'GET',
                                     headers: {
                                       'Authorization': 'Bearer WeInfl3nc3withAI'

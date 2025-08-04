@@ -50,6 +50,7 @@ import {
   Heart,
   Upload
 } from 'lucide-react';
+import config from '@/config/config';
 
   // Interface for video preset data from API
   interface VideoPresetData {
@@ -103,7 +104,7 @@ export default function VideoPresetsManager({ onClose, onApplyPreset }: {
     try {
       setPresetsLoading(true);
 
-      const response = await fetch(`https://db.nymia.ai/rest/v1/video_presets?user_id=eq.${userData.id}`, {
+      const response = await fetch(`${config.supabase_server_url}/video_presets?user_id=eq.${userData.id}`, {
         headers: {
           'Authorization': 'Bearer WeInfl3nc3withAI'
         }
@@ -193,7 +194,7 @@ export default function VideoPresetsManager({ onClose, onApplyPreset }: {
   // Handle preset deletion
   const handlePresetDelete = async (preset: VideoPresetData) => {
     try {
-      const response = await fetch(`https://db.nymia.ai/rest/v1/video_presets?id=eq.${preset.id}`, {
+      const response = await fetch(`${config.supabase_server_url}/video_presets?id=eq.${preset.id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': 'Bearer WeInfl3nc3withAI'

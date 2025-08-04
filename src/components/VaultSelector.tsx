@@ -204,7 +204,7 @@ export default function VaultSelector({
       queryParams.append('offset', offset.toString());
 
       // Fetch data from database with all filters
-      const response = await fetch(`https://db.nymia.ai/rest/v1/generated_images?${queryParams.toString()}`, {
+      const response = await fetch(`${config.supabase_server_url}/generated_images?${queryParams.toString()}`, {
         headers: {
           'Authorization': 'Bearer WeInfl3nc3withAI',
           'Content-Type': 'application/json'
@@ -260,7 +260,7 @@ export default function VaultSelector({
         countParams.append('user_tags', 'cs.{' + selectedFilters.selectedTags.join(',') + '}');
       }
 
-      const countResponse = await fetch(`https://db.nymia.ai/rest/v1/generated_images?${countParams.toString()}&select=count`, {
+      const countResponse = await fetch(`${config.supabase_server_url}/generated_images?${countParams.toString()}&select=count`, {
         headers: {
           'Authorization': 'Bearer WeInfl3nc3withAI',
           'Content-Type': 'application/json'
@@ -447,7 +447,7 @@ export default function VaultSelector({
     try {
       setLoadingFileCounts(prev => ({ ...prev, [folderPath]: true }));
 
-      const response = await fetch(`https://db.nymia.ai/rest/v1/generated_images?user_uuid=eq.${userData.id}&user_filename=eq.${folderPath}&select=count`, {
+      const response = await fetch(`${config.supabase_server_url}/generated_images?user_uuid=eq.${userData.id}&user_filename=eq.${folderPath}&select=count`, {
         headers: {
           'Authorization': 'Bearer WeInfl3nc3withAI',
           'Content-Type': 'application/json'

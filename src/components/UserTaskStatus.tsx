@@ -36,7 +36,7 @@ export function UserTaskStatus({ className, isCollapsed = false }: TaskStatusPro
       
       try {
         setIsLoading(true);
-        const response = await fetch(`https://db.nymia.ai/rest/v1/user_task_status_counts?user_uuid=eq.${user.id}`, {
+        const response = await fetch(`${config.supabase_server_url}/user_task_status_counts?user_uuid=eq.${user.id}`, {
           headers: {
             'Content-Type': 'application/json',
             'Authorization': 'Bearer WeInfl3nc3withAI'

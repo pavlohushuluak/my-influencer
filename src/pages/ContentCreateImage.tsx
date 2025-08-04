@@ -994,13 +994,13 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
                   <CardContent className="p-4">
                     <div className="relative w-full group" style={{ paddingBottom: '100%' }}>
                       <img
-                        src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${option.image}`}
+                        src={`${config.data_url}/wizard/mappings400/${option.image}`}
                         alt={option.label}
                         className="absolute inset-0 w-full h-full object-cover rounded-md"
                       />
                       <div
                         className="absolute right-2 top-2 bg-black/50 rounded-full w-8 h-8 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
-                        onClick={(e) => handleImageClick(e, `${config.data_url}/cdn-cgi/image/w=800/wizard/${option.image}`)}
+                        onClick={(e) => handleImageClick(e, `${config.data_url}/wizard/mappings800/${option.image}`)}
                       >
                         <ZoomIn className="w-5 h-5 text-white" />
                       </div>
@@ -3037,7 +3037,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
                               <CardContent className="p-4">
                                 <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                                   <img
-                                    src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${safeFormatOptions.find(option => option.label === formData.format)?.image}`}
+                                    src={`${config.data_url}/wizard/mappings400/${safeFormatOptions.find(option => option.label === formData.format)?.image}`}
                                     className="absolute inset-0 w-full h-full object-cover rounded-md"
                                   />
                                   <Button
@@ -3105,7 +3105,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
                               <CardContent className="p-4">
                                 <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                                   <img
-                                    src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${makeupOptions.find(option => option.label === modelDescription.makeup)?.image}`}
+                                    src={`${config.data_url}/wizard/mappings400/${makeupOptions.find(option => option.label === modelDescription.makeup)?.image}`}
                                     className="absolute inset-0 w-full h-full object-cover rounded-md"
                                   />
                                   <Button
@@ -3170,7 +3170,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
                               <CardContent className="p-4">
                                 <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                                   <img
-                                    src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${engineOptions.find(option => option.label === formData.engine)?.image}`}
+                                    src={`${config.data_url}/wizard/mappings400/${engineOptions.find(option => option.label === formData.engine)?.image}`}
                                     className="absolute inset-0 w-full h-full object-cover rounded-md"
                                   />
                                   <Button
@@ -3305,7 +3305,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
                                     <CardContent className="p-4">
                                       <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                                         <img
-                                          src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${framingOptions.find(option => option.label === sceneSpecs.framing)?.image}`}
+                                          src={`${config.data_url}/wizard/mappings400/${framingOptions.find(option => option.label === sceneSpecs.framing)?.image}`}
                                           className="absolute inset-0 w-full h-full object-cover rounded-md"
                                         />
                                         <Button
@@ -3371,7 +3371,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
                                     <CardContent className="p-4">
                                       <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                                         <img
-                                          src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${rotationOptions.find(option => option.label === sceneSpecs.rotation)?.image}`}
+                                          src={`${config.data_url}/wizard/mappings400/${rotationOptions.find(option => option.label === sceneSpecs.rotation)?.image}`}
                                           className="absolute inset-0 w-full h-full object-cover rounded-md"
                                         />
                                         <Button
@@ -3437,7 +3437,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
                                     <CardContent className="p-4">
                                       <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                                         <img
-                                          src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${lightingOptions.find(option => option.label === sceneSpecs.lighting_preset)?.image}`}
+                                          src={`${config.data_url}/wizard/mappings400/${lightingOptions.find(option => option.label === sceneSpecs.lighting_preset)?.image}`}
                                           className="absolute inset-0 w-full h-full object-cover rounded-md"
                                         />
                                         <Button
@@ -3503,7 +3503,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
                                     <CardContent className="p-4">
                                       <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                                         <img
-                                          src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${sceneSettingsOptions.find(option => option.label === sceneSpecs.scene_setting)?.image}`}
+                                          src={`${config.data_url}/wizard/mappings400/${sceneSettingsOptions.find(option => option.label === sceneSpecs.scene_setting)?.image}`}
                                           className="absolute inset-0 w-full h-full object-cover rounded-md"
                                         />
                                         <Button
@@ -3569,7 +3569,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
                                     <CardContent className="p-4">
                                       <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                                         <img
-                                          src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${poseOptions.find(option => option.label === sceneSpecs.pose)?.image}`}
+                                          src={`${config.data_url}/wizard/mappings400/${poseOptions.find(option => option.label === sceneSpecs.pose)?.image}`}
                                           className="absolute inset-0 w-full h-full object-cover rounded-md"
                                         />
                                         <Button
@@ -3635,7 +3635,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
                                     <CardContent className="p-4">
                                       <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                                         <img
-                                          src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${clothesOptions.find(option => option.label === sceneSpecs.clothes)?.image}`}
+                                          src={`${config.data_url}/wizard/mappings400/${clothesOptions.find(option => option.label === sceneSpecs.clothes)?.image}`}
                                           className="absolute inset-0 w-full h-full object-cover rounded-md"
                                         />
                                         <Button
@@ -4067,7 +4067,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
                       <CardContent className="p-4">
                         <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                           <img
-                            src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${framingOptions.find(option => option.label === sceneSpecs.framing)?.image}`}
+                            src={`${config.data_url}/wizard/mappings400/${framingOptions.find(option => option.label === sceneSpecs.framing)?.image}`}
                             className="absolute inset-0 w-full h-full object-cover rounded-md"
                           />
                           <Button
@@ -4133,7 +4133,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
                       <CardContent className="p-4">
                         <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                           <img
-                            src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${rotationOptions.find(option => option.label === sceneSpecs.rotation)?.image}`}
+                            src={`${config.data_url}/wizard/mappings400/${rotationOptions.find(option => option.label === sceneSpecs.rotation)?.image}`}
                             className="absolute inset-0 w-full h-full object-cover rounded-md"
                           />
                           <Button
@@ -4199,7 +4199,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
                       <CardContent className="p-4">
                         <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                           <img
-                            src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${lightingOptions.find(option => option.label === sceneSpecs.lighting_preset)?.image}`}
+                            src={`${config.data_url}/wizard/mappings400/${lightingOptions.find(option => option.label === sceneSpecs.lighting_preset)?.image}`}
                             className="absolute inset-0 w-full h-full object-cover rounded-md"
                           />
                           <Button
@@ -4265,7 +4265,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
                       <CardContent className="p-4">
                         <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                           <img
-                            src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${sceneSettingsOptions.find(option => option.label === sceneSpecs.scene_setting)?.image}`}
+                            src={`${config.data_url}/wizard/mappings400/${sceneSettingsOptions.find(option => option.label === sceneSpecs.scene_setting)?.image}`}
                             className="absolute inset-0 w-full h-full object-cover rounded-md"
                           />
                           <Button
@@ -4331,7 +4331,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
                       <CardContent className="p-4">
                         <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                           <img
-                            src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${poseOptions.find(option => option.label === sceneSpecs.pose)?.image}`}
+                            src={`${config.data_url}/wizard/mappings400/${poseOptions.find(option => option.label === sceneSpecs.pose)?.image}`}
                             className="absolute inset-0 w-full h-full object-cover rounded-md"
                           />
                           <Button
@@ -4397,7 +4397,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
                       <CardContent className="p-4">
                         <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                           <img
-                            src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${clothesOptions.find(option => option.label === sceneSpecs.clothes)?.image}`}
+                            src={`${config.data_url}/wizard/mappings400/${clothesOptions.find(option => option.label === sceneSpecs.clothes)?.image}`}
                             className="absolute inset-0 w-full h-full object-cover rounded-md"
                           />
                           <Button

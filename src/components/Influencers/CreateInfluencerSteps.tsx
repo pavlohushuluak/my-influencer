@@ -442,7 +442,7 @@ export function CreateInfluencerSteps({ onComplete }: CreateInfluencerStepsProps
                           <div className="space-y-4">
                             <div className="relative">
                               <img
-                                src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${option.image}`}
+                                src={`${config.data_url}/wizard/mappings400/${option.image}`}
                                 alt={option.label}
                                 className="w-full h-full object-cover rounded-lg shadow-md group-hover:scale-105 transition-transform duration-300"
                               />
@@ -521,7 +521,7 @@ export function CreateInfluencerSteps({ onComplete }: CreateInfluencerStepsProps
                           <div className="space-y-4">
                             <div className="relative">
                               <img
-                                src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${option.image}`}
+                                src={`${config.data_url}/wizard/mappings400/${option.image}`}
                                 alt={option.label}
                                 className="w-full h-full object-cover rounded-lg shadow-md group-hover:scale-105 transition-transform duration-300"
                               />

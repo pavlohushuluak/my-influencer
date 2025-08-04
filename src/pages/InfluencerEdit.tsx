@@ -1349,13 +1349,13 @@ export default function InfluencerEdit() {
                   <CardContent className="p-4">
                     <div className="relative w-full group" style={{ paddingBottom: '100%' }}>
                       <img
-                        src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${option.image}`}
+                        src={`${config.data_url}/wizard/mappings400/${option.image}`}
                         alt={option.label}
                         className="absolute inset-0 w-full h-full object-cover rounded-md"
                       />
                       <div
                         className="absolute right-2 top-2 bg-black/50 rounded-full w-8 h-8 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
-                        onClick={(e) => handleImageClick(e, `${config.data_url}/cdn-cgi/image/w=800/wizard/${option.image}`)}
+                        onClick={(e) => handleImageClick(e, `${config.data_url}/wizard/mappings800/${option.image}`)}
                       >
                         <ZoomIn className="w-5 h-5 text-white" />
                       </div>
@@ -1449,13 +1449,13 @@ export default function InfluencerEdit() {
                   <CardContent className="p-4">
                     <div className="relative w-full group" style={{ paddingBottom: '100%' }}>
                       <img
-                        src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${option.image}`}
+                        src={`${config.data_url}/wizard/mappings400/${option.image}`}
                         alt={option.label}
                         className="absolute inset-0 w-full h-full object-cover rounded-md"
                       />
                       <div
                         className="absolute right-2 top-2 bg-black/50 rounded-full w-8 h-8 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
-                        onClick={(e) => handleImageClick(e, `${config.data_url}/cdn-cgi/image/w=800/wizard/${option.image}`)}
+                        onClick={(e) => handleImageClick(e, `${config.data_url}/wizard/mappings800/${option.image}`)}
                       >
                         <ZoomIn className="w-5 h-5 text-white" />
                       </div>
@@ -3207,7 +3207,7 @@ export default function InfluencerEdit() {
                             <CardContent className="p-4">
                               <div className="relative w-full group" style={{ paddingBottom: '100%' }}>
                                 <img
-                                  src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${option.image}`}
+                                  src={`${config.data_url}/wizard/mappings400/${option.image}`}
                                   alt={option.label}
                                   className="absolute inset-0 w-full h-full object-cover rounded-md"
                                 />
@@ -3215,7 +3215,7 @@ export default function InfluencerEdit() {
                                   className="absolute right-2 top-2 bg-black/50 rounded-full w-8 h-8 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    setPreviewImage(`${config.data_url}/cdn-cgi/image/w=800/wizard/${option.image}`);
+                                    setPreviewImage(`${config.data_url}/wizard/mappings800/${option.image}`);
                                   }}
                                 >
                                   <ZoomIn className="w-5 h-5 text-white" />
@@ -3277,13 +3277,13 @@ export default function InfluencerEdit() {
                                 <CardContent className="p-4">
                                   <div className="relative w-full group" style={{ paddingBottom: '100%' }}>
                                     <img
-                                      src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${option.image}`}
+                                      src={`${config.data_url}/wizard/mappings400/${option.image}`}
                                       alt={option.label}
                                       className="absolute inset-0 w-full h-full object-cover rounded-md"
                                     />
                                     <div
                                       className="absolute right-2 top-2 bg-black/50 rounded-full w-8 h-8 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
-                                      onClick={() => setPreviewImage(`${config.data_url}/cdn-cgi/image/w=800/wizard/${option.image}`)}
+                                      onClick={() => setPreviewImage(`${config.data_url}/wizard/mappings800/${option.image}`)}
                                     >
                                       <ZoomIn className="w-5 h-5 text-white" />
                                     </div>
@@ -3331,13 +3331,13 @@ export default function InfluencerEdit() {
                                 <CardContent className="p-4">
                                   <div className="relative w-full group" style={{ paddingBottom: '100%' }}>
                                     <img
-                                      src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${option.image}`}
+                                      src={`${config.data_url}/wizard/mappings400/${option.image}`}
                                       alt={option.label}
                                       className="absolute inset-0 w-full h-full object-cover rounded-md"
                                     />
                                     <div
                                       className="absolute right-2 top-2 bg-black/50 rounded-full w-8 h-8 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
-                                      onClick={() => setPreviewImage(`${config.data_url}/cdn-cgi/image/w=800/wizard/${option.image}`)}
+                                      onClick={() => setPreviewImage(`${config.data_url}/wizard/mappings800/${option.image}`)}
                                     >
                                       <ZoomIn className="w-5 h-5 text-white" />
                                     </div>
@@ -3365,7 +3365,7 @@ export default function InfluencerEdit() {
                               <CardContent className="p-4">
                                 <div className="relative w-full group" style={{ paddingBottom: '100%' }}>
                                   <img
-                                    src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${jobAreaOptions.find(opt => opt.label === influencerData.job_area)?.image}`}
+                                    src={`${config.data_url}/wizard/mappings400/${jobAreaOptions.find(opt => opt.label === influencerData.job_area)?.image}`}
                                     alt={influencerData.job_area}
                                     className="absolute inset-0 w-full h-full object-cover rounded-md"
                                   />
@@ -3441,13 +3441,13 @@ export default function InfluencerEdit() {
                                 <CardContent className="p-4">
                                   <div className="relative w-full group" style={{ paddingBottom: '100%' }}>
                                     <img
-                                      src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${option.image}`}
+                                      src={`${config.data_url}/wizard/mappings400/${option.image}`}
                                       alt={option.label}
                                       className="absolute inset-0 w-full h-full object-cover rounded-md"
                                     />
                                     <div
                                       className="absolute right-2 top-2 bg-black/50 rounded-full w-8 h-8 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
-                                      onClick={() => setPreviewImage(`${config.data_url}/cdn-cgi/image/w=800/wizard/${option.image}`)}
+                                      onClick={() => setPreviewImage(`${config.data_url}/wizard/mappings800/${option.image}`)}
                                     >
                                       <ZoomIn className="w-5 h-5 text-white" />
                                     </div>
@@ -3502,13 +3502,13 @@ export default function InfluencerEdit() {
                                 <CardContent className="p-4">
                                   <div className="relative w-full group" style={{ paddingBottom: '100%' }}>
                                     <img
-                                      src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${option.image}`}
+                                      src={`${config.data_url}/wizard/mappings400/${option.image}`}
                                       alt={option.label}
                                       className="absolute inset-0 w-full h-full object-cover rounded-md"
                                     />
                                     <div
                                       className="absolute right-2 top-2 bg-black/50 rounded-full w-8 h-8 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
-                                      onClick={() => setPreviewImage(`${config.data_url}/cdn-cgi/image/w=800/wizard/${option.image}`)}
+                                      onClick={() => setPreviewImage(`${config.data_url}/wizard/mappings800/${option.image}`)}
                                     >
                                       <ZoomIn className="w-5 h-5 text-white" />
                                     </div>
@@ -3556,13 +3556,13 @@ export default function InfluencerEdit() {
                                 <CardContent className="p-4">
                                   <div className="relative w-full group" style={{ paddingBottom: '100%' }}>
                                     <img
-                                      src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${option.image}`}
+                                      src={`${config.data_url}/wizard/mappings400/${option.image}`}
                                       alt={option.label}
                                       className="absolute inset-0 w-full h-full object-cover rounded-md"
                                     />
                                     <div
                                       className="absolute right-2 top-2 bg-black/50 rounded-full w-8 h-8 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
-                                      onClick={() => setPreviewImage(`${config.data_url}/cdn-cgi/image/w=800/wizard/${option.image}`)}
+                                      onClick={() => setPreviewImage(`${config.data_url}/wizard/mappings800/${option.image}`)}
                                     >
                                       <ZoomIn className="w-5 h-5 text-white" />
                                     </div>
@@ -3610,13 +3610,13 @@ export default function InfluencerEdit() {
                                 <CardContent className="p-4">
                                   <div className="relative w-full group" style={{ paddingBottom: '100%' }}>
                                     <img
-                                      src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${option.image}`}
+                                      src={`${config.data_url}/wizard/mappings400/${option.image}`}
                                       alt={option.label}
                                       className="absolute inset-0 w-full h-full object-cover rounded-md"
                                     />
                                     <div
                                       className="absolute right-2 top-2 bg-black/50 rounded-full w-8 h-8 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
-                                      onClick={() => setPreviewImage(`${config.data_url}/cdn-cgi/image/w=800/wizard/${option.image}`)}
+                                      onClick={() => setPreviewImage(`${config.data_url}/wizard/mappings800/${option.image}`)}
                                     >
                                       <ZoomIn className="w-5 h-5 text-white" />
                                     </div>
@@ -3664,13 +3664,13 @@ export default function InfluencerEdit() {
                                 <CardContent className="p-4">
                                   <div className="relative w-full group" style={{ paddingBottom: '100%' }}>
                                     <img
-                                      src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${option.image}`}
+                                      src={`${config.data_url}/wizard/mappings400/${option.image}`}
                                       alt={option.label}
                                       className="absolute inset-0 w-full h-full object-cover rounded-md"
                                     />
                                     <div
                                       className="absolute right-2 top-2 bg-black/50 rounded-full w-8 h-8 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
-                                      onClick={() => setPreviewImage(`${config.data_url}/cdn-cgi/image/w=800/wizard/${option.image}`)}
+                                      onClick={() => setPreviewImage(`${config.data_url}/wizard/mappings800/${option.image}`)}
                                     >
                                       <ZoomIn className="w-5 h-5 text-white" />
                                     </div>
@@ -3719,13 +3719,13 @@ export default function InfluencerEdit() {
                                   <CardContent className="p-4">
                                     <div className="relative w-full group" style={{ paddingBottom: '100%' }}>
                                       <img
-                                        src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${option.image}`}
+                                        src={`${config.data_url}/wizard/mappings400/${option.image}`}
                                         alt={option.label}
                                         className="absolute inset-0 w-full h-full object-cover rounded-md"
                                       />
                                       <div
                                         className="absolute right-2 top-2 bg-black/50 rounded-full w-8 h-8 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
-                                        onClick={() => setPreviewImage(`${config.data_url}/cdn-cgi/image/w=800/wizard/${option.image}`)}
+                                        onClick={() => setPreviewImage(`${config.data_url}/wizard/mappings800/${option.image}`)}
                                       >
                                         <ZoomIn className="w-5 h-5 text-white" />
                                       </div>
@@ -3773,13 +3773,13 @@ export default function InfluencerEdit() {
                                   <CardContent className="p-4">
                                     <div className="relative w-full group" style={{ paddingBottom: '100%' }}>
                                       <img
-                                        src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${option.image}`}
+                                        src={`${config.data_url}/wizard/mappings400/${option.image}`}
                                         alt={option.label}
                                         className="absolute inset-0 w-full h-full object-cover rounded-md"
                                       />
                                       <div
                                         className="absolute right-2 top-2 bg-black/50 rounded-full w-8 h-8 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
-                                        onClick={() => setPreviewImage(`${config.data_url}/cdn-cgi/image/w=800/wizard/${option.image}`)}
+                                        onClick={() => setPreviewImage(`${config.data_url}/wizard/mappings800/${option.image}`)}
                                       >
                                         <ZoomIn className="w-5 h-5 text-white" />
                                       </div>
@@ -3827,13 +3827,13 @@ export default function InfluencerEdit() {
                                   <CardContent className="p-4">
                                     <div className="relative w-full group" style={{ paddingBottom: '100%' }}>
                                       <img
-                                        src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${option.image}`}
+                                        src={`${config.data_url}/wizard/mappings400/${option.image}`}
                                         alt={option.label}
                                         className="absolute inset-0 w-full h-full object-cover rounded-md"
                                       />
                                       <div
                                         className="absolute right-2 top-2 bg-black/50 rounded-full w-8 h-8 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
-                                        onClick={() => setPreviewImage(`${config.data_url}/cdn-cgi/image/w=800/wizard/${option.image}`)}
+                                        onClick={() => setPreviewImage(`${config.data_url}/wizard/mappings800/${option.image}`)}
                                       >
                                         <ZoomIn className="w-5 h-5 text-white" />
                                       </div>
@@ -4868,7 +4868,7 @@ export default function InfluencerEdit() {
                           <div className="aspect-square bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-900/30 rounded-2xl overflow-hidden shadow-lg">
                             {faceShapeOptions.find(option => option.label === selectedFacialTemplate.implied_face_shape)?.image ? (
                               <img
-                                src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${faceShapeOptions.find(option => option.label === selectedFacialTemplate.implied_face_shape)?.image}`}
+                                src={`${config.data_url}/wizard/mappings400/${faceShapeOptions.find(option => option.label === selectedFacialTemplate.implied_face_shape)?.image}`}
                                 alt={selectedFacialTemplate.implied_face_shape}
                                 className="w-full h-full object-cover"
                               />
@@ -4904,7 +4904,7 @@ export default function InfluencerEdit() {
                           <div className="aspect-square bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30 rounded-2xl overflow-hidden shadow-lg">
                             {getImpliedHairStyleImage(selectedFacialTemplate.implied_hair_style) ? (
                               <img
-                                src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${getImpliedHairStyleImage(selectedFacialTemplate.implied_hair_style)}`}
+                                src={`${config.data_url}/wizard/mappings400/${getImpliedHairStyleImage(selectedFacialTemplate.implied_hair_style)}`}
                                 alt={selectedFacialTemplate.implied_hair_style}
                                 className="w-full h-full object-cover"
                               />
@@ -4940,7 +4940,7 @@ export default function InfluencerEdit() {
                           <div className="aspect-square bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30 rounded-2xl overflow-hidden shadow-lg">
                             {getImpliedHairColorImage(selectedFacialTemplate.implied_hair_color) ? (
                               <img
-                                src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${getImpliedHairColorImage(selectedFacialTemplate.implied_hair_color)}`}
+                                src={`${config.data_url}/wizard/mappings400/${getImpliedHairColorImage(selectedFacialTemplate.implied_hair_color)}`}
                                 alt={selectedFacialTemplate.implied_hair_color}
                                 className="w-full h-full object-cover"
                               />
@@ -4976,7 +4976,7 @@ export default function InfluencerEdit() {
                           <div className="aspect-square bg-gradient-to-br from-green-100 to-emerald-100 dark:from-green-900/30 dark:to-emerald-900/30 rounded-2xl overflow-hidden shadow-lg">
                             {hairLengthOptions.find(option => option.label === selectedFacialTemplate.implied_hair_length)?.image ? (
                               <img
-                                src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${hairLengthOptions.find(option => option.label === selectedFacialTemplate.implied_hair_length)?.image}`}
+                                src={`${config.data_url}/wizard/mappings400/${hairLengthOptions.find(option => option.label === selectedFacialTemplate.implied_hair_length)?.image}`}
                                 alt={selectedFacialTemplate.implied_hair_length}
                                 className="w-full h-full object-cover"
                               />
@@ -5012,7 +5012,7 @@ export default function InfluencerEdit() {
                           <div className="aspect-square bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-900/30 dark:to-orange-900/30 rounded-2xl overflow-hidden shadow-lg">
                             {eyeColorOptions.find(option => option.label === selectedFacialTemplate.implied_eye_color)?.image ? (
                               <img
-                                src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${eyeColorOptions.find(option => option.label === selectedFacialTemplate.implied_eye_color)?.image}`}
+                                src={`${config.data_url}/wizard/mappings400/${eyeColorOptions.find(option => option.label === selectedFacialTemplate.implied_eye_color)?.image}`}
                                 alt={selectedFacialTemplate.implied_eye_color}
                                 className="w-full h-full object-cover"
                               />
@@ -5048,7 +5048,7 @@ export default function InfluencerEdit() {
                           <div className="aspect-square bg-gradient-to-br from-cyan-100 to-blue-100 dark:from-cyan-900/30 dark:to-blue-900/30 rounded-2xl overflow-hidden shadow-lg">
                             {eyeShapeOptions.find(option => option.label === selectedFacialTemplate.implied_eye_shape)?.image ? (
                               <img
-                                src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${eyeShapeOptions.find(option => option.label === selectedFacialTemplate.implied_eye_shape)?.image}`}
+                                src={`${config.data_url}/wizard/mappings400/${eyeShapeOptions.find(option => option.label === selectedFacialTemplate.implied_eye_shape)?.image}`}
                                 alt={selectedFacialTemplate.implied_eye_shape}
                                 className="w-full h-full object-cover"
                               />
@@ -5084,7 +5084,7 @@ export default function InfluencerEdit() {
                           <div className="aspect-square bg-gradient-to-br from-orange-100 to-red-100 dark:from-orange-900/30 dark:to-red-900/30 rounded-2xl overflow-hidden shadow-lg">
                             {noseOptions.find(option => option.label === selectedFacialTemplate.implied_nose_style)?.image ? (
                               <img
-                                src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${noseOptions.find(option => option.label === selectedFacialTemplate.implied_nose_style)?.image}`}
+                                src={`${config.data_url}/wizard/mappings400/${noseOptions.find(option => option.label === selectedFacialTemplate.implied_nose_style)?.image}`}
                                 alt={selectedFacialTemplate.implied_nose_style}
                                 className="w-full h-full object-cover"
                               />
@@ -5120,7 +5120,7 @@ export default function InfluencerEdit() {
                           <div className="aspect-square bg-gradient-to-br from-pink-100 to-rose-100 dark:from-pink-900/30 dark:to-rose-900/30 rounded-2xl overflow-hidden shadow-lg">
                             {lipOptions.find(option => option.label === selectedFacialTemplate.implied_lip_style)?.image ? (
                               <img
-                                src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${lipOptions.find(option => option.label === selectedFacialTemplate.implied_lip_style)?.image}`}
+                                src={`${config.data_url}/wizard/mappings400/${lipOptions.find(option => option.label === selectedFacialTemplate.implied_lip_style)?.image}`}
                                 alt={selectedFacialTemplate.implied_lip_style}
                                 className="w-full h-full object-cover"
                               />
@@ -5156,7 +5156,7 @@ export default function InfluencerEdit() {
                           <div className="aspect-square bg-gradient-to-br from-yellow-100 to-amber-100 dark:from-yellow-900/30 dark:to-amber-900/30 rounded-2xl overflow-hidden shadow-lg">
                             {eyebrowOptions.find(option => option.label === selectedFacialTemplate.implied_eyebrow_style)?.image ? (
                               <img
-                                src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${eyebrowOptions.find(option => option.label === selectedFacialTemplate.implied_eyebrow_style)?.image}`}
+                                src={`${config.data_url}/wizard/mappings400/${eyebrowOptions.find(option => option.label === selectedFacialTemplate.implied_eyebrow_style)?.image}`}
                                 alt={selectedFacialTemplate.implied_eyebrow_style}
                                 className="w-full h-full object-cover"
                               />
@@ -5192,7 +5192,7 @@ export default function InfluencerEdit() {
                           <div className="aspect-square bg-gradient-to-br from-indigo-100 to-purple-100 dark:from-indigo-900/30 dark:to-purple-900/30 rounded-2xl overflow-hidden shadow-lg">
                             {skinToneOptions.find(option => option.label === selectedFacialTemplate.implied_skin_tone)?.image ? (
                               <img
-                                src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${skinToneOptions.find(option => option.label === selectedFacialTemplate.implied_skin_tone)?.image}`}
+                                src={`${config.data_url}/wizard/mappings400/${skinToneOptions.find(option => option.label === selectedFacialTemplate.implied_skin_tone)?.image}`}
                                 alt={selectedFacialTemplate.implied_skin_tone}
                                 className="w-full h-full object-cover"
                               />
@@ -5228,7 +5228,7 @@ export default function InfluencerEdit() {
                           <div className="aspect-square bg-gradient-to-br from-teal-100 to-cyan-100 dark:from-teal-900/30 dark:to-cyan-900/30 rounded-2xl overflow-hidden shadow-lg">
                             {culturalBackgroundOptions.find(option => option.label === selectedFacialTemplate.implied_cultural_background)?.image ? (
                               <img
-                                src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${culturalBackgroundOptions.find(option => option.label === selectedFacialTemplate.implied_cultural_background)?.image}`}
+                                src={`${config.data_url}/wizard/mappings400/${culturalBackgroundOptions.find(option => option.label === selectedFacialTemplate.implied_cultural_background)?.image}`}
                                 alt={selectedFacialTemplate.implied_cultural_background}
                                 className="w-full h-full object-cover"
                               />
@@ -5815,7 +5815,7 @@ const renderOptionCard = (option: Option | undefined, placeholder: string = "Sel
       <CardContent className="p-4">
         <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
           <img
-            src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${option.image}`}
+            src={`${config.data_url}/wizard/mappings400/${option.image}`}
             className="absolute inset-0 w-full h-full object-cover rounded-md"
           />
           <Button

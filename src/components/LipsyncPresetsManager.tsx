@@ -217,6 +217,70 @@ export default function LipsyncPresetsManager({ onClose, onApplyPreset }: {
     }
   };
 
+  // Update favorite status
+  const updateFavorite = async (presetId: number, favorite: boolean) => {
+    try {
+      const response = await fetch(`${config.supabase_server_url}/lipsync_presets?id=eq.${presetId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          favorite: favorite
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update favorite status');
+      }
+
+      // Update local state
+      setPresets(prev => prev.map(preset =>
+        preset.id === presetId
+          ? { ...preset, favorite: favorite }
+          : preset
+      ));
+
+      toast.success(favorite ? 'Added to favorites' : 'Removed from favorites');
+    } catch (error) {
+      console.error('Error updating favorite status:', error);
+      toast.error('Failed to update favorite status');
+    }
+  };
+
+  // Update rating
+  const updateRating = async (presetId: number, rating: number) => {
+    try {
+      const response = await fetch(`${config.supabase_server_url}/lipsync_presets?id=eq.${presetId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          rating: rating
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update rating');
+      }
+
+      // Update local state
+      setPresets(prev => prev.map(preset =>
+        preset.id === presetId
+          ? { ...preset, rating: rating }
+          : preset
+      ));
+
+      toast.success(`Rating updated to ${rating} stars`);
+    } catch (error) {
+      console.error('Error updating rating:', error);
+      toast.error('Failed to update rating');
+    }
+  };
+
   return (
     <Dialog open={true} onOpenChange={onClose}>
       <DialogContent className="max-w-6xl max-h-[90vh] overflow-auto">
@@ -347,13 +411,31 @@ export default function LipsyncPresetsManager({ onClose, onApplyPreset }: {
                         <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
                           <span>{preset.createdDate}</span>
                           <div className="flex items-center gap-1">
-                            {preset.favorite && <Heart className="w-3 h-3 fill-red-400 text-red-400" />}
-                            {preset.rating && (
-                              <span className="flex items-center gap-1">
-                                <Star className="w-3 h-3" />
-                                {preset.rating}
-                              </span>
-                            )}
+                            {/* Favorite Button */}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                updateFavorite(preset.id, !preset.favorite);
+                              }}
+                              className="hover:scale-110 transition-transform"
+                            >
+                              <Heart className={`w-3 h-3 ${preset.favorite ? 'fill-red-400 text-red-400' : 'text-gray-400'}`} />
+                            </button>
+                            {/* Rating Stars */}
+                            <div className="flex items-center gap-1">
+                              {[1, 2, 3, 4, 5].map((star) => (
+                                <button
+                                  key={star}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    updateRating(preset.id, star);
+                                  }}
+                                  className="hover:scale-110 transition-transform"
+                                >
+                                  <Star className={`w-3 h-3 ${preset.rating && preset.rating >= star ? 'fill-yellow-400 text-yellow-400' : 'text-gray-400'}`} />
+                                </button>
+                              ))}
+                            </div>
                           </div>
                         </div>
 
@@ -469,6 +551,34 @@ export default function LipsyncPresetsManager({ onClose, onApplyPreset }: {
                         </div>
                       </div>
                     )}
+                  </div>
+                </div>
+
+                {/* Favorite and Rating Controls */}
+                <div className="flex items-center gap-6 pt-4 border-t">
+                  <div className="flex items-center gap-2">
+                    <Label className="text-sm font-medium text-muted-foreground">Favorite:</Label>
+                    <button
+                      onClick={() => updateFavorite(detailedPresetModal.preset!.id, !detailedPresetModal.preset!.favorite)}
+                      className="hover:scale-110 transition-transform"
+                    >
+                      <Heart className={`w-5 h-5 ${detailedPresetModal.preset!.favorite ? 'fill-red-400 text-red-400' : 'text-gray-400'}`} />
+                    </button>
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <Label className="text-sm font-medium text-muted-foreground">Rating:</Label>
+                    <div className="flex items-center gap-1">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <button
+                          key={star}
+                          onClick={() => updateRating(detailedPresetModal.preset!.id, star)}
+                          className="hover:scale-110 transition-transform"
+                        >
+                          <Star className={`w-5 h-5 ${detailedPresetModal.preset!.rating && detailedPresetModal.preset!.rating >= star ? 'fill-yellow-400 text-yellow-400' : 'text-gray-400'}`} />
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
 

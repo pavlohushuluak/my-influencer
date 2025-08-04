@@ -20,6 +20,7 @@ import { toast } from 'sonner';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import { LoraStatusIndicator } from '@/components/Influencers/LoraStatusIndicator';
+import { config } from '@/config/config';
 
 interface GeneratedImageData {
   id: string;
@@ -534,7 +535,7 @@ export default function InfluencerEdit() {
         })
       });
 
-      influencerData.image_url = `https://images.nymia.ai/cdn-cgi/image/w=400/${userData.id}/models/${influencerData.id}/profilepic/profilepic${influencerData.image_num}.png`;
+      influencerData.image_url = `${config.data_url}/cdn-cgi/image/w=400/${userData.id}/models/${influencerData.id}/profilepic/profilepic${influencerData.image_num}.png`;
       influencerData.image_num = influencerData.image_num + 1;
     }
 
@@ -749,7 +750,7 @@ export default function InfluencerEdit() {
         })
       });
 
-      influencerData.image_url = `https://images.nymia.ai/cdn-cgi/image/w=400/${userData.id}/models/${influencerData.id}/profilepic/profilepic${influencerData.image_num}.png`;
+      influencerData.image_url = `${config.data_url}/cdn-cgi/image/w=400/${userData.id}/models/${influencerData.id}/profilepic/profilepic${influencerData.image_num}.png`;
       influencerData.image_num = influencerData.image_num + 1;
     }
 
@@ -945,7 +946,7 @@ export default function InfluencerEdit() {
             if (imagesData.length > 0 && imagesData[0].generation_status === 'completed' && imagesData[0].system_filename) {
               const completedImage = imagesData[0];
               // Use the same URL pattern as Vault component
-              const imageUrl = `https://images.nymia.ai/cdn-cgi/image/w=800/${userData.id}/${completedImage.user_filename === "" || completedImage.user_filename === null ? "output" : "vault/" + completedImage.user_filename}/${completedImage.system_filename}`;
+              const imageUrl = `${config.data_url}/cdn-cgi/image/w=800/${userData.id}/${completedImage.user_filename === "" || completedImage.user_filename === null ? "output" : "vault/" + completedImage.user_filename}/${completedImage.system_filename}`;
               console.log('Generated image URL:', imageUrl);
               console.log('Completed image data:', completedImage);
               
@@ -988,7 +989,7 @@ export default function InfluencerEdit() {
                     console.log('Refetched generated image data:', completedImage);
                     
                     // Update the preview image with refreshed data
-                    const imageUrl = `https://images.nymia.ai/cdn-cgi/image/w=800/${userData.id}/${completedImage.user_filename === "" || completedImage.user_filename === null ? "output" : "vault/" + completedImage.user_filename}/${completedImage.system_filename}`;
+                    const imageUrl = `${config.data_url}/cdn-cgi/image/w=800/${userData.id}/${completedImage.user_filename === "" || completedImage.user_filename === null ? "output" : "vault/" + completedImage.user_filename}/${completedImage.system_filename}`;
                     
                     setPreviewImages(prev => prev.map((img, index) => 
                       index === taskResult.displayIndex 
@@ -1058,7 +1059,7 @@ export default function InfluencerEdit() {
       }
 
       // Update the influencer data with the new profile picture URL
-      const newImageUrl = `https://images.nymia.ai/cdn-cgi/image/w=400/${userData.id}/models/${influencerData.id}/profilepic/profilepic${influencerData.image_num}.png`;
+      const newImageUrl = `${config.data_url}/cdn-cgi/image/w=400/${userData.id}/models/${influencerData.id}/profilepic/profilepic${influencerData.image_num}.png`;
 
       setInfluencerData(prev => ({
         ...prev,
@@ -1348,13 +1349,13 @@ export default function InfluencerEdit() {
                   <CardContent className="p-4">
                     <div className="relative w-full group" style={{ paddingBottom: '100%' }}>
                       <img
-                        src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
+                        src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${option.image}`}
                         alt={option.label}
                         className="absolute inset-0 w-full h-full object-cover rounded-md"
                       />
                       <div
                         className="absolute right-2 top-2 bg-black/50 rounded-full w-8 h-8 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
-                        onClick={(e) => handleImageClick(e, `https://images.nymia.ai/cdn-cgi/image/w=800/wizard/${option.image}`)}
+                        onClick={(e) => handleImageClick(e, `${config.data_url}/cdn-cgi/image/w=800/wizard/${option.image}`)}
                       >
                         <ZoomIn className="w-5 h-5 text-white" />
                       </div>
@@ -1448,13 +1449,13 @@ export default function InfluencerEdit() {
                   <CardContent className="p-4">
                     <div className="relative w-full group" style={{ paddingBottom: '100%' }}>
                       <img
-                        src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
+                        src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${option.image}`}
                         alt={option.label}
                         className="absolute inset-0 w-full h-full object-cover rounded-md"
                       />
                       <div
                         className="absolute right-2 top-2 bg-black/50 rounded-full w-8 h-8 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
-                        onClick={(e) => handleImageClick(e, `https://images.nymia.ai/cdn-cgi/image/w=800/wizard/${option.image}`)}
+                        onClick={(e) => handleImageClick(e, `${config.data_url}/cdn-cgi/image/w=800/wizard/${option.image}`)}
                       >
                         <ZoomIn className="w-5 h-5 text-white" />
                       </div>
@@ -3206,7 +3207,7 @@ export default function InfluencerEdit() {
                             <CardContent className="p-4">
                               <div className="relative w-full group" style={{ paddingBottom: '100%' }}>
                                 <img
-                                  src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
+                                  src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${option.image}`}
                                   alt={option.label}
                                   className="absolute inset-0 w-full h-full object-cover rounded-md"
                                 />
@@ -3214,7 +3215,7 @@ export default function InfluencerEdit() {
                                   className="absolute right-2 top-2 bg-black/50 rounded-full w-8 h-8 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    setPreviewImage(`https://images.nymia.ai/cdn-cgi/image/w=800/wizard/${option.image}`);
+                                    setPreviewImage(`${config.data_url}/cdn-cgi/image/w=800/wizard/${option.image}`);
                                   }}
                                 >
                                   <ZoomIn className="w-5 h-5 text-white" />
@@ -3276,13 +3277,13 @@ export default function InfluencerEdit() {
                                 <CardContent className="p-4">
                                   <div className="relative w-full group" style={{ paddingBottom: '100%' }}>
                                     <img
-                                      src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
+                                      src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${option.image}`}
                                       alt={option.label}
                                       className="absolute inset-0 w-full h-full object-cover rounded-md"
                                     />
                                     <div
                                       className="absolute right-2 top-2 bg-black/50 rounded-full w-8 h-8 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
-                                      onClick={() => setPreviewImage(`https://images.nymia.ai/cdn-cgi/image/w=800/wizard/${option.image}`)}
+                                      onClick={() => setPreviewImage(`${config.data_url}/cdn-cgi/image/w=800/wizard/${option.image}`)}
                                     >
                                       <ZoomIn className="w-5 h-5 text-white" />
                                     </div>
@@ -3330,13 +3331,13 @@ export default function InfluencerEdit() {
                                 <CardContent className="p-4">
                                   <div className="relative w-full group" style={{ paddingBottom: '100%' }}>
                                     <img
-                                      src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
+                                      src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${option.image}`}
                                       alt={option.label}
                                       className="absolute inset-0 w-full h-full object-cover rounded-md"
                                     />
                                     <div
                                       className="absolute right-2 top-2 bg-black/50 rounded-full w-8 h-8 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
-                                      onClick={() => setPreviewImage(`https://images.nymia.ai/cdn-cgi/image/w=800/wizard/${option.image}`)}
+                                      onClick={() => setPreviewImage(`${config.data_url}/cdn-cgi/image/w=800/wizard/${option.image}`)}
                                     >
                                       <ZoomIn className="w-5 h-5 text-white" />
                                     </div>
@@ -3364,7 +3365,7 @@ export default function InfluencerEdit() {
                               <CardContent className="p-4">
                                 <div className="relative w-full group" style={{ paddingBottom: '100%' }}>
                                   <img
-                                    src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${jobAreaOptions.find(opt => opt.label === influencerData.job_area)?.image}`}
+                                    src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${jobAreaOptions.find(opt => opt.label === influencerData.job_area)?.image}`}
                                     alt={influencerData.job_area}
                                     className="absolute inset-0 w-full h-full object-cover rounded-md"
                                   />
@@ -3440,13 +3441,13 @@ export default function InfluencerEdit() {
                                 <CardContent className="p-4">
                                   <div className="relative w-full group" style={{ paddingBottom: '100%' }}>
                                     <img
-                                      src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
+                                      src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${option.image}`}
                                       alt={option.label}
                                       className="absolute inset-0 w-full h-full object-cover rounded-md"
                                     />
                                     <div
                                       className="absolute right-2 top-2 bg-black/50 rounded-full w-8 h-8 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
-                                      onClick={() => setPreviewImage(`https://images.nymia.ai/cdn-cgi/image/w=800/wizard/${option.image}`)}
+                                      onClick={() => setPreviewImage(`${config.data_url}/cdn-cgi/image/w=800/wizard/${option.image}`)}
                                     >
                                       <ZoomIn className="w-5 h-5 text-white" />
                                     </div>
@@ -3501,13 +3502,13 @@ export default function InfluencerEdit() {
                                 <CardContent className="p-4">
                                   <div className="relative w-full group" style={{ paddingBottom: '100%' }}>
                                     <img
-                                      src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
+                                      src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${option.image}`}
                                       alt={option.label}
                                       className="absolute inset-0 w-full h-full object-cover rounded-md"
                                     />
                                     <div
                                       className="absolute right-2 top-2 bg-black/50 rounded-full w-8 h-8 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
-                                      onClick={() => setPreviewImage(`https://images.nymia.ai/cdn-cgi/image/w=800/wizard/${option.image}`)}
+                                      onClick={() => setPreviewImage(`${config.data_url}/cdn-cgi/image/w=800/wizard/${option.image}`)}
                                     >
                                       <ZoomIn className="w-5 h-5 text-white" />
                                     </div>
@@ -3555,13 +3556,13 @@ export default function InfluencerEdit() {
                                 <CardContent className="p-4">
                                   <div className="relative w-full group" style={{ paddingBottom: '100%' }}>
                                     <img
-                                      src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
+                                      src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${option.image}`}
                                       alt={option.label}
                                       className="absolute inset-0 w-full h-full object-cover rounded-md"
                                     />
                                     <div
                                       className="absolute right-2 top-2 bg-black/50 rounded-full w-8 h-8 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
-                                      onClick={() => setPreviewImage(`https://images.nymia.ai/cdn-cgi/image/w=800/wizard/${option.image}`)}
+                                      onClick={() => setPreviewImage(`${config.data_url}/cdn-cgi/image/w=800/wizard/${option.image}`)}
                                     >
                                       <ZoomIn className="w-5 h-5 text-white" />
                                     </div>
@@ -3609,13 +3610,13 @@ export default function InfluencerEdit() {
                                 <CardContent className="p-4">
                                   <div className="relative w-full group" style={{ paddingBottom: '100%' }}>
                                     <img
-                                      src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
+                                      src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${option.image}`}
                                       alt={option.label}
                                       className="absolute inset-0 w-full h-full object-cover rounded-md"
                                     />
                                     <div
                                       className="absolute right-2 top-2 bg-black/50 rounded-full w-8 h-8 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
-                                      onClick={() => setPreviewImage(`https://images.nymia.ai/cdn-cgi/image/w=800/wizard/${option.image}`)}
+                                      onClick={() => setPreviewImage(`${config.data_url}/cdn-cgi/image/w=800/wizard/${option.image}`)}
                                     >
                                       <ZoomIn className="w-5 h-5 text-white" />
                                     </div>
@@ -3663,13 +3664,13 @@ export default function InfluencerEdit() {
                                 <CardContent className="p-4">
                                   <div className="relative w-full group" style={{ paddingBottom: '100%' }}>
                                     <img
-                                      src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
+                                      src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${option.image}`}
                                       alt={option.label}
                                       className="absolute inset-0 w-full h-full object-cover rounded-md"
                                     />
                                     <div
                                       className="absolute right-2 top-2 bg-black/50 rounded-full w-8 h-8 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
-                                      onClick={() => setPreviewImage(`https://images.nymia.ai/cdn-cgi/image/w=800/wizard/${option.image}`)}
+                                      onClick={() => setPreviewImage(`${config.data_url}/cdn-cgi/image/w=800/wizard/${option.image}`)}
                                     >
                                       <ZoomIn className="w-5 h-5 text-white" />
                                     </div>
@@ -3718,13 +3719,13 @@ export default function InfluencerEdit() {
                                   <CardContent className="p-4">
                                     <div className="relative w-full group" style={{ paddingBottom: '100%' }}>
                                       <img
-                                        src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
+                                        src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${option.image}`}
                                         alt={option.label}
                                         className="absolute inset-0 w-full h-full object-cover rounded-md"
                                       />
                                       <div
                                         className="absolute right-2 top-2 bg-black/50 rounded-full w-8 h-8 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
-                                        onClick={() => setPreviewImage(`https://images.nymia.ai/cdn-cgi/image/w=800/wizard/${option.image}`)}
+                                        onClick={() => setPreviewImage(`${config.data_url}/cdn-cgi/image/w=800/wizard/${option.image}`)}
                                       >
                                         <ZoomIn className="w-5 h-5 text-white" />
                                       </div>
@@ -3772,13 +3773,13 @@ export default function InfluencerEdit() {
                                   <CardContent className="p-4">
                                     <div className="relative w-full group" style={{ paddingBottom: '100%' }}>
                                       <img
-                                        src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
+                                        src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${option.image}`}
                                         alt={option.label}
                                         className="absolute inset-0 w-full h-full object-cover rounded-md"
                                       />
                                       <div
                                         className="absolute right-2 top-2 bg-black/50 rounded-full w-8 h-8 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
-                                        onClick={() => setPreviewImage(`https://images.nymia.ai/cdn-cgi/image/w=800/wizard/${option.image}`)}
+                                        onClick={() => setPreviewImage(`${config.data_url}/cdn-cgi/image/w=800/wizard/${option.image}`)}
                                       >
                                         <ZoomIn className="w-5 h-5 text-white" />
                                       </div>
@@ -3826,13 +3827,13 @@ export default function InfluencerEdit() {
                                   <CardContent className="p-4">
                                     <div className="relative w-full group" style={{ paddingBottom: '100%' }}>
                                       <img
-                                        src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
+                                        src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${option.image}`}
                                         alt={option.label}
                                         className="absolute inset-0 w-full h-full object-cover rounded-md"
                                       />
                                       <div
                                         className="absolute right-2 top-2 bg-black/50 rounded-full w-8 h-8 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
-                                        onClick={() => setPreviewImage(`https://images.nymia.ai/cdn-cgi/image/w=800/wizard/${option.image}`)}
+                                        onClick={() => setPreviewImage(`${config.data_url}/cdn-cgi/image/w=800/wizard/${option.image}`)}
                                       >
                                         <ZoomIn className="w-5 h-5 text-white" />
                                       </div>
@@ -4484,7 +4485,7 @@ export default function InfluencerEdit() {
                                     }
 
                                     // Update the influencer data with the new profile picture URL
-                                    const newImageUrl = `https://images.nymia.ai/cdn-cgi/image/w=400/${userData.id}/models/${influencerData.id}/profilepic/profilepic${num}.png`;
+                                    const newImageUrl = `${config.data_url}/cdn-cgi/image/w=400/${userData.id}/models/${influencerData.id}/profilepic/profilepic${num}.png`;
 
                                     // Update local state
                                     setInfluencerData(prev => ({
@@ -4598,7 +4599,7 @@ export default function InfluencerEdit() {
                       } cursor-pointer`}
                     onClick={() => {
                       setProfileImageId(image.id);
-                      const imageUrl = `https://images.nymia.ai/cdn-cgi/image/w=800/${userData.id}/${image.user_filename === "" ? "output" : "vault/" + image.user_filename}/${image.system_filename}`;
+                      const imageUrl = `${config.data_url}/cdn-cgi/image/w=800/${userData.id}/${image.user_filename === "" ? "output" : "vault/" + image.user_filename}/${image.system_filename}`;
                       handleImageSelect(imageUrl);
                     }}
                   >
@@ -4661,7 +4662,7 @@ export default function InfluencerEdit() {
                       {/* Image */}
                       <div className="relative w-full group mb-4" style={{ paddingBottom: '100%' }}>
                         <img
-                          src={`https://images.nymia.ai/cdn-cgi/image/w=400/${userData.id}/${image.user_filename === "" ? "output" : "vault/" + image.user_filename}/${image.system_filename}`}
+                          src={`${config.data_url}/cdn-cgi/image/w=400/${userData.id}/${image.user_filename === "" ? "output" : "vault/" + image.user_filename}/${image.system_filename}`}
                           alt={image.system_filename}
                           className="absolute inset-0 w-full h-full object-cover rounded-md shadow-sm cursor-pointer transition-all duration-200 hover:scale-105"
                           onError={(e) => {
@@ -4688,7 +4689,7 @@ export default function InfluencerEdit() {
                           className="absolute right-2 top-2 bg-black/50 rounded-full w-8 h-8 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer"
                           onClick={(e) => {
                             e.stopPropagation();
-                            const imageUrl = `https://images.nymia.ai/cdn-cgi/image/w=800/${userData.id}/${image.user_filename === "" ? "output" : "vault/" + image.user_filename}/${image.system_filename}`;
+                            const imageUrl = `${config.data_url}/cdn-cgi/image/w=800/${userData.id}/${image.user_filename === "" ? "output" : "vault/" + image.user_filename}/${image.system_filename}`;
                             setPreviewImage(imageUrl);
                           }}
                         >
@@ -4867,7 +4868,7 @@ export default function InfluencerEdit() {
                           <div className="aspect-square bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-900/30 rounded-2xl overflow-hidden shadow-lg">
                             {faceShapeOptions.find(option => option.label === selectedFacialTemplate.implied_face_shape)?.image ? (
                               <img
-                                src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${faceShapeOptions.find(option => option.label === selectedFacialTemplate.implied_face_shape)?.image}`}
+                                src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${faceShapeOptions.find(option => option.label === selectedFacialTemplate.implied_face_shape)?.image}`}
                                 alt={selectedFacialTemplate.implied_face_shape}
                                 className="w-full h-full object-cover"
                               />
@@ -4903,7 +4904,7 @@ export default function InfluencerEdit() {
                           <div className="aspect-square bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30 rounded-2xl overflow-hidden shadow-lg">
                             {getImpliedHairStyleImage(selectedFacialTemplate.implied_hair_style) ? (
                               <img
-                                src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${getImpliedHairStyleImage(selectedFacialTemplate.implied_hair_style)}`}
+                                src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${getImpliedHairStyleImage(selectedFacialTemplate.implied_hair_style)}`}
                                 alt={selectedFacialTemplate.implied_hair_style}
                                 className="w-full h-full object-cover"
                               />
@@ -4939,7 +4940,7 @@ export default function InfluencerEdit() {
                           <div className="aspect-square bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30 rounded-2xl overflow-hidden shadow-lg">
                             {getImpliedHairColorImage(selectedFacialTemplate.implied_hair_color) ? (
                               <img
-                                src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${getImpliedHairColorImage(selectedFacialTemplate.implied_hair_color)}`}
+                                src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${getImpliedHairColorImage(selectedFacialTemplate.implied_hair_color)}`}
                                 alt={selectedFacialTemplate.implied_hair_color}
                                 className="w-full h-full object-cover"
                               />
@@ -4975,7 +4976,7 @@ export default function InfluencerEdit() {
                           <div className="aspect-square bg-gradient-to-br from-green-100 to-emerald-100 dark:from-green-900/30 dark:to-emerald-900/30 rounded-2xl overflow-hidden shadow-lg">
                             {hairLengthOptions.find(option => option.label === selectedFacialTemplate.implied_hair_length)?.image ? (
                               <img
-                                src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${hairLengthOptions.find(option => option.label === selectedFacialTemplate.implied_hair_length)?.image}`}
+                                src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${hairLengthOptions.find(option => option.label === selectedFacialTemplate.implied_hair_length)?.image}`}
                                 alt={selectedFacialTemplate.implied_hair_length}
                                 className="w-full h-full object-cover"
                               />
@@ -5011,7 +5012,7 @@ export default function InfluencerEdit() {
                           <div className="aspect-square bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-900/30 dark:to-orange-900/30 rounded-2xl overflow-hidden shadow-lg">
                             {eyeColorOptions.find(option => option.label === selectedFacialTemplate.implied_eye_color)?.image ? (
                               <img
-                                src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${eyeColorOptions.find(option => option.label === selectedFacialTemplate.implied_eye_color)?.image}`}
+                                src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${eyeColorOptions.find(option => option.label === selectedFacialTemplate.implied_eye_color)?.image}`}
                                 alt={selectedFacialTemplate.implied_eye_color}
                                 className="w-full h-full object-cover"
                               />
@@ -5047,7 +5048,7 @@ export default function InfluencerEdit() {
                           <div className="aspect-square bg-gradient-to-br from-cyan-100 to-blue-100 dark:from-cyan-900/30 dark:to-blue-900/30 rounded-2xl overflow-hidden shadow-lg">
                             {eyeShapeOptions.find(option => option.label === selectedFacialTemplate.implied_eye_shape)?.image ? (
                               <img
-                                src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${eyeShapeOptions.find(option => option.label === selectedFacialTemplate.implied_eye_shape)?.image}`}
+                                src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${eyeShapeOptions.find(option => option.label === selectedFacialTemplate.implied_eye_shape)?.image}`}
                                 alt={selectedFacialTemplate.implied_eye_shape}
                                 className="w-full h-full object-cover"
                               />
@@ -5083,7 +5084,7 @@ export default function InfluencerEdit() {
                           <div className="aspect-square bg-gradient-to-br from-orange-100 to-red-100 dark:from-orange-900/30 dark:to-red-900/30 rounded-2xl overflow-hidden shadow-lg">
                             {noseOptions.find(option => option.label === selectedFacialTemplate.implied_nose_style)?.image ? (
                               <img
-                                src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${noseOptions.find(option => option.label === selectedFacialTemplate.implied_nose_style)?.image}`}
+                                src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${noseOptions.find(option => option.label === selectedFacialTemplate.implied_nose_style)?.image}`}
                                 alt={selectedFacialTemplate.implied_nose_style}
                                 className="w-full h-full object-cover"
                               />
@@ -5119,7 +5120,7 @@ export default function InfluencerEdit() {
                           <div className="aspect-square bg-gradient-to-br from-pink-100 to-rose-100 dark:from-pink-900/30 dark:to-rose-900/30 rounded-2xl overflow-hidden shadow-lg">
                             {lipOptions.find(option => option.label === selectedFacialTemplate.implied_lip_style)?.image ? (
                               <img
-                                src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${lipOptions.find(option => option.label === selectedFacialTemplate.implied_lip_style)?.image}`}
+                                src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${lipOptions.find(option => option.label === selectedFacialTemplate.implied_lip_style)?.image}`}
                                 alt={selectedFacialTemplate.implied_lip_style}
                                 className="w-full h-full object-cover"
                               />
@@ -5155,7 +5156,7 @@ export default function InfluencerEdit() {
                           <div className="aspect-square bg-gradient-to-br from-yellow-100 to-amber-100 dark:from-yellow-900/30 dark:to-amber-900/30 rounded-2xl overflow-hidden shadow-lg">
                             {eyebrowOptions.find(option => option.label === selectedFacialTemplate.implied_eyebrow_style)?.image ? (
                               <img
-                                src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${eyebrowOptions.find(option => option.label === selectedFacialTemplate.implied_eyebrow_style)?.image}`}
+                                src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${eyebrowOptions.find(option => option.label === selectedFacialTemplate.implied_eyebrow_style)?.image}`}
                                 alt={selectedFacialTemplate.implied_eyebrow_style}
                                 className="w-full h-full object-cover"
                               />
@@ -5191,7 +5192,7 @@ export default function InfluencerEdit() {
                           <div className="aspect-square bg-gradient-to-br from-indigo-100 to-purple-100 dark:from-indigo-900/30 dark:to-purple-900/30 rounded-2xl overflow-hidden shadow-lg">
                             {skinToneOptions.find(option => option.label === selectedFacialTemplate.implied_skin_tone)?.image ? (
                               <img
-                                src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${skinToneOptions.find(option => option.label === selectedFacialTemplate.implied_skin_tone)?.image}`}
+                                src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${skinToneOptions.find(option => option.label === selectedFacialTemplate.implied_skin_tone)?.image}`}
                                 alt={selectedFacialTemplate.implied_skin_tone}
                                 className="w-full h-full object-cover"
                               />
@@ -5227,7 +5228,7 @@ export default function InfluencerEdit() {
                           <div className="aspect-square bg-gradient-to-br from-teal-100 to-cyan-100 dark:from-teal-900/30 dark:to-cyan-900/30 rounded-2xl overflow-hidden shadow-lg">
                             {culturalBackgroundOptions.find(option => option.label === selectedFacialTemplate.implied_cultural_background)?.image ? (
                               <img
-                                src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${culturalBackgroundOptions.find(option => option.label === selectedFacialTemplate.implied_cultural_background)?.image}`}
+                                src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${culturalBackgroundOptions.find(option => option.label === selectedFacialTemplate.implied_cultural_background)?.image}`}
                                 alt={selectedFacialTemplate.implied_cultural_background}
                                 className="w-full h-full object-cover"
                               />
@@ -5814,7 +5815,7 @@ const renderOptionCard = (option: Option | undefined, placeholder: string = "Sel
       <CardContent className="p-4">
         <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
           <img
-            src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
+            src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${option.image}`}
             className="absolute inset-0 w-full h-full object-cover rounded-md"
           />
           <Button

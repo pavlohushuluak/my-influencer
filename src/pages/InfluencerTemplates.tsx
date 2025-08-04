@@ -8,6 +8,7 @@ import { fetchTemplateInfluencers, TemplateInfluencer } from '@/store/slices/tem
 import { useEffect, useState } from 'react';
 import { AppDispatch } from '@/store/store';
 import { LoraStatusIndicator } from '@/components/Influencers/LoraStatusIndicator';
+import config from '@/config/config';
 
 export default function InfluencerTemplates() {
   const userData = useSelector((state: RootState) => state.user);
@@ -187,7 +188,7 @@ export default function InfluencerTemplates() {
         },
         body: JSON.stringify({
           new: false,
-          image_url: `https://images.nymia.ai/cdn-cgi/image/w=400/${userData.id}/models/${data[0].id}/profilepic/profilepic${data[0].image_num}.png`,
+          image_url: `${config.data_url}/cdn-cgi/image/w=400/${userData.id}/models/${data[0].id}/profilepic/profilepic${data[0].image_num}.png`,
           image_num: data[0].image_num + 1
         })
       });

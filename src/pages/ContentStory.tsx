@@ -39,6 +39,7 @@ import {
   Zap
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { config } from '@/config/config';
 
 interface VideoData {
   video_id: string;
@@ -192,7 +193,7 @@ export default function ContentStory() {
   const getVideoUrl = (video: VideoData) => {
     // Use video_name if available, otherwise use video_id
     const fileName = video.video_name && video.video_name.trim() !== '' ? video.video_name : video.video_id;
-    return `https://images.nymia.ai/${userData.id}/video/${video.video_path ? video.video_path + '/' : ''}${fileName}.mp4`;
+    return `${config.data_url}/${userData.id}/video/${video.video_path ? video.video_path + '/' : ''}${fileName}.mp4`;
   };
 
   const handleVideoClick = (video: VideoData) => {

@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Star, Search, Download, Share, Trash2, Filter, Calendar, Image, Video, SortAsc, SortDesc, ZoomIn, Folder, Plus, Upload, ChevronRight, Home, ArrowLeft, Pencil, Menu, X, File, User, RefreshCcw, Edit, BookOpen, Wand2, Eye, Monitor, Camera, Clock, Settings, Zap, Target, FolderPlus } from 'lucide-react';
 import { toast } from 'sonner';
+import config from '@/config/config';
 
 // Interface for preset data from API
 interface PresetData {
@@ -258,7 +259,7 @@ export default function LibraryManager({ onClose, onApplyPreset }: {
 
   const getAllSubfolders = async (folderPath: string): Promise<string[]> => {
     try {
-      const response = await fetch('https://api.nymia.ai/v1/getfoldernames', {
+      const response = await fetch(`${config.backend_url}/getfoldernames`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -297,7 +298,7 @@ export default function LibraryManager({ onClose, onApplyPreset }: {
   // Fetch folders from API
   const fetchFolders = async () => {
     try {
-      const response = await fetch('https://api.nymia.ai/v1/getfoldernames', {
+      const response = await fetch(`${config.backend_url}/getfoldernames`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -344,7 +345,7 @@ export default function LibraryManager({ onClose, onApplyPreset }: {
     try {
       setPresetsLoading(true);
 
-      const response = await fetch(`https://db.nymia.ai/rest/v1/presets?user_id=eq.${LIBRARY_USER_ID}`, {
+      const response = await fetch(`${config.supabase_server_url}/presets?user_id=eq.${LIBRARY_USER_ID}`, {
         headers: {
           'Authorization': 'Bearer WeInfl3nc3withAI'
         }
@@ -365,7 +366,7 @@ export default function LibraryManager({ onClose, onApplyPreset }: {
 
         // Generate image URL from image_name and route
         const presetImageUrl = preset.image_name ?
-          `https://images.nymia.ai/cdn-cgi/image/w=400/${LIBRARY_USER_ID}/presets/${preset.route ? preset.route + '/' : ''}${preset.image_name}` :
+          `${config.data_url}/cdn-cgi/image/w=400/${LIBRARY_USER_ID}/presets/${preset.route ? preset.route + '/' : ''}${preset.image_name}` :
           null;
 
         return {
@@ -436,7 +437,7 @@ export default function LibraryManager({ onClose, onApplyPreset }: {
   const fetchInfluencerData = async (influencerId: string) => {
     setLoadingInfluencer(true);
     try {
-      const response = await fetch(`https://db.nymia.ai/rest/v1/influencer?id=eq.${influencerId}`, {
+      const response = await fetch(`${config.supabase_server_url}/influencer?id=eq.${influencerId}`, {
         headers: {
           'Authorization': 'Bearer WeInfl3nc3withAI'
         }

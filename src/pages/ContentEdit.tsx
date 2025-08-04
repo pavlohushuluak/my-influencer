@@ -31,6 +31,7 @@ import tiktokSvg from '@/assets/social/tiktok.svg';
 import facebookSvg from '@/assets/social/facebook.svg';
 import instagramSvg from '@/assets/social/instagram.svg';
 import { Input } from '@/components/ui/input';
+import { config } from '@/config/config';
 
 interface ImageData {
   id: string;
@@ -325,7 +326,7 @@ export default function ContentEdit() {
       toast.error('Failed to download image. Please try again.');
 
       // Fallback to CDN URL if download fails
-      const fallbackUrl = `https://images.nymia.ai/cdn-cgi/image/w=1200/${userData.id}/output/${imageData.system_filename}`;
+      const fallbackUrl = `${config.data_url}/cdn-cgi/image/w=1200/${userData.id}/output/${imageData.system_filename}`;
       setImageSrc(fallbackUrl);
       setHasImage(true);
       addToHistory('Original image loaded (fallback)', fallbackUrl);

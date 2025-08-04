@@ -11,6 +11,7 @@ import { validatePassword, getStrengthColor, getStrengthProgress } from '@/utils
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
+import config from '@/config/config';
 
 interface SignUpFormProps {
   onToggleMode: () => void;
@@ -61,7 +62,7 @@ export function SignUpForm({ onToggleMode }: SignUpFormProps) {
     setIsLoading(true);
 
     try {
-      const response = await fetch('https://api.nymia.ai/v1/register', {
+      const response = await fetch(`${config.backend_url}/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -81,7 +82,7 @@ export function SignUpForm({ onToggleMode }: SignUpFormProps) {
       const data = await response.json();
       console.log('Registration response:', data);
 
-      await fetch('https://api.nymia.ai/v1/createfolder', {
+      await fetch(`${config.backend_url}/createfolder`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -92,7 +93,7 @@ export function SignUpForm({ onToggleMode }: SignUpFormProps) {
           folder: "input"
         })
       });
-      await fetch('https://api.nymia.ai/v1/createfolder', {
+      await fetch(`${config.backend_url}/createfolder`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -103,7 +104,7 @@ export function SignUpForm({ onToggleMode }: SignUpFormProps) {
           folder: "models"
         })
       });
-      await fetch('https://api.nymia.ai/v1/createfolder', {
+      await fetch(`${config.backend_url}/createfolder`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -114,7 +115,7 @@ export function SignUpForm({ onToggleMode }: SignUpFormProps) {
           folder: "presets"
         })
       });
-      await fetch('https://api.nymia.ai/v1/createfolder', {
+      await fetch(`${config.backend_url}/createfolder`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -125,7 +126,7 @@ export function SignUpForm({ onToggleMode }: SignUpFormProps) {
           folder: "output"
         })
       });
-      await fetch('https://api.nymia.ai/v1/createfolder', {
+      await fetch(`${config.backend_url}/createfolder`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -136,7 +137,7 @@ export function SignUpForm({ onToggleMode }: SignUpFormProps) {
           folder: "vault"
         })
       });
-      await fetch('https://api.nymia.ai/v1/createfolder', {
+      await fetch(`${config.backend_url}/createfolder`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -147,7 +148,7 @@ export function SignUpForm({ onToggleMode }: SignUpFormProps) {
           folder: "vault/Inbox"
         })
       });
-      await fetch('https://api.nymia.ai/v1/createfolder', {
+      await fetch(`${config.backend_url}/createfolder`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -158,7 +159,7 @@ export function SignUpForm({ onToggleMode }: SignUpFormProps) {
           folder: "vault/Trash"
         })
       });
-      await fetch('https://api.nymia.ai/v1/createfolder', {
+      await fetch(`${config.backend_url}/createfolder`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -176,7 +177,7 @@ export function SignUpForm({ onToggleMode }: SignUpFormProps) {
         sessionStorage.setItem('access_token', data.body.access_token);
         sessionStorage.setItem('refresh_token', data.body.refresh_token);
 
-        await fetch('https://db.nymia.ai/rest/v1/user', {
+        await fetch(`${config.supabase_server_url}/user`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

@@ -15,6 +15,7 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { DialogContentZoom } from '@/components/ui/zoomdialog';
 import { DialogZoom } from '@/components/ui/zoomdialog';
+import { config } from '@/config/config';
 
 // Interface for video data from database
 interface VideoData {
@@ -213,7 +214,7 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
   // Get all subfolders recursively
   const getAllSubfolders = async (folderPath: string): Promise<string[]> => {
     try {
-      const response = await fetch('https://api.nymia.ai/v1/getfoldernames', {
+      const response = await fetch(`${config.backend_url}/getfoldernames`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -297,7 +298,7 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
     const fetchFolders = async () => {
       try {
         setFoldersLoading(true);
-        const response = await fetch('https://api.nymia.ai/v1/getfoldernames', {
+        const response = await fetch(`${config.backend_url}/getfoldernames`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -372,7 +373,7 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
       setVideosLoading(true);
 
       // Build the query for counting videos in the current path
-      let countQuery = `https://db.nymia.ai/rest/v1/video?user_uuid=eq.${userData.id}&status=eq.completed&select=count`;
+      let countQuery = `${config.supabase_server_url}/video?user_uuid=eq.${userData.id}&status=eq.completed&select=count`;
       
       if (folderPath === '') {
         // Root folder: count videos where video_path is empty, null, or undefined
@@ -416,7 +417,7 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
       setVideosLoading(true);
 
       // Build the base query
-      let query = `https://db.nymia.ai/rest/v1/video?user_uuid=eq.${userData.id}&status=eq.completed`;
+      let query = `${config.supabase_server_url}/video?user_uuid=eq.${userData.id}&status=eq.completed`;
       
       // Add path filter
       if (currentPath === '') {
@@ -708,7 +709,7 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
           const newVideoData = {
             ...video,
             video_path: currentPath || '',
-            video_url: `https://images.nymia.ai/${userData.id}/video/${currentPath ? currentPath + '/' : ''}${fileName}.mp4`,
+            video_url: `${config.data_url}/${userData.id}/video/${currentPath ? currentPath + '/' : ''}${fileName}.mp4`,
             task_created_at: new Date().toISOString()
           };
           delete newVideoData.video_id; // Remove ID so database generates new one
@@ -739,7 +740,7 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
             },
             body: JSON.stringify({
               video_path: currentPath || '',
-              video_url: `https://images.nymia.ai/${userData.id}/video/${currentPath ? currentPath + '/' : ''}${fileName}.mp4`
+              video_url: `${config.data_url}/${userData.id}/video/${currentPath ? currentPath + '/' : ''}${fileName}.mp4`
             })
           });
 
@@ -996,7 +997,7 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
       return video.video_url;
     }
     const fileName = video.video_name && video.video_name.trim() !== '' ? video.video_name : video.video_id;
-    return `https://images.nymia.ai/${userData.id}/video/${video.video_path ? video.video_path + '/' : ''}${fileName}.mp4`;
+    return `${config.data_url}/${userData.id}/video/${video.video_path ? video.video_path + '/' : ''}${fileName}.mp4`;
   };
 
   const formatVideoDuration = (seconds: number) => {
@@ -1727,7 +1728,7 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
               const newVideoData = {
                 ...video,
                 video_path: destPath,
-                video_url: `https://images.nymia.ai/${userData.id}/video/${destPath}/${fileName}.mp4`,
+                video_url: `${config.data_url}/${userData.id}/video/${destPath}/${fileName}.mp4`,
                 task_created_at: new Date().toISOString()
               };
               delete newVideoData.video_id; // Remove ID so database generates new one
@@ -1758,7 +1759,7 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
                 },
                 body: JSON.stringify({
                   video_path: destPath,
-                  video_url: `https://images.nymia.ai/${userData.id}/video/${destPath}/${fileName}.mp4`
+                  video_url: `${config.data_url}/${userData.id}/video/${destPath}/${fileName}.mp4`
                 })
               });
 
@@ -1850,7 +1851,7 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
                       const newVideoData = {
                         ...video,
                         video_path: `${destPath}/${relativePath}`,
-                        video_url: `https://images.nymia.ai/${userData.id}/video/${destPath}/${relativePath}/${fileName}.mp4`,
+                        video_url: `${config.data_url}/${userData.id}/video/${destPath}/${relativePath}/${fileName}.mp4`,
                         task_created_at: new Date().toISOString()
                       };
                       delete newVideoData.video_id;
@@ -1881,7 +1882,7 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
                         },
                         body: JSON.stringify({
                           video_path: `${destPath}/${relativePath}`,
-                          video_url: `https://images.nymia.ai/${userData.id}/video/${destPath}/${relativePath}/${fileName}.mp4`
+                          video_url: `${config.data_url}/${userData.id}/video/${destPath}/${relativePath}/${fileName}.mp4`
                         })
                       });
 
@@ -2029,7 +2030,7 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
           const newVideoData = {
             ...video,
             video_path: currentPath || '',
-            video_url: `https://images.nymia.ai/${userData.id}/video/${currentPath ? currentPath + '/' : ''}${fileName}.mp4`,
+            video_url: `${config.data_url}/${userData.id}/video/${currentPath ? currentPath + '/' : ''}${fileName}.mp4`,
             task_created_at: new Date().toISOString()
           };
           delete newVideoData.video_id; // Remove ID so database generates new one
@@ -2060,7 +2061,7 @@ export default function VideoFolder({ onBack }: VideoFolderProps) {
             },
             body: JSON.stringify({
               video_path: currentPath || '',
-              video_url: `https://images.nymia.ai/${userData.id}/video/${currentPath ? currentPath + '/' : ''}${fileName}.mp4`
+              video_url: `${config.data_url}/${userData.id}/video/${currentPath ? currentPath + '/' : ''}${fileName}.mp4`
             })
           });
 

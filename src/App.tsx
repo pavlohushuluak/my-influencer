@@ -24,6 +24,19 @@ import Poses from '@/pages/Poses';
 import Accessories from '@/pages/Accessories';
 import Vault from '@/pages/Vault';
 import ContentCreateImage from '@/pages/ContentCreateImage';
+import { useLocation } from 'react-router-dom';
+
+// Wrapper component to pass location state to ContentCreateImage
+const ContentCreateImageWrapper = () => {
+  const location = useLocation();
+  return <ContentCreateImage influencerData={location.state?.influencerData} />;
+};
+
+// Wrapper component to pass location state to ContentCreateVideo
+const ContentCreateVideoWrapper = () => {
+  const location = useLocation();
+  return <ContentCreateVideo influencerData={location.state?.influencerData} />;
+};
 import ContentCreateVideo from '@/pages/ContentCreateVideo';
 import ContentEnhance from '@/pages/ContentEnhance';
 import ContentEdit from '@/pages/ContentEdit';
@@ -73,8 +86,8 @@ const App = () => {
                   <Route path='/catalog/poses' element={<Poses />} />
                   <Route path='/catalog/accessories' element={<Accessories />} />
                   <Route path='/content/vault' element={<Vault />} />
-                  <Route path='/content/create-image' element={<ContentCreateImage />} />
-                  <Route path='/content/create-video' element={<ContentCreateVideo />} />
+                  <Route path='/content/create-image' element={<ContentCreateImageWrapper />} />
+                  <Route path='/content/create-video' element={<ContentCreateVideoWrapper />} />
                   <Route path='/content/enhance' element={<ContentEnhance />} />
                   <Route path='/content/edit' element={<ContentEdit />} />
                   <Route path='/content/story' element={<ContentStory />} />

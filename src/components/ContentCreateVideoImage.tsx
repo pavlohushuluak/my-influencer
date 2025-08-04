@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '@/store/store';
+import config from '@/config/config';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -247,7 +248,7 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
   useEffect(() => {
     const fetchVideos = async () => {
       if (!userData.id) return;
-      
+
       try {
         setLoadingVideos(true);
         const response = await fetch(`https://db.nymia.ai/rest/v1/video?user_uuid=eq.${userData.id}&status=eq.completed&order=task_created_at.desc`, {
@@ -280,7 +281,7 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
     const fetchVideoModels = async () => {
       try {
         setLoadingModels(true);
-        const response = await fetch('https://api.nymia.ai/v1/fieldoptions?fieldtype=video_model', {
+        const response = await fetch(`${config.backend_url}/fieldoptions?fieldtype=video_model`, {
           headers: {
             'Authorization': 'Bearer WeInfl3nc3withAI',
             'Content-Type': 'application/json'
@@ -319,7 +320,7 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
     const fetchVideoLengths = async () => {
       try {
         setLoadingLengths(true);
-        const response = await fetch('https://api.nymia.ai/v1/fieldoptions?fieldtype=video_length', {
+        const response = await fetch(`${config.backend_url}/fieldoptions?fieldtype=video_length`, {
           headers: {
             'Authorization': 'Bearer WeInfl3nc3withAI',
             'Content-Type': 'application/json'
@@ -372,7 +373,7 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
     const fetchVideoResolutions = async () => {
       try {
         setLoadingResolutions(true);
-        const response = await fetch('https://api.nymia.ai/v1/fieldoptions?fieldtype=video_resolution', {
+        const response = await fetch(`${config.backend_url}/fieldoptions?fieldtype=video_resolution`, {
           headers: {
             'Authorization': 'Bearer WeInfl3nc3withAI',
             'Content-Type': 'application/json'
@@ -452,6 +453,8 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
         ...prev,
         model: influencerData.id
       }));
+
+      toast.success(`Using ${influencerData.name_first} ${influencerData.name_last} for video generation`);
     }
   }, [influencerData]);
 
@@ -649,16 +652,16 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
         // Kling models: kling-v2.1 and kling-v2.1-master
         const mode = (formData.format === '480p' || formData.format === '720p') ? 'standard' : 'pro';
         videoGenerationData = {
-        user_uuid: userData.id,
-        model: formData.engine,
+          user_uuid: userData.id,
+          model: formData.engine,
           mode: mode,
-        prompt: formData.prompt,
-        duration: parseInt(formData.duration),
-        start_image: modelData?.image_url ? modelData.image_url.split('/').pop() || '' : '',
-        start_image_url: modelData?.image_url || '',
-        negative_prompt: formData.negative_prompt || '',
-        status: "new"
-      };
+          prompt: formData.prompt,
+          duration: parseInt(formData.duration),
+          start_image: modelData?.image_url ? modelData.image_url.split('/').pop() || '' : '',
+          start_image_url: modelData?.image_url || '',
+          negative_prompt: formData.negative_prompt || '',
+          status: "new"
+        };
       } else if (formData.engine.includes('seedance')) {
         // Seedance models: seedance-1-lite and seedance-1-pro
         videoGenerationData = {
@@ -708,7 +711,7 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
 
       console.log('Video generation payload:', videoGenerationData);
 
-      const response = await fetch('https://api.nymia.ai/v1/generatevideo', {
+      const response = await fetch(`${config.backend_url}/generatevideo`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -751,7 +754,7 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
         user_id: userData.id,
         name: presetName.trim(),
         description: presetDescription.trim(),
-        
+
         // Video generation settings
         prompt: formData.prompt,
         negative_prompt: formData.negative_prompt,
@@ -760,10 +763,10 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
         video_length: parseInt(formData.duration),
         seed: formData.seed ? parseInt(formData.seed) : null,
         influencer_image: modelData?.image_url || '',
-        preset_image: selectedPresetImage.preview_url || `https://images.nymia.ai/cdn-cgi/image/w=400/${userData.id}/${selectedPresetImage.user_filename === "" ? "output" : "vault/" + selectedPresetImage.user_filename}/${selectedPresetImage.system_filename}`
+        preset_image: selectedPresetImage.preview_url || `${config.data_url}/cdn-cgi/image/w=400/${userData.id}/${selectedPresetImage.user_filename === "" ? "output" : "vault/" + selectedPresetImage.user_filename}/${selectedPresetImage.system_filename}`
       };
 
-      const response = await fetch('https://db.nymia.ai/rest/v1/video_presets', {
+      const response = await fetch(`${config.supabase_server_url}/video_presets`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -902,7 +905,7 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
 
   // Video helper functions
   const getVideoUrl = (videoId: string) => {
-    return `https://images.nymia.ai/${userData.id}/video/${videoId}.mp4`;
+    return `${config.data_url}/${userData.id}/video/${videoId}.mp4`;
   };
 
   const formatVideoDuration = (seconds: number) => {
@@ -949,7 +952,7 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
     .filter(video => {
       const matchesStatus = videoFilterStatus === 'all' || video.status === videoFilterStatus;
       const matchesSearch = video.prompt.toLowerCase().includes(videoSearchTerm.toLowerCase()) ||
-                           video.model.toLowerCase().includes(videoSearchTerm.toLowerCase());
+        video.model.toLowerCase().includes(videoSearchTerm.toLowerCase());
       return matchesStatus && matchesSearch;
     })
     .sort((a, b) => {
@@ -1013,12 +1016,12 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
         ...prev,
         format: resolution.label
       };
-      
+
       // Auto-set mode for Kling models based on resolution
       if (prev.engine.includes('kling')) {
         newData.mode = (resolution.label === '480p' || resolution.label === '720p') ? 'standard' : 'pro';
       }
-      
+
       return newData;
     });
     setShowResolutionSelector(false);
@@ -1072,15 +1075,15 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
               My Presets
             </Button>
 
-                      <Button
-            onClick={() => setShowSavePresetModal(true)}
-            variant="outline"
-            size="sm"
-            className="h-10 px-4 bg-gradient-to-r from-emerald-50 to-green-50 dark:from-emerald-900/20 dark:to-green-900/20 border-emerald-200 dark:border-emerald-700 hover:from-emerald-100 hover:to-green-100 dark:hover:from-emerald-800/30 dark:hover:to-green-800/30 text-emerald-700 dark:text-emerald-300 font-medium shadow-sm hover:shadow-md transition-all duration-200"
-          >
-            <Save className="w-4 h-4 mr-2" />
-            Save as Preset
-          </Button>
+            <Button
+              onClick={() => setShowSavePresetModal(true)}
+              variant="outline"
+              size="sm"
+              className="h-10 px-4 bg-gradient-to-r from-emerald-50 to-green-50 dark:from-emerald-900/20 dark:to-green-900/20 border-emerald-200 dark:border-emerald-700 hover:from-emerald-100 hover:to-green-100 dark:hover:from-emerald-800/30 dark:hover:to-green-800/30 text-emerald-700 dark:text-emerald-300 font-medium shadow-sm hover:shadow-md transition-all duration-200"
+            >
+              <Save className="w-4 h-4 mr-2" />
+              Save as Preset
+            </Button>
           </div>
         </div>
 
@@ -1300,7 +1303,7 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Video Model</Label>
-                  <div 
+                  <div
                     className="relative cursor-pointer"
                     onClick={() => setShowModelSelector(true)}
                   >
@@ -1310,7 +1313,7 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
                           <>
                             <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
                               <Video className="w-6 h-6 text-white" />
-                </div>
+                            </div>
                             <div className="text-left">
                               <p className="font-medium text-slate-900 dark:text-slate-100">
                                 {videoModels.find(m => m.label === formData.engine)?.label || formData.engine}
@@ -1318,7 +1321,7 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
                               <p className="text-sm text-slate-500 dark:text-slate-400">
                                 {videoModels.find(m => m.label === formData.engine)?.description || 'Video generation model'}
                               </p>
-                  </div>
+                            </div>
                           </>
                         ) : (
                           <>
@@ -1333,8 +1336,8 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
                         )}
                       </div>
                       <div className="flex items-center gap-2">
-                        <Badge 
-                          variant="outline" 
+                        <Badge
+                          variant="outline"
                           className="text-xs border-blue-200 dark:border-blue-700 text-blue-700 dark:text-blue-300"
                         >
                           {videoModels.length} models
@@ -1349,7 +1352,7 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
 
                 <div className="space-y-2">
                   <Label>Resolution</Label>
-                  <div 
+                  <div
                     className="relative cursor-pointer"
                     onClick={() => setShowResolutionSelector(true)}
                   >
@@ -1382,8 +1385,8 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
                         )}
                       </div>
                       <div className="flex items-center gap-2">
-                        <Badge 
-                          variant="outline" 
+                        <Badge
+                          variant="outline"
                           className="text-xs border-purple-200 dark:border-purple-700 text-purple-700 dark:text-purple-300"
                         >
                           {videoResolutions.length} options
@@ -1396,7 +1399,7 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
 
                 <div className="space-y-2">
                   <Label>Video Length</Label>
-                  <div 
+                  <div
                     className="relative cursor-pointer"
                     onClick={() => setShowLengthSelector(true)}
                   >
@@ -1429,8 +1432,8 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
                         )}
                       </div>
                       <div className="flex items-center gap-2">
-                        <Badge 
-                          variant="outline" 
+                        <Badge
+                          variant="outline"
                           className="text-xs border-green-200 dark:border-green-700 text-green-700 dark:text-green-300"
                         >
                           {videoLengths.length} options
@@ -1522,7 +1525,7 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
             // Convert GeneratedImageData to a format compatible with our modelData
             const selectedImage = {
               id: image.id,
-              image_url: `https://images.nymia.ai/cdn-cgi/image/w=800/${image.file_path}`,
+              image_url: `${config.data_url}/cdn-cgi/image/w=800/${image.file_path}`,
               name_first: image.user_filename || 'Selected',
               name_last: 'Image',
               influencer_type: 'Video Start Image',
@@ -1622,50 +1625,50 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
                       }
                     })
                     .map((video) => (
-                    <Card
-                      key={video.video_id}
-                      className="group cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-105"
-                    >
-                      <CardContent className="p-3">
-                        <div className="aspect-video bg-slate-100 dark:bg-slate-800 rounded-lg mb-3 relative overflow-hidden">
-                          <video
-                            src={getVideoUrl(video.video_id)}
-                            className="w-full h-full object-cover"
-                            muted
-                            loop
-                          />
-                          <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
-                            <div className="bg-white/90 dark:bg-slate-800/90 rounded-lg p-2">
-                              <Play className="w-6 h-6 text-blue-600" />
+                      <Card
+                        key={video.video_id}
+                        className="group cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-105"
+                      >
+                        <CardContent className="p-3">
+                          <div className="aspect-video bg-slate-100 dark:bg-slate-800 rounded-lg mb-3 relative overflow-hidden">
+                            <video
+                              src={getVideoUrl(video.video_id)}
+                              className="w-full h-full object-cover"
+                              muted
+                              loop
+                            />
+                            <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
+                              <div className="bg-white/90 dark:bg-slate-800/90 rounded-lg p-2">
+                                <Play className="w-6 h-6 text-blue-600" />
+                              </div>
                             </div>
                           </div>
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <div className="flex items-start justify-between">
-                            <h4 className="font-medium text-sm line-clamp-2">
-                              {video.prompt.substring(0, 60)}...
-                            </h4>
-                            <Badge 
-                              variant="outline" 
-                              className={`text-xs ${getVideoStatusColor(video.status)}`}
-                            >
-                              {video.status}
-                            </Badge>
+
+                          <div className="space-y-2">
+                            <div className="flex items-start justify-between">
+                              <h4 className="font-medium text-sm line-clamp-2">
+                                {video.prompt.substring(0, 60)}...
+                              </h4>
+                              <Badge
+                                variant="outline"
+                                className={`text-xs ${getVideoStatusColor(video.status)}`}
+                              >
+                                {video.status}
+                              </Badge>
+                            </div>
+
+                            <div className="flex items-center justify-between text-xs text-muted-foreground">
+                              <span>{getVideoModelDisplayName(video.model)}</span>
+                              <span>{formatVideoDuration(video.duration)}</span>
+                            </div>
+
+                            <div className="text-xs text-muted-foreground">
+                              {formatVideoDate(video.task_created_at)}
+                            </div>
                           </div>
-                          
-                          <div className="flex items-center justify-between text-xs text-muted-foreground">
-                            <span>{getVideoModelDisplayName(video.model)}</span>
-                            <span>{formatVideoDuration(video.duration)}</span>
-                          </div>
-                          
-                          <div className="text-xs text-muted-foreground">
-                            {formatVideoDate(video.task_created_at)}
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                        </CardContent>
+                      </Card>
+                    ))}
                 </div>
               ) : (
                 <div className="text-center py-8">
@@ -1674,7 +1677,7 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
                     No videos found
                   </h3>
                   <p className="text-sm text-slate-500 dark:text-slate-400">
-                    {videoSearchTerm || videoFilterStatus !== 'all' 
+                    {videoSearchTerm || videoFilterStatus !== 'all'
                       ? 'Try adjusting your search or filter criteria.'
                       : 'Create your first video to get started.'
                     }
@@ -1836,7 +1839,7 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
                           </div>
 
                           <img
-                            src={selectedPresetImage.preview_url || `https://images.nymia.ai/cdn-cgi/image/w=400/${userData.id}/${selectedPresetImage.user_filename === "" ? "output" : "vault/" + selectedPresetImage.user_filename}/${selectedPresetImage.system_filename}`}
+                            src={selectedPresetImage.preview_url || `${config.data_url}/cdn-cgi/image/w=400/${userData.id}/${selectedPresetImage.user_filename === "" ? "output" : "vault/" + selectedPresetImage.user_filename}/${selectedPresetImage.system_filename}`}
                             alt="Selected preset image"
                             className="absolute inset-0 w-full h-full object-cover rounded-md shadow-sm cursor-pointer transition-all duration-200 hover:scale-105"
                           />
@@ -1983,7 +1986,7 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
               Video Details
             </DialogTitle>
           </DialogHeader>
-          
+
           {selectedVideoForModal && (
             <div className="space-y-6">
               {/* Video Player */}
@@ -2003,7 +2006,7 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
                     <Label className="text-sm font-medium text-muted-foreground">Prompt</Label>
                     <p className="text-sm mt-1">{selectedVideoForModal.prompt}</p>
                   </div>
-                  
+
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <Label className="text-sm font-medium text-muted-foreground">Model</Label>
@@ -2029,7 +2032,7 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
                     <Label className="text-sm font-medium text-muted-foreground">Created</Label>
                     <p className="text-sm mt-1">{formatVideoDate(selectedVideoForModal.task_created_at)}</p>
                   </div>
-                  
+
                   <div>
                     <Label className="text-sm font-medium text-muted-foreground">Status</Label>
                     <div className="flex items-center gap-2 mt-1">
@@ -2057,13 +2060,13 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
 
               {/* Action Buttons */}
               <div className="flex gap-3 pt-4 border-t">
-                  <Button
+                <Button
                   onClick={() => handleDownload(selectedVideoForModal)}
                   className="bg-gradient-to-r from-green-600 to-emerald-600"
-                  >
+                >
                   <Download className="w-4 h-4 mr-2" />
                   Download
-                  </Button>
+                </Button>
                 <Button
                   onClick={() => handleShare(selectedVideoForModal)}
                   variant="outline"
@@ -2074,8 +2077,8 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
               </div>
             </div>
           )}
-          </DialogContent>
-        </Dialog>
+        </DialogContent>
+      </Dialog>
 
       {/* Video Model Selector Modal */}
       <Dialog open={showModelSelector} onOpenChange={setShowModelSelector}>
@@ -2109,11 +2112,10 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
               {videoModels.map((model) => (
                 <Card
                   key={model.label}
-                  className={`group cursor-pointer hover:shadow-lg transition-all duration-300 border-2 hover:border-blue-300 dark:hover:border-blue-600 ${
-                    formData.engine === model.label
+                  className={`group cursor-pointer hover:shadow-lg transition-all duration-300 border-2 hover:border-blue-300 dark:hover:border-blue-600 ${formData.engine === model.label
                       ? 'ring-2 ring-blue-500 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 shadow-lg'
                       : 'hover:ring-2 hover:ring-blue-200 dark:hover:ring-blue-800'
-                  }`}
+                    }`}
                   onClick={() => handleModelSelect(model)}
                 >
                   <CardContent className="p-4">
@@ -2122,7 +2124,7 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
                       <div className="relative">
                         <div className="aspect-video bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-900/30 rounded-xl overflow-hidden shadow-md">
                           <img
-                            src={`https://images.nymia.ai/wizard/${model.image}`}
+                            src={`${config.data_url}/wizard/${model.image}`}
                             alt={model.label}
                             className="w-full h-full object-cover"
                             onError={(e) => {
@@ -2133,7 +2135,7 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
                             }}
                           />
                         </div>
-                        
+
                         {/* Selection Indicator */}
                         {formData.engine === model.label && (
                           <div className="absolute top-2 right-2 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center shadow-lg">
@@ -2156,7 +2158,7 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
                             </Badge>
                           )}
                         </div>
-                        
+
                         <p className="text-sm text-slate-600 dark:text-slate-300 line-clamp-2">
                           {model.description}
                         </p>
@@ -2202,15 +2204,15 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
             <Button
               variant="outline"
               onClick={() => setShowModelSelector(false)}
-                >
-                  Cancel
-                </Button>
-                  <Button
+            >
+              Cancel
+            </Button>
+            <Button
               onClick={() => setShowModelSelector(false)}
-                    className="bg-blue-600 hover:bg-blue-700"
-                  >
+              className="bg-blue-600 hover:bg-blue-700"
+            >
               Confirm Selection
-                  </Button>
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
@@ -2247,11 +2249,10 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
               {videoLengths.map((length) => (
                 <Card
                   key={length.label}
-                  className={`group cursor-pointer hover:shadow-lg transition-all duration-300 border-2 hover:border-green-300 dark:hover:border-green-600 ${
-                    formData.duration === length.label
+                  className={`group cursor-pointer hover:shadow-lg transition-all duration-300 border-2 hover:border-green-300 dark:hover:border-green-600 ${formData.duration === length.label
                       ? 'ring-2 ring-green-500 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 shadow-lg'
                       : 'hover:ring-2 hover:ring-green-200 dark:hover:ring-green-800'
-                  }`}
+                    }`}
                   onClick={() => handleLengthSelect(length)}
                 >
                   <CardContent className="p-4">
@@ -2260,7 +2261,7 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
                       <div className="relative">
                         <div className="aspect-video bg-gradient-to-br from-green-100 to-emerald-100 dark:from-green-900/30 dark:to-emerald-900/30 rounded-xl overflow-hidden shadow-md">
                           <img
-                            src={`https://images.nymia.ai/wizard/${length.image}`}
+                            src={`${config.data_url}/wizard/${length.image}`}
                             alt={`${length.label} seconds`}
                             className="w-full h-full object-cover"
                             onError={(e) => {
@@ -2271,7 +2272,7 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
                             }}
                           />
                         </div>
-                        
+
                         {/* Selection Indicator */}
                         {formData.duration === length.label && (
                           <div className="absolute top-2 right-2 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center shadow-lg">
@@ -2279,8 +2280,8 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
                               <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                             </svg>
                           </div>
-                )}
-              </div>
+                        )}
+                      </div>
 
                       {/* Length Info */}
                       <div className="space-y-2">
@@ -2294,7 +2295,7 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
                             </Badge>
                           )}
                         </div>
-                        
+
                         <p className="text-sm text-slate-600 dark:text-slate-300 line-clamp-2">
                           {length.description}
                         </p>
@@ -2348,9 +2349,9 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
             >
               Confirm Selection
             </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Video Resolution Selector Modal */}
       <Dialog open={showResolutionSelector} onOpenChange={setShowResolutionSelector}>
@@ -2394,11 +2395,10 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
                 {videoResolutions.map((resolution) => (
                   <Card
                     key={resolution.label}
-                    className={`group cursor-pointer transition-all duration-500 border-0 shadow-lg hover:shadow-2xl hover:scale-[1.02] ${
-                      formData.format === resolution.label
+                    className={`group cursor-pointer transition-all duration-500 border-0 shadow-lg hover:shadow-2xl hover:scale-[1.02] ${formData.format === resolution.label
                         ? 'ring-4 ring-purple-500/30 bg-gradient-to-br from-purple-50 via-white to-pink-50 dark:from-purple-900/20 dark:via-slate-800 dark:to-pink-900/20 shadow-2xl scale-[1.02]'
                         : 'hover:ring-2 hover:ring-purple-200 dark:hover:ring-purple-800 bg-white dark:bg-slate-800'
-                    }`}
+                      }`}
                     onClick={() => handleResolutionSelect(resolution)}
                   >
                     <CardContent className="p-0 overflow-hidden">
@@ -2406,7 +2406,7 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
                       <div className="relative">
                         <div className="h-48 bg-gradient-to-br from-purple-100 via-pink-100 to-indigo-100 dark:from-purple-900/30 dark:via-pink-900/30 dark:to-indigo-900/30 overflow-hidden">
                           <img
-                            src={`https://images.nymia.ai/wizard/${resolution.image}`}
+                            src={`${config.data_url}/wizard/${resolution.image}`}
                             alt={resolution.label}
                             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                             onError={(e) => {
@@ -2416,7 +2416,7 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
                             }}
                           />
                         </div>
-                        
+
                         {/* Selection Indicator */}
                         {formData.format === resolution.label && (
                           <div className="absolute top-4 right-4 w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-600 rounded-full flex items-center justify-center shadow-lg animate-pulse">
@@ -2459,19 +2459,19 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
                               <>
                                 <Badge variant="outline" className="text-xs border-blue-200 dark:border-blue-700 text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20">
                                   <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                    <path d="M2 6a2 2 0 012-2h6l2 2h6a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"/>
+                                    <path d="M2 6a2 2 0 012-2h6l2 2h6a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
                                   </svg>
                                   HD Quality
                                 </Badge>
                                 <Badge variant="outline" className="text-xs border-green-200 dark:border-green-700 text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/20">
                                   <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                    <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"/>
+                                    <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" />
                                   </svg>
                                   Standard
                                 </Badge>
                                 <Badge variant="outline" className="text-xs border-purple-200 dark:border-purple-700 text-purple-700 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/20">
                                   <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                    <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                    <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                                   </svg>
                                   Recommended
                                 </Badge>
@@ -2481,19 +2481,19 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
                               <>
                                 <Badge variant="outline" className="text-xs border-indigo-200 dark:border-indigo-700 text-indigo-700 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/20">
                                   <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                    <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z"/>
+                                    <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z" />
                                   </svg>
                                   Full HD
                                 </Badge>
                                 <Badge variant="outline" className="text-xs border-pink-200 dark:border-pink-700 text-pink-700 dark:text-pink-400 bg-pink-50 dark:bg-pink-900/20">
                                   <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                                   </svg>
                                   Premium
                                 </Badge>
                                 <Badge variant="outline" className="text-xs border-orange-200 dark:border-orange-700 text-orange-700 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/20">
                                   <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                    <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"/>
+                                    <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" />
                                   </svg>
                                   High Quality
                                 </Badge>
@@ -2503,19 +2503,19 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
                               <>
                                 <Badge variant="outline" className="text-xs border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-400 bg-gray-50 dark:bg-gray-900/20">
                                   <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                    <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z"/>
+                                    <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z" />
                                   </svg>
                                   SD Quality
                                 </Badge>
                                 <Badge variant="outline" className="text-xs border-green-200 dark:border-green-700 text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/20">
                                   <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                    <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z"/>
+                                    <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z" />
                                   </svg>
                                   Fast Processing
                                 </Badge>
                                 <Badge variant="outline" className="text-xs border-blue-200 dark:border-blue-700 text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20">
                                   <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                    <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"/>
+                                    <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" />
                                   </svg>
                                   Mobile Friendly
                                 </Badge>
@@ -2689,7 +2689,7 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
                         </div>
 
                         <img
-                          src={selectedPresetImage.preview_url || `https://images.nymia.ai/cdn-cgi/image/w=400/${userData.id}/${selectedPresetImage.user_filename === "" ? "output" : "vault/" + selectedPresetImage.user_filename}/${selectedPresetImage.system_filename}`}
+                          src={selectedPresetImage.preview_url || `${config.data_url}/cdn-cgi/image/w=400/${userData.id}/${selectedPresetImage.user_filename === "" ? "output" : "vault/" + selectedPresetImage.user_filename}/${selectedPresetImage.system_filename}`}
                           alt="Selected preset image"
                           className="absolute inset-0 w-full h-full object-cover rounded-md shadow-sm cursor-pointer transition-all duration-200 hover:scale-105"
                         />

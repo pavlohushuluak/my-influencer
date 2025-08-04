@@ -5,6 +5,7 @@ import React, { useState } from 'react';
 import { setBio } from '@/store/slices/bioSlice';
 import { useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
+import config from '@/config/config';
 interface Influencer {
   id: string;
   name_first: string;
@@ -19,7 +20,8 @@ interface InfluencerUseModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   influencer: Influencer | null;
-  onContentCreate: () => void;
+  onCreateImages: () => void;
+  onCreateVideo: () => void;
   onCharacterConsistency: () => void;
 }
 
@@ -27,7 +29,8 @@ export const InfluencerUseModal: React.FC<InfluencerUseModalProps> = ({
   open,
   onOpenChange,
   influencer,
-  onContentCreate,
+  onCreateImages,
+  onCreateVideo,
   onCharacterConsistency,
 }) => {
   const [showBioModal, setShowBioModal] = useState(false);
@@ -53,7 +56,7 @@ export const InfluencerUseModal: React.FC<InfluencerUseModalProps> = ({
     try {
       // Remove bio from influencer data
       const { bio, ...influencerData } = influencer;
-      const response = await fetch('https://api.nymia.ai/v1/biowizard', {
+      const response = await fetch(`${config.backend_url}/biowizard`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -68,7 +71,7 @@ export const InfluencerUseModal: React.FC<InfluencerUseModalProps> = ({
       // Save to redux store
       dispatch(setBio({ influencerId: influencer.id, bio: data }));
       // Save to database
-      const patchResponse = await fetch(`https://db.nymia.ai/rest/v1/influencer?id=eq.${influencer.id}`, {
+      const patchResponse = await fetch(`${config.supabase_server_url}/influencer?id=eq.${influencer.id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -116,18 +119,32 @@ export const InfluencerUseModal: React.FC<InfluencerUseModalProps> = ({
               </div>
               <div className="space-y-3">
                 <p className="text-sm font-medium">Select a platform to create content:</p>
-                {/* Content Create Option */}
+                {/* Create Images Option */}
                 <Button
                   variant="outline"
                   className="w-full justify-start h-auto p-4 border-2 border-ai-purple-500/20 hover:border-ai-purple-500/40 bg-gradient-to-r from-ai-purple-50 to-blue-50 dark:from-ai-purple-900/10 dark:to-blue-900/10"
-                  onClick={onContentCreate}
+                  onClick={onCreateImages}
                 >
                   <div className="w-10 h-10 rounded-lg bg-gradient-to-r from-ai-purple-500 to-blue-500 flex items-center justify-center mr-3">
                     <Sparkles className="w-5 h-5 text-white" />
                   </div>
                   <div className="text-left">
-                    <div className="font-medium">Content Create</div>
-                    <div className="text-sm text-muted-foreground">Advanced content generation</div>
+                    <div className="font-medium">Create Images</div>
+                    <div className="text-sm text-muted-foreground">Content - Images by using that influencer data</div>
+                  </div>
+                </Button>
+                {/* Create Video Option */}
+                <Button
+                  variant="outline"
+                  className="w-full justify-start h-auto p-4 border-2 border-ai-purple-500/20 hover:border-ai-purple-500/40 bg-gradient-to-r from-ai-purple-50 to-blue-50 dark:from-ai-purple-900/10 dark:to-blue-900/10"
+                  onClick={onCreateVideo}
+                >
+                  <div className="w-10 h-10 rounded-lg bg-gradient-to-r from-ai-purple-500 to-blue-500 flex items-center justify-center mr-3">
+                    <Sparkles className="w-5 h-5 text-white" />
+                  </div>
+                  <div className="text-left">
+                    <div className="font-medium">Create Video</div>
+                    <div className="text-sm text-muted-foreground">Content - Videos - Create Influencer Video by using that Influencer Image</div>
                   </div>
                 </Button>
                 {/* Character Consistency Option */}

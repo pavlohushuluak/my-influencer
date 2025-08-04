@@ -2,6 +2,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { useLocation } from 'react-router-dom';
 import { RootState } from '@/store/store';
 import { toggleTheme } from '@/store/slices/uiSlice';
+import config from '@/config/config';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -73,7 +74,7 @@ export function Header() {
 
     if (accessToken) {
       try {
-        const response = await fetch('https://api.nymia.ai/v1/logout', {
+        const response = await fetch(`${config.backend_url}/logout`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

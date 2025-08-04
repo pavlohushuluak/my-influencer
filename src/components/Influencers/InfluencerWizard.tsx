@@ -11,6 +11,7 @@ import { RootState } from '@/store/store';
 import { setUser } from '@/store/slices/userSlice';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import config from '@/config/config';
 
 interface InfluencerWizardProps {
   onComplete: () => void;
@@ -419,7 +420,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
     const fetchSexOptions = async () => {
       try {
         setIsLoadingSexOptions(true);
-        const response = await fetch('https://api.nymia.ai/v1/fieldoptions?fieldtype=wizard_sex', {
+        const response = await fetch(`${config.backend_url}/fieldoptions?fieldtype=wizard_sex`, {
           headers: {
             'Authorization': 'Bearer WeInfl3nc3withAI'
           }
@@ -486,14 +487,14 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
       setIsLoadingFacialFeatures(true);
 
       // Fetch templates from ethnic-specific API
-      const templatesResponse = await fetch(`https://db.nymia.ai/rest/v1/facial_templates_global?ethnics_stereotype=eq.${ethnic}`, {
+      const templatesResponse = await fetch(`${config.supabase_server_url}/facial_templates_global?ethnics_stereotype=eq.${ethnic}`, {
         headers: {
           'Authorization': 'Bearer WeInfl3nc3withAI'
         }
       });
 
       // Fetch images from original API
-      const imagesResponse = await fetch('https://api.nymia.ai/v1/fieldoptions?fieldtype=facial_features', {
+      const imagesResponse = await fetch(`${config.backend_url}/fieldoptions?fieldtype=facial_features`, {
         headers: {
           'Authorization': 'Bearer WeInfl3nc3withAI'
         }
@@ -538,7 +539,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
     const fetchAgeOptions = async () => {
       try {
         setIsLoadingAge(true);
-        const response = await fetch('https://api.nymia.ai/v1/fieldoptions?fieldtype=wizard_age', {
+        const response = await fetch(`${config.backend_url}/fieldoptions?fieldtype=wizard_age`, {
           headers: {
             'Authorization': 'Bearer WeInfl3nc3withAI'
           }
@@ -568,7 +569,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
     const fetchLifestyleOptions = async () => {
       try {
         setIsLoadingLifestyle(true);
-        const response = await fetch('https://api.nymia.ai/v1/fieldoptions?fieldtype=wizard_lifestyle', {
+        const response = await fetch(`${config.backend_url}/fieldoptions?fieldtype=wizard_lifestyle`, {
           headers: {
             'Authorization': 'Bearer WeInfl3nc3withAI'
           }
@@ -597,13 +598,13 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
   const fetchCulturalBackgroundOptions = async (ethnic: string) => {
     try {
       setIsLoadingCulturalBackground(true);
-      const templatesResponse = await fetch(`https://db.nymia.ai/rest/v1/prompt_mappings?category=eq.cultural_background&ethnics_stereotype=eq.${ethnic}`, {
+      const templatesResponse = await fetch(`${config.supabase_server_url}/prompt_mappings?category=eq.cultural_background&ethnics_stereotype=eq.${ethnic}`, {
         headers: {
           'Authorization': 'Bearer WeInfl3nc3withAI'
         }
       });
 
-      const imageResponse = await fetch('https://api.nymia.ai/v1/fieldoptions?fieldtype=wizard_cultural_background', {
+      const imageResponse = await fetch(`${config.backend_url}/fieldoptions?fieldtype=wizard_cultural_background`, {
         headers: {
           'Authorization': 'Bearer WeInfl3nc3withAI'
         }
@@ -650,7 +651,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
     const fetchHairLengthOptions = async () => {
       try {
         setIsLoadingHairLength(true);
-        const response = await fetch('https://api.nymia.ai/v1/fieldoptions?fieldtype=wizard_hair_length', {
+        const response = await fetch(`${config.backend_url}/fieldoptions?fieldtype=wizard_hair_length`, {
           headers: {
             'Authorization': 'Bearer WeInfl3nc3withAI'
           }
@@ -680,7 +681,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
     const fetchHairStyleOptions = async () => {
       try {
         setIsLoadingHairStyle(true);
-        const response = await fetch('https://api.nymia.ai/v1/fieldoptions?fieldtype=wizard_hair_style', {
+        const response = await fetch(`${config.backend_url}/fieldoptions?fieldtype=wizard_hair_style`, {
           headers: {
             'Authorization': 'Bearer WeInfl3nc3withAI'
           }
@@ -710,7 +711,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
     const fetchHairColorOptions = async () => {
       try {
         setIsLoadingHairColor(true);
-        const response = await fetch('https://api.nymia.ai/v1/fieldoptions?fieldtype=wizard_hair_color', {
+        const response = await fetch(`${config.backend_url}/fieldoptions?fieldtype=wizard_hair_color`, {
           headers: {
             'Authorization': 'Bearer WeInfl3nc3withAI'
           }
@@ -740,7 +741,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
     const fetchFaceShapeOptions = async () => {
       try {
         setIsLoadingFaceShape(true);
-        const response = await fetch('https://api.nymia.ai/v1/fieldoptions?fieldtype=wizard_face_shape', {
+        const response = await fetch(`${config.backend_url}/fieldoptions?fieldtype=wizard_face_shape`, {
           headers: {
             'Authorization': 'Bearer WeInfl3nc3withAI'
           }
@@ -770,7 +771,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
     const fetchEyeColorOptions = async () => {
       try {
         setIsLoadingEyeColor(true);
-        const response = await fetch('https://api.nymia.ai/v1/fieldoptions?fieldtype=wizard_eye_color', {
+        const response = await fetch(`${config.backend_url}/fieldoptions?fieldtype=wizard_eye_color`, {
           headers: {
             'Authorization': 'Bearer WeInfl3nc3withAI'
           }
@@ -800,7 +801,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
     const fetchEyeShapeOptions = async () => {
       try {
         setIsLoadingEyeShape(true);
-        const response = await fetch('https://api.nymia.ai/v1/fieldoptions?fieldtype=wizard_eye_shape', {
+        const response = await fetch(`${config.backend_url}/fieldoptions?fieldtype=wizard_eye_shape`, {
           headers: {
             'Authorization': 'Bearer WeInfl3nc3withAI'
           }
@@ -830,7 +831,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
     const fetchLipStyleOptions = async () => {
       try {
         setIsLoadingLipStyle(true);
-        const response = await fetch('https://api.nymia.ai/v1/fieldoptions?fieldtype=wizard_lip_style', {
+        const response = await fetch(`${config.backend_url}/fieldoptions?fieldtype=wizard_lip_style`, {
           headers: {
             'Authorization': 'Bearer WeInfl3nc3withAI'
           }
@@ -860,7 +861,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
     const fetchNoseStyleOptions = async () => {
       try {
         setIsLoadingNoseStyle(true);
-        const response = await fetch('https://api.nymia.ai/v1/fieldoptions?fieldtype=wizard_nose_style', {
+        const response = await fetch(`${config.backend_url}/fieldoptions?fieldtype=wizard_nose_style`, {
           headers: {
             'Authorization': 'Bearer WeInfl3nc3withAI'
           }
@@ -890,7 +891,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
     const fetchEyebrowStyleOptions = async () => {
       try {
         setIsLoadingEyebrowStyle(true);
-        const response = await fetch('https://api.nymia.ai/v1/fieldoptions?fieldtype=wizard_eyebrow_style', {
+        const response = await fetch(`${config.backend_url}/fieldoptions?fieldtype=wizard_eyebrow_style`, {
           headers: {
             'Authorization': 'Bearer WeInfl3nc3withAI'
           }
@@ -920,7 +921,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
     const fetchSkinToneOptions = async () => {
       try {
         setIsLoadingSkinTone(true);
-        const response = await fetch('https://api.nymia.ai/v1/fieldoptions?fieldtype=wizard_skin_tone', {
+        const response = await fetch(`${config.backend_url}/fieldoptions?fieldtype=wizard_skin_tone`, {
           headers: {
             'Authorization': 'Bearer WeInfl3nc3withAI'
           }
@@ -950,7 +951,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
     const fetchBodyTypeOptions = async () => {
       try {
         setIsLoadingBodyType(true);
-        const response = await fetch('https://api.nymia.ai/v1/fieldoptions?fieldtype=wizard_body_type', {
+        const response = await fetch(`${config.backend_url}/fieldoptions?fieldtype=wizard_body_type`, {
           headers: {
             'Authorization': 'Bearer WeInfl3nc3withAI'
           }
@@ -980,7 +981,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
     const fetchBustSizeOptions = async () => {
       try {
         setIsLoadingBustSize(true);
-        const response = await fetch('https://api.nymia.ai/v1/fieldoptions?fieldtype=wizard_bust', {
+        const response = await fetch(`${config.backend_url}/fieldoptions?fieldtype=wizard_bust`, {
           headers: {
             'Authorization': 'Bearer WeInfl3nc3withAI'
           }
@@ -1010,7 +1011,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
     const fetchEthnicsOptions = async () => {
       try {
         setIsLoadingEthnics(true);
-        const response = await fetch('https://api.nymia.ai/v1/fieldoptions?fieldtype=wizard_ethnics_stereotype', {
+        const response = await fetch(`${config.backend_url}/fieldoptions?fieldtype=wizard_ethnics_stereotype`, {
           headers: {
             'Authorization': 'Bearer WeInfl3nc3withAI'
           }
@@ -1041,7 +1042,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
   const fetchNameSuggestions = async () => {
     try {
       setIsLoadingNameWizard(true);
-      const response = await fetch('https://api.nymia.ai/v1/namewizard', {
+      const response = await fetch(`${config.backend_url}/namewizard`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1110,7 +1111,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
   // Function to fetch facial template details
   const fetchFacialTemplateDetails = async (templateName: string) => {
     try {
-      const response = await fetch(`https://db.nymia.ai/rest/v1/facial_templates_global?template_name=eq.${templateName}`, {
+      const response = await fetch(`${config.supabase_server_url}/facial_templates_global?template_name=eq.${templateName}`, {
         headers: {
           'Authorization': 'Bearer WeInfl3nc3withAI'
         }
@@ -1391,7 +1392,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
 
     try {
       // Create the influencer in the database
-      const response = await fetch('https://db.nymia.ai/rest/v1/influencer', {
+      const response = await fetch(`${config.supabase_server_url}/influencer`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1400,7 +1401,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
         body: JSON.stringify({ ...influencerData, new: true })
       });
 
-      const responseId = await fetch(`https://db.nymia.ai/rest/v1/influencer?user_id=eq.${userData.id}&new=eq.true`, {
+              const responseId = await fetch(`${config.supabase_server_url}/influencer?user_id=eq.${userData.id}&new=eq.true`, {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer WeInfl3nc3withAI'
@@ -1412,7 +1413,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
 
       if (selectedProfilePictureUrl) {
         const extension = selectedProfilePictureUrl.split('.').pop() || 'png';
-        await fetch('https://api.nymia.ai/v1/copyfile', {
+        await fetch(`${config.backend_url}/copyfile`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -1425,11 +1426,11 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
           })
         });
   
-        influencerData.image_url = `https://images.nymia.ai/cdn-cgi/image/w=400/${userData.id}/models/${data[0].id}/profilepic/profilepic${num}.${extension}`;
+                  influencerData.image_url = `${config.data_url}/cdn-cgi/image/w=400/${userData.id}/models/${data[0].id}/profilepic/profilepic${num}.${extension}`;
         influencerData.image_num = num + 1;
       }
 
-      await fetch('https://api.nymia.ai/v1/createfolder', {
+      await fetch(`${config.backend_url}/createfolder`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1442,7 +1443,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
         })
       });
 
-      await fetch('https://api.nymia.ai/v1/createfolder', {
+      await fetch(`${config.backend_url}/createfolder`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1455,7 +1456,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
         })
       });
 
-      await fetch('https://api.nymia.ai/v1/createfolder', {
+      await fetch(`${config.backend_url}/createfolder`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1468,7 +1469,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
         })
       });
 
-      await fetch('https://api.nymia.ai/v1/createfolder', {
+      await fetch(`${config.backend_url}/createfolder`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1486,7 +1487,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
         image_num: num + 1
       }));
 
-      await fetch(`https://db.nymia.ai/rest/v1/influencer?id=eq.${data[0].id}`, {
+      await fetch(`${config.supabase_server_url}/influencer?id=eq.${data[0].id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -1497,7 +1498,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
         })
       });
 
-      await fetch(`https://db.nymia.ai/rest/v1/influencer?id=eq.${data[0].id}`, {
+      await fetch(`${config.supabase_server_url}/influencer?id=eq.${data[0].id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -1569,7 +1570,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
 
         // Autostart image generation
         try {
-          const useridResponse = await fetch(`https://db.nymia.ai/rest/v1/user?uuid=eq.${userData.id}`, {
+          const useridResponse = await fetch(`${config.supabase_server_url}/user?uuid=eq.${userData.id}`, {
             headers: {
               'Content-Type': 'application/json',
               'Authorization': 'Bearer WeInfl3nc3withAI'
@@ -1578,7 +1579,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
           const useridData = await useridResponse.json();
 
           // Start image generation automatically
-          const imageGenerationResponse = await fetch(`https://api.nymia.ai/v1/createtask?userid=${useridData[0].userid}&type=createimage`, {
+          const imageGenerationResponse = await fetch(`${config.backend_url}/createtask?userid=${useridData[0].userid}&type=createimage`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -1659,7 +1660,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
     setShowPreviewModal(true);
     
     try {
-      const useridResponse = await fetch(`https://db.nymia.ai/rest/v1/user?uuid=eq.${userData.id}`, {
+      const useridResponse = await fetch(`${config.supabase_server_url}/user?uuid=eq.${userData.id}`, {
         method: 'GET',
         headers: {
           'Authorization': 'Bearer WeInfl3nc3withAI'
@@ -1724,7 +1725,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
 
       const taskPromises = requests.map(async (request) => {
         const requestData = { ...baseRequestData, negative_prompt: request.negative_prompt };
-        const response = await fetch(`https://api.nymia.ai/v1/createtask?userid=${useridData[0].userid}&type=createimage`, {
+        const response = await fetch(`${config.backend_url}/createtask?userid=${useridData[0].userid}&type=createimage`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -1743,7 +1744,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
         try {
           let allCompleted = true;
           for (const taskResult of taskResults) {
-            const imagesResponse = await fetch(`https://db.nymia.ai/rest/v1/generated_images?task_id=eq.${taskResult.taskId}`, {
+            const imagesResponse = await fetch(`${config.supabase_server_url}/generated_images?task_id=eq.${taskResult.taskId}`, {
               headers: {
                 'Authorization': 'Bearer WeInfl3nc3withAI'
               }
@@ -1752,7 +1753,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
             
             if (imagesData.length > 0 && imagesData[0].generation_status === 'completed' && imagesData[0].file_path) {
               const completedImage = imagesData[0];
-              const imageUrl = `https://images.nymia.ai/cdn-cgi/image/w=800/${completedImage.file_path}`;
+                              const imageUrl = `${config.data_url}/cdn-cgi/image/w=800/${completedImage.file_path}`;
               
               setPreviewImages(prev => prev.map((img, index) => 
                 index === taskResult.displayIndex ? { ...img, imageUrl, isLoading: false, taskId: taskResult.taskId } : img
@@ -1833,7 +1834,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                         <div className="space-y-4">
                           <div className="relative">
                             <img
-                              src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
+                              src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${option.image}`}
                               alt={option.label}
                               className="w-full h-full object-cover rounded-lg shadow-md group-hover:scale-105 transition-transform duration-300"
                             />
@@ -1909,7 +1910,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                           <div className="space-y-4">
                             <div className="relative">
                               <img
-                                src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
+                                src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${option.image}`}
                                 alt={option.label}
                                 className="w-full h-full object-cover rounded-lg shadow-md group-hover:scale-105 transition-transform duration-300"
                               />
@@ -2061,7 +2062,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                           <div className="space-y-4">
                             <div className="relative">
                               <img
-                                src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
+                                src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${option.image}`}
                                 alt={option.label}
                                 className="w-full h-full object-cover rounded-lg shadow-md group-hover:scale-105 transition-transform duration-300"
                               />
@@ -2163,7 +2164,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                             <div className="space-y-4">
                               <div className="relative">
                                 <img
-                                  src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
+                                  src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${option.image}`}
                                   alt={option.label}
                                   className="w-full h-full object-cover rounded-lg shadow-md group-hover:scale-105 transition-transform duration-300"
                                 />
@@ -2337,7 +2338,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                           <div className="space-y-4">
                             <div className="relative">
                               <img
-                                src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
+                                src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${option.image}`}
                                 alt={option.label}
                                 className="w-full h-full object-cover rounded-lg shadow-md group-hover:scale-105 transition-transform duration-300"
                               />
@@ -2511,7 +2512,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                           <div className="space-y-4">
                             <div className="relative">
                               <img
-                                src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
+                                src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${option.image}`}
                                 alt={option.label}
                                 className="w-full h-full object-cover rounded-lg shadow-md group-hover:scale-105 transition-transform duration-300"
                               />
@@ -2685,7 +2686,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                           <div className="space-y-4">
                             <div className="relative">
                               <img
-                                src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
+                                src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${option.image}`}
                                 alt={option.label}
                                 className="w-full h-full object-cover rounded-lg shadow-md group-hover:scale-105 transition-transform duration-300"
                               />
@@ -2859,7 +2860,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                           <div className="space-y-4">
                             <div className="relative">
                               <img
-                                src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
+                                src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${option.image}`}
                                 alt={option.label}
                                 className="w-full h-full object-cover rounded-lg shadow-md group-hover:scale-105 transition-transform duration-300"
                               />
@@ -3033,7 +3034,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                           <div className="space-y-4">
                             <div className="relative">
                               <img
-                                src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
+                                src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${option.image}`}
                                 alt={option.label}
                                 className="w-full h-full object-cover rounded-lg shadow-md group-hover:scale-105 transition-transform duration-300"
                               />
@@ -3207,7 +3208,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                           <div className="space-y-4">
                             <div className="relative">
                               <img
-                                src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
+                                src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${option.image}`}
                                 alt={option.label}
                                 className="w-full h-full object-cover rounded-lg shadow-md group-hover:scale-105 transition-transform duration-300"
                               />
@@ -3381,7 +3382,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                           <div className="space-y-4">
                             <div className="relative">
                               <img
-                                src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
+                                src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${option.image}`}
                                 alt={option.label}
                                 className="w-full h-full object-cover rounded-lg shadow-md group-hover:scale-105 transition-transform duration-300"
                               />
@@ -3555,7 +3556,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                           <div className="space-y-4">
                             <div className="relative">
                               <img
-                                src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
+                                src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${option.image}`}
                                 alt={option.label}
                                 className="w-full h-full object-cover rounded-lg shadow-md group-hover:scale-105 transition-transform duration-300"
                               />
@@ -3707,7 +3708,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                           <div className="space-y-4">
                             <div className="relative">
                               <img
-                                src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
+                                src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${option.image}`}
                                 alt={option.label}
                                 className="w-full h-full object-cover rounded-lg shadow-md group-hover:scale-105 transition-transform duration-300"
                               />

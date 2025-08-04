@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '@/store/store';
+import config from '@/config/config';
 import { setInfluencers, setLoading, setError } from '@/store/slices/influencersSlice';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -56,7 +57,7 @@ export default function Dashboard() {
       }
       if (userData.billing_date <= Date.now() && userData.subscription !== 'free') {
         try {
-          const response = await axios.patch(`https://db.nymia.ai/rest/v1/user?uuid=eq.${userData.id}`, JSON.stringify({
+          const response = await axios.patch(`${config.supabase_server_url}/user?uuid=eq.${userData.id}`, JSON.stringify({
             subscription: 'free',
             billing_date: 0,
             free_purchase: true,
@@ -75,7 +76,7 @@ export default function Dashboard() {
       }
       else if (userData.billing_date > Date.now() && userData.subscription !== 'free' && userData.billed_date + 1 * 30 * 24 * 60 * 60 * 1000 >= Date.now()) {
         try {
-          const response = await axios.patch(`https://db.nymia.ai/rest/v1/user?uuid=eq.${userData.id}`, JSON.stringify({
+          const response = await axios.patch(`${config.supabase_server_url}/user?uuid=eq.${userData.id}`, JSON.stringify({
             billed_date: userData.billed_date + 1 * 30 * 24 * 60 * 60 * 1000,
             credits: credits
           }), {
@@ -100,7 +101,7 @@ export default function Dashboard() {
     const fetchInfluencers = async () => {
       try {
         dispatch(setLoading(true));
-        const response = await fetch(`https://db.nymia.ai/rest/v1/influencer?user_id=eq.${userData.id}`, {
+        const response = await fetch(`${config.supabase_server_url}/influencer?user_id=eq.${userData.id}`, {
           headers: {
             'Authorization': 'Bearer WeInfl3nc3withAI'
           }
@@ -139,11 +140,25 @@ export default function Dashboard() {
     }
   };
 
-  const handleContentCreate = () => {
+  const handleCreateImages = () => {
     const influencer = influencers.find(inf => inf.id === selectedInfluencer);
 
     if (influencer) {
-      navigate('/content/create', {
+      navigate('/content/create-image', {
+        state: {
+          influencerData: influencer,
+          mode: 'create'
+        }
+      });
+      setShowPlatformModal(false);
+    }
+  };
+
+  const handleCreateVideo = () => {
+    const influencer = influencers.find(inf => inf.id === selectedInfluencer);
+
+    if (influencer) {
+      navigate('/content/create-video', {
         state: {
           influencerData: influencer,
           mode: 'create'
@@ -160,7 +175,7 @@ export default function Dashboard() {
       setSelectedInfluencerData(selectedInfluencer);
       // Get the latest profile picture URL with correct format
       const latestImageNum = selectedInfluencer.image_num - 1;
-      const profileImageUrl = `https://images.nymia.ai/cdn-cgi/image/w=400/${userData.id}/models/${selectedInfluencer.id}/profilepic/profilepic${latestImageNum}.png`;
+      const profileImageUrl = `${config.data_url}/cdn-cgi/image/w=400/${userData.id}/models/${selectedInfluencer.id}/profilepic/profilepic${latestImageNum}.png`;
 
       setSelectedProfileImage(profileImageUrl);
       setShowCharacterConsistencyModal(true);
@@ -195,7 +210,7 @@ export default function Dashboard() {
     if (selectedInfluencerData) {
       // Get the latest profile picture URL with correct format
       const latestImageNum = selectedInfluencerData.image_num - 1;
-      const profileImageUrl = `https://images.nymia.ai/cdn-cgi/image/w=400/${userData.id}/models/${selectedInfluencerData.id}/profilepic/profilepic${latestImageNum}.png`;
+      const profileImageUrl = `${config.data_url}/cdn-cgi/image/w=400/${userData.id}/models/${selectedInfluencerData.id}/profilepic/profilepic${latestImageNum}.png`;
 
       setSelectedProfileImage(profileImageUrl);
       setShowCharacterConsistencyModal(true);
@@ -213,7 +228,7 @@ export default function Dashboard() {
         const loraFilePath = `models/${selectedInfluencerData.id}/loratraining/${uploadedFile.name}`;
 
         // Upload file directly to LoRA folder
-        const uploadResponse = await fetch(`https://api.nymia.ai/v1/uploadfile?user=${userData.id}&filename=${loraFilePath}`, {
+        const uploadResponse = await fetch(`${config.backend_url}/uploadfile?user=${userData.id}&filename=${loraFilePath}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/octet-stream',
@@ -226,7 +241,7 @@ export default function Dashboard() {
           throw new Error('Failed to upload image to LoRA folder');
         }
 
-        const useridResponse = await fetch(`https://db.nymia.ai/rest/v1/user?uuid=eq.${userData.id}`, {
+        const useridResponse = await fetch(`${config.supabase_server_url}/user?uuid=eq.${userData.id}`, {
           method: 'GET',
           headers: {
             'Authorization': 'Bearer WeInfl3nc3withAI'
@@ -235,7 +250,7 @@ export default function Dashboard() {
   
         const useridData = await useridResponse.json();
 
-        await fetch(`https://api.nymia.ai/v1/createtask?userid=${useridData[0].userid}&type=createlora`, {
+        await fetch(`${config.backend_url}/createtask?userid=${useridData[0].userid}&type=createlora`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -254,7 +269,7 @@ export default function Dashboard() {
         // Copy existing profile picture to LoRA folder
         const latestImageNum = selectedInfluencerData.image_num - 1;
 
-        const useridResponse = await fetch(`https://db.nymia.ai/rest/v1/user?uuid=eq.${userData.id}`, {
+        const useridResponse = await fetch(`${config.supabase_server_url}/user?uuid=eq.${userData.id}`, {
           method: 'GET',
           headers: {
             'Authorization': 'Bearer WeInfl3nc3withAI'
@@ -263,7 +278,7 @@ export default function Dashboard() {
   
         const useridData = await useridResponse.json();
 
-        await fetch(`https://api.nymia.ai/v1/createtask?userid=${useridData[0].userid}&type=createlora`, {
+        await fetch(`${config.backend_url}/createtask?userid=${useridData[0].userid}&type=createlora`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -811,7 +826,8 @@ export default function Dashboard() {
         open={showPlatformModal}
         onOpenChange={setShowPlatformModal}
         influencer={selectedInfluencerData}
-        onContentCreate={handleContentCreate}
+        onCreateImages={handleCreateImages}
+        onCreateVideo={handleCreateVideo}
         onCharacterConsistency={handleCharacterConsistency}
       />
 

@@ -1,6 +1,7 @@
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '@/store/store';
 import { toggleTheme } from '@/store/slices/uiSlice';
+import config from '@/config/config';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Star, Moon, Sun, Menu } from 'lucide-react';
@@ -30,7 +31,7 @@ export function AppHeader({ showAuthButtons = true }: AppHeaderProps) {
     
     if (accessToken) {
       try {
-        const response = await fetch('https://api.nymia.ai/v1/logout', {
+        const response = await fetch(`${config.backend_url}/logout`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

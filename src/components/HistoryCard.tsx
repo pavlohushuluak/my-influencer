@@ -15,6 +15,7 @@ import { useSelector } from 'react-redux';
 import { RootState } from '@/store/store';
 import { format } from 'date-fns';
 import { DateRange } from 'react-day-picker';
+import config from '@/config/config';
 
 export default function HistoryCard({ userId }: { userId: string }) {
   const navigate = useNavigate();
@@ -309,7 +310,7 @@ export default function HistoryCard({ userId }: { userId: string }) {
   };
 
   const shareToSocialMedia = (platform: string, itemId: string) => {
-    const imageUrl = `https://images.nymia.ai/cdn-cgi/image/w=800/${userData.id}/output/${itemId}`;
+    const imageUrl = `${config.data_url}/cdn-cgi/image/w=800/${userData.id}/output/${itemId}`;
     const shareText = `Check out this amazing content!`;
 
     let shareUrl = '';
@@ -633,10 +634,10 @@ export default function HistoryCard({ userId }: { userId: string }) {
                 {/* Image */}
                 <div className="relative w-full group mb-4" style={{ paddingBottom: '100%' }}>
                   <img
-                    src={`https://images.nymia.ai/cdn-cgi/image/w=400/${image.file_path}`}
+                    src={`${config.data_url}/cdn-cgi/image/w=400/${image.file_path}`}
                     alt={image.system_filename}
                     className="absolute inset-0 w-full h-full object-cover rounded-md shadow-sm cursor-pointer transition-all duration-200 hover:scale-105"
-                    onClick={() => setZoomModal({ open: true, imageUrl: `https://images.nymia.ai/cdn-cgi/image/w=1200/${image.file_path}`, imageName: image.system_filename })}
+                    onClick={() => setZoomModal({ open: true, imageUrl: `${config.data_url}/cdn-cgi/image/w=1200/${image.file_path}`, imageName: image.system_filename })}
                     onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
                   />
                   {/* Zoom Overlay */}
@@ -648,7 +649,7 @@ export default function HistoryCard({ userId }: { userId: string }) {
                         className="h-8 w-8 p-0 bg-white/90 dark:bg-black/90 hover:bg-white dark:hover:bg-black shadow-lg hover:shadow-xl transition-all duration-200"
                         onClick={(e) => {
                           e.stopPropagation();
-                          setZoomModal({ open: true, imageUrl: `https://images.nymia.ai/cdn-cgi/image/w=1200/${image.file_path}`, imageName: image.system_filename });
+                          setZoomModal({ open: true, imageUrl: `${config.data_url}/cdn-cgi/image/w=1200/${image.file_path}`, imageName: image.system_filename });
                         }}
                       >
                         <ZoomIn className="w-3 h-3 text-gray-700 dark:text-gray-300" />
@@ -763,14 +764,14 @@ export default function HistoryCard({ userId }: { userId: string }) {
                   <Label className="text-sm font-medium">Direct Link</Label>
                   <div className="flex gap-2">
                     <Input
-                      value={`https://images.nymia.ai/cdn-cgi/image/w=800/${userData.id}/${shareModal.itemPath}/${shareModal.itemId}`}
+                      value={`${config.data_url}/cdn-cgi/image/w=800/${userData.id}/${shareModal.itemPath}/${shareModal.itemId}`}
                       readOnly
                       className="text-xs"
                     />
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => copyToClipboard(`https://images.nymia.ai/cdn-cgi/image/w=800/${userData.id}/${shareModal.itemPath}/${shareModal.itemId}`)}
+                      onClick={() => copyToClipboard(`${config.data_url}/cdn-cgi/image/w=800/${userData.id}/${shareModal.itemPath}/${shareModal.itemId}`)}
                     >
                       Copy
                     </Button>

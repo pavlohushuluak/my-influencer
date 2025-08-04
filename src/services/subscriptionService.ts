@@ -1,4 +1,5 @@
 import axios from 'axios';
+import config from '@/config/config';
 
 export interface SubscriptionData {
   plan: 'free' | 'starter' | 'professional' | 'enterprise';
@@ -11,7 +12,7 @@ export const subscriptionService = {
   async updateSubscription(data: SubscriptionData) {
     try {
       console.log(data);
-      const response = await axios.patch(`https://db.nymia.ai/rest/v1/user?uuid=eq.${data.user_id}`, JSON.stringify({
+      const response = await axios.patch(`${config.supabase_server_url}/user?uuid=eq.${data.user_id}`, JSON.stringify({
         subscription: data.plan,
         billing_date: data.billingDate,
         billed_date: data.billedDate

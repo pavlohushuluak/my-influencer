@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '@/store/store';
+import config from '@/config/config';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -231,7 +232,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
     const fetchInfluencers = async () => {
       try {
         dispatch(setLoading(true));
-        const response = await fetch(`https://db.nymia.ai/rest/v1/influencer?user_id=eq.${userData.id}`, {
+        const response = await fetch(`${config.supabase_server_url}/influencer?user_id=eq.${userData.id}`, {
           headers: {
             'Authorization': 'Bearer WeInfl3nc3withAI'
           }
@@ -319,7 +320,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
   useEffect(() => {
     const fetchMakeupOptions = async () => {
       try {
-        const response = await fetch('https://api.nymia.ai/v1/fieldoptions?fieldtype=makeup', {
+        const response = await fetch(`${config.backend_url}/fieldoptions?fieldtype=makeup`, {
           headers: {
             'Authorization': 'Bearer WeInfl3nc3withAI'
           }
@@ -348,7 +349,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
   useEffect(() => {
     const fetchFramingOptions = async () => {
       try {
-        const response = await fetch('https://api.nymia.ai/v1/promptoptions?fieldtype=framing', {
+        const response = await fetch(`${config.backend_url}/promptoptions?fieldtype=framing`, {
           headers: {
             'Authorization': 'Bearer WeInfl3nc3withAI'
           }
@@ -377,7 +378,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
   useEffect(() => {
     const fetchClothesOptions = async () => {
       try {
-        const response = await fetch('https://api.nymia.ai/v1/promptoptions?fieldtype=outfits', {
+        const response = await fetch(`${config.backend_url}/promptoptions?fieldtype=outfits`, {
           headers: {
             'Authorization': 'Bearer WeInfl3nc3withAI'
           }
@@ -406,7 +407,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
   useEffect(() => {
     const fetchRotationOptions = async () => {
       try {
-        const response = await fetch('https://api.nymia.ai/v1/promptoptions?fieldtype=rotation', {
+        const response = await fetch(`${config.backend_url}/promptoptions?fieldtype=rotation`, {
           headers: {
             'Authorization': 'Bearer WeInfl3nc3withAI'
           }
@@ -435,7 +436,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
   useEffect(() => {
     const fetchLightingOptions = async () => {
       try {
-        const response = await fetch('https://api.nymia.ai/v1/promptoptions?fieldtype=light', {
+        const response = await fetch(`${config.backend_url}/promptoptions?fieldtype=light`, {
           headers: {
             'Authorization': 'Bearer WeInfl3nc3withAI'
           }
@@ -464,7 +465,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
   useEffect(() => {
     const fetchPoseOptions = async () => {
       try {
-        const response = await fetch('https://api.nymia.ai/v1/promptoptions?fieldtype=pose', {
+        const response = await fetch(`${config.backend_url}/promptoptions?fieldtype=pose`, {
           headers: {
             'Authorization': 'Bearer WeInfl3nc3withAI'
           }
@@ -493,7 +494,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
   useEffect(() => {
     const fetchSceneSettingsOptions = async () => {
       try {
-        const response = await fetch('https://api.nymia.ai/v1/promptoptions?fieldtype=scene', {
+        const response = await fetch(`${config.backend_url}/promptoptions?fieldtype=scene`, {
           headers: {
             'Authorization': 'Bearer WeInfl3nc3withAI'
           }
@@ -522,7 +523,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
   useEffect(() => {
     const fetchFormatOptions = async () => {
       try {
-        const response = await fetch('https://api.nymia.ai/v1/fieldoptions?fieldtype=format', {
+        const response = await fetch(`${config.backend_url}/fieldoptions?fieldtype=format`, {
           headers: {
             'Authorization': 'Bearer WeInfl3nc3withAI'
           }
@@ -551,7 +552,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
   useEffect(() => {
     const fetchEngineOptions = async () => {
       try {
-        const response = await fetch('https://api.nymia.ai/v1/fieldoptions?fieldtype=engine', {
+        const response = await fetch(`${config.backend_url}/fieldoptions?fieldtype=engine`, {
           headers: {
             'Authorization': 'Bearer WeInfl3nc3withAI'
           }
@@ -661,7 +662,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
   };
 
   const handleViewFullSize = (image: any) => {
-    const imageUrl = `https://images.nymia.ai/cdn-cgi/image/w=800/${image.file_path}`;
+          const imageUrl = `${config.data_url}/cdn-cgi/image/w=800/${image.file_path}`;
     const imageName = image.system_filename || 'Generated Image';
     setFullSizeImageModal({
       isOpen: true,
@@ -993,13 +994,13 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
                   <CardContent className="p-4">
                     <div className="relative w-full group" style={{ paddingBottom: '100%' }}>
                       <img
-                        src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
+                        src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${option.image}`}
                         alt={option.label}
                         className="absolute inset-0 w-full h-full object-cover rounded-md"
                       />
                       <div
                         className="absolute right-2 top-2 bg-black/50 rounded-full w-8 h-8 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
-                        onClick={(e) => handleImageClick(e, `https://images.nymia.ai/cdn-cgi/image/w=800/wizard/${option.image}`)}
+                        onClick={(e) => handleImageClick(e, `${config.data_url}/cdn-cgi/image/w=800/wizard/${option.image}`)}
                       >
                         <ZoomIn className="w-5 h-5 text-white" />
                       </div>
@@ -1071,7 +1072,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
         const allImages: any[] = [];
 
         for (const taskId of generatedTaskIds) {
-          const response = await fetch(`https://db.nymia.ai/rest/v1/generated_images?task_id=eq.${taskId}`, {
+          const response = await fetch(`${config.supabase_server_url}/generated_images?task_id=eq.${taskId}`, {
             headers: {
               'Authorization': 'Bearer WeInfl3nc3withAI'
             }
@@ -1437,7 +1438,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
 
   const updateUserNotes = async (systemFilename: string, userNotes: string) => {
     try {
-      const response = await fetch(`https://db.nymia.ai/rest/v1/generated_images?system_filename=eq.${systemFilename}`, {
+      const response = await fetch(`${config.supabase_server_url}/generated_images?system_filename=eq.${systemFilename}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -1462,7 +1463,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
 
   const updateUserTags = async (systemFilename: string, userTags: string[]) => {
     try {
-      const response = await fetch(`https://db.nymia.ai/rest/v1/generated_images?system_filename=eq.${systemFilename}`, {
+      const response = await fetch(`${config.supabase_server_url}/generated_images?system_filename=eq.${systemFilename}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -1492,7 +1493,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
 
   const handleFileRename = async (oldFilename: string, newName: string) => {
     try {
-      const response = await fetch(`https://db.nymia.ai/rest/v1/generated_images?system_filename=eq.${oldFilename}`, {
+      const response = await fetch(`${config.supabase_server_url}/generated_images?system_filename=eq.${oldFilename}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -1526,7 +1527,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
 
       const filename = image.file_path.split('/').pop();
 
-      await fetch(`https://api.nymia.ai/v1/deletefile`, {
+      await fetch(`${config.backend_url}/deletefile`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1538,7 +1539,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
         })
       });
 
-      await fetch(`https://db.nymia.ai/rest/v1/generated_images?id=eq.${image.id}`, {
+      await fetch(`${config.supabase_server_url}/generated_images?id=eq.${image.id}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -1568,7 +1569,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
   };
 
   const shareToSocialMedia = (platform: string, itemId: string) => {
-    const imageUrl = `https://images.nymia.ai/cdn-cgi/image/w=800/${userData.id}/output/${itemId}`;
+    const imageUrl = `${config.data_url}/cdn-cgi/image/w=800/${userData.id}/output/${itemId}`;
     const shareText = `Check out this amazing content!`;
 
     let shareUrl = '';
@@ -1616,7 +1617,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
       });
 
       // Step 1: Get the task_id from the generated image
-      const imageResponse = await fetch(`https://db.nymia.ai/rest/v1/generated_images?file_path=eq.${image.file_path}`, {
+      const imageResponse = await fetch(`${config.supabase_server_url}/generated_images?file_path=eq.${image.file_path}`, {
         headers: {
           'Authorization': 'Bearer WeInfl3nc3withAI'
         }
@@ -1634,7 +1635,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
       const taskId = imageData[0].task_id;
 
       // Step 2: Get the original task data
-      const taskResponse = await fetch(`https://db.nymia.ai/rest/v1/tasks?id=eq.${taskId}`, {
+      const taskResponse = await fetch(`${config.supabase_server_url}/tasks?id=eq.${taskId}`, {
         headers: {
           'Authorization': 'Bearer WeInfl3nc3withAI'
         }
@@ -3036,7 +3037,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
                               <CardContent className="p-4">
                                 <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                                   <img
-                                    src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${safeFormatOptions.find(option => option.label === formData.format)?.image}`}
+                                    src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${safeFormatOptions.find(option => option.label === formData.format)?.image}`}
                                     className="absolute inset-0 w-full h-full object-cover rounded-md"
                                   />
                                   <Button
@@ -3104,7 +3105,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
                               <CardContent className="p-4">
                                 <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                                   <img
-                                    src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${makeupOptions.find(option => option.label === modelDescription.makeup)?.image}`}
+                                    src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${makeupOptions.find(option => option.label === modelDescription.makeup)?.image}`}
                                     className="absolute inset-0 w-full h-full object-cover rounded-md"
                                   />
                                   <Button
@@ -3169,7 +3170,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
                               <CardContent className="p-4">
                                 <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                                   <img
-                                    src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${engineOptions.find(option => option.label === formData.engine)?.image}`}
+                                    src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${engineOptions.find(option => option.label === formData.engine)?.image}`}
                                     className="absolute inset-0 w-full h-full object-cover rounded-md"
                                   />
                                   <Button
@@ -3304,7 +3305,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
                                     <CardContent className="p-4">
                                       <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                                         <img
-                                          src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${framingOptions.find(option => option.label === sceneSpecs.framing)?.image}`}
+                                          src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${framingOptions.find(option => option.label === sceneSpecs.framing)?.image}`}
                                           className="absolute inset-0 w-full h-full object-cover rounded-md"
                                         />
                                         <Button
@@ -3370,7 +3371,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
                                     <CardContent className="p-4">
                                       <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                                         <img
-                                          src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${rotationOptions.find(option => option.label === sceneSpecs.rotation)?.image}`}
+                                          src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${rotationOptions.find(option => option.label === sceneSpecs.rotation)?.image}`}
                                           className="absolute inset-0 w-full h-full object-cover rounded-md"
                                         />
                                         <Button
@@ -3436,7 +3437,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
                                     <CardContent className="p-4">
                                       <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                                         <img
-                                          src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${lightingOptions.find(option => option.label === sceneSpecs.lighting_preset)?.image}`}
+                                          src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${lightingOptions.find(option => option.label === sceneSpecs.lighting_preset)?.image}`}
                                           className="absolute inset-0 w-full h-full object-cover rounded-md"
                                         />
                                         <Button
@@ -3502,7 +3503,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
                                     <CardContent className="p-4">
                                       <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                                         <img
-                                          src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${sceneSettingsOptions.find(option => option.label === sceneSpecs.scene_setting)?.image}`}
+                                          src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${sceneSettingsOptions.find(option => option.label === sceneSpecs.scene_setting)?.image}`}
                                           className="absolute inset-0 w-full h-full object-cover rounded-md"
                                         />
                                         <Button
@@ -3568,7 +3569,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
                                     <CardContent className="p-4">
                                       <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                                         <img
-                                          src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${poseOptions.find(option => option.label === sceneSpecs.pose)?.image}`}
+                                          src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${poseOptions.find(option => option.label === sceneSpecs.pose)?.image}`}
                                           className="absolute inset-0 w-full h-full object-cover rounded-md"
                                         />
                                         <Button
@@ -3634,7 +3635,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
                                     <CardContent className="p-4">
                                       <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                                         <img
-                                          src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${clothesOptions.find(option => option.label === sceneSpecs.clothes)?.image}`}
+                                          src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${clothesOptions.find(option => option.label === sceneSpecs.clothes)?.image}`}
                                           className="absolute inset-0 w-full h-full object-cover rounded-md"
                                         />
                                         <Button
@@ -4066,7 +4067,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
                       <CardContent className="p-4">
                         <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                           <img
-                            src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${framingOptions.find(option => option.label === sceneSpecs.framing)?.image}`}
+                            src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${framingOptions.find(option => option.label === sceneSpecs.framing)?.image}`}
                             className="absolute inset-0 w-full h-full object-cover rounded-md"
                           />
                           <Button
@@ -4132,7 +4133,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
                       <CardContent className="p-4">
                         <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                           <img
-                            src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${rotationOptions.find(option => option.label === sceneSpecs.rotation)?.image}`}
+                            src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${rotationOptions.find(option => option.label === sceneSpecs.rotation)?.image}`}
                             className="absolute inset-0 w-full h-full object-cover rounded-md"
                           />
                           <Button
@@ -4198,7 +4199,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
                       <CardContent className="p-4">
                         <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                           <img
-                            src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${lightingOptions.find(option => option.label === sceneSpecs.lighting_preset)?.image}`}
+                            src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${lightingOptions.find(option => option.label === sceneSpecs.lighting_preset)?.image}`}
                             className="absolute inset-0 w-full h-full object-cover rounded-md"
                           />
                           <Button
@@ -4264,7 +4265,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
                       <CardContent className="p-4">
                         <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                           <img
-                            src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${sceneSettingsOptions.find(option => option.label === sceneSpecs.scene_setting)?.image}`}
+                            src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${sceneSettingsOptions.find(option => option.label === sceneSpecs.scene_setting)?.image}`}
                             className="absolute inset-0 w-full h-full object-cover rounded-md"
                           />
                           <Button
@@ -4330,7 +4331,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
                       <CardContent className="p-4">
                         <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                           <img
-                            src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${poseOptions.find(option => option.label === sceneSpecs.pose)?.image}`}
+                            src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${poseOptions.find(option => option.label === sceneSpecs.pose)?.image}`}
                             className="absolute inset-0 w-full h-full object-cover rounded-md"
                           />
                           <Button
@@ -4396,7 +4397,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
                       <CardContent className="p-4">
                         <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                           <img
-                            src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${clothesOptions.find(option => option.label === sceneSpecs.clothes)?.image}`}
+                            src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${clothesOptions.find(option => option.label === sceneSpecs.clothes)?.image}`}
                             className="absolute inset-0 w-full h-full object-cover rounded-md"
                           />
                           <Button
@@ -4530,7 +4531,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
                             {/* Image */}
                             <div className="relative w-full group mb-4" style={{ paddingBottom: '100%' }}>
                               <img
-                                src={`https://images.nymia.ai/cdn-cgi/image/w=400/${image.file_path}`}
+                                src={`${config.data_url}/cdn-cgi/image/w=400/${image.file_path}`}
                                 alt={image.system_filename}
                                 className="absolute inset-0 w-full h-full object-cover rounded-md shadow-sm cursor-pointer transition-all duration-200 hover:scale-105"
                                 onClick={() => setDetailedImageModal({ open: true, image })}
@@ -4550,7 +4551,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
                                       e.stopPropagation();
                                       setFullSizeImageModal({
                                         isOpen: true,
-                                        imageUrl: `https://images.nymia.ai/cdn-cgi/image/w=1200/${image.file_path}`,
+                                        imageUrl: `${config.data_url}/cdn-cgi/image/w=1200/${image.file_path}`,
                                         imageName: decodeName(image.system_filename)
                                       });
                                     }}
@@ -5193,7 +5194,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
                         </div>
 
                         <img
-                          src={selectedPresetImage.preview_url || `https://images.nymia.ai/cdn-cgi/image/w=400/${userData.id}/${selectedPresetImage.user_filename === "" ? "output" : "vault/" + selectedPresetImage.user_filename}/${selectedPresetImage.system_filename}`}
+                          src={selectedPresetImage.preview_url || `${config.data_url}/cdn-cgi/image/w=400/${userData.id}/${selectedPresetImage.user_filename === "" ? "output" : "vault/" + selectedPresetImage.user_filename}/${selectedPresetImage.system_filename}`}
                           alt="Selected preset image"
                           className="absolute inset-0 w-full h-full object-cover rounded-md shadow-sm cursor-pointer transition-all duration-200 hover:scale-105"
                           onError={(e) => {
@@ -5415,7 +5416,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
                     <CardContent className="p-4">
                       <div className="relative w-full" style={{ paddingBottom: '100%' }}>
                         <img
-                          src={`https://images.nymia.ai/cdn-cgi/image/w=400/${image.file_path}`}
+                          src={`${config.data_url}/cdn-cgi/image/w=400/${image.file_path}`}
                           alt={image.system_filename}
                           className="absolute inset-0 w-full h-full object-cover rounded-md"
                         />
@@ -5511,7 +5512,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
                         {/* Image */}
                         <div className="relative w-full group mb-4" style={{ paddingBottom: '100%' }}>
                           <img
-                            src={`https://images.nymia.ai/cdn-cgi/image/w=400/${image.file_path}`}
+                            src={`${config.data_url}/cdn-cgi/image/w=400/${image.file_path}`}
                             alt={image.system_filename}
                             className="absolute inset-0 w-full h-full object-cover rounded-md shadow-sm cursor-pointer transition-all duration-200 hover:scale-105"
                             onError={(e) => {
@@ -5530,7 +5531,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
                                   e.stopPropagation();
                                   setFullSizeImageModal({
                                     isOpen: true,
-                                    imageUrl: `https://images.nymia.ai/cdn-cgi/image/w=1200/${image.file_path}`,
+                                    imageUrl: `${config.data_url}/cdn-cgi/image/w=1200/${image.file_path}`,
                                     imageName: decodeName(image.system_filename)
                                   });
                                 }}
@@ -5699,7 +5700,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
               {selectedPreset.image_name && (
                 <div className="relative w-full max-w-md mx-auto" style={{ paddingBottom: '75%' }}>
                   <img
-                    src={`https://images.nymia.ai/cdn-cgi/image/w=600/${userData.id}/presets/${selectedPreset.image_name}`}
+                    src={`${config.data_url}/cdn-cgi/image/w=600/${userData.id}/presets/${selectedPreset.image_name}`}
                     alt={selectedPreset.name}
                     className="absolute inset-0 w-full h-full object-cover rounded-lg shadow-lg"
                     onError={(e) => {
@@ -6292,14 +6293,14 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
                   <Label className="text-sm font-medium">Direct Link</Label>
                   <div className="flex gap-2">
                     <Input
-                      value={`https://images.nymia.ai/cdn-cgi/image/w=800/${userData.id}/${shareModal.itemPath}/${shareModal.itemId}`}
+                      value={`${config.data_url}/cdn-cgi/image/w=800/${userData.id}/${shareModal.itemPath}/${shareModal.itemId}`}
                       readOnly
                       className="text-xs"
                     />
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => copyToClipboard(`https://images.nymia.ai/cdn-cgi/image/w=800/${userData.id}/${shareModal.itemPath}/${shareModal.itemId}`)}
+                      onClick={() => copyToClipboard(`${config.data_url}/cdn-cgi/image/w=800/${userData.id}/${shareModal.itemPath}/${shareModal.itemId}`)}
                     >
                       Copy
                     </Button>

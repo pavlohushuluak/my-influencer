@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Star, Search, Download, Share, Trash2, Filter, Calendar, Image, Video, SortAsc, SortDesc, ZoomIn, Folder, Plus, Upload, ChevronRight, Home, ArrowLeft, Pencil, Menu, X, File, User, RefreshCcw, Edit, BookOpen, Wand2, Eye, Monitor, Camera, Clock, Settings, Zap, Target, FolderPlus } from 'lucide-react';
 import { toast } from 'sonner';
+import config from '@/config/config';
 
 // Interface for preset data from API
 interface PresetData {
@@ -180,7 +181,7 @@ export default function PresetsManager({ onClose, onApplyPreset }: {
       const targetPath = currentPath ? `${currentPath}/${newFolderName}` : newFolderName;
 
       // Create the new folder
-      const createResponse = await fetch('https://api.nymia.ai/v1/createfolder', {
+      const createResponse = await fetch(`${config.backend_url}/createfolder`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -200,7 +201,7 @@ export default function PresetsManager({ onClose, onApplyPreset }: {
       console.log('New folder created successfully');
 
       // Get all files from the source folder
-      const getFilesResponse = await fetch('https://api.nymia.ai/v1/getfilenames', {
+      const getFilesResponse = await fetch(`${config.backend_url}/getfilenames`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -235,7 +236,7 @@ export default function PresetsManager({ onClose, onApplyPreset }: {
               return; // Skip this file
             }
 
-            const copyResponse = await fetch('https://api.nymia.ai/v1/copyfile', {
+            const copyResponse = await fetch(`${config.backend_url}/copyfile`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -263,7 +264,7 @@ export default function PresetsManager({ onClose, onApplyPreset }: {
       // If it was a cut operation, delete the original folder
       if (copyState === 2) {
         try {
-          const deleteResponse = await fetch('https://api.nymia.ai/v1/deletefolder', {
+          const deleteResponse = await fetch(`${config.backend_url}/deletefolder`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -306,7 +307,7 @@ export default function PresetsManager({ onClose, onApplyPreset }: {
 
   const checkFileExistsInFolder = async (fileName: string, folderPath: string): Promise<boolean> => {
     try {
-      const response = await fetch('https://api.nymia.ai/v1/getfilenames', {
+      const response = await fetch(`${config.backend_url}/getfilenames`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -358,7 +359,7 @@ export default function PresetsManager({ onClose, onApplyPreset }: {
       if (fileCopyState === 1) {
         const copiedFileRoute = copiedFile.route === '' ? '' : `${copiedFile.route}/`;
 
-        const copyResponse = await fetch('https://api.nymia.ai/v1/copyfile', {
+        const copyResponse = await fetch(`${config.backend_url}/copyfile`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -387,7 +388,7 @@ export default function PresetsManager({ onClose, onApplyPreset }: {
           description: copiedFile.description || ''
         };
 
-        const response = await fetch('https://db.nymia.ai/rest/v1/presets', {
+        const response = await fetch(`${config.supabase_server_url}/presets`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -406,7 +407,7 @@ export default function PresetsManager({ onClose, onApplyPreset }: {
 
       } else {
         // Move operation - update the route of the existing preset
-        const response = await fetch(`https://db.nymia.ai/rest/v1/presets?id=eq.${copiedFile.id}`, {
+        const response = await fetch(`${config.supabase_server_url}/presets?id=eq.${copiedFile.id}`, {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
@@ -421,7 +422,7 @@ export default function PresetsManager({ onClose, onApplyPreset }: {
           throw new Error('Failed to move preset');
         }
 
-        await fetch('https://api.nymia.ai/v1/copyfile', {
+        await fetch(`${config.backend_url}/copyfile`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -434,7 +435,7 @@ export default function PresetsManager({ onClose, onApplyPreset }: {
           })
         });
 
-        await fetch('https://api.nymia.ai/v1/deletefile', {
+        await fetch(`${config.backend_url}/deletefile`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -476,7 +477,7 @@ export default function PresetsManager({ onClose, onApplyPreset }: {
       });
 
       // Delete folder from storage
-      const response = await fetch('https://api.nymia.ai/v1/deletefolder', {
+      const response = await fetch(`${config.backend_url}/deletefolder`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1042,7 +1043,7 @@ export default function PresetsManager({ onClose, onApplyPreset }: {
 
         // Generate image URL from image_name and route
         const presetImageUrl = preset.image_name ?
-          `https://images.nymia.ai/cdn-cgi/image/w=400/${userData.id}/presets/${preset.route ? preset.route + '/' : ''}${preset.image_name}` :
+          `${config.data_url}/cdn-cgi/image/w=400/${userData.id}/presets/${preset.route ? preset.route + '/' : ''}${preset.image_name}` :
           null;
 
         return {

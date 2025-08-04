@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { setUser } from '@/store/slices/userSlice';
+import config from '@/config/config';
 
 interface SignInFormProps {
   onToggleMode: () => void;
@@ -55,7 +56,7 @@ export function SignInForm({ onToggleMode }: SignInFormProps) {
     setIsLoading(true);
     
     try {
-      const response = await fetch('https://api.nymia.ai/v1/login', {
+      const response = await fetch(`${config.backend_url}/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -74,7 +75,7 @@ export function SignInForm({ onToggleMode }: SignInFormProps) {
         // Save tokens to session storage
         sessionStorage.setItem('access_token', data.access_token);
         sessionStorage.setItem('refresh_token', data.refresh_token);
-        const userResponse = await fetch(`https://db.nymia.ai/rest/v1/user?uuid=eq.${data.user.id}`, {
+        const userResponse = await fetch(`${config.supabase_server_url}/user?uuid=eq.${data.user.id}`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',

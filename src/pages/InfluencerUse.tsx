@@ -16,6 +16,7 @@ import { setUser } from '@/store/slices/userSlice';
 import { toast } from 'sonner';
 import { LoraStatusIndicator } from '@/components/Influencers/LoraStatusIndicator';
 import { InfluencerUseModal } from '@/components/Influencers/InfluencerUseModal';
+import config from '@/config/config';
 
 const PLATFORMS = [];
 
@@ -89,7 +90,7 @@ export default function InfluencerUse() {
     const fetchInfluencers = async () => {
       try {
         dispatch(setLoading(true));
-        const response = await fetch(`https://db.nymia.ai/rest/v1/influencer?user_id=eq.${userData.id}`, {
+        const response = await fetch(`${config.supabase_server_url}/influencer?user_id=eq.${userData.id}`, {
           headers: {
             'Authorization': 'Bearer WeInfl3nc3withAI'
           }
@@ -120,11 +121,25 @@ export default function InfluencerUse() {
     setShowPlatformModal(true);
   };
 
-  const handleContentCreate = () => {
+  const handleCreateImages = () => {
     const influencer = influencers.find(inf => inf.id === selectedInfluencer);
 
     if (influencer) {
-      navigate('/content/create', {
+      navigate('/content/create-image', {
+        state: {
+          influencerData: influencer,
+          mode: 'create'
+        }
+      });
+      setShowPlatformModal(false);
+    }
+  };
+
+  const handleCreateVideo = () => {
+    const influencer = influencers.find(inf => inf.id === selectedInfluencer);
+
+    if (influencer) {
+      navigate('/content/create-video', {
         state: {
           influencerData: influencer,
           mode: 'create'
@@ -142,7 +157,7 @@ export default function InfluencerUse() {
         latestImageNum = 0;
       }
       console.log(selectedInfluencerData.image_num);
-      const profileImageUrl = `https://images.nymia.ai/cdn-cgi/image/w=400/${userData.id}/models/${selectedInfluencerData.id}/profilepic/profilepic${latestImageNum}.png`;
+      const profileImageUrl = `${config.data_url}/cdn-cgi/image/w=400/${userData.id}/models/${selectedInfluencerData.id}/profilepic/profilepic${latestImageNum}.png`;
 
       setSelectedProfileImage(profileImageUrl);
       setShowCharacterConsistencyModal(true);
@@ -160,7 +175,7 @@ export default function InfluencerUse() {
         const loraFilePath = `models/${selectedInfluencerData.id}/loratraining/${uploadedFile.name}`;
 
         // Upload file directly to LoRA folder
-        const uploadResponse = await fetch(`https://api.nymia.ai/v1/uploadfile?user=${userData.id}&filename=${loraFilePath}`, {
+        const uploadResponse = await fetch(`${config.backend_url}/uploadfile?user=${userData.id}&filename=${loraFilePath}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/octet-stream',
@@ -173,7 +188,7 @@ export default function InfluencerUse() {
           throw new Error('Failed to upload image to LoRA folder');
         }
 
-        const useridResponse = await fetch(`https://db.nymia.ai/rest/v1/user?uuid=eq.${userData.id}`, {
+        const useridResponse = await fetch(`${config.supabase_server_url}/user?uuid=eq.${userData.id}`, {
           method: 'GET',
           headers: {
             'Authorization': 'Bearer WeInfl3nc3withAI'
@@ -182,7 +197,7 @@ export default function InfluencerUse() {
   
         const useridData = await useridResponse.json();
 
-        await fetch(`https://api.nymia.ai/v1/createtask?userid=${useridData[0].userid}&type=createlora`, {
+        await fetch(`${config.backend_url}/createtask?userid=${useridData[0].userid}&type=createlora`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -201,7 +216,7 @@ export default function InfluencerUse() {
         // Copy existing profile picture to LoRA folder
         const latestImageNum = selectedInfluencerData.image_num - 1;
 
-        const useridResponse = await fetch(`https://db.nymia.ai/rest/v1/user?uuid=eq.${userData.id}`, {
+        const useridResponse = await fetch(`${config.supabase_server_url}/user?uuid=eq.${userData.id}`, {
           method: 'GET',
           headers: {
             'Authorization': 'Bearer WeInfl3nc3withAI'
@@ -210,7 +225,7 @@ export default function InfluencerUse() {
   
         const useridData = await useridResponse.json();
 
-        await fetch(`https://api.nymia.ai/v1/createtask?userid=${useridData[0].userid}&type=createlora`, {
+        await fetch(`${config.backend_url}/createtask?userid=${useridData[0].userid}&type=createlora`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -230,7 +245,7 @@ export default function InfluencerUse() {
       // Update guide_step if it's currently 2
       if (userData.guide_step === 2) {
         try {
-          const guideStepResponse = await fetch(`https://db.nymia.ai/rest/v1/user?uuid=eq.${userData.id}`, {
+          const guideStepResponse = await fetch(`${config.supabase_server_url}/user?uuid=eq.${userData.id}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer WeInfl3nc3withAI' },
             body: JSON.stringify({ guide_step: 3 })
@@ -344,7 +359,7 @@ export default function InfluencerUse() {
 
     setIsDeleting(true);
     try {
-      const response = await fetch(`https://db.nymia.ai/rest/v1/influencer?id=eq.${influencerToDelete.id}`, {
+              const response = await fetch(`${config.supabase_server_url}/influencer?id=eq.${influencerToDelete.id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': 'Bearer WeInfl3nc3withAI'
@@ -355,7 +370,7 @@ export default function InfluencerUse() {
         throw new Error('Failed to delete influencer');
       }
 
-      await fetch('https://api.nymia.ai/v1/deletefolder', {
+              await fetch(`${config.backend_url}/deletefolder`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -550,7 +565,8 @@ export default function InfluencerUse() {
         open={showPlatformModal}
         onOpenChange={setShowPlatformModal}
         influencer={selectedInfluencerData}
-        onContentCreate={handleContentCreate}
+        onCreateImages={handleCreateImages}
+        onCreateVideo={handleCreateVideo}
         onCharacterConsistency={handleCharacterConsistency}
       />
 

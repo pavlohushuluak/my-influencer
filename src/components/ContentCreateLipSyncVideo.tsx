@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/store/store';
+import config from '@/config/config';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -236,6 +237,7 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
   useEffect(() => {
     if (influencerData) {
       setModelData(influencerData);
+      toast.success(`Using ${influencerData.name_first} ${influencerData.name_last} for lip sync video generation`);
     }
   }, [influencerData]);
 
@@ -267,7 +269,7 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
         const filename = `uploaded_audio_${timestamp}.${fileExtension}`;
 
         // Upload file to the API
-        const uploadUrl = `https://api.nymia.ai/v1/uploadfile?user=${userData.id}&filename=audio/${filename}`;
+        const uploadUrl = `${config.backend_url}/uploadfile?user=${userData.id}&filename=audio/${filename}`;
         
         console.log('Uploading file to:', uploadUrl);
         console.log('Filename:', filename);
@@ -289,7 +291,7 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
           setValidationErrors([]);
           
           // Create the audio URL for the uploaded file
-          const audioUrl = `https://images.nymia.ai/${userData.id}/audio/${filename}`;
+          const audioUrl = `${config.data_url}/${userData.id}/audio/${filename}`;
           setUploadedAudioUrl(audioUrl);
           
           // Also set as selected audio for lip sync
@@ -313,7 +315,7 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
   const handleElevenLabsVoiceSelect = (voice: VoiceOption) => {
     setSelectedElevenLabsVoice(voice);
     console.log('voice', voice);
-    const selectedUrl = `https://images.nymia.ai/wizard/mappings/${voice.elevenlabs_id}.mp3`;
+    const selectedUrl = `${config.data_url}/wizard/mappings/${voice.elevenlabs_id}.mp3`;
     setSelectedAudioUrl(selectedUrl);
     setSelectedAudioId(voice.elevenlabs_id);
     setValidationErrors([]);
@@ -433,7 +435,7 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
 
       console.log('Generating lip-sync video:', lipSyncData);
 
-      const response = await fetch('https://api.nymia.ai/v1/generatelipsyncvideo', {
+              const response = await fetch(`${config.backend_url}/generatelipsyncvideo`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -504,7 +506,7 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
 
       console.log('Generating voice preview:', voiceGenerationData);
 
-      const response = await fetch('https://api.nymia.ai/v1/generateaudio', {
+              const response = await fetch(`${config.backend_url}/generateaudio`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -538,7 +540,7 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
 
         // Wait a moment for the audio file to be ready, then store the URL
         setTimeout(() => {
-          const audioUrl = `https://images.nymia.ai/${userData.id}/audio/${result.filename}`;
+          const audioUrl = `${config.data_url}/${userData.id}/audio/${result.filename}`;
           console.log('Setting audioUrl for audio_id:', result.audio_id, 'URL:', audioUrl);
 
           // Store the audio URL for the AudioPlayer component
@@ -595,7 +597,7 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
 
   // Video helper functions
   const getVideoUrl = (videoId: string) => {
-    return `https://images.nymia.ai/${userData.id}/video/${videoId}.mp4`;
+    return `${config.data_url}/${userData.id}/video/${videoId}.mp4`;
   };
 
   const formatVideoDuration = (seconds: number) => {
@@ -715,7 +717,7 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
 
       // Get video URL from selected video
       if (selectedVideo) {
-        video_url = `https://images.nymia.ai/cdn-cgi/image/w=400/${userData.id}/${selectedVideo.user_filename === "" ? "output" : "vault/" + selectedVideo.user_filename}/${selectedVideo.system_filename}`;
+        video_url = `${config.data_url}/cdn-cgi/image/w=400/${userData.id}/${selectedVideo.user_filename === "" ? "output" : "vault/" + selectedVideo.user_filename}/${selectedVideo.system_filename}`;
       }
 
       const presetData = {
@@ -725,7 +727,7 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
         prompt: textToSpeak,
         video_url: video_url,
         voice_url: voice_url,
-        preset_image: selectedPresetImage.preview_url || `https://images.nymia.ai/cdn-cgi/image/w=400/${userData.id}/${selectedPresetImage.user_filename === "" ? "output" : "vault/" + selectedPresetImage.user_filename}/${selectedPresetImage.system_filename}`,
+        preset_image: selectedPresetImage.preview_url || `${config.data_url}/cdn-cgi/image/w=400/${userData.id}/${selectedPresetImage.user_filename === "" ? "output" : "vault/" + selectedPresetImage.user_filename}/${selectedPresetImage.system_filename}`,
         upload_flag: upload_flag
       };
 
@@ -1173,7 +1175,7 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
                                         setPlayingVoiceSample(null);
                                       }
                                       
-                                      const audioUrl = `https://images.nymia.ai/wizard/mappings/${voice.elevenlabs_id}.mp3`;
+                                      const audioUrl = `${config.data_url}/wizard/mappings/${voice.elevenlabs_id}.mp3`;
                                       const audio = new Audio(audioUrl);
                                       
                                       // Store the audio element reference
@@ -2081,7 +2083,7 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
                         </div>
 
                         <img
-                          src={selectedPresetImage.preview_url || `https://images.nymia.ai/cdn-cgi/image/w=400/${userData.id}/${selectedPresetImage.user_filename === "" ? "output" : "vault/" + selectedPresetImage.user_filename}/${selectedPresetImage.system_filename}`}
+                          src={selectedPresetImage.preview_url || `${config.data_url}/cdn-cgi/image/w=400/${userData.id}/${selectedPresetImage.user_filename === "" ? "output" : "vault/" + selectedPresetImage.user_filename}/${selectedPresetImage.system_filename}`}
                           alt="Selected preset image"
                           className="absolute inset-0 w-full h-full object-cover rounded-md shadow-sm cursor-pointer transition-all duration-200 hover:scale-105"
                         />

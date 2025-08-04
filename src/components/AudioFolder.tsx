@@ -13,6 +13,7 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { DialogContentZoom } from '@/components/ui/zoomdialog';
 import { DialogZoom } from '@/components/ui/zoomdialog';
+import config from '@/config/config';
 
 // Interface for audio data from database
 interface AudioData {
@@ -837,7 +838,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
 
   // Audio helper functions
   const getAudioUrl = (audio: AudioData) => {
-    return `https://images.nymia.ai/${userData.id}/audio/${audio.audio_path ? audio.audio_path + '/' : ''}${audio.filename}`;
+    return `${config.data_url}/${userData.id}/audio/${audio.audio_path ? audio.audio_path + '/' : ''}${audio.filename}`;
   };
 
   const formatCharacterCost = (cost: number) => {

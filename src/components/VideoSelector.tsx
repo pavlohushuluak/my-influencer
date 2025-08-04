@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { Star, Search, Folder, ChevronRight, Home, ArrowLeft, Calendar, Video, Download, Upload, Edit, Share, Trash2, RefreshCcw, Filter, SortAsc, SortDesc, X, Plus, File, User, Play, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
+import { config } from '@/config/config';
 
 // Interface for video data from database
 interface VideoData {
@@ -524,7 +525,7 @@ export default function VideoSelector({
       return video.video_url;
     }
     const fileName = video.video_name && video.video_name.trim() !== '' ? video.video_name : video.video_id;
-    return `https://images.nymia.ai/${userData.id}/video/${video.video_path ? video.video_path + '/' : ''}${fileName}.mp4`;
+    return `${config.data_url}/${userData.id}/video/${video.video_path ? video.video_path + '/' : ''}${fileName}.mp4`;
   };
 
   const formatVideoDuration = (seconds: number) => {

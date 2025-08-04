@@ -1,6 +1,8 @@
 import axios from 'axios';
 
-const API_URL = 'https://api.nymia.ai/v1';
+import config from '@/config/config';
+
+const API_URL = config.backend_url;
 
 export interface CreditPurchaseData {
   user_id: string;
@@ -12,7 +14,7 @@ export const creditService = {
   async purchaseCredits(data: CreditPurchaseData) {
     try {
       if (data.subscription === 'free') {
-        const response = await axios.patch(`https://db.nymia.ai/rest/v1/user?uuid=eq.${data.user_id}`, JSON.stringify({
+        const response = await axios.patch(`${config.supabase_server_url}/user?uuid=eq.${data.user_id}`, JSON.stringify({
           credits: data.credits,
           free_purchase: false
         }), {
@@ -24,7 +26,7 @@ export const creditService = {
         return response.data;
       }
       else {
-        const response = await axios.patch(`https://db.nymia.ai/rest/v1/user?uuid=eq.${data.user_id}`, JSON.stringify({
+        const response = await axios.patch(`${config.supabase_server_url}/user?uuid=eq.${data.user_id}`, JSON.stringify({
           credits: data.credits,
         }), {
           headers: {

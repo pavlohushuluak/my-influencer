@@ -17,6 +17,7 @@ import { RootState } from '@/store/store';
 import { setUser } from '@/store/slices/userSlice';
 import { formatDate, parseDate } from '@/store/slices/influencersSlice';
 import { toast } from 'sonner';
+import config from '@/config/config';
 
 interface CreateInfluencerStepsProps {
   onComplete: () => void;
@@ -163,7 +164,7 @@ export function CreateInfluencerSteps({ onComplete }: CreateInfluencerStepsProps
   const fetchSexOptions = async () => {
     setIsLoadingSexOptions(true);
     try {
-      const response = await fetch('https://api.nymia.ai/v1/fieldoptions?fieldtype=sex', {
+      const response = await fetch(`${config.backend_url}/fieldoptions?fieldtype=sex`, {
         headers: {
           'Authorization': 'Bearer WeInfl3nc3withAI'
         }
@@ -189,7 +190,7 @@ export function CreateInfluencerSteps({ onComplete }: CreateInfluencerStepsProps
   const fetchAgeOptions = async () => {
     setIsLoadingAge(true);
     try {
-      const response = await fetch('https://api.nymia.ai/v1/fieldoptions?fieldtype=age', {
+      const response = await fetch(`${config.backend_url}/fieldoptions?fieldtype=age`, {
         headers: {
           'Authorization': 'Bearer WeInfl3nc3withAI'
         }
@@ -441,7 +442,7 @@ export function CreateInfluencerSteps({ onComplete }: CreateInfluencerStepsProps
                           <div className="space-y-4">
                             <div className="relative">
                               <img
-                                src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
+                                src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${option.image}`}
                                 alt={option.label}
                                 className="w-full h-full object-cover rounded-lg shadow-md group-hover:scale-105 transition-transform duration-300"
                               />
@@ -520,7 +521,7 @@ export function CreateInfluencerSteps({ onComplete }: CreateInfluencerStepsProps
                           <div className="space-y-4">
                             <div className="relative">
                               <img
-                                src={`https://images.nymia.ai/cdn-cgi/image/w=400/wizard/${option.image}`}
+                                src={`${config.data_url}/cdn-cgi/image/w=400/wizard/${option.image}`}
                                 alt={option.label}
                                 className="w-full h-full object-cover rounded-lg shadow-md group-hover:scale-105 transition-transform duration-300"
                               />

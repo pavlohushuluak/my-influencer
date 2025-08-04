@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { Star, Search, Folder, ChevronRight, Home, ArrowLeft, Calendar, Image, Download, Upload, Edit, Share, Trash2, RefreshCcw, Filter, SortAsc, SortDesc, X, Plus, File, User, Music, Video } from 'lucide-react';
 import { toast } from 'sonner';
+import config from '@/config/config';
 
 // Interface for folder data from API
 interface FolderData {
@@ -579,7 +580,7 @@ export default function VaultSelector({
   const goToNextPage = () => handlePageChange(Math.min(totalPages, currentPage + 1));
 
   const getImageUrl = (image: GeneratedImageData) => {
-    return `https://images.nymia.ai/cdn-cgi/image/w=400/${userData.id}/${image.user_filename === "" ? "output" : "vault/" + image.user_filename}/${image.system_filename}`;
+    return `${config.data_url}/cdn-cgi/image/w=400/${userData.id}/${image.user_filename === "" ? "output" : "vault/" + image.user_filename}/${image.system_filename}`;
   };
 
   return (

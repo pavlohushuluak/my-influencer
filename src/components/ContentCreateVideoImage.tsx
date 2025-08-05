@@ -196,7 +196,7 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
     transition_type: 'fade'
   });
 
-  // Scene specifications
+    // Scene specifications
   const [sceneSpecs, setSceneSpecs] = useState({
     framing: '',
     rotation: '',
@@ -205,6 +205,13 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
     pose: '',
     clothes: ''
   });
+
+  // Auto-use influencer data when passed
+  useEffect(() => {
+    if (influencerData && !modelData) {
+      handleUseInfluencer(influencerData);
+    }
+  }, [influencerData, modelData]);
 
   // Model description sections
   const [modelDescription, setModelDescription] = useState({

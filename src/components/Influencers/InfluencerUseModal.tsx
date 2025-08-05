@@ -164,18 +164,6 @@ export const InfluencerUseModal: React.FC<InfluencerUseModalProps> = ({
                       <h3 className="text-xl font-bold text-gray-900 dark:text-white">
                         {influencer.name_first} {influencer.name_last}
                       </h3>
-                      <div className="flex items-center gap-2 mt-1">
-                        <Badge variant="secondary" className="bg-purple-100 text-purple-700 dark:bg-purple-900/20 dark:text-purple-300">
-                          <User className="w-3 h-3 mr-1" />
-                          Influencer
-                        </Badge>
-                        {influencer.image_num && (
-                          <Badge variant="outline" className="text-xs">
-                            <ImageIcon className="w-3 h-3 mr-1" />
-                            {influencer.image_num} images
-                          </Badge>
-                        )}
-                      </div>
                     </div>
                   </div>
                 </CardContent>
@@ -213,7 +201,18 @@ export const InfluencerUseModal: React.FC<InfluencerUseModalProps> = ({
                 {/* Create Video Option */}
                 <Card 
                   className="group cursor-pointer hover:shadow-xl transition-all duration-300 border-2 border-blue-200 hover:border-blue-400 bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-950/20 dark:to-cyan-950/20 hover:scale-105"
-                  onClick={onCreateVideo}
+                  onClick={() => {
+                    if (influencer) {
+                      // Navigate to video creation page with influencer data
+                      navigate('/content/create-video', {
+                        state: { 
+                          influencerData: influencer,
+                          autoSelect: 'image' // Auto-select "Create Influencer Video" option
+                        }
+                      });
+                      onOpenChange(false); // Close the modal
+                    }
+                  }}
                 >
                   <CardContent className="p-6">
                     <div className="flex items-start gap-4">

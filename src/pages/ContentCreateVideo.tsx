@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,13 @@ function ContentCreateVideo({ influencerData }: ContentCreateVideoProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const [selectedOption, setSelectedOption] = useState<'image' | 'lipsync' | null>(null);
+
+  // Check if we should auto-select an option based on location state
+  React.useEffect(() => {
+    if (location.state?.autoSelect && !selectedOption) {
+      setSelectedOption(location.state.autoSelect);
+    }
+  }, [location.state?.autoSelect, selectedOption]);
 
   const handleOptionSelect = (option: 'image' | 'lipsync') => {
     setSelectedOption(option);

@@ -366,16 +366,16 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
   const [generatedImageData, setGeneratedImageData] = useState<{ image_id: string; system_filename: string } | null>(null);
   const [ethnic, setEthnic] = useState<string | null>(null);
   const [profileImageId, setProfileImageId] = useState<string | null>(null);
-  
+
   // Enhanced preview functionality state
-  const [previewImages, setPreviewImages] = useState<Array<{ 
-    imageUrl: string; 
-    negativePrompt: string; 
-    isRecommended?: boolean; 
-    isLoading?: boolean; 
-    taskId?: string 
+  const [previewImages, setPreviewImages] = useState<Array<{
+    imageUrl: string;
+    negativePrompt: string;
+    isRecommended?: boolean;
+    isLoading?: boolean;
+    taskId?: string
   }>>([]);
-  
+
   // Profile picture selection state
   const [selectedProfilePictureUrl, setSelectedProfilePictureUrl] = useState<string | null>(null);
 
@@ -471,10 +471,10 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
         handlePreview();
         setHasAutoRendered(true);
       }, 500);
-      
+
       return () => clearTimeout(timer);
     }
-    
+
     // Reset the flag when leaving step 15
     if (currentStep !== 15) {
       setHasAutoRendered(false);
@@ -1401,7 +1401,9 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
         body: JSON.stringify({ ...influencerData, new: true })
       });
 
-              const responseId = await fetch(`${config.supabase_server_url}/influencer?user_id=eq.${userData.id}&new=eq.true`, {
+      console.log(response);
+
+      const responseId = await fetch(`${config.supabase_server_url}/influencer?user_id=eq.${userData.id}&new=eq.true`, {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer WeInfl3nc3withAI'
@@ -1425,8 +1427,8 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
             destinationfilename: `models/${data[0].id}/profilepic/profilepic${num}.${extension}`
           })
         });
-  
-                  influencerData.image_url = `${config.data_url}/cdn-cgi/image/w=400/${userData.id}/models/${data[0].id}/profilepic/profilepic${num}.${extension}`;
+
+        influencerData.image_url = `${config.data_url}/cdn-cgi/image/w=400/${userData.id}/models/${data[0].id}/profilepic/profilepic${num}.${extension}`;
         influencerData.image_num = num + 1;
       }
 
@@ -1649,7 +1651,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
   const handlePreview = async () => {
     if (!validateFields()) { return; }
     setIsPreviewLoading(true);
-    
+
     // Initialize preview images with loading states
     const initialPreviewImages = [
       { imageUrl: '', negativePrompt: '2', isRecommended: false, isLoading: true, taskId: '' },
@@ -1658,7 +1660,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
     ];
     setPreviewImages(initialPreviewImages);
     setShowPreviewModal(true);
-    
+
     try {
       const useridResponse = await fetch(`${config.supabase_server_url}/user?uuid=eq.${userData.id}`, {
         method: 'GET',
@@ -1750,19 +1752,19 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
               }
             });
             const imagesData = await imagesResponse.json();
-            
+
             if (imagesData.length > 0 && imagesData[0].generation_status === 'completed' && imagesData[0].file_path) {
               const completedImage = imagesData[0];
-                              const imageUrl = `${config.data_url}/cdn-cgi/image/w=800/${completedImage.file_path}`;
-              
-              setPreviewImages(prev => prev.map((img, index) => 
+              const imageUrl = `${config.data_url}/cdn-cgi/image/w=800/${completedImage.file_path}`;
+
+              setPreviewImages(prev => prev.map((img, index) =>
                 index === taskResult.displayIndex ? { ...img, imageUrl, isLoading: false, taskId: taskResult.taskId } : img
               ));
             } else {
               allCompleted = false;
             }
           }
-          
+
           if (allCompleted) {
             setIsPreviewLoading(false);
             toast.success('All preview images generated successfully!', {
@@ -1770,7 +1772,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
             });
             return;
           }
-          
+
           setTimeout(pollForImages, 2000);
         } catch (error) {
           console.error('Error polling for images:', error);
@@ -3513,8 +3515,8 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                 <div className="space-y-6">
                   {/* Items per page control */}
                   {/* <div className="flex justify-between items-center"> */}
-                    {/* Items per page selector */}
-                    {/* <div className="flex items-center gap-2">
+                  {/* Items per page selector */}
+                  {/* <div className="flex items-center gap-2">
                       <span className="text-sm text-gray-600 dark:text-gray-400">Show:</span>
                       <select
                         value={itemsPerPage}
@@ -3582,78 +3584,78 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
 
                   {/* Pagination */}
                   {/* {Math.ceil(bodyTypeOptions.length / (itemsPerPage === -1 ? bodyTypeOptions.length : itemsPerPage)) > 1 && ( */}
-                    <div className="flex flex-col sm:flex-row justify-between items-center gap-4 py-6 border-t border-gray-200 dark:border-gray-700">
-                      <div className="text-sm text-gray-600 dark:text-gray-400">
-                        Showing {startIndex + 1}-{Math.min(endIndex, bodyTypeOptions.length)} of {bodyTypeOptions.length} body type options
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="outline"
-                          onClick={() => handlePageChange(1)}
-                          disabled={currentPage === 1}
-                          className="px-3 py-1 text-sm font-medium border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300"
-                        >
-                          First
-                        </Button>
-                        <Button
-                          variant="outline"
-                          onClick={() => handlePageChange(currentPage - 1)}
-                          disabled={currentPage === 1}
-                          className="px-3 py-1 text-sm font-medium border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300"
-                        >
-                          Previous
-                        </Button>
-
-                        {/* Page numbers */}
-                        <div className="flex items-center gap-1">
-                          {Array.from({ length: Math.min(5, Math.ceil(bodyTypeOptions.length / (itemsPerPage === -1 ? bodyTypeOptions.length : itemsPerPage))) }, (_, i) => {
-                            let pageNum;
-                            const totalPages = Math.ceil(bodyTypeOptions.length / (itemsPerPage === -1 ? bodyTypeOptions.length : itemsPerPage));
-                            if (totalPages <= 5) {
-                              pageNum = i + 1;
-                            } else if (currentPage <= 3) {
-                              pageNum = i + 1;
-                            } else if (currentPage >= totalPages - 2) {
-                              pageNum = totalPages - 4 + i;
-                            } else {
-                              pageNum = currentPage - 2 + i;
-                            }
-
-                            return (
-                              <Button
-                                key={pageNum}
-                                variant={currentPage === pageNum ? "default" : "outline"}
-                                onClick={() => handlePageChange(pageNum)}
-                                className={`px-3 py-1 text-sm font-medium transition-all duration-300 ${currentPage === pageNum
-                                  ? "bg-orange-600 text-white border-orange-600"
-                                  : "border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
-                                  }`}
-                              >
-                                {pageNum}
-                              </Button>
-                            );
-                          })}
-                        </div>
-
-                        <Button
-                          variant="outline"
-                          onClick={() => handlePageChange(currentPage + 1)}
-                          disabled={currentPage === Math.ceil(bodyTypeOptions.length / (itemsPerPage === -1 ? bodyTypeOptions.length : itemsPerPage))}
-                          className="px-3 py-1 text-sm font-medium border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300"
-                        >
-                          Next
-                        </Button>
-                        <Button
-                          variant="outline"
-                          onClick={() => handlePageChange(Math.ceil(bodyTypeOptions.length / (itemsPerPage === -1 ? bodyTypeOptions.length : itemsPerPage)))}
-                          disabled={currentPage === Math.ceil(bodyTypeOptions.length / (itemsPerPage === -1 ? bodyTypeOptions.length : itemsPerPage))}
-                          className="px-3 py-1 text-sm font-medium border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300"
-                        >
-                          Last
-                        </Button>
-                      </div>
+                  <div className="flex flex-col sm:flex-row justify-between items-center gap-4 py-6 border-t border-gray-200 dark:border-gray-700">
+                    <div className="text-sm text-gray-600 dark:text-gray-400">
+                      Showing {startIndex + 1}-{Math.min(endIndex, bodyTypeOptions.length)} of {bodyTypeOptions.length} body type options
                     </div>
+
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        onClick={() => handlePageChange(1)}
+                        disabled={currentPage === 1}
+                        className="px-3 py-1 text-sm font-medium border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300"
+                      >
+                        First
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => handlePageChange(currentPage - 1)}
+                        disabled={currentPage === 1}
+                        className="px-3 py-1 text-sm font-medium border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300"
+                      >
+                        Previous
+                      </Button>
+
+                      {/* Page numbers */}
+                      <div className="flex items-center gap-1">
+                        {Array.from({ length: Math.min(5, Math.ceil(bodyTypeOptions.length / (itemsPerPage === -1 ? bodyTypeOptions.length : itemsPerPage))) }, (_, i) => {
+                          let pageNum;
+                          const totalPages = Math.ceil(bodyTypeOptions.length / (itemsPerPage === -1 ? bodyTypeOptions.length : itemsPerPage));
+                          if (totalPages <= 5) {
+                            pageNum = i + 1;
+                          } else if (currentPage <= 3) {
+                            pageNum = i + 1;
+                          } else if (currentPage >= totalPages - 2) {
+                            pageNum = totalPages - 4 + i;
+                          } else {
+                            pageNum = currentPage - 2 + i;
+                          }
+
+                          return (
+                            <Button
+                              key={pageNum}
+                              variant={currentPage === pageNum ? "default" : "outline"}
+                              onClick={() => handlePageChange(pageNum)}
+                              className={`px-3 py-1 text-sm font-medium transition-all duration-300 ${currentPage === pageNum
+                                ? "bg-orange-600 text-white border-orange-600"
+                                : "border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
+                                }`}
+                            >
+                              {pageNum}
+                            </Button>
+                          );
+                        })}
+                      </div>
+
+                      <Button
+                        variant="outline"
+                        onClick={() => handlePageChange(currentPage + 1)}
+                        disabled={currentPage === Math.ceil(bodyTypeOptions.length / (itemsPerPage === -1 ? bodyTypeOptions.length : itemsPerPage))}
+                        className="px-3 py-1 text-sm font-medium border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300"
+                      >
+                        Next
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => handlePageChange(Math.ceil(bodyTypeOptions.length / (itemsPerPage === -1 ? bodyTypeOptions.length : itemsPerPage)))}
+                        disabled={currentPage === Math.ceil(bodyTypeOptions.length / (itemsPerPage === -1 ? bodyTypeOptions.length : itemsPerPage))}
+                        className="px-3 py-1 text-sm font-medium border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300"
+                      >
+                        Last
+                      </Button>
+                    </div>
+                  </div>
                   {/* )} */}
                 </div>
               )}
@@ -4489,7 +4491,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                                   if (!preview.taskId) {
                                     throw new Error('No task ID found for the selected image');
                                   }
-                                  
+
                                   // Find the generated image data using the taskId
                                   const imageResponse = await fetch(`${config.supabase_server_url}/generated_images?task_id=eq.${preview.taskId}`, {
                                     method: 'GET',
@@ -4497,15 +4499,15 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                                       'Authorization': 'Bearer WeInfl3nc3withAI'
                                     }
                                   });
-                                  
+
                                   const imageData = await imageResponse.json();
-                                  
+
                                   if (imageData.length > 0) {
                                     const generatedImage = imageData[0];
-                                    
+
                                     // Save the selected profile picture URL for later use
                                     setSelectedProfilePictureUrl(generatedImage.system_filename);
-                                    
+
                                     // Update the influencer data with the new profile picture URL
                                     const newImageUrl = preview.imageUrl;
                                     console.log(newImageUrl);

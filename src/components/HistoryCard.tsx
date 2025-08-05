@@ -411,7 +411,7 @@ export default function HistoryCard({ userId }: { userId: string }) {
       jsonjob.regenerated_from = image.id || '12345678-1111-2222-3333-caffebabe0123';
 
       // Step 5: Navigate to ContentCreate with the JSON job data
-      navigate('/content/create', {
+      navigate('/content/create-image', {
         state: {
           jsonjobData: jsonjob,
           isRegeneration: true,

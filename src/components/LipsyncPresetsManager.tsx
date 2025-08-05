@@ -432,7 +432,7 @@ export default function LipsyncPresetsManager({ onClose, onApplyPreset }: {
 
                   {/* Preset Preview */}
                   <div
-                    className="relative aspect-video overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 cursor-pointer"
+                    className="relative aspect-square overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 cursor-pointer"
                     onClick={() => setDetailedPresetModal({ open: true, preset })}
                   >
                     {preset.preset_image ? (
@@ -450,7 +450,7 @@ export default function LipsyncPresetsManager({ onClose, onApplyPreset }: {
                     {/* Hover overlay */}
                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-300 flex items-center justify-center">
                       <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                        <Play className="w-8 h-8 text-white drop-shadow-lg" />
+                        <Eye className="w-8 h-8 text-white drop-shadow-lg" />
                       </div>
                     </div>
 
@@ -471,27 +471,11 @@ export default function LipsyncPresetsManager({ onClose, onApplyPreset }: {
                       <h3 className="font-semibold text-lg mb-1 text-gray-900 dark:text-gray-100 truncate group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
                         {preset.name}
                       </h3>
-                      <div className="mb-2 p-2 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950/20 dark:to-pink-950/20 rounded-md border border-purple-200/50 dark:border-purple-800/50">
-                        <p className="text-sm text-gray-700 dark:text-gray-300 line-clamp-2 leading-relaxed">
-                          {preset.description ? 
-                            (preset.description.trim().substring(0, 100) + '...') : 
-                            'No description available'
-                          }
-                        </p>
-                      </div>
                       <div className="space-y-1 text-sm text-muted-foreground">
                         <p className="flex items-center gap-1">
                           <Calendar className="w-3 h-3" />
                           {preset.createdDate}
                         </p>
-                        {preset.prompt && (
-                          <p className="line-clamp-2 text-xs">
-                            {preset.prompt.length > 50
-                              ? `${preset.prompt.substring(0, 50)}...`
-                              : preset.prompt
-                            }
-                          </p>
-                        )}
                       </div>
                     </div>
 
@@ -499,7 +483,7 @@ export default function LipsyncPresetsManager({ onClose, onApplyPreset }: {
                     <div className="flex flex-wrap gap-1">
                       {preset.video_url && (
                         <Badge variant="outline" className="text-xs">
-                          <Video className="w-3 h-3 mr-1" />
+                          <ImageIcon className="w-3 h-3 mr-1" />
                           Video
                         </Badge>
                       )}

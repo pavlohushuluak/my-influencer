@@ -1,10 +1,34 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Sparkles, Copy } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
+import { 
+  Sparkles, 
+  Copy, 
+  Image as ImageIcon, 
+  Video, 
+  User, 
+  FileText, 
+  ArrowRight, 
+  CheckCircle, 
+  Clock, 
+  Zap,
+  Star,
+  Palette,
+  Camera,
+  Mic,
+  Wand2,
+  Brain,
+  Heart,
+  Target,
+  Shield,
+  Sparkle
+} from 'lucide-react';
 import React, { useState } from 'react';
 import { setBio } from '@/store/slices/bioSlice';
 import { useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import config from '@/config/config';
 interface Influencer {
   id: string;
@@ -83,9 +107,11 @@ export const InfluencerUseModal: React.FC<InfluencerUseModalProps> = ({
         throw new Error('Failed to save bio to database');
       }
       setShowBioModal(false);
+      toast.success('Bio generated successfully!');
       navigate(`/influencers/bio?id=${influencer.id}`);
     } catch (err: any) {
       setBioError(err.message || 'Failed to generate or save bio');
+      toast.error('Failed to generate bio. Please try again.');
     } finally {
       setBioLoading(false);
     }
@@ -101,81 +127,171 @@ export const InfluencerUseModal: React.FC<InfluencerUseModalProps> = ({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Select Platform</DialogTitle>
-          </DialogHeader>
-          {influencer && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
-                <img
-                  src={influencer.image_url}
-                  alt={influencer.name_first}
-                  className="w-12 h-12 rounded-full object-cover"
-                />
-                <div>
-                  <h4 className="font-medium">{influencer.name_first} {influencer.name_last}</h4>
-                </div>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader className="text-center pb-6">
+            <div className="flex items-center justify-center gap-3 mb-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-purple-600 to-blue-600 rounded-full flex items-center justify-center shadow-lg">
+                <Sparkle className="w-6 h-6 text-white" />
               </div>
-              <div className="space-y-3">
-                <p className="text-sm font-medium">Select a platform to create content:</p>
+              <div>
+                <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+                  Influencer Actions
+                </DialogTitle>
+                <DialogDescription className="text-muted-foreground">
+                  Choose what you'd like to do with this influencer
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+          
+          {influencer && (
+            <div className="space-y-6">
+              {/* Influencer Profile Card */}
+              <Card className="border-2 border-gradient-to-r from-purple-500/20 to-blue-500/20 bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-800 shadow-lg">
+                <CardContent className="p-6">
+                  <div className="flex items-center gap-4">
+                    <div className="relative">
+                      <img
+                        src={influencer.image_url}
+                        alt={`${influencer.name_first} ${influencer.name_last}`}
+                        className="w-16 h-16 rounded-full object-cover border-4 border-white shadow-lg"
+                      />
+                      <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 rounded-full border-2 border-white flex items-center justify-center">
+                        <CheckCircle className="w-3 h-3 text-white" />
+                      </div>
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+                        {influencer.name_first} {influencer.name_last}
+                      </h3>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Badge variant="secondary" className="bg-purple-100 text-purple-700 dark:bg-purple-900/20 dark:text-purple-300">
+                          <User className="w-3 h-3 mr-1" />
+                          Influencer
+                        </Badge>
+                        {influencer.image_num && (
+                          <Badge variant="outline" className="text-xs">
+                            <ImageIcon className="w-3 h-3 mr-1" />
+                            {influencer.image_num} images
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Action Options Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Create Images Option */}
-                <Button
-                  variant="outline"
-                  className="w-full justify-start h-auto p-4 border-2 border-ai-purple-500/20 hover:border-ai-purple-500/40 bg-gradient-to-r from-ai-purple-50 to-blue-50 dark:from-ai-purple-900/10 dark:to-blue-900/10"
+                <Card 
+                  className="group cursor-pointer hover:shadow-xl transition-all duration-300 border-2 border-purple-200 hover:border-purple-400 bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-950/20 dark:to-blue-950/20 hover:scale-105"
                   onClick={onCreateImages}
                 >
-                  <div className="w-10 h-10 rounded-lg bg-gradient-to-r from-ai-purple-500 to-blue-500 flex items-center justify-center mr-3">
-                    <Sparkles className="w-5 h-5 text-white" />
-                  </div>
-                  <div className="text-left">
-                    <div className="font-medium">Create Images</div>
-                    <div className="text-sm text-muted-foreground">Content - Images by using that influencer data</div>
-                  </div>
-                </Button>
+                  <CardContent className="p-6">
+                    <div className="flex items-start gap-4">
+                      <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-blue-500 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow">
+                        <ImageIcon className="w-6 h-6 text-white" />
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="font-bold text-lg text-gray-900 dark:text-white mb-2 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
+                          Create Images
+                        </h4>
+                        <p className="text-sm text-muted-foreground mb-3 leading-relaxed">
+                          Generate stunning AI-powered images using this influencer's style and characteristics
+                        </p>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <Sparkles className="w-3 h-3" />
+                          <span>AI-powered generation</span>
+                        </div>
+                      </div>
+                      <ArrowRight className="w-5 h-5 text-muted-foreground group-hover:text-purple-500 transition-colors" />
+                    </div>
+                  </CardContent>
+                </Card>
+
                 {/* Create Video Option */}
-                <Button
-                  variant="outline"
-                  className="w-full justify-start h-auto p-4 border-2 border-ai-purple-500/20 hover:border-ai-purple-500/40 bg-gradient-to-r from-ai-purple-50 to-blue-50 dark:from-ai-purple-900/10 dark:to-blue-900/10"
+                <Card 
+                  className="group cursor-pointer hover:shadow-xl transition-all duration-300 border-2 border-blue-200 hover:border-blue-400 bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-950/20 dark:to-cyan-950/20 hover:scale-105"
                   onClick={onCreateVideo}
                 >
-                  <div className="w-10 h-10 rounded-lg bg-gradient-to-r from-ai-purple-500 to-blue-500 flex items-center justify-center mr-3">
-                    <Sparkles className="w-5 h-5 text-white" />
-                  </div>
-                  <div className="text-left">
-                    <div className="font-medium">Create Video</div>
-                    <div className="text-sm text-muted-foreground">Content - Videos - Create Influencer Video by using that Influencer Image</div>
-                  </div>
-                </Button>
+                  <CardContent className="p-6">
+                    <div className="flex items-start gap-4">
+                      <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow">
+                        <Video className="w-6 h-6 text-white" />
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="font-bold text-lg text-gray-900 dark:text-white mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                          Create Video
+                        </h4>
+                        <p className="text-sm text-muted-foreground mb-3 leading-relaxed">
+                          Create engaging videos featuring this influencer with advanced AI video generation
+                        </p>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <Camera className="w-3 h-3" />
+                          <span>Video generation</span>
+                        </div>
+                      </div>
+                      <ArrowRight className="w-5 h-5 text-muted-foreground group-hover:text-blue-500 transition-colors" />
+                    </div>
+                  </CardContent>
+                </Card>
+
                 {/* Character Consistency Option */}
-                <Button
-                  variant="outline"
-                  className="w-full justify-start h-auto p-4 border-2 border-green-500/20 hover:border-green-500/40 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/10 dark:to-emerald-900/10"
+                <Card 
+                  className="group cursor-pointer hover:shadow-xl transition-all duration-300 border-2 border-green-200 hover:border-green-400 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 hover:scale-105"
                   onClick={onCharacterConsistency}
                 >
-                  <div className="w-10 h-10 rounded-lg bg-gradient-to-r from-green-500 to-emerald-500 flex items-center justify-center mr-3">
-                    <Copy className="w-5 h-5 text-white" />
-                  </div>
-                  <div className="text-left">
-                    <div className="font-medium">Character Consistency</div>
-                    <div className="text-sm text-muted-foreground">Select profile picture for LORA training.</div>
-                  </div>
-                </Button>
+                  <CardContent className="p-6">
+                    <div className="flex items-start gap-4">
+                      <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-emerald-500 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow">
+                        <Brain className="w-6 h-6 text-white" />
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="font-bold text-lg text-gray-900 dark:text-white mb-2 group-hover:text-green-600 dark:group-hover:text-green-400 transition-colors">
+                          Character Consistency
+                        </h4>
+                        <p className="text-sm text-muted-foreground mb-3 leading-relaxed">
+                          Train LORA model for consistent character representation across all generations
+                        </p>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <Target className="w-3 h-3" />
+                          <span>LORA training</span>
+                        </div>
+                      </div>
+                      <ArrowRight className="w-5 h-5 text-muted-foreground group-hover:text-green-500 transition-colors" />
+                    </div>
+                  </CardContent>
+                </Card>
+
                 {/* BIO Option */}
-                <Button
-                  variant="outline"
-                  className="w-full justify-start h-auto p-4 border-2 border-blue-500/20 hover:border-blue-500/40 bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/10 dark:to-cyan-900/10"
+                <Card 
+                  className="group cursor-pointer hover:shadow-xl transition-all duration-300 border-2 border-indigo-200 hover:border-indigo-400 bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-950/20 dark:to-purple-950/20 hover:scale-105"
                   onClick={handleBioClick}
                 >
-                  <div className="w-10 h-10 rounded-lg bg-gradient-to-r from-blue-500 to-cyan-500 flex items-center justify-center mr-3">
-                    <span className="font-bold text-white text-lg">BIO</span>
-                  </div>
-                  <div className="text-left">
-                    <div className="font-medium">BIO</div>
-                    <div className="text-sm text-muted-foreground">View or create influencer bio</div>
-                  </div>
-                </Button>
+                  <CardContent className="p-6">
+                    <div className="flex items-start gap-4">
+                      <div className="w-12 h-12 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow">
+                        <FileText className="w-6 h-6 text-white" />
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="font-bold text-lg text-gray-900 dark:text-white mb-2 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                          Bio Management
+                        </h4>
+                        <p className="text-sm text-muted-foreground mb-3 leading-relaxed">
+                          View or create a professional bio for this influencer with AI assistance
+                        </p>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <Wand2 className="w-3 h-3" />
+                          <span>AI-powered bio</span>
+                        </div>
+                      </div>
+                      <ArrowRight className="w-5 h-5 text-muted-foreground group-hover:text-indigo-500 transition-colors" />
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
+
             </div>
           )}
         </DialogContent>
@@ -183,27 +299,115 @@ export const InfluencerUseModal: React.FC<InfluencerUseModalProps> = ({
       {/* BIO Modal */}
       <Dialog open={showBioModal} onOpenChange={setShowBioModal}>
         <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Influencer BIO</DialogTitle>
+          <DialogHeader className="text-center pb-4">
+            <div className="flex items-center justify-center gap-3 mb-2">
+              <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-full flex items-center justify-center shadow-lg">
+                <FileText className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <DialogTitle className="text-xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                  Bio Management
+                </DialogTitle>
+                <DialogDescription className="text-muted-foreground">
+                  Manage influencer bio with AI assistance
+                </DialogDescription>
+              </div>
+            </div>
           </DialogHeader>
+          
           {bioLoading && (
-            <div className="flex flex-col items-center justify-center py-8 gap-4 bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-950/20 dark:to-cyan-950/20 rounded-lg">
-              <div className="w-10 h-10 border-4 border-blue-400 border-t-transparent border-b-transparent rounded-full animate-spin"></div>
-              <div className="text-base font-medium text-blue-700 dark:text-blue-200">Generating professional bio...</div>
-              <div className="text-xs text-muted-foreground">This may take a few seconds. Please wait.</div>
-            </div>
+            <Card className="border-2 border-indigo-200 bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-950/20 dark:to-purple-950/20">
+              <CardContent className="p-8">
+                <div className="flex flex-col items-center justify-center gap-4">
+                  <div className="relative">
+                    <div className="w-12 h-12 border-4 border-indigo-200 border-t-indigo-500 rounded-full animate-spin"></div>
+                    <div className="absolute inset-0 w-12 h-12 border-4 border-transparent border-t-purple-500 rounded-full animate-spin" style={{ animationDelay: '0.5s' }}></div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-lg font-semibold text-indigo-700 dark:text-indigo-300 mb-1">
+                      Generating Professional Bio
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      Our AI is crafting a compelling bio for {influencer?.name_first}...
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Zap className="w-3 h-3" />
+                    <span>AI-powered generation in progress</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           )}
-          {bioError && <p className="text-red-500">{bioError}</p>}
-          {bioMode === 'create' && (
-            <div className="space-y-4">
-              <p>No data found, you want to create now?</p>
-              <Button onClick={handleCreateBio} className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 text-white">Create</Button>
-            </div>
+          
+          {bioError && (
+            <Card className="border-2 border-red-200 bg-gradient-to-br from-red-50 to-pink-50 dark:from-red-950/20 dark:to-pink-950/20">
+              <CardContent className="p-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center">
+                    <span className="text-red-600 dark:text-red-400 text-sm font-bold">!</span>
+                  </div>
+                  <div>
+                    <div className="font-semibold text-red-700 dark:text-red-300">Generation Failed</div>
+                    <div className="text-sm text-red-600 dark:text-red-400">{bioError}</div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           )}
-          {bioMode === 'view' && influencer?.bio && (
-            <div className="space-y-4">
-              <Button onClick={handleViewBio} className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 text-white">View</Button>
-            </div>
+          
+          {bioMode === 'create' && !bioLoading && !bioError && (
+            <Card className="border-2 border-indigo-200 bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-950/20 dark:to-purple-950/20">
+              <CardContent className="p-6">
+                <div className="text-center space-y-4">
+                  <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-full flex items-center justify-center mx-auto shadow-lg">
+                    <Wand2 className="w-8 h-8 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">
+                      No Bio Found
+                    </h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Would you like to create a professional bio for {influencer?.name_first} using AI?
+                    </p>
+                  </div>
+                  <Button 
+                    onClick={handleCreateBio} 
+                    className="w-full bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white shadow-lg hover:shadow-xl transition-all duration-200"
+                  >
+                    <Wand2 className="w-4 h-4 mr-2" />
+                    Generate AI Bio
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+          
+          {bioMode === 'view' && influencer?.bio && !bioLoading && !bioError && (
+            <Card className="border-2 border-green-200 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20">
+              <CardContent className="p-6">
+                <div className="text-center space-y-4">
+                  <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-emerald-500 rounded-full flex items-center justify-center mx-auto shadow-lg">
+                    <CheckCircle className="w-8 h-8 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">
+                      Bio Available
+                    </h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      {influencer.name_first} already has a professional bio ready to view and edit.
+                    </p>
+                  </div>
+                  <Button 
+                    onClick={handleViewBio} 
+                    className="w-full bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white shadow-lg hover:shadow-xl transition-all duration-200"
+                  >
+                    <FileText className="w-4 h-4 mr-2" />
+                    View & Edit Bio
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           )}
         </DialogContent>
       </Dialog>

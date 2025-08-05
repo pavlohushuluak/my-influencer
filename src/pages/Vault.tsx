@@ -2924,14 +2924,19 @@ export default function Vault() {
       if (response.ok) {
         const files = await response.json();
         const directFiles = files.filter((file: any) => {
-          const relativePath = file.Key.replace(`vault/${userData.id}/vault/${folderPath}/`, '');
-          if (folderPath === '') {
-            return !relativePath.includes('/');
+          // Extract the relative path from the full key
+          const fullPath = file.Key;
+          const expectedPrefix = `vault/${userData.id}/vault/${folderPath}`;
+          
+          if (!fullPath.startsWith(expectedPrefix)) {
+            return false;
           }
-          return false;
+          
+          const relativePath = fullPath.substring(expectedPrefix.length + 1); // +1 for the trailing slash
+          
+          // Only count files that are directly in this folder (no subfolder path)
+          return relativePath && !relativePath.includes('/');
         });
-
-        // console.log(directFiles);
 
         setFolderFileCounts(prev => ({ ...prev, [folderPath]: directFiles.length }));
       }
@@ -2947,11 +2952,36 @@ export default function Vault() {
   const handleRefresh = async () => {
     setIsRefreshing(true);
     try {
-      await fetchHomeFiles();
+      // Refresh the main vault data with current filters
+      await fetchVaultDataWithFilters();
+      
+      // Refresh folder structure
+      const response = await fetch(`${config.backend_url}/getfoldernames`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          user: userData.id,
+          folder: "vault"
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setFolders(data);
+        
+        // Rebuild folder structure
+        const structure = buildFolderStructure(data);
+        setFolderStructure(structure);
+      }
+      
       // Refresh file counts for current path folders
       const currentFolders = getCurrentPathFolders();
       const refreshPromises = currentFolders.map(folder => fetchFolderFileCount(folder.path));
       await Promise.all(refreshPromises);
+      
       toast.success('Vault refreshed successfully');
     } catch (error) {
       console.error('Error refreshing vault:', error);

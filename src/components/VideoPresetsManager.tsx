@@ -391,102 +391,174 @@ export default function VideoPresetsManager({ onClose, onApplyPreset }: {
             </div>
           ) : (
             <div className={viewMode === 'grid' ? 
-              "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4" : 
+              "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" : 
               "space-y-4"
             }>
               {sortedPresets.map((preset) => (
                 <Card
                   key={preset.id}
-                  className="group hover:shadow-lg transition-all duration-300 cursor-pointer"
+                  className={`group hover:shadow-xl transition-all duration-300 border border-gray-200 dark:border-gray-700 bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 overflow-hidden relative`}
                   onClick={() => setDetailedPresetModal({ open: true, preset })}
                 >
-                  <CardContent className="p-4">
-                    <div className="space-y-3">
-                      {/* Video Preview */}
-                      <div className="relative aspect-video bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden">
-                        {preset.preset_image ? (
-                          <img
-                            src={preset.preset_image}
-                            alt="Preset image"
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="flex items-center justify-center h-full">
-                            <ImageIcon className="w-8 h-8 text-gray-400" />
-                          </div>
-                        )}
-                        
-                        {/* Overlay */}
-                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-300 flex items-center justify-center">
-                          <Play className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-all duration-300" />
-                        </div>
+                  {/* Top Row: Ratings and Favorite */}
+                  <div className="flex items-center justify-between p-3 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-800 border-b border-gray-200 dark:border-gray-600">
+                    {/* Professional Mark */}
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center shadow-sm">
+                        <Video className="w-4 h-4 text-white" />
                       </div>
+                    </div>
 
-                      {/* Preset Info */}
-                      <div className="space-y-2">
-                        <h4 className="font-semibold text-sm text-gray-900 dark:text-gray-100 line-clamp-2">
-                          {preset.name}
-                        </h4>
-                        
-                        {preset.description && (
-                          <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2">
-                            {preset.description}
-                          </p>
-                        )}
+                    {/* Rating Stars */}
+                    <div className="flex gap-1">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <svg
+                          key={star}
+                          className={`w-4 h-4 cursor-pointer hover:scale-110 transition-transform ${star <= (preset.rating || 0) ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
+                          viewBox="0 0 24 24"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            updateRating(preset.id, star);
+                          }}
+                        >
+                          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                        </svg>
+                      ))}
+                    </div>
 
-                        <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
-                          <span>{preset.createdDate}</span>
-                          <div className="flex items-center gap-1">
-                            {/* Favorite Button */}
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                updateFavorite(preset.id, !preset.favorite);
-                              }}
-                              className="hover:scale-110 transition-transform"
-                            >
-                              <Heart className={`w-3 h-3 ${preset.favorite ? 'fill-red-400 text-red-400' : 'text-gray-400'}`} />
-                            </button>
-                            {/* Rating Stars */}
-                            <div className="flex items-center gap-1">
-                              {[1, 2, 3, 4, 5].map((star) => (
-                                <button
-                                  key={star}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    updateRating(preset.id, star);
-                                  }}
-                                  className="hover:scale-110 transition-transform"
-                                >
-                                  <Star className={`w-3 h-3 ${preset.rating && preset.rating >= star ? 'fill-yellow-400 text-yellow-400' : 'text-gray-400'}`} />
-                                </button>
-                              ))}
-                            </div>
-                          </div>
+                    {/* Favorite Heart */}
+                    <div>
+                      {preset.favorite ? (
+                        <div
+                          className="bg-red-500 rounded-full w-7 h-7 flex items-center justify-center cursor-pointer hover:bg-red-600 transition-colors shadow-md"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            updateFavorite(preset.id, false);
+                          }}
+                        >
+                          <svg className="w-4 h-4 text-white fill-current" viewBox="0 0 24 24">
+                            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                          </svg>
                         </div>
-
-                        {/* Preset Details */}
-                        <div className="flex flex-wrap gap-1">
-                          <Badge variant="outline" className="text-xs">
-                            {getModelDisplayName(preset.video_model)}
-                          </Badge>
-                          <Badge variant="outline" className="text-xs">
-                            {preset.resolution}
-                          </Badge>
-                          <Badge variant="outline" className="text-xs">
-                            {preset.video_length}s
-                          </Badge>
+                      ) : (
+                        <div
+                          className="bg-gray-200 dark:bg-gray-700 rounded-full w-7 h-7 flex items-center justify-center cursor-pointer hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors shadow-md"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            updateFavorite(preset.id, true);
+                          }}
+                        >
+                          <svg className="w-4 h-4 text-gray-600 dark:text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                          </svg>
                         </div>
+                      )}
+                    </div>
+                  </div>
 
-                        {/* Prompt Preview */}
+                  {/* Video Preview */}
+                  <div
+                    className="relative aspect-video overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 cursor-pointer"
+                    onClick={() => setDetailedPresetModal({ open: true, preset })}
+                  >
+                    {preset.preset_image ? (
+                      <img
+                        src={preset.preset_image}
+                        alt="Preset image"
+                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      />
+                    ) : (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <Video className="w-16 h-16 text-muted-foreground" />
+                      </div>
+                    )}
+
+                    {/* Hover overlay */}
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-300 flex items-center justify-center">
+                      <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                        <Play className="w-8 h-8 text-white drop-shadow-lg" />
+                      </div>
+                    </div>
+
+                    {/* Model Badge */}
+                    <div className="absolute top-2 left-2 bg-blue-500/90 text-white text-xs px-2 py-1 rounded-full backdrop-blur-sm font-medium">
+                      {getModelDisplayName(preset.video_model)}
+                    </div>
+
+                    {/* Duration Badge */}
+                    <div className="absolute top-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded-full backdrop-blur-sm">
+                      {preset.video_length}s
+                    </div>
+                  </div>
+
+                  {/* Preset Info */}
+                  <div className="p-4 space-y-3">
+                    <div>
+                      <h3 className="font-semibold text-lg mb-1 text-gray-900 dark:text-gray-100 truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                        {preset.name}
+                      </h3>
+                      <div className="mb-2 p-2 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-md border border-blue-200/50 dark:border-blue-800/50">
+                        <p className="text-sm text-gray-700 dark:text-gray-300 line-clamp-2 leading-relaxed">
+                          {preset.description ? 
+                            (preset.description.trim().substring(0, 100) + '...') : 
+                            'No description available'
+                          }
+                        </p>
+                      </div>
+                      <div className="space-y-1 text-sm text-muted-foreground">
+                        <p className="flex items-center gap-1">
+                          <Calendar className="w-3 h-3" />
+                          {preset.createdDate}
+                        </p>
                         {preset.prompt && (
-                          <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2">
-                            "{preset.prompt.substring(0, 60)}..."
+                          <p className="line-clamp-2 text-xs">
+                            {preset.prompt.length > 50
+                              ? `${preset.prompt.substring(0, 50)}...`
+                              : preset.prompt
+                            }
                           </p>
                         )}
                       </div>
                     </div>
-                  </CardContent>
+
+                    {/* Preset Details */}
+                    <div className="flex flex-wrap gap-1">
+                      <Badge variant="outline" className="text-xs">
+                        {preset.resolution}
+                      </Badge>
+                      {preset.seed && (
+                        <Badge variant="outline" className="text-xs">
+                          Seed: {preset.seed}
+                        </Badge>
+                      )}
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex gap-2 pt-2">
+                      <Button
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleApplyPreset(preset);
+                        }}
+                        className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-md hover:shadow-lg transition-all duration-200"
+                      >
+                        <Wand2 className="w-4 h-4 mr-2" />
+                        Use
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handlePresetDelete(preset);
+                        }}
+                        variant="outline"
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200 hover:border-red-300 transition-all duration-200"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
                 </Card>
               ))}
             </div>

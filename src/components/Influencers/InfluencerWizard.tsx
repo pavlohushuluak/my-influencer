@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils';
 import { RootState } from '@/store/store';
 import { setUser } from '@/store/slices/userSlice';
 import { toast } from 'sonner';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import config from '@/config/config';
 
 interface InfluencerWizardProps {
@@ -378,6 +378,32 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
 
   // Profile picture selection state
   const [selectedProfilePictureUrl, setSelectedProfilePictureUrl] = useState<string | null>(null);
+
+  // Preview history state
+  const [previewHistory, setPreviewHistory] = useState<Array<{
+    id: string;
+    imageUrl: string;
+    negativePrompt: string;
+    isRecommended: boolean;
+    taskId: string;
+    created_at: string;
+  }>>([]);
+
+  // Selected previous image state
+  const [selectedPreviousImage, setSelectedPreviousImage] = useState<string | null>(null);
+
+  // Previously generated images state
+  const [previouslyGeneratedImages, setPreviouslyGeneratedImages] = useState<Array<{
+    id: string;
+    system_filename: string;
+    file_path: string;
+    created_at: string;
+    task_id?: string;
+    user_filename?: string;
+    imageUrl?: string;
+    isRecommended?: boolean;
+  }>>([]);
+  const [isLoadingPreviousImages, setIsLoadingPreviousImages] = useState(false);
 
   // console.log(influencerData);
 
@@ -1648,6 +1674,9 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
     return true;
   };
 
+  console.log(previewHistory);
+  console.log(selectedPreviousImage);
+
   const handlePreview = async () => {
     if (!validateFields()) { return; }
     setIsPreviewLoading(true);
@@ -1659,6 +1688,14 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
       { imageUrl: '', negativePrompt: '3', isRecommended: false, isLoading: true, taskId: '' }
     ];
     setPreviewImages(initialPreviewImages);
+    
+    // Initialize preview history with the same structure
+    const initialPreviewHistory = [
+      { id: 'temp_1', imageUrl: '', negativePrompt: '2', isRecommended: false, taskId: '', created_at: new Date().toISOString() },
+      { id: 'temp_2', imageUrl: '', negativePrompt: '1', isRecommended: true, taskId: '', created_at: new Date().toISOString() },
+      { id: 'temp_3', imageUrl: '', negativePrompt: '3', isRecommended: false, taskId: '', created_at: new Date().toISOString() }
+    ];
+    setPreviewHistory([...initialPreviewHistory, ...previewHistory]);
     setShowPreviewModal(true);
 
     try {
@@ -1760,6 +1797,9 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
               setPreviewImages(prev => prev.map((img, index) =>
                 index === taskResult.displayIndex ? { ...img, imageUrl, isLoading: false, taskId: taskResult.taskId } : img
               ));
+              setPreviewHistory(prev => prev.map((img, index) =>
+                index === taskResult.displayIndex ? { ...img, imageUrl, taskId: taskResult.taskId } : img
+              ));
             } else {
               allCompleted = false;
             }
@@ -1770,6 +1810,20 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
             toast.success('All preview images generated successfully!', {
               description: 'Your influencer preview variations are ready to view'
             });
+            
+            // Save all completed images to history permanently
+            const completedImages = previewImages.filter(img => img.imageUrl && !img.isLoading).map(img => ({
+              id: `preview_${img.taskId || Date.now()}`,
+              imageUrl: img.imageUrl,
+              negativePrompt: img.negativePrompt,
+              isRecommended: img.isRecommended || false,
+              taskId: img.taskId || '',
+              created_at: new Date().toISOString()
+            }));
+
+            // Add new images to the beginning of the history
+            setPreviewHistory(prev => [...completedImages, ...prev]);
+            
             return;
           }
 
@@ -1793,6 +1847,17 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
     setShowPreviewModal(false);
     setPreviewImageUrl(null);
     setGeneratedImageData(null);
+  };
+
+  // Function to select a preview history image
+  const handleSelectPreviewHistoryImage = (image: any) => {
+    setSelectedPreviousImage(image.imageUrl);
+    setInfluencerData(prev => ({
+      ...prev,
+      image_url: image.imageUrl
+    }));
+    setSelectedProfilePictureUrl(image.id);
+    toast.success('Profile image selected successfully!');
   };
 
   const renderStepContent = () => {
@@ -3870,22 +3935,74 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                   Preview Your Influencer
                 </h2>
                 <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto text-lg leading-relaxed">
-                  Generating a preview of your influencer based on all your selections...<br />
-                  This will help you see how your influencer will look before creating the final version.
+                  Generate preview images and select your favorite profile picture from the history.
                 </p>
               </div>
             </div>
 
+            {/* Selected Profile Image Display */}
+            {influencerData.image_url && (
+              <div className="max-w-2xl mx-auto">
+                <Card className="border-2 border-green-500 dark:border-green-400 shadow-xl bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20">
+                  <CardContent className="p-8">
+                    <div className="text-center space-y-6">
+                      <div className="space-y-4">
+                        <h3 className="text-xl font-semibold text-green-700 dark:text-green-300">
+                          Selected Profile Image
+                        </h3>
+                        <div className="flex justify-center">
+                          <img
+                            src={influencerData.image_url}
+                            alt="Selected Profile"
+                            className="w-48 h-48 object-cover rounded-full shadow-2xl border-4 border-green-500"
+                          />
+                        </div>
+                        <p className="text-sm text-green-600 dark:text-green-400">
+                          ✅ This image will be used as your influencer's profile picture
+                        </p>
+                        <div className="flex justify-center gap-4">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              if (influencerData.image_url) {
+                                setPreviewImageUrl(influencerData.image_url);
+                                setGeneratedImageData({
+                                  image_id: influencerData.image_url.split('/').pop() || '',
+                                  system_filename: influencerData.image_url.split('/').pop() || ''
+                                });
+                              }
+                            }}
+                            disabled={!influencerData.image_url}
+                          >
+                            View Full Size
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setInfluencerData({ ...influencerData, image_url: '' })}
+                          >
+                            Change Selection
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+
+            {/* Generate New Preview Images */}
             <div className="max-w-2xl mx-auto">
               <Card className="border-2 border-gray-200 dark:border-gray-700 shadow-xl bg-gradient-to-br from-gray-50 to-white dark:from-gray-900 dark:to-gray-800">
                 <CardContent className="p-8">
                   <div className="text-center space-y-6">
                     <div className="space-y-4">
                       <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-                        Generating Your Preview...
+                        Generate New Preview Images
                       </h3>
                       <p className="text-gray-600 dark:text-gray-400">
-                        We're automatically creating a preview of your influencer based on all your selections.
+                        Create new preview images based on your current selections.
                       </p>
                     </div>
 
@@ -3901,19 +4018,83 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                         </>
                       ) : (
                         <>
-                          Regenerate Preview
+                          Generate New Preview
                           <Sparkles className="w-6 h-6" />
                         </>
                       )}
                     </Button>
 
                     <p className="text-sm text-gray-500 dark:text-gray-400">
-                      💡 This will create a temporary preview that will be deleted after you close it.
+                      💡 This will create new preview images and add them to your history.
                     </p>
                   </div>
                 </CardContent>
               </Card>
             </div>
+
+            {/* Preview History */}
+            {previewHistory.length > 0 && (
+              <div className="max-w-6xl mx-auto">
+                <Card className="border-2 border-gray-200 dark:border-gray-700 shadow-xl bg-gradient-to-br from-gray-50 to-white dark:from-gray-900 dark:to-gray-800">
+                  <CardContent className="p-8">
+                    <div className="space-y-6">
+                      <div className="text-center space-y-4">
+                        <h3 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
+                          Preview History
+                        </h3>
+                        <p className="text-gray-600 dark:text-gray-400">
+                          Select from your previously generated preview images.
+                        </p>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        {previewHistory.map((image, index) => (
+                          <Card key={image.id} className="group hover:shadow-xl transition-all duration-300 border-border/50 hover:border-blue-500/30 backdrop-blur-sm">
+                            <CardContent className="p-4">
+                              <div className="relative">
+                                {image.isRecommended && (
+                                  <Badge className="absolute top-2 left-2 z-10 bg-gradient-to-r from-green-500 to-emerald-500 text-white font-semibold">
+                                    Recommended
+                                  </Badge>
+                                )}
+                                <img
+                                  src={image.imageUrl}
+                                  alt={`Preview ${index + 1}`}
+                                  className="w-full h-full object-cover rounded-lg shadow-lg aspect-square"
+                                />
+                                <div className="mt-4 text-center">
+                                  <div className="flex gap-2 mt-2">
+                                    <Button
+                                      variant="outline"
+                                      className="flex-1"
+                                      onClick={() => {
+                                        setPreviewImageUrl(image.imageUrl);
+                                        setGeneratedImageData({
+                                          image_id: image.id,
+                                          system_filename: image.id
+                                        });
+                                      }}
+                                    >
+                                      View Full Size
+                                    </Button>
+                                    <Button
+                                      className="flex-1"
+                                      onClick={() => handleSelectPreviewHistoryImage(image)}
+                                    >
+                                      Use as Profile Picture
+                                    </Button>
+                                  </div>
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
           </div>
         );
 
@@ -4548,6 +4729,39 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
               <p className="text-sm text-muted-foreground">Generating preview images... This may take a few moments.</p>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Full Size Image Modal */}
+      <Dialog open={!!previewImageUrl} onOpenChange={(open) => !open && setPreviewImageUrl(null)}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ImageIcon className="w-5 h-5 text-blue-500" />
+              Full Size Preview
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex justify-center">
+            {previewImageUrl && (
+              <img
+                src={previewImageUrl}
+                alt="Full Size Preview"
+                className="max-w-full max-h-[70vh] object-contain rounded-lg shadow-lg"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.style.display = 'none';
+                }}
+              />
+            )}
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setPreviewImageUrl(null)}
+            >
+              Close
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

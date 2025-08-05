@@ -29,6 +29,7 @@ import VaultSelector from '@/components/VaultSelector';
 import PresetsManager from '@/components/PresetsManager';
 import LibraryManager from '@/components/LibraryManager';
 import VideoPresetsManager from '@/components/VideoPresetsManager';
+import VideoLibraryManager from '@/components/VideoLibraryManager';
 import { Video, Play, Settings, Sparkles, Loader2, Camera, Search, X, Filter, Plus, RotateCcw, Download, Trash2, Calendar, Share, Pencil, Edit3, BookOpen, Save, FolderOpen, Upload, Edit, AlertTriangle, Eye, User, Monitor, ZoomIn, SortAsc, SortDesc, Wand2, Image as ImageIcon, ArrowLeft, Share2, Clock, Heart } from 'lucide-react';
 import HistoryCard from '@/components/HistoryCard';
 
@@ -242,6 +243,7 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
 
   // Video presets state
   const [showVideoPresetsModal, setShowVideoPresetsModal] = useState(false);
+  const [showVideoLibraryModal, setShowVideoLibraryModal] = useState(false);
   const [showSavePresetModal, setShowSavePresetModal] = useState(false);
   const [presetName, setPresetName] = useState('');
   const [presetDescription, setPresetDescription] = useState('');
@@ -1062,15 +1064,15 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
         {/* Professional Preset and Library Buttons */}
         <div className="flex items-center gap-3">
           <div className="items-center gap-2 hidden xl:grid xl:grid-cols-2 2xl:grid-cols-4">
-            <Button
-              onClick={() => setShowLibraryModal(true)}
-              variant="outline"
-              size="sm"
-              className="h-10 px-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-blue-200 dark:border-blue-700 hover:from-blue-100 hover:to-indigo-100 dark:hover:from-blue-800/30 dark:hover:to-indigo-800/30 text-blue-700 dark:text-blue-300 font-medium shadow-sm hover:shadow-md transition-all duration-200"
-            >
-              <FolderOpen className="w-4 h-4 mr-2" />
-              Library
-            </Button>
+                      <Button
+            onClick={() => setShowVideoLibraryModal(true)}
+            variant="outline"
+            size="sm"
+            className="h-10 px-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-blue-200 dark:border-blue-700 hover:from-blue-100 hover:to-indigo-100 dark:hover:from-blue-800/30 dark:hover:to-indigo-800/30 text-blue-700 dark:text-blue-300 font-medium shadow-sm hover:shadow-md transition-all duration-200"
+          >
+            <FolderOpen className="w-4 h-4 mr-2" />
+            Video Library
+          </Button>
 
             <Button
               onClick={() => setShowPresetModal(true)}
@@ -1147,12 +1149,12 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
       <div className="flex w-full items-center gap-3 xl:hidden">
         <div className="items-center gap-2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 w-full">
           <Button
-            onClick={() => setShowLibraryModal(true)}
+            onClick={() => setShowVideoLibraryModal(true)}
             variant="outline"
             className="h-10 px-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-blue-200 dark:border-blue-700 hover:from-blue-100 hover:to-indigo-100 dark:hover:from-blue-800/30 dark:hover:to-indigo-800/30 text-blue-700 dark:text-blue-300 font-medium shadow-sm hover:shadow-md transition-all duration-200"
           >
             <FolderOpen className="w-4 h-4 mr-2" />
-            Library
+            Video Library
           </Button>
 
           <Button
@@ -2834,6 +2836,14 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
       {showVideoPresetsModal && (
         <VideoPresetsManager
           onClose={() => setShowVideoPresetsModal(false)}
+          onApplyPreset={handleApplyVideoPreset}
+        />
+      )}
+
+      {/* Video Library Manager Modal */}
+      {showVideoLibraryModal && (
+        <VideoLibraryManager
+          onClose={() => setShowVideoLibraryModal(false)}
           onApplyPreset={handleApplyVideoPreset}
         />
       )}

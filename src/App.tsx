@@ -38,7 +38,7 @@ const ContentCreateVideoWrapper = () => {
   return <ContentCreateVideo influencerData={location.state?.influencerData} />;
 };
 import ContentCreateVideo from '@/pages/ContentCreateVideo';
-import ContentEnhance from '@/pages/ContentEnhance';
+import ContentUpscaler from '@/pages/ContentUpscaler';
 import ContentEdit from '@/pages/ContentEdit';
 import ContentStory from '@/pages/ContentStory';
 import ContentSchedule from '@/pages/ContentSchedule';
@@ -88,7 +88,7 @@ const App = () => {
                   <Route path='/content/vault' element={<Vault />} />
                   <Route path='/content/create-image' element={<ContentCreateImageWrapper />} />
                   <Route path='/content/create-video' element={<ContentCreateVideoWrapper />} />
-                  <Route path='/content/upscaler' element={<ContentEnhance />} />
+                  <Route path='/content/upscaler' element={<ContentUpscaler />} />
                   <Route path='/content/edit' element={<ContentEdit />} />
                   <Route path='/content/story' element={<ContentStory />} />
                   <Route path='/content/schedule' element={<ContentSchedule />} />

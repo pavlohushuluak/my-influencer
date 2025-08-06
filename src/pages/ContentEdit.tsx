@@ -563,6 +563,7 @@ export default function ContentEdit() {
 
       // Create database entry
       const newImageData = {
+        user_uuid: userData.id,
         task_id: `edit_${Date.now()}`,
         image_sequence_number: 1,
         system_filename: finalFilename,
@@ -607,7 +608,10 @@ export default function ContentEdit() {
       });
 
       if (!dbResponse.ok) {
-        throw new Error('Failed to create database entry');
+        const errorText = await dbResponse.text();
+        console.error('Database response error:', dbResponse.status, errorText);
+        console.error('Sent data:', newImageData);
+        throw new Error(`Failed to create database entry: ${dbResponse.status} ${errorText}`);
       }
 
       toast.dismiss(loadingToast);
@@ -700,6 +704,7 @@ export default function ContentEdit() {
 
       // Create new database entry
       const newImageData = {
+        user_uuid: userData.id,
         task_id: `edit_${Date.now()}`,
         image_sequence_number: 1,
         system_filename: conflictFilename,
@@ -744,7 +749,10 @@ export default function ContentEdit() {
       });
 
       if (!dbResponse.ok) {
-        throw new Error('Failed to create database entry');
+        const errorText = await dbResponse.text();
+        console.error('Database response error (overwrite):', dbResponse.status, errorText);
+        console.error('Sent data (overwrite):', newImageData);
+        throw new Error(`Failed to create database entry: ${dbResponse.status} ${errorText}`);
       }
 
       toast.dismiss(loadingToast);
@@ -847,6 +855,7 @@ export default function ContentEdit() {
 
       // Create database entry
       const newImageData = {
+        user_uuid: userData.id,
         task_id: `edit_${Date.now()}`,
         image_sequence_number: 1,
         system_filename: finalFilename,
@@ -891,7 +900,10 @@ export default function ContentEdit() {
       });
 
       if (!dbResponse.ok) {
-        throw new Error('Failed to create database entry');
+        const errorText = await dbResponse.text();
+        console.error('Database response error (create new):', dbResponse.status, errorText);
+        console.error('Sent data (create new):', newImageData);
+        throw new Error(`Failed to create database entry: ${dbResponse.status} ${errorText}`);
       }
 
       toast.dismiss(loadingToast);

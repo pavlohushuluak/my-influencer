@@ -141,6 +141,9 @@ export default function VaultSelector({
       // Base user filter
       queryParams.append('user_uuid', 'eq.' + userData.id);
       
+      // Generation status filter - only show completed images
+      queryParams.append('generation_status', 'eq.completed');
+      
       // Current path filter - show files from current folder
       if (currentPath === '') {
         // Root folder - show files with empty user_filename or null
@@ -220,6 +223,9 @@ export default function VaultSelector({
       // Get total count for pagination
       const countParams = new URLSearchParams();
       countParams.append('user_uuid', 'eq.' + userData.id);
+      
+      // Generation status filter for count query - only show completed images
+      countParams.append('generation_status', 'eq.completed');
       
       // Current path filter for count query
       if (currentPath === '') {
@@ -447,7 +453,7 @@ export default function VaultSelector({
     try {
       setLoadingFileCounts(prev => ({ ...prev, [folderPath]: true }));
 
-      const response = await fetch(`${config.supabase_server_url}/generated_images?user_uuid=eq.${userData.id}&user_filename=eq.${folderPath}&select=count`, {
+      const response = await fetch(`${config.supabase_server_url}/generated_images?user_uuid=eq.${userData.id}&generation_status=eq.completed&user_filename=eq.${folderPath}&select=count`, {
         headers: {
           'Authorization': 'Bearer WeInfl3nc3withAI',
           'Content-Type': 'application/json'

@@ -67,6 +67,7 @@ interface LipsyncPresetData {
   prompt: string;
   video_url?: string;
   voice_url?: string;
+  voice_name?: string; // Name of the selected voice (for ElevenLabs voices)
   preset_image?: string; // Preset image URL (selected image for the preset)
   upload_flag: boolean; // Flag to determine if using option 1 or 2
   
@@ -386,10 +387,16 @@ export default function LipsyncLibraryManager({ onClose, onApplyPreset }: {
                           Video
                         </Badge>
                       )}
-                      {preset.voice_url && (
+                      {preset.voice_name && !preset.upload_flag && (
                         <Badge variant="outline" className="text-xs">
                           <Volume2 className="w-3 h-3 mr-1" />
-                          Voice
+                          {preset.voice_name}
+                        </Badge>
+                      )}
+                      {preset.voice_url && preset.upload_flag && (
+                        <Badge variant="outline" className="text-xs">
+                          <Volume2 className="w-3 h-3 mr-1" />
+                          Uploaded Voice
                         </Badge>
                       )}
                     </div>
@@ -471,6 +478,13 @@ export default function LipsyncLibraryManager({ onClose, onApplyPreset }: {
                       <div>
                         <Label className="text-sm font-medium text-muted-foreground">Video URL</Label>
                         <p className="text-sm break-all">{detailedPresetModal.preset.video_url}</p>
+                      </div>
+                    )}
+
+                    {detailedPresetModal.preset.voice_name && !detailedPresetModal.preset.upload_flag && (
+                      <div>
+                        <Label className="text-sm font-medium text-muted-foreground">Voice Name</Label>
+                        <p className="text-sm font-medium">{detailedPresetModal.preset.voice_name}</p>
                       </div>
                     )}
 

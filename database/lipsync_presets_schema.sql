@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS lipsync_presets (
     prompt TEXT NOT NULL,
     video_url TEXT, -- Video URL for lipsync generation
     voice_url TEXT, -- Voice/audio URL for lipsync generation
+    voice_name TEXT, -- Name of the selected voice (for ElevenLabs voices)
     preset_image TEXT, -- Preset image URL (selected image for the preset)
     upload_flag BOOLEAN DEFAULT FALSE, -- Flag to determine if using option 1 or 2
     
@@ -32,6 +33,7 @@ CREATE INDEX IF NOT EXISTS idx_lipsync_presets_created_at ON lipsync_presets(cre
 CREATE INDEX IF NOT EXISTS idx_lipsync_presets_favorite ON lipsync_presets(favorite);
 CREATE INDEX IF NOT EXISTS idx_lipsync_presets_rating ON lipsync_presets(rating);
 CREATE INDEX IF NOT EXISTS idx_lipsync_presets_upload_flag ON lipsync_presets(upload_flag);
+CREATE INDEX IF NOT EXISTS idx_lipsync_presets_voice_name ON lipsync_presets(voice_name);
 
 -- Enable Row Level Security (RLS)
 ALTER TABLE lipsync_presets ENABLE ROW LEVEL SECURITY;
@@ -69,6 +71,7 @@ COMMENT ON TABLE lipsync_presets IS 'Stores lipsync generation presets for users
 COMMENT ON COLUMN lipsync_presets.prompt IS 'Main prompt describing what to generate in the lipsync';
 COMMENT ON COLUMN lipsync_presets.video_url IS 'URL to the video file for lipsync generation';
 COMMENT ON COLUMN lipsync_presets.voice_url IS 'URL to the voice/audio file for lipsync generation';
+COMMENT ON COLUMN lipsync_presets.voice_name IS 'Name of the selected voice (for ElevenLabs voices when upload_flag is false)';
 COMMENT ON COLUMN lipsync_presets.preset_image IS 'URL to the preset image (selected image for the preset)';
 COMMENT ON COLUMN lipsync_presets.upload_flag IS 'Flag to determine if using upload option (option 1) or other option (option 2)';
 COMMENT ON COLUMN lipsync_presets.rating IS 'User rating from 1-5 stars';

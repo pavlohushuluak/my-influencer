@@ -707,14 +707,16 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
       // Determine upload_flag based on active phase
       const upload_flag = activePhase === 'upload';
 
-      // Get the appropriate URLs based on the active phase
+      // Get the appropriate URLs and voice name based on the active phase
       let video_url = '';
       let voice_url = '';
+      let voice_name = '';
 
       if (activePhase === 'upload') {
         voice_url = uploadedAudioUrl || '';
       } else if (activePhase === 'elevenlabs') {
         voice_url = selectedElevenLabsVoice?.preview_url || '';
+        voice_name = selectedElevenLabsVoice?.name || '';
       }
 
       // Get video URL from selected video
@@ -722,25 +724,64 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
         video_url = `${config.data_url}/cdn-cgi/image/w=400/${userData.id}/${selectedVideo.user_filename === "" ? "output" : "vault/" + selectedVideo.user_filename}/${selectedVideo.system_filename}`;
       }
 
-      const presetData = {
+      // Validate required fields
+      if (!userData.id) {
+        throw new Error('User ID is required');
+      }
+      if (!presetName.trim()) {
+        throw new Error('Preset name is required');
+      }
+      if (!textToSpeak.trim()) {
+        throw new Error('Prompt is required');
+      }
+
+      // Create preset data with voice_name if available
+      const presetData: any = {
         user_id: userData.id,
         name: presetName.trim(),
-        description: presetDescription.trim(),
-        prompt: textToSpeak,
-        video_url: video_url,
-        voice_url: voice_url,
+        description: presetDescription.trim() || null, // Ensure description is null if empty
+        prompt: textToSpeak.trim(),
+        video_url: video_url || null, // Ensure null if empty
+        voice_url: voice_url || null, // Ensure null if empty
         preset_image: selectedPresetImage.preview_url || `${config.data_url}/cdn-cgi/image/w=400/${userData.id}/${selectedPresetImage.user_filename === "" ? "output" : "vault/" + selectedPresetImage.user_filename}/${selectedPresetImage.system_filename}`,
         upload_flag: upload_flag
       };
 
-      const response = await fetch(`${config.supabase_server_url}/lipsync_presets`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer WeInfl3nc3withAI'
-        },
-        body: JSON.stringify(presetData)
-      });
+      // Add voice_name if we have it and it's not empty
+      if (voice_name && voice_name.trim()) {
+        presetData.voice_name = voice_name.trim();
+      }
+
+      console.log('Preset data:', presetData);
+      console.log('Preset data JSON:', JSON.stringify(presetData, null, 2));
+
+      // Test database connection and table structure
+      try {
+        const testResponse = await fetch(`${config.supabase_server_url}/lipsync_presets?select=id&limit=1`, {
+          headers: {
+            'Authorization': 'Bearer WeInfl3nc3withAI'
+          }
+        });
+        console.log('Database connection test:', testResponse.status, testResponse.statusText);
+      } catch (error) {
+        console.error('Database connection test failed:', error);
+      }
+
+      // Try to save the preset
+      let response;
+      try {
+        response = await fetch(`${config.supabase_server_url}/lipsync_presets`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer WeInfl3nc3withAI'
+          },
+          body: JSON.stringify(presetData)
+        });
+      } catch (error) {
+        console.error('Network error:', error);
+        throw new Error(`Network error: ${error}`);
+      }
 
       if (response.ok) {
         toast.success('Lipsync preset saved successfully!');
@@ -749,7 +790,9 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
         setPresetDescription('');
         setSelectedPresetImage(null);
       } else {
-        throw new Error('Failed to save lipsync preset');
+        const errorText = await response.text();
+        console.error('Server response:', response.status, errorText);
+        throw new Error(`Failed to save lipsync preset: ${response.status} - ${errorText}`);
       }
     } catch (error) {
       console.error('Error saving lipsync preset:', error);
@@ -766,15 +809,33 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
     // Set the appropriate phase based on upload_flag
     if (preset.upload_flag) {
       setActivePhase('upload');
-      // Note: We can't restore the uploaded file, but we can show the URL
+      // For upload phase, set the voice URL
       if (preset.voice_url) {
         setUploadedAudioUrl(preset.voice_url);
+        setSelectedAudioUrl(preset.voice_url);
       }
     } else {
       setActivePhase('elevenlabs');
-      // Note: We can't restore the exact voice selection, but we can show the URL
-      if (preset.voice_url) {
-        // This would need to be handled differently based on your voice selection logic
+      // For ElevenLabs phase, find and select the voice by name
+      if (preset.voice_name) {
+        const voice = elevenLabsVoices.find(v => v.name === preset.voice_name);
+        if (voice) {
+          setSelectedElevenLabsVoice(voice);
+          const selectedUrl = `${config.data_url}/wizard/mappings/${voice.elevenlabs_id}.mp3`;
+          setSelectedAudioUrl(selectedUrl);
+          setSelectedAudioId(voice.elevenlabs_id);
+          console.log(`Applied voice: ${voice.name} (${voice.elevenlabs_id})`);
+        } else {
+          // If voice not found, try to use the voice_url as fallback
+          if (preset.voice_url) {
+            setSelectedAudioUrl(preset.voice_url);
+            console.log(`Voice not found by name, using URL fallback: ${preset.voice_url}`);
+          }
+        }
+      } else if (preset.voice_url) {
+        // Fallback to voice_url if voice_name is not available
+        setSelectedAudioUrl(preset.voice_url);
+        console.log(`No voice name available, using URL: ${preset.voice_url}`);
       }
     }
 

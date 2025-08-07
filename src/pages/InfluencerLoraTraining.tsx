@@ -517,6 +517,22 @@ export default function InfluencerLoraTraining() {
       }
 
       toast.success('LORA training started successfully');
+      
+      // Refresh influencer data to update lorastatus
+      await fetchInfluencers();
+      
+      // Update the selected influencer with fresh data
+      const updatedInfluencers = await fetch(`${config.supabase_server_url}/influencer?user_id=eq.${userData.id}`, {
+        headers: {
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        }
+      }).then(res => res.json());
+      
+      const updatedInfluencer = updatedInfluencers.find((inf: any) => inf.id === selectedInfluencer.id);
+      if (updatedInfluencer) {
+        setSelectedInfluencer(updatedInfluencer);
+      }
+      
       fetchLoraVersions();
     } catch (error) {
       console.error('Training error:', error);

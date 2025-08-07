@@ -771,13 +771,13 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
       let response;
       try {
         response = await fetch(`${config.supabase_server_url}/lipsync_presets`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer WeInfl3nc3withAI'
-          },
-          body: JSON.stringify(presetData)
-        });
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify(presetData)
+      });
       } catch (error) {
         console.error('Network error:', error);
         throw new Error(`Network error: ${error}`);
@@ -827,7 +827,7 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
           console.log(`Applied voice: ${voice.name} (${voice.elevenlabs_id})`);
         } else {
           // If voice not found, try to use the voice_url as fallback
-          if (preset.voice_url) {
+      if (preset.voice_url) {
             setSelectedAudioUrl(preset.voice_url);
             console.log(`Voice not found by name, using URL fallback: ${preset.voice_url}`);
           }

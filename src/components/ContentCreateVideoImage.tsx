@@ -1064,15 +1064,15 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
         {/* Professional Preset and Library Buttons */}
         <div className="flex items-center gap-3">
           <div className="items-center gap-2 hidden xl:grid xl:grid-cols-2 2xl:grid-cols-4">
-                      <Button
+            <Button
             onClick={() => setShowVideoLibraryModal(true)}
-            variant="outline"
-            size="sm"
-            className="h-10 px-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-blue-200 dark:border-blue-700 hover:from-blue-100 hover:to-indigo-100 dark:hover:from-blue-800/30 dark:hover:to-indigo-800/30 text-blue-700 dark:text-blue-300 font-medium shadow-sm hover:shadow-md transition-all duration-200"
-          >
-            <FolderOpen className="w-4 h-4 mr-2" />
+              variant="outline"
+              size="sm"
+              className="h-10 px-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-blue-200 dark:border-blue-700 hover:from-blue-100 hover:to-indigo-100 dark:hover:from-blue-800/30 dark:hover:to-indigo-800/30 text-blue-700 dark:text-blue-300 font-medium shadow-sm hover:shadow-md transition-all duration-200"
+            >
+              <FolderOpen className="w-4 h-4 mr-2" />
             Video Library
-          </Button>
+            </Button>
 
             <Button
               onClick={() => setShowPresetModal(true)}

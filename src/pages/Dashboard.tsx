@@ -97,7 +97,6 @@ export default function Dashboard() {
   }, [userData.billing_date, userData.id]);
 
   // console.log('User Data:', userData);
-  useEffect(() => {
     const fetchInfluencers = async () => {
       try {
         dispatch(setLoading(true));
@@ -120,6 +119,7 @@ export default function Dashboard() {
       }
     };
 
+  useEffect(() => {
     fetchInfluencers();
   }, [dispatch]);
 
@@ -294,6 +294,9 @@ export default function Dashboard() {
 
         toast.success('Profile image selected successfully for LoRA training');
       }
+
+      // Refresh influencer data to update lorastatus
+      await fetchInfluencers();
 
       setShowCharacterConsistencyModal(false);
       // Reset upload state

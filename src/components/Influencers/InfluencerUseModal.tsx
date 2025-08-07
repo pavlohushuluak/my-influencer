@@ -37,6 +37,7 @@ interface Influencer {
   image_url: string;
   image_num?: number;
   bio?: { [key: string]: any }; // Added bio field
+  lorastatus?: number; // LoRA training status: 0=not trained, 1=training, 2=trained, 9=error
   // ...other fields as needed
 }
 
@@ -61,6 +62,10 @@ export const InfluencerUseModal: React.FC<InfluencerUseModalProps> = ({
   const [bioMode, setBioMode] = useState<'view' | 'create' | null>(null);
   const [bioLoading, setBioLoading] = useState(false);
   const [bioError, setBioError] = useState<string | null>(null);
+  
+  // Character Consistency warning modal state
+  const [showLoraWarningModal, setShowLoraWarningModal] = useState(false);
+  const [loraWarningType, setLoraWarningType] = useState<'training' | 'trained' | null>(null);
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
@@ -71,6 +76,27 @@ export const InfluencerUseModal: React.FC<InfluencerUseModalProps> = ({
       setBioMode('view');
     }
     setShowBioModal(true);
+  };
+
+  const handleCharacterConsistencyClick = () => {
+    const loraStatus = influencer?.lorastatus || 0;
+    
+    if (loraStatus === 0) {
+      // Allow character consistency training
+      onCharacterConsistency();
+    } else if (loraStatus === 1) {
+      // Show warning for training in progress
+      setLoraWarningType('training');
+      setShowLoraWarningModal(true);
+    } else if (loraStatus === 2) {
+      // Show warning for already trained
+      setLoraWarningType('trained');
+      setShowLoraWarningModal(true);
+    } else {
+      // For any other status (including 9=error), show training warning
+      setLoraWarningType('training');
+      setShowLoraWarningModal(true);
+    }
   };
 
   const handleCreateBio = async () => {
@@ -239,7 +265,7 @@ export const InfluencerUseModal: React.FC<InfluencerUseModalProps> = ({
                 {/* Character Consistency Option */}
                 <Card 
                   className="group cursor-pointer hover:shadow-xl transition-all duration-300 border-2 border-green-200 hover:border-green-400 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 hover:scale-105"
-                  onClick={onCharacterConsistency}
+                  onClick={handleCharacterConsistencyClick}
                 >
                   <CardContent className="p-6">
                     <div className="flex items-start gap-4">
@@ -408,6 +434,117 @@ export const InfluencerUseModal: React.FC<InfluencerUseModalProps> = ({
               </CardContent>
             </Card>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* LoRA Warning Modal */}
+      <Dialog open={showLoraWarningModal} onOpenChange={setShowLoraWarningModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader className="text-center pb-4">
+            <div className="flex items-center justify-center gap-3 mb-2">
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center shadow-lg ${
+                loraWarningType === 'training' 
+                  ? 'bg-gradient-to-br from-blue-500 to-indigo-500' 
+                  : 'bg-gradient-to-br from-green-500 to-emerald-500'
+              }`}>
+                {loraWarningType === 'training' ? (
+                  <Clock className="w-5 h-5 text-white" />
+                ) : (
+                  <CheckCircle className="w-5 h-5 text-white" />
+                )}
+              </div>
+              <div>
+                <DialogTitle className={`text-xl font-bold bg-clip-text text-transparent ${
+                  loraWarningType === 'training' 
+                    ? 'bg-gradient-to-r from-blue-600 to-indigo-600' 
+                    : 'bg-gradient-to-r from-green-600 to-emerald-600'
+                }`}>
+                  {loraWarningType === 'training' ? 'LoRA Training in Progress' : 'LoRA Already Trained'}
+                </DialogTitle>
+                <DialogDescription className="text-muted-foreground">
+                  {loraWarningType === 'training' 
+                    ? 'Character consistency training is currently active' 
+                    : 'This influencer has already completed character consistency training'
+                  }
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+          
+          <Card className={`border-2 ${
+            loraWarningType === 'training' 
+              ? 'border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20' 
+              : 'border-green-200 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20'
+          }`}>
+            <CardContent className="p-6">
+              <div className="text-center space-y-4">
+                {loraWarningType === 'training' ? (
+                  <>
+                    <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-full flex items-center justify-center mx-auto shadow-lg">
+                      <div className="relative">
+                        <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      </div>
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">
+                        Training in Progress
+                      </h3>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        {influencer?.name_first}'s LoRA model is currently being trained for character consistency. 
+                        This process typically takes 5-15 minutes. Please wait for completion before proceeding.
+                      </p>
+                    </div>
+                    <div className="flex items-center justify-center gap-2 text-xs text-blue-600 dark:text-blue-400">
+                      <Clock className="w-3 h-3" />
+                      <span>Training in progress...</span>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-emerald-500 rounded-full flex items-center justify-center mx-auto shadow-lg">
+                      <CheckCircle className="w-8 h-8 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">
+                        Already Trained
+                      </h3>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        {influencer?.name_first} has already completed character consistency training. 
+                        The LoRA model is ready and optimized for high-quality AI generation.
+                      </p>
+                    </div>
+                    <div className="flex items-center justify-center gap-2 text-xs text-green-600 dark:text-green-400">
+                      <CheckCircle className="w-3 h-3" />
+                      <span>LoRA model ready</span>
+                    </div>
+                  </>
+                )}
+                
+                <div className="flex gap-3 pt-2">
+                  <Button 
+                    variant="outline"
+                    onClick={() => setShowLoraWarningModal(false)}
+                    className="flex-1"
+                  >
+                    Close
+                  </Button>
+                  {loraWarningType === 'training' && (
+                    <Button 
+                      onClick={() => {
+                        setShowLoraWarningModal(false);
+                        // Navigate to LoRA training page to check status
+                        navigate(`/influencer/lora-training/${influencer?.id}`);
+                      }}
+                      className="flex-1 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white"
+                    >
+                      <Brain className="w-4 h-4 mr-2" />
+                      Check Status
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </DialogContent>
       </Dialog>
     </>

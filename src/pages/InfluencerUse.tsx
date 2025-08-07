@@ -86,7 +86,30 @@ export default function InfluencerUse() {
     }
   }, [location.state, navigate]);
 
+  // Handle navigation from LoRA page to open character consistency modal
   useEffect(() => {
+    if (location.state?.openCharacterConsistency && location.state?.selectedInfluencerId) {
+      const influencer = influencers.find(inf => inf.id === location.state.selectedInfluencerId);
+      if (influencer) {
+        setSelectedInfluencerData(influencer);
+        setSelectedInfluencer(influencer.id);
+        
+        // Get the latest profile picture URL with correct format
+        let latestImageNum = influencer.image_num - 1;
+        if (latestImageNum === -1) {
+          latestImageNum = 0;
+        }
+        const profileImageUrl = `${config.data_url}/cdn-cgi/image/w=400/${userData.id}/models/${influencer.id}/profilepic/profilepic${latestImageNum}.png`;
+
+        setSelectedProfileImage(profileImageUrl);
+        setShowCharacterConsistencyModal(true);
+        
+        // Clear the navigation state to prevent reopening
+        navigate(location.pathname, { replace: true });
+      }
+    }
+  }, [location.state, influencers, userData.id, navigate]);
+
     const fetchInfluencers = async () => {
       try {
         dispatch(setLoading(true));
@@ -109,6 +132,7 @@ export default function InfluencerUse() {
       }
     };
 
+  useEffect(() => {
     fetchInfluencers();
   }, [userData.id]);
 
@@ -241,6 +265,9 @@ export default function InfluencerUse() {
 
         toast.success('Profile image selected successfully for LoRA training');
       }
+
+      // Refresh influencer data to update lorastatus
+      await fetchInfluencers();
 
       // Update guide_step if it's currently 2
       if (userData.guide_step === 2) {
@@ -641,9 +668,9 @@ export default function InfluencerUse() {
                   </p>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="flex justify-center gap-6">
                   {/* Profile Image Card */}
-                  <Card className="group border-2 border-green-500/20 hover:border-green-500/40 transition-all duration-300 shadow-lg hover:shadow-xl bg-gradient-to-br from-green-50/30 to-emerald-50/30 dark:from-green-950/10 dark:to-emerald-950/10">
+                  <Card className="max-w-md group border-2 border-green-500/20 hover:border-green-500/40 transition-all duration-300 shadow-lg hover:shadow-xl bg-gradient-to-br from-green-50/30 to-emerald-50/30 dark:from-green-950/10 dark:to-emerald-950/10">
                     <CardContent className="p-6">
                       <div className="space-y-4">
                         <div className="relative">
@@ -674,115 +701,6 @@ export default function InfluencerUse() {
                     </CardContent>
                   </Card>
 
-                  {/* Upload Card */}
-                  <Card className="group border-2 border-dashed border-gray-300 dark:border-gray-600 hover:border-blue-400 dark:hover:border-blue-500 transition-all duration-300 shadow-lg hover:shadow-xl bg-gradient-to-br from-blue-50/30 to-purple-50/30 dark:from-blue-950/10 dark:to-purple-950/10">
-                    <CardContent className="p-6">
-                      {uploadedImageUrl ? (
-                        // Show uploaded image
-                        <div className="space-y-4">
-                          <div className="relative">
-                            <div className="aspect-square bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/30 dark:to-purple-900/30 rounded-2xl overflow-hidden shadow-lg">
-                              <img
-                                src={uploadedImageUrl}
-                                alt="Uploaded profile picture"
-                                className="w-full h-full object-cover"
-                              />
-                            </div>
-                            <button
-                              onClick={handleRemoveUploadedImage}
-                              className="absolute top-3 right-3 w-8 h-8 bg-red-500 hover:bg-red-600 rounded-full flex items-center justify-center shadow-lg transition-colors"
-                            >
-                              <X className="w-4 h-4 text-white" />
-                            </button>
-                            <div className="absolute top-3 left-3 w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center shadow-lg">
-                              <Upload className="w-4 h-4 text-white" />
-                            </div>
-                          </div>
-                          <div className="text-center space-y-3">
-                            <h4 className="font-semibold text-lg text-gray-900 dark:text-gray-100">
-                              Uploaded Image
-                            </h4>
-                            <p className="text-sm text-gray-600 dark:text-gray-300">
-                              {uploadedFile?.name} • {(uploadedFile?.size / 1024 / 1024).toFixed(2)} MB
-                            </p>
-                            <div className="flex items-center justify-center gap-2 text-xs text-blue-600 dark:text-blue-400 mb-3">
-                              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                              Ready for LoRA Training
-                            </div>
-                          </div>
-                        </div>
-                      ) : (
-                        // Show professional upload interface
-                        <div
-                          className="space-y-4"
-                          onDragOver={handleDragOver}
-                          onDragLeave={handleDragLeave}
-                          onDrop={handleDrop}
-                        >
-                          {/* Drag & Drop Area - Looks like an image */}
-                          <div className="relative group/drag">
-                            <div className="aspect-square bg-gradient-to-br from-blue-100 via-purple-100 to-indigo-100 dark:from-blue-900/20 dark:via-purple-900/20 dark:to-indigo-900/20 rounded-2xl overflow-hidden shadow-lg border-2 border-dashed border-blue-300 dark:border-blue-600 group-hover/drag:border-blue-400 dark:group-hover/drag:border-blue-500 transition-all duration-300">
-                              {/* Background Pattern */}
-                              <div className="absolute inset-0 bg-gradient-to-br from-blue-50/50 to-purple-50/50 dark:from-blue-950/30 dark:to-purple-950/30"></div>
-
-                              {/* Upload Icon and Text */}
-                              <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6">
-                                <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-xl mb-4 group-hover/drag:scale-110 transition-transform duration-300">
-                                  <Upload className="w-8 h-8 text-white" />
-                                </div>
-                                <h4 className="font-semibold text-lg text-gray-900 dark:text-gray-100 mb-2">
-                                  Upload New Image
-                                </h4>
-                                <p className="text-sm text-gray-600 dark:text-gray-300 mb-3 max-w-xs">
-                                  Drag & drop your image here or click to browse
-                                </p>
-                                <div className="flex items-center gap-2 text-xs text-blue-600 dark:text-blue-400">
-                                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                                  PNG, JPG, JPEG up to 10MB
-                                </div>
-                              </div>
-
-                              {/* Hover Overlay */}
-                              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-purple-500/10 opacity-0 group-hover/drag:opacity-100 transition-opacity duration-300 rounded-2xl"></div>
-                            </div>
-
-                            {/* File Input */}
-                            <input
-                              type="file"
-                              accept="image/*"
-                              onChange={handleFileUpload}
-                              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                              id="profile-image-upload"
-                            />
-                          </div>
-
-                          {/* Additional Upload Options */}
-                          <div className="text-center space-y-3">
-                            <div className="flex items-center justify-center gap-4">
-                              <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-                                <div className="w-1.5 h-1.5 bg-gray-400 rounded-full"></div>
-                                High Quality
-                              </div>
-                              <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-                                <div className="w-1.5 h-1.5 bg-gray-400 rounded-full"></div>
-                                Secure Upload
-                              </div>
-                              <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-                                <div className="w-1.5 h-1.5 bg-gray-400 rounded-full"></div>
-                                Instant Processing
-                              </div>
-                            </div>
-
-                            <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-lg p-3 border border-blue-200/50 dark:border-blue-800/50">
-                              <p className="text-xs text-gray-600 dark:text-gray-300">
-                                <span className="font-medium">Tip:</span> Use high-resolution images for better character consistency training results.
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
                 </div>
               </div>
 

@@ -8,13 +8,13 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { 
-  Brain, 
-  Image as ImageIcon, 
-  Settings, 
-  Search, 
-  Filter, 
-  SortAsc, 
+import {
+  Brain,
+  Image as ImageIcon,
+  Settings,
+  Search,
+  Filter,
+  SortAsc,
   SortDesc,
   Clock,
   AlertTriangle,
@@ -27,6 +27,7 @@ import {
 import { toast } from 'sonner';
 import { setInfluencers, setLoading, setError } from '@/store/slices/influencersSlice';
 import { LoraStatusIndicator } from '@/components/Influencers/LoraStatusIndicator';
+import LoraManagement from '@/components/LoraManagement';
 import config from '@/config/config';
 
 interface Influencer {
@@ -108,6 +109,7 @@ export default function Lora() {
   const [showWarningModal, setShowWarningModal] = useState(false);
   const [selectedInfluencer, setSelectedInfluencer] = useState<Influencer | null>(null);
   const [warningType, setWarningType] = useState<'not-trained' | 'training' | null>(null);
+  const [showLoraManagementModal, setShowLoraManagementModal] = useState(false);
 
   const fetchInfluencers = async () => {
     try {
@@ -137,7 +139,7 @@ export default function Lora() {
 
   const handleManageLora = (influencer: Influencer) => {
     const loraStatus = influencer.lorastatus || 0;
-    
+
     if (loraStatus === 0) {
       // Not trained - show warning with train button
       setSelectedInfluencer(influencer);
@@ -149,10 +151,9 @@ export default function Lora() {
       setWarningType('training');
       setShowWarningModal(true);
     } else if (loraStatus === 2) {
-      // Trained - show LoRA management component (to be implemented)
-      toast.info('LoRA Management component will be implemented soon');
-      // TODO: Navigate to LoRA management component
-      // navigate(`/lora/management/${influencer.id}`);
+      // Trained - show LoRA management component
+      setSelectedInfluencer(influencer);
+      setShowLoraManagementModal(true);
     } else {
       // Error or other status - treat as not trained
       setSelectedInfluencer(influencer);
@@ -163,7 +164,7 @@ export default function Lora() {
 
   const handleTrainLora = () => {
     if (!selectedInfluencer) return;
-    
+
     setShowWarningModal(false);
     // Navigate to InfluencerUse page with character consistency modal
     navigate('/influencers', {
@@ -191,12 +192,12 @@ export default function Lora() {
 
   // Filter and sort influencers
   const filteredInfluencers = influencers.filter(influencer => {
-    const matchesSearch = searchTerm === '' || 
+    const matchesSearch = searchTerm === '' ||
       influencer.name_first.toLowerCase().includes(searchTerm.toLowerCase()) ||
       influencer.name_last.toLowerCase().includes(searchTerm.toLowerCase()) ||
       influencer.notes?.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesLoraStatus = selectedFilters.lorastatus === null || 
+    const matchesLoraStatus = selectedFilters.lorastatus === null ||
       influencer.lorastatus === selectedFilters.lorastatus;
 
     return matchesSearch && matchesLoraStatus;
@@ -204,7 +205,7 @@ export default function Lora() {
 
   const sortedInfluencers = [...filteredInfluencers].sort((a, b) => {
     let comparison = 0;
-    
+
     switch (sortBy) {
       case 'newest':
         comparison = new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
@@ -301,40 +302,36 @@ export default function Lora() {
               <div className="grid">
                 <button
                   onClick={() => setSortBy('newest')}
-                  className={`flex items-center px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors ${
-                    sortBy === 'newest' ? 'bg-accent text-accent-foreground' : ''
-                  }`}
+                  className={`flex items-center px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors ${sortBy === 'newest' ? 'bg-accent text-accent-foreground' : ''
+                    }`}
                 >
                   Newest
                 </button>
                 <button
                   onClick={() => setSortBy('oldest')}
-                  className={`flex items-center px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors ${
-                    sortBy === 'oldest' ? 'bg-accent text-accent-foreground' : ''
-                  }`}
+                  className={`flex items-center px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors ${sortBy === 'oldest' ? 'bg-accent text-accent-foreground' : ''
+                    }`}
                 >
                   Oldest
                 </button>
                 <button
                   onClick={() => setSortBy('name')}
-                  className={`flex items-center px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors ${
-                    sortBy === 'name' ? 'bg-accent text-accent-foreground' : ''
-                  }`}
+                  className={`flex items-center px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors ${sortBy === 'name' ? 'bg-accent text-accent-foreground' : ''
+                    }`}
                 >
                   Name
                 </button>
                 <button
                   onClick={() => setSortBy('lorastatus')}
-                  className={`flex items-center px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors ${
-                    sortBy === 'lorastatus' ? 'bg-accent text-accent-foreground' : ''
-                  }`}
+                  className={`flex items-center px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors ${sortBy === 'lorastatus' ? 'bg-accent text-accent-foreground' : ''
+                    }`}
                 >
                   LoRA Status
                 </button>
               </div>
             </PopoverContent>
           </Popover>
-          
+
           <Button
             variant="outline"
             size="sm"
@@ -383,41 +380,36 @@ export default function Lora() {
                   <div className="grid">
                     <button
                       onClick={() => setSelectedFilters(prev => ({ ...prev, lorastatus: null }))}
-                      className={`flex items-center px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors ${
-                        selectedFilters.lorastatus === null ? 'bg-accent text-accent-foreground' : ''
-                      }`}
+                      className={`flex items-center px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors ${selectedFilters.lorastatus === null ? 'bg-accent text-accent-foreground' : ''
+                        }`}
                     >
                       All Statuses
                     </button>
                     <button
                       onClick={() => setSelectedFilters(prev => ({ ...prev, lorastatus: 0 }))}
-                      className={`flex items-center px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors ${
-                        selectedFilters.lorastatus === 0 ? 'bg-accent text-accent-foreground' : ''
-                      }`}
+                      className={`flex items-center px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors ${selectedFilters.lorastatus === 0 ? 'bg-accent text-accent-foreground' : ''
+                        }`}
                     >
                       Not Trained
                     </button>
                     <button
                       onClick={() => setSelectedFilters(prev => ({ ...prev, lorastatus: 1 }))}
-                      className={`flex items-center px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors ${
-                        selectedFilters.lorastatus === 1 ? 'bg-accent text-accent-foreground' : ''
-                      }`}
+                      className={`flex items-center px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors ${selectedFilters.lorastatus === 1 ? 'bg-accent text-accent-foreground' : ''
+                        }`}
                     >
                       Training
                     </button>
                     <button
                       onClick={() => setSelectedFilters(prev => ({ ...prev, lorastatus: 2 }))}
-                      className={`flex items-center px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors ${
-                        selectedFilters.lorastatus === 2 ? 'bg-accent text-accent-foreground' : ''
-                      }`}
+                      className={`flex items-center px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors ${selectedFilters.lorastatus === 2 ? 'bg-accent text-accent-foreground' : ''
+                        }`}
                     >
                       Trained
                     </button>
                     <button
                       onClick={() => setSelectedFilters(prev => ({ ...prev, lorastatus: 9 }))}
-                      className={`flex items-center px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors ${
-                        selectedFilters.lorastatus === 9 ? 'bg-accent text-accent-foreground' : ''
-                      }`}
+                      className={`flex items-center px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors ${selectedFilters.lorastatus === 9 ? 'bg-accent text-accent-foreground' : ''
+                        }`}
                     >
                       Error
                     </button>
@@ -579,11 +571,10 @@ export default function Lora() {
         <DialogContent className="max-w-md">
           <DialogHeader className="text-center pb-4">
             <div className="flex items-center justify-center gap-3 mb-2">
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center shadow-lg ${
-                warningType === 'not-trained' 
-                  ? 'bg-gradient-to-br from-orange-500 to-red-500' 
-                  : 'bg-gradient-to-br from-blue-500 to-indigo-500'
-              }`}>
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center shadow-lg ${warningType === 'not-trained'
+                ? 'bg-gradient-to-br from-orange-500 to-red-500'
+                : 'bg-gradient-to-br from-blue-500 to-indigo-500'
+                }`}>
                 {warningType === 'not-trained' ? (
                   <AlertTriangle className="w-5 h-5 text-white" />
                 ) : (
@@ -591,28 +582,26 @@ export default function Lora() {
                 )}
               </div>
               <div>
-                <DialogTitle className={`text-xl font-bold bg-clip-text text-transparent ${
-                  warningType === 'not-trained' 
-                    ? 'bg-gradient-to-r from-orange-600 to-red-600' 
-                    : 'bg-gradient-to-r from-blue-600 to-indigo-600'
-                }`}>
+                <DialogTitle className={`text-xl font-bold bg-clip-text text-transparent ${warningType === 'not-trained'
+                  ? 'bg-gradient-to-r from-orange-600 to-red-600'
+                  : 'bg-gradient-to-r from-blue-600 to-indigo-600'
+                  }`}>
                   {warningType === 'not-trained' ? 'LoRA Not Trained' : 'LoRA Training in Progress'}
                 </DialogTitle>
                 <DialogDescription className="text-muted-foreground">
-                  {warningType === 'not-trained' 
-                    ? 'This influencer needs character consistency training' 
+                  {warningType === 'not-trained'
+                    ? 'This influencer needs character consistency training'
                     : 'Character consistency training is currently active'
                   }
                 </DialogDescription>
               </div>
             </div>
           </DialogHeader>
-          
-          <Card className={`border-2 ${
-            warningType === 'not-trained' 
-              ? 'border-orange-200 bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-950/20 dark:to-red-950/20' 
-              : 'border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20'
-          }`}>
+
+          <Card className={`border-2 ${warningType === 'not-trained'
+            ? 'border-orange-200 bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-950/20 dark:to-red-950/20'
+            : 'border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20'
+            }`}>
             <CardContent className="p-6">
               <div className="text-center space-y-4">
                 {warningType === 'not-trained' ? (
@@ -654,9 +643,9 @@ export default function Lora() {
                     </div>
                   </>
                 )}
-                
+
                 <div className="flex gap-3 pt-2">
-                  <Button 
+                  <Button
                     variant="outline"
                     onClick={() => setShowWarningModal(false)}
                     className="flex-1"
@@ -664,7 +653,7 @@ export default function Lora() {
                     Close
                   </Button>
                   {warningType === 'not-trained' && (
-                    <Button 
+                    <Button
                       onClick={handleTrainLora}
                       className="flex-1 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white"
                     >
@@ -676,6 +665,29 @@ export default function Lora() {
               </div>
             </CardContent>
           </Card>
+        </DialogContent>
+      </Dialog>
+
+      {/* LoRA Management Modal */}
+      <Dialog open={showLoraManagementModal} onOpenChange={setShowLoraManagementModal}>
+        <DialogContent className="max-w-7xl max-h-[90vh] p-0 overflow-y-auto">
+          <DialogHeader className="p-6 pb-0">
+            <DialogTitle className="text-2xl font-bold bg-ai-gradient bg-clip-text text-transparent">
+              LoRA Management
+            </DialogTitle>
+            <DialogDescription className='text-muted-foreground'>
+              Managing LoRA files for {selectedInfluencer?.name_first} {selectedInfluencer?.name_last}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="p-6 pt-0">
+            {selectedInfluencer && (
+              <LoraManagement
+                influencerId={selectedInfluencer.id}
+                influencerName={`${selectedInfluencer.name_first} ${selectedInfluencer.name_last}`}
+                onClose={() => setShowLoraManagementModal(false)}
+              />
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </div>

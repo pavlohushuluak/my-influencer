@@ -32,7 +32,8 @@ import {
   RotateCcw,
   Zap,
   ArrowLeft,
-  RotateCw
+  RotateCw,
+  Upload
 } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
@@ -90,6 +91,13 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
   const [isInTrash, setIsInTrash] = useState(false);
   const [trashFiles, setTrashFiles] = useState<LoraFile[]>([]);
   const [isStartingTraining, setIsStartingTraining] = useState(false);
+  
+  // Upload state
+  const [uploadModal, setUploadModal] = useState<{ open: boolean }>({ open: false });
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [uploadFileName, setUploadFileName] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
+  const [dragOverUpload, setDragOverUpload] = useState(false);
 
   // Fetch files from LoRA training folder
   const fetchLoraFiles = useCallback(async () => {
@@ -571,6 +579,60 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
     });
   };
 
+  // Handle file upload
+  const handleUploadFile = async () => {
+    if (!uploadedFile) {
+      toast.error('Please select a file to upload');
+      return;
+    }
+
+    if (!uploadFileName.trim()) {
+      toast.error('Please enter a filename');
+      return;
+    }
+
+    setIsUploading(true);
+
+    try {
+      // Check if file already exists
+      const fileExists = files.some(file => file.filename === uploadFileName);
+      if (fileExists) {
+        toast.error('A file with this name already exists');
+        setIsUploading(false);
+        return;
+      }
+
+      // Upload file
+      const uploadResponse = await fetch(`${config.backend_url}/uploadfile?user=${userData.id}&filename=models/${influencerId}/loratraining/${uploadFileName}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/octet-stream',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: uploadedFile
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error('Failed to upload file');
+      }
+
+      // Refresh files list
+      await fetchLoraFiles();
+
+      // Reset form
+      setUploadedFile(null);
+      setUploadFileName('');
+      setUploadModal({ open: false });
+
+      toast.success('File uploaded successfully!');
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      toast.error('Failed to upload file. Please try again.');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   useEffect(() => {
     fetchLoraFiles();
   }, [fetchLoraFiles]);
@@ -775,6 +837,77 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+          {/* Upload Card - Only show when not in trash */}
+          {!isInTrash && (
+            <Card
+              className={`group hover:shadow-lg transition-all duration-300 border-border/50 hover:border-purple-500/30 backdrop-blur-sm bg-gradient-to-br from-purple-50/20 to-pink-50/20 dark:from-purple-950/5 dark:to-pink-950/5 cursor-pointer ${dragOverUpload ? 'ring-4 ring-purple-500 ring-opacity-70 bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/40 dark:to-pink-900/40 scale-105 shadow-lg' : ''}`}
+              onClick={() => setUploadModal({ open: true })}
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'copy';
+                setDragOverUpload(true);
+              }}
+              onDragLeave={() => setDragOverUpload(false)}
+              onDrop={(e) => {
+                e.preventDefault();
+                setDragOverUpload(false);
+                const files = Array.from(e.dataTransfer.files);
+                if (files.length > 0) {
+                  const file = files[0];
+                  setUploadedFile(file);
+                  setUploadFileName(file.name);
+                  setUploadModal({ open: true });
+                }
+              }}
+            >
+              <CardContent className="p-6 h-full">
+                <div className="flex flex-col justify-between h-full space-y-4">
+                  {/* Upload Area */}
+                  <div className="relative w-full h-full bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg overflow-hidden">
+                    <div className={`flex flex-col w-full h-full items-center justify-center max-h-48 min-h-40 transition-all duration-200 ${dragOverUpload ? 'scale-105' : ''}`}>
+                      <Upload className={`w-8 h-8 mb-2 transition-colors ${dragOverUpload ? 'text-purple-500 dark:text-purple-400' : 'text-gray-400 dark:text-gray-500'}`} />
+                      <p className={`text-sm font-medium transition-colors ${dragOverUpload ? 'text-purple-600 dark:text-purple-400' : 'text-gray-500 dark:text-gray-400'}`}>
+                        {dragOverUpload ? 'Drop file here!' : 'Click to upload'}
+                      </p>
+                      <p className={`text-xs transition-colors ${dragOverUpload ? 'text-purple-500 dark:text-purple-400' : 'text-gray-400 dark:text-gray-500'}`}>
+                        or drag & drop
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Upload Info */}
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="font-semibold text-lg group-hover:text-purple-500 transition-colors">
+                        Upload File
+                      </h3>
+                    </div>
+
+                    <div className="flex flex-col gap-1 mb-3">
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <FileImage className="w-3 h-3" />
+                        Add new content
+                      </div>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setUploadModal({ open: true })}
+                        className="flex-1"
+                      >
+                        <Upload className="w-4 h-4 mr-2" />
+                        Upload
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+          
           {sortedFiles.map((file) => (
             <Card key={file.id} className="group hover:shadow-lg transition-all duration-300 border-border/50 hover:border-ai-purple-500/20">
               <CardContent className="p-6 h-full">
@@ -885,6 +1018,141 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
               )}
             </DialogContentZoom>
           </DialogZoom>
+        </DialogContent>
+      </Dialog>
+
+      {/* Upload Modal */}
+      <Dialog open={uploadModal.open} onOpenChange={(open) => setUploadModal({ open })}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Upload className="w-5 h-5 text-purple-500" />
+              Upload File to LoRA Training
+            </DialogTitle>
+            <DialogDescription>
+              Upload a file to the LoRA training folder for {influencerName}.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-6">
+            {/* File Upload Section */}
+            <div className="space-y-4">
+              <Label className="text-sm font-medium">File Upload</Label>
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-purple-400 transition-colors"
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  e.dataTransfer.dropEffect = 'copy';
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  const files = Array.from(e.dataTransfer.files);
+                  if (files.length > 0) {
+                    const file = files[0];
+                    setUploadedFile(file);
+                    setUploadFileName(file.name);
+                  }
+                }}
+              >
+                {uploadedFile ? (
+                  <div className="space-y-4">
+                    <div className="relative w-32 h-32 mx-auto">
+                      {uploadedFile.type.startsWith('image/') ? (
+                        <img
+                          src={URL.createObjectURL(uploadedFile)}
+                          alt={uploadedFile.name}
+                          className="w-full h-full object-cover rounded-md shadow-sm"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-md flex items-center justify-center">
+                          <FileImage className="w-8 h-8 text-purple-500" />
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-sm text-gray-600 font-medium">{uploadedFile.name}</p>
+                    <p className="text-xs text-gray-500">{(uploadedFile.size / 1024 / 1024).toFixed(2)} MB</p>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setUploadedFile(null);
+                        setUploadFileName('');
+                      }}
+                      className="mt-2"
+                    >
+                      Change File
+                    </Button>
+                  </div>
+                ) : (
+                  <>
+                    <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                    <p className="text-sm text-gray-600 mb-2">
+                      Click to select a file or drag and drop
+                    </p>
+                    <Input
+                      type="file"
+                      accept="image/*,video/*,.safetensors,.ckpt,.pt,.json,.yaml,.yml"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          setUploadedFile(file);
+                          setUploadFileName(file.name);
+                        }
+                      }}
+                      className="hidden"
+                      id="file-upload"
+                    />
+                    <Button
+                      variant="outline"
+                      onClick={() => document.getElementById('file-upload')?.click()}
+                      className="mt-2"
+                    >
+                      Select File
+                    </Button>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Filename Input */}
+            <div className="space-y-2">
+              <Label htmlFor="filename">Filename</Label>
+              <Input
+                id="filename"
+                value={uploadFileName}
+                onChange={(e) => setUploadFileName(e.target.value)}
+                placeholder="Enter filename"
+              />
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-2 pt-4 border-t">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setUploadModal({ open: false });
+                  setUploadedFile(null);
+                  setUploadFileName('');
+                }}
+                className="flex-1"
+                disabled={isUploading}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleUploadFile}
+                disabled={!uploadedFile || !uploadFileName.trim() || isUploading}
+                className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+              >
+                {isUploading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Uploading...
+                  </>
+                ) : (
+                  'Upload File'
+                )}
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

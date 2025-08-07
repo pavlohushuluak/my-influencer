@@ -67,6 +67,16 @@ interface LoraFile {
   status: 'training' | 'completed' | 'error';
 }
 
+// Interface for LoRA status from database
+interface LoraStatus {
+  lora_id: string;
+  user_uuid: string;
+  model_id: string;
+  description: string;
+  lastjobid: string;
+  status: string;
+}
+
 interface LoraManagementProps {
   influencerId: string;
   influencerName: string;
@@ -92,12 +102,48 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
   const [trashFiles, setTrashFiles] = useState<LoraFile[]>([]);
   const [isStartingTraining, setIsStartingTraining] = useState(false);
   
+  // LoRA status state
+  const [loraStatus, setLoraStatus] = useState<LoraStatus | null>(null);
+  const [isLoadingLoraStatus, setIsLoadingLoraStatus] = useState(true);
+  
   // Upload state
   const [uploadModal, setUploadModal] = useState<{ open: boolean }>({ open: false });
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [uploadFileName, setUploadFileName] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [dragOverUpload, setDragOverUpload] = useState(false);
+
+  // Fetch LoRA status from database
+  const fetchLoraStatus = useCallback(async () => {
+    try {
+      setIsLoadingLoraStatus(true);
+      
+      const response = await fetch(`${config.supabase_server_url}/loras?user_uuid=eq.${userData.id}&model_id=eq.${influencerId}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch LoRA status');
+      }
+
+      const loraData: LoraStatus[] = await response.json();
+      
+      // Set the first (and should be only) LoRA record for this model
+      if (loraData && loraData.length > 0) {
+        setLoraStatus(loraData[0]);
+      } else {
+        setLoraStatus(null);
+      }
+    } catch (error) {
+      console.error('Error fetching LoRA status:', error);
+      setLoraStatus(null);
+    } finally {
+      setIsLoadingLoraStatus(false);
+    }
+  }, [userData.id, influencerId]);
 
   // Fetch files from LoRA training folder
   const fetchLoraFiles = useCallback(async () => {
@@ -124,39 +170,41 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
       const filesData: FileData[] = await filesResponse.json();
       
       // Transform files data to LoraFile format
-      const transformedFiles: LoraFile[] = filesData.map((file: FileData) => {
-        const filename = file.Key.split('/').pop() || '';
-        const fileExtension = filename.split('.').pop()?.toLowerCase() || '';
-        
-        // Determine file type
-        let type: LoraFile['type'] = 'other';
-        if (['png', 'jpg', 'jpeg', 'webp'].includes(fileExtension)) {
-          type = 'image';
-        } else if (['safetensors', 'ckpt', 'pt'].includes(fileExtension)) {
-          type = 'model';
-        } else if (['json', 'yaml', 'yml'].includes(fileExtension)) {
-          type = 'config';
-        }
+      const transformedFiles: LoraFile[] = filesData
+        .filter((file: FileData) => file.Key && typeof file.Key === 'string') // Filter out files with invalid keys
+        .map((file: FileData) => {
+          const filename = file.Key.split('/').pop() || '';
+          const fileExtension = filename.split('.').pop()?.toLowerCase() || '';
+          
+          // Determine file type
+          let type: LoraFile['type'] = 'other';
+          if (['png', 'jpg', 'jpeg', 'webp'].includes(fileExtension)) {
+            type = 'image';
+          } else if (['safetensors', 'ckpt', 'pt'].includes(fileExtension)) {
+            type = 'model';
+          } else if (['json', 'yaml', 'yml'].includes(fileExtension)) {
+            type = 'config';
+          }
 
-        // Determine status based on filename patterns
-        let status: LoraFile['status'] = 'completed';
-        if (filename.includes('training') || filename.includes('temp')) {
-          status = 'training';
-        } else if (filename.includes('error') || filename.includes('failed')) {
-          status = 'error';
-        }
+          // Determine status based on filename patterns
+          let status: LoraFile['status'] = 'completed';
+          if (filename.includes('training') || filename.includes('temp')) {
+            status = 'training';
+          } else if (filename.includes('error') || filename.includes('failed')) {
+            status = 'error';
+          }
 
-        return {
-          id: file.Key,
-          key: file.Key,
-          filename: filename,
-          size: file.Size,
-          lastModified: file.LastModified,
-          url: `${config.data_url}/${userData.id}/models/${influencerId}/loratraining/${filename}`,
-          type,
-          status
-        };
-      });
+          return {
+            id: file.Key,
+            key: file.Key,
+            filename: filename,
+            size: file.Size || '0',
+            lastModified: file.LastModified || new Date().toISOString(),
+            url: `${config.data_url}/${userData.id}/models/${influencerId}/loratraining/${filename}`,
+            type,
+            status
+          };
+        });
 
       setFiles(transformedFiles);
 
@@ -414,37 +462,39 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
 
       const filesData: FileData[] = await filesResponse.json();
       
-      const transformedFiles: LoraFile[] = filesData.map((file: FileData) => {
-        const filename = file.Key.split('/').pop() || '';
-        const fileExtension = filename.split('.').pop()?.toLowerCase() || '';
-        
-        let type: LoraFile['type'] = 'other';
-        if (['png', 'jpg', 'jpeg', 'webp'].includes(fileExtension)) {
-          type = 'image';
-        } else if (['safetensors', 'ckpt', 'pt'].includes(fileExtension)) {
-          type = 'model';
-        } else if (['json', 'yaml', 'yml'].includes(fileExtension)) {
-          type = 'config';
-        }
+      const transformedFiles: LoraFile[] = filesData
+        .filter((file: FileData) => file.Key && typeof file.Key === 'string') // Filter out files with invalid keys
+        .map((file: FileData) => {
+          const filename = file.Key.split('/').pop() || '';
+          const fileExtension = filename.split('.').pop()?.toLowerCase() || '';
+          
+          let type: LoraFile['type'] = 'other';
+          if (['png', 'jpg', 'jpeg', 'webp'].includes(fileExtension)) {
+            type = 'image';
+          } else if (['safetensors', 'ckpt', 'pt'].includes(fileExtension)) {
+            type = 'model';
+          } else if (['json', 'yaml', 'yml'].includes(fileExtension)) {
+            type = 'config';
+          }
 
-        let status: LoraFile['status'] = 'completed';
-        if (filename.includes('training') || filename.includes('temp')) {
-          status = 'training';
-        } else if (filename.includes('error') || filename.includes('failed')) {
-          status = 'error';
-        }
+          let status: LoraFile['status'] = 'completed';
+          if (filename.includes('training') || filename.includes('temp')) {
+            status = 'training';
+          } else if (filename.includes('error') || filename.includes('failed')) {
+            status = 'error';
+          }
 
-        return {
-          id: file.Key,
-          key: file.Key,
-          filename: filename,
-          size: file.Size,
-          lastModified: file.LastModified,
-          url: `${config.data_url}/${userData.id}/models/${influencerId}/loratraining/Trash/${filename}`,
-          type,
-          status
-        };
-      });
+          return {
+            id: file.Key,
+            key: file.Key,
+            filename: filename,
+            size: file.Size || '0',
+            lastModified: file.LastModified || new Date().toISOString(),
+            url: `${config.data_url}/${userData.id}/models/${influencerId}/loratraining/Trash/${filename}`,
+            type,
+            status
+          };
+        });
 
       setTrashFiles(transformedFiles);
     } catch (error) {
@@ -456,8 +506,14 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
   // Handle trash folder double click
   const handleTrashFolderClick = async () => {
     if (!isInTrash) {
-      setIsInTrash(true);
-      await fetchTrashFiles();
+      try {
+        setIsInTrash(true);
+        await fetchTrashFiles();
+      } catch (error) {
+        console.error('Error switching to trash view:', error);
+        setIsInTrash(false); // Revert the state if there's an error
+        toast.error('Failed to load trash folder');
+      }
     }
   };
 
@@ -764,8 +820,93 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
   };
 
   useEffect(() => {
+    fetchLoraStatus();
+  }, [fetchLoraStatus]);
+
+  useEffect(() => {
     fetchLoraFiles();
   }, [fetchLoraFiles]);
+
+  // Helper functions for LoRA status
+  const getLoraStatusBadge = () => {
+    if (isLoadingLoraStatus) {
+      return (
+        <Badge variant="secondary" className="animate-pulse">
+          <RefreshCcw className="w-3 h-3 mr-1 animate-spin" />
+          Loading...
+        </Badge>
+      );
+    }
+
+    if (!loraStatus) {
+      return (
+        <Badge variant="outline" className="border-gray-300 text-gray-600">
+          <Clock className="w-3 h-3 mr-1" />
+          Not Started
+        </Badge>
+      );
+    }
+
+    if (loraStatus.status === 'lora_provisioned') {
+      return (
+        <Badge className="bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800">
+          <CheckCircle className="w-3 h-3 mr-1" />
+          Ready
+        </Badge>
+      );
+    }
+
+    // Any other status
+    return (
+      <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-800">
+        <Clock className="w-3 h-3 mr-1" />
+        {loraStatus.status || 'Processing'}
+      </Badge>
+    );
+  };
+
+  const getTrainingButtonState = () => {
+    if (isLoadingLoraStatus) {
+      return {
+        text: 'Loading...',
+        disabled: true,
+        onClick: () => {},
+        variant: 'outline' as const
+      };
+    }
+
+    if (!loraStatus) {
+      return {
+        text: 'Start LoRA Training',
+        disabled: isStartingTraining,
+        onClick: handleRestartLoraTraining,
+        variant: 'default' as const
+      };
+    }
+
+    if (loraStatus.status === 'lora_provisioned') {
+      return {
+        text: 'Restart LoRA Training',
+        disabled: isStartingTraining,
+        onClick: handleRestartLoraTraining,
+        variant: 'default' as const
+      };
+    }
+
+    // Any other status - disable training
+    return {
+      text: 'Training in Progress',
+      disabled: true,
+      onClick: () => {},
+      variant: 'outline' as const
+    };
+  };
+
+  const canStartFastTraining = () => {
+    if (isLoadingLoraStatus) return false;
+    if (!loraStatus) return true; // Can start if no status exists
+    return loraStatus.status === 'lora_provisioned';
+  };
 
   if (isLoading) {
     return (
@@ -780,6 +921,13 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
 
   return (
     <div className="space-y-6">
+      {/* Header with Status */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          {getLoraStatusBadge()}
+        </div>
+      </div>
+
       {/* Search and Filter Bar */}
       <div className="flex items-center justify-between gap-4">
         {/* Search Bar */}
@@ -905,21 +1053,25 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
         {/* Training Buttons */}
         <div className="flex gap-3">
           <Button
-            onClick={handleRestartLoraTraining}
-            disabled={isStartingTraining}
-            className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
+            onClick={getTrainingButtonState().onClick}
+            disabled={getTrainingButtonState().disabled}
+            variant={getTrainingButtonState().variant}
+            className={getTrainingButtonState().variant === 'default' 
+              ? "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
+              : "border-orange-300 text-orange-600 hover:bg-orange-50 dark:border-orange-600 dark:text-orange-400 dark:hover:bg-orange-950/20"
+            }
           >
             {isStartingTraining ? (
               <RefreshCcw className="w-4 h-4 mr-2 animate-spin" />
             ) : (
               <RotateCcw className="w-4 h-4 mr-2" />
             )}
-            Restart LoRA Training
+            {getTrainingButtonState().text}
           </Button>
           
           <Button
-            onClick={handleStartFastLoraTraining}
-            disabled={isStartingTraining}
+            onClick={canStartFastTraining() ? handleStartFastLoraTraining : () => {}}
+            disabled={isStartingTraining || !canStartFastTraining()}
             variant="outline"
             className="border-orange-300 text-orange-600 hover:bg-orange-50 dark:border-orange-600 dark:text-orange-400 dark:hover:bg-orange-950/20"
           >

@@ -146,10 +146,9 @@ export default function Lora() {
       setWarningType('not-trained');
       setShowWarningModal(true);
     } else if (loraStatus === 1) {
-      // Training in progress - show warning
+      // Training in progress - allow access to management modal
       setSelectedInfluencer(influencer);
-      setWarningType('training');
-      setShowWarningModal(true);
+      setShowLoraManagementModal(true);
     } else if (loraStatus === 2) {
       // Trained - show LoRA management component
       setSelectedInfluencer(influencer);

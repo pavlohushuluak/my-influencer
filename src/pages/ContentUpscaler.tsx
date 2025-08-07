@@ -131,6 +131,9 @@ export default function ContentUpscaler() {
   // Full-size image modal state
   const [showFullSizeModal, setShowFullSizeModal] = useState(false);
   const [fullSizeImage, setFullSizeImage] = useState<{ url: string; title: string; description: string } | null>(null);
+  
+  // Download loading state
+  const [downloadingImages, setDownloadingImages] = useState<Set<string>>(new Set());
 
   // Task-specific states
   const [upscaleScale, setUpscaleScale] = useState('2');
@@ -213,7 +216,8 @@ export default function ContentUpscaler() {
   }, []);
 
   const handleVaultImageSelect = (image: GeneratedImageData) => {
-    const imageUrl = `${config.data_url}/${image.file_path}`;
+    // Use the same URL construction logic as VaultSelector
+    const imageUrl = `${config.data_url}/cdn-cgi/image/w=800/${userData.id}/${image.user_filename === "" ? "output" : "vault/" + image.user_filename}/${image.system_filename}`;
     setPreviewUrl(imageUrl);
     setSelectedFile(null); // Clear file since we're using vault image
     setShowVaultSelector(false);
@@ -499,6 +503,9 @@ export default function ContentUpscaler() {
       return;
     }
 
+    // Set loading state for this specific download
+    setDownloadingImages(prev => new Set(prev).add(result.id));
+
     try {
       // Show warning for large files
       const fileSize = selectedFile?.size || 0;
@@ -559,6 +566,13 @@ export default function ContentUpscaler() {
     } catch (error) {
       console.error('Error downloading image:', error);
       toast.error('Failed to download image. Please try again.');
+    } finally {
+      // Clear loading state for this download
+      setDownloadingImages(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(result.id);
+        return newSet;
+      });
     }
   };
 
@@ -588,7 +602,7 @@ export default function ContentUpscaler() {
             <Sparkles className="w-8 h-8 text-white" />
           </div>
           <h1 className="text-5xl font-bold bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 bg-clip-text text-transparent mb-4">
-            Content Upscaler
+            Content Optimizer
           </h1>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
             Transform your images with AI-powered enhancement tools. Upscale, enhance realism, and adjust aspect ratios with professional-grade results.
@@ -939,8 +953,13 @@ export default function ContentUpscaler() {
                               variant="outline"
                               className="bg-white hover:bg-gray-50 dark:bg-slate-600 dark:hover:bg-slate-500"
                               onClick={() => handleDownload(result)}
+                              disabled={downloadingImages.has(result.id)}
                             >
-                              <Download className="w-3 h-3" />
+                              {downloadingImages.has(result.id) ? (
+                                <RefreshCw className="w-3 h-3 animate-spin" />
+                              ) : (
+                                <Download className="w-3 h-3" />
+                              )}
                             </Button>
                           )}
                           <Button

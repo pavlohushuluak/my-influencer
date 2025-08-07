@@ -633,6 +633,136 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
     }
   };
 
+  // Handle Restart LoRA Training
+  const handleRestartLoraTraining = async () => {
+    try {
+      setIsStartingTraining(true);
+      
+      // Get userid from database
+      const useridResponse = await fetch(`${config.supabase_server_url}/user?uuid=eq.${userData.id}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        }
+      });
+
+      const useridData = await useridResponse.json();
+
+      if (!useridData || useridData.length === 0) {
+        throw new Error('User not found');
+      }
+
+      // Get influencer data to get the latest image number
+      const influencerResponse = await fetch(`${config.supabase_server_url}/influencer?user_id=eq.${userData.id}&id=eq.${influencerId}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        }
+      });
+
+      const influencerData = await influencerResponse.json();
+
+      if (!influencerData || influencerData.length === 0) {
+        throw new Error('Influencer not found');
+      }
+
+      // Calculate latest image number
+      let latestImageNum = influencerData[0].image_num - 1;
+      if (latestImageNum === -1) {
+        latestImageNum = 0;
+      }
+
+      await fetch(`${config.backend_url}/createtask?userid=${useridData[0].userid}&type=restartloratraining`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          task: "restartloratraining",
+          fromsingleimage: true,
+          modelid: influencerId,
+          inputimage: `/models/${influencerId}/profilepic/profilepic${latestImageNum}.png`
+        })
+      });
+
+      toast.success('LoRA training restarted successfully');
+      
+      // Refresh files to show new training files
+      await fetchLoraFiles();
+    } catch (error) {
+      console.error('Restart training error:', error);
+      toast.error('Failed to restart LoRA training');
+    } finally {
+      setIsStartingTraining(false);
+    }
+  };
+
+  // Handle Start Fast LoRA Training
+  const handleStartFastLoraTraining = async () => {
+    try {
+      setIsStartingTraining(true);
+      
+      // Get userid from database
+      const useridResponse = await fetch(`${config.supabase_server_url}/user?uuid=eq.${userData.id}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        }
+      });
+
+      const useridData = await useridResponse.json();
+
+      if (!useridData || useridData.length === 0) {
+        throw new Error('User not found');
+      }
+
+      // Get influencer data to get the latest image number
+      const influencerResponse = await fetch(`${config.supabase_server_url}/influencer?user_id=eq.${userData.id}&id=eq.${influencerId}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        }
+      });
+
+      const influencerData = await influencerResponse.json();
+
+      if (!influencerData || influencerData.length === 0) {
+        throw new Error('Influencer not found');
+      }
+
+      // Calculate latest image number
+      let latestImageNum = influencerData[0].image_num - 1;
+      if (latestImageNum === -1) {
+        latestImageNum = 0;
+      }
+
+      await fetch(`${config.backend_url}/createtask?userid=${useridData[0].userid}&type=startfastloratraining`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          task: "startfastloratraining",
+          fromsingleimage: true,
+          modelid: influencerId,
+          inputimage: `/models/${influencerId}/profilepic/profilepic${latestImageNum}.png`
+        })
+      });
+
+      toast.success('Fast LoRA training started successfully');
+      
+      // Refresh files to show new training files
+      await fetchLoraFiles();
+    } catch (error) {
+      console.error('Fast training error:', error);
+      toast.error('Failed to start fast LoRA training');
+    } finally {
+      setIsStartingTraining(false);
+    }
+  };
+
   useEffect(() => {
     fetchLoraFiles();
   }, [fetchLoraFiles]);
@@ -775,7 +905,7 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
         {/* Training Buttons */}
         <div className="flex gap-3">
           <Button
-            onClick={() => handleStartLoraTraining(false)}
+            onClick={handleRestartLoraTraining}
             disabled={isStartingTraining}
             className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
           >
@@ -788,7 +918,7 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
           </Button>
           
           <Button
-            onClick={() => handleStartLoraTraining(true)}
+            onClick={handleStartFastLoraTraining}
             disabled={isStartingTraining}
             variant="outline"
             className="border-orange-300 text-orange-600 hover:bg-orange-50 dark:border-orange-600 dark:text-orange-400 dark:hover:bg-orange-950/20"

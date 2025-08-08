@@ -172,6 +172,11 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
   // Vault selector state
   const [showVaultSelector, setShowVaultSelector] = useState(false);
 
+  // Create image state
+  const [showCreateImageModal, setShowCreateImageModal] = useState(false);
+  const [selectedImageForCreation, setSelectedImageForCreation] = useState<LoraFile | null>(null);
+  const [isCreatingImage, setIsCreatingImage] = useState(false);
+
   // Fetch LoRA status from database
   const fetchLoraStatus = useCallback(async () => {
     try {
@@ -1141,6 +1146,74 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
     return loraStatus.status === 'lora_provisioned';
   };
 
+  // Handle create image from LoRA training image
+  const handleCreateImage = async (file: LoraFile) => {
+    if (file.type !== 'image') {
+      toast.error('Only image files can be used to create new images');
+      return;
+    }
+
+    setSelectedImageForCreation(file);
+    setShowCreateImageModal(true);
+  };
+
+  // Execute create image task
+  const executeCreateImage = async () => {
+    if (!selectedImageForCreation) return;
+
+    try {
+      setIsCreatingImage(true);
+
+      // Get user ID from database
+      const useridResponse = await fetch(`${config.supabase_server_url}/user?uuid=eq.${userData.id}&select=userid`, {
+        headers: {
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        }
+      });
+
+      if (!useridResponse.ok) {
+        throw new Error('Failed to get user ID');
+      }
+
+      const useridData = await useridResponse.json();
+      if (!useridData || useridData.length === 0) {
+        throw new Error('User ID not found');
+      }
+
+      // Create the createloraimages task
+      const createTaskResponse = await fetch(`${config.backend_url}/createtask?userid=${useridData[0].userid}&type=createloraimages`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          task: "createloraimages",
+          fromsingleimage: false,
+          modelid: influencerId,
+          inputimage: `/models/${influencerId}/loratraining/${selectedImageForCreation.filename}`,
+        })
+      });
+
+      if (!createTaskResponse.ok) {
+        throw new Error('Failed to create image generation task');
+      }
+
+      const taskData = await createTaskResponse.json();
+      console.log('Create image task created:', taskData);
+
+      toast.success('Image generation task started successfully!');
+      setShowCreateImageModal(false);
+      setSelectedImageForCreation(null);
+
+    } catch (error) {
+      console.error('Error creating image:', error);
+      toast.error('Failed to start image generation task');
+    } finally {
+      setIsCreatingImage(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -1485,6 +1558,16 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
                         )}
                         Download
                       </Button>
+                      {file.type === 'image' && !isInTrash && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleCreateImage(file)}
+                          className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:text-blue-400 dark:hover:text-blue-300 dark:hover:bg-blue-950/20"
+                        >
+                          <Plus className="w-4 h-4" />
+                        </Button>
+                      )}
                       {isInTrash ? (
                         <Button
                           size="sm"
@@ -1702,6 +1785,68 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
         title="Fast LoRA Training Cost"
         confirmButtonText={gemCostData ? `Confirm & Use ${gemCostData.gems} Credits` : 'Confirm'}
       />
+
+      {/* Create Image Confirmation Modal */}
+      <Dialog open={showCreateImageModal} onOpenChange={setShowCreateImageModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Plus className="w-5 h-5 text-blue-500" />
+              Create Image from LoRA Training
+            </DialogTitle>
+            <DialogDescription>
+              This will create new images using the selected training image as input. The generated images will be added to your vault.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            {selectedImageForCreation && (
+              <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+                <img
+                  src={selectedImageForCreation.url}
+                  alt={selectedImageForCreation.filename}
+                  className="w-12 h-12 object-cover rounded"
+                />
+                <div>
+                  <p className="font-medium text-sm">{selectedImageForCreation.filename}</p>
+                  <p className="text-xs text-muted-foreground">{formatFileSize(selectedImageForCreation.size)}</p>
+                </div>
+              </div>
+            )}
+            
+            <div className="text-sm text-muted-foreground">
+              <p>• The selected image will be used as input for image generation</p>
+              <p>• Generated images will be saved to your vault</p>
+              <p>• This process may take some time to complete</p>
+            </div>
+          </div>
+
+          <div className="flex gap-2 pt-4 border-t">
+            <Button
+              variant="outline"
+              onClick={() => setShowCreateImageModal(false)}
+              className="flex-1"
+              disabled={isCreatingImage}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={executeCreateImage}
+              disabled={isCreatingImage}
+              className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+            >
+              {isCreatingImage ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Creating...
+                </>
+              ) : (
+                'Create Images'
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Lora Vault Selector Modal */}
       {showVaultSelector && (

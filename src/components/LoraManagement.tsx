@@ -39,6 +39,7 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { DialogContentZoom } from '@/components/ui/zoomdialog';
 import { DialogZoom } from '@/components/ui/zoomdialog';
+import { CreditConfirmationModal } from '@/components/CreditConfirmationModal';
 import config from '@/config/config';
 
 // Interface for file data from getfilenames API
@@ -105,6 +106,23 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
   // LoRA status state
   const [loraStatus, setLoraStatus] = useState<LoraStatus | null>(null);
   const [isLoadingLoraStatus, setIsLoadingLoraStatus] = useState(true);
+
+  // Credit checking state for LoRA training
+  const [showGemWarning, setShowGemWarning] = useState(false);
+  const [showRestartGemWarning, setShowRestartGemWarning] = useState(false);
+  const [gemCostData, setGemCostData] = useState<{
+    id: number;
+    item: string;
+    description: string;
+    gems: number;
+  } | null>(null);
+  const [restartGemCostData, setRestartGemCostData] = useState<{
+    id: number;
+    item: string;
+    description: string;
+    gems: number;
+  } | null>(null);
+  const [isCheckingGems, setIsCheckingGems] = useState(false);
   
   // Upload state
   const [uploadModal, setUploadModal] = useState<{ open: boolean }>({ open: false });
@@ -689,8 +707,50 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
     }
   };
 
-  // Handle Restart LoRA Training
-  const handleRestartLoraTraining = async () => {
+  // Function to check gem cost for restart LoRA training
+  const checkRestartLoraGemCost = async () => {
+    try {
+      setIsCheckingGems(true);
+      const response = await fetch('https://api.nymia.ai/v1/getgems', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          item: 'nymia_lora'
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch gem cost: ${response.status}`);
+      }
+
+      const gemData = await response.json();
+      return gemData;
+    } catch (error) {
+      console.error('Error checking gem cost:', error);
+      toast.error('Failed to check gem cost. Please try again.');
+      return null;
+    } finally {
+      setIsCheckingGems(false);
+    }
+  };
+
+  // Function to proceed with restart LoRA training after credit confirmation
+  const proceedWithRestartLoraTraining = async () => {
+    try {
+      setShowRestartGemWarning(false);
+      await executeRestartLoraTraining();
+    } catch (error) {
+      console.error('Error in proceedWithRestartLoraTraining:', error);
+      toast.error('Failed to restart LoRA training. Please try again.');
+      setIsStartingTraining(false);
+    }
+  };
+
+  // Separated restart LoRA training execution function
+  const executeRestartLoraTraining = async () => {
     try {
       setIsStartingTraining(true);
       
@@ -754,8 +814,73 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
     }
   };
 
-  // Handle Start Fast LoRA Training
-  const handleStartFastLoraTraining = async () => {
+  // Main restart LoRA training function with credit checking
+  const handleRestartLoraTraining = async () => {
+    // Check gem cost before proceeding
+    const gemData = await checkRestartLoraGemCost();
+    if (gemData) {
+      setRestartGemCostData(gemData);
+      
+      // Check if user has enough credits
+      if (userData.credits < gemData.gems) {
+        setShowRestartGemWarning(true);
+        return;
+      } else {
+        // Show confirmation for gem cost
+        setShowRestartGemWarning(true);
+        return;
+      }
+    }
+
+    // If no gem checking needed or failed, show error and don't proceed
+    toast.error('Unable to verify credit cost. Please try again.');
+    return;
+  };
+
+  // Function to check gem cost for fast LoRA training
+  const checkFastLoraGemCost = async () => {
+    try {
+      setIsCheckingGems(true);
+      const response = await fetch('https://api.nymia.ai/v1/getgems', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          item: 'fast_lora'
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch gem cost: ${response.status}`);
+      }
+
+      const gemData = await response.json();
+      return gemData;
+    } catch (error) {
+      console.error('Error checking gem cost:', error);
+      toast.error('Failed to check gem cost. Please try again.');
+      return null;
+    } finally {
+      setIsCheckingGems(false);
+    }
+  };
+
+  // Function to proceed with fast LoRA training after credit confirmation
+  const proceedWithFastLoraTraining = async () => {
+    try {
+      setShowGemWarning(false);
+      await executeFastLoraTraining();
+    } catch (error) {
+      console.error('Error in proceedWithFastLoraTraining:', error);
+      toast.error('Failed to start fast LoRA training. Please try again.');
+      setIsStartingTraining(false);
+    }
+  };
+
+  // Separated fast LoRA training execution function
+  const executeFastLoraTraining = async () => {
     try {
       setIsStartingTraining(true);
       
@@ -817,6 +942,29 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
     } finally {
       setIsStartingTraining(false);
     }
+  };
+
+  // Main fast LoRA training function with credit checking
+  const handleStartFastLoraTraining = async () => {
+    // Check gem cost before proceeding
+    const gemData = await checkFastLoraGemCost();
+    if (gemData) {
+      setGemCostData(gemData);
+      
+      // Check if user has enough credits
+      if (userData.credits < gemData.gems) {
+        setShowGemWarning(true);
+        return;
+      } else {
+        // Show confirmation for gem cost
+        setShowGemWarning(true);
+        return;
+      }
+    }
+
+    // If no gem checking needed or failed, show error and don't proceed
+    toast.error('Unable to verify credit cost. Please try again.');
+    return;
   };
 
   useEffect(() => {
@@ -1054,33 +1202,33 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
         <div className="flex gap-3">
           <Button
             onClick={getTrainingButtonState().onClick}
-            disabled={getTrainingButtonState().disabled}
+            disabled={getTrainingButtonState().disabled || isCheckingGems}
             variant={getTrainingButtonState().variant}
             className={getTrainingButtonState().variant === 'default' 
               ? "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
               : "border-orange-300 text-orange-600 hover:bg-orange-50 dark:border-orange-600 dark:text-orange-400 dark:hover:bg-orange-950/20"
             }
           >
-            {isStartingTraining ? (
+            {isStartingTraining || isCheckingGems ? (
               <RefreshCcw className="w-4 h-4 mr-2 animate-spin" />
             ) : (
               <RotateCcw className="w-4 h-4 mr-2" />
             )}
-            {getTrainingButtonState().text}
+            {isCheckingGems ? 'Checking Cost...' : getTrainingButtonState().text}
           </Button>
           
           <Button
             onClick={canStartFastTraining() ? handleStartFastLoraTraining : () => {}}
-            disabled={isStartingTraining || !canStartFastTraining()}
+            disabled={isStartingTraining || isCheckingGems || !canStartFastTraining()}
             variant="outline"
             className="border-orange-300 text-orange-600 hover:bg-orange-50 dark:border-orange-600 dark:text-orange-400 dark:hover:bg-orange-950/20"
           >
-            {isStartingTraining ? (
+            {isStartingTraining || isCheckingGems ? (
               <RefreshCcw className="w-4 h-4 mr-2 animate-spin" />
             ) : (
               <Zap className="w-4 h-4 mr-2" />
             )}
-            Start Fast LoRA Training
+            {isCheckingGems ? 'Checking Cost...' : 'Start Fast LoRA Training'}
           </Button>
         </div>
       </div>
@@ -1437,6 +1585,32 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Restart LoRA Training Credit Confirmation Modal */}
+      <CreditConfirmationModal
+        isOpen={showRestartGemWarning}
+        onClose={() => setShowRestartGemWarning(false)}
+        onConfirm={proceedWithRestartLoraTraining}
+        gemCostData={restartGemCostData}
+        userCredits={userData.credits}
+        isProcessing={isStartingTraining}
+        processingText="Restarting Training..."
+        title="Restart LoRA Training Cost"
+        confirmButtonText={restartGemCostData ? `Confirm & Use ${restartGemCostData.gems} Credits` : 'Confirm'}
+      />
+
+      {/* Fast LoRA Training Credit Confirmation Modal */}
+      <CreditConfirmationModal
+        isOpen={showGemWarning}
+        onClose={() => setShowGemWarning(false)}
+        onConfirm={proceedWithFastLoraTraining}
+        gemCostData={gemCostData}
+        userCredits={userData.credits}
+        isProcessing={isStartingTraining}
+        processingText="Starting Fast Training..."
+        title="Fast LoRA Training Cost"
+        confirmButtonText={gemCostData ? `Confirm & Use ${gemCostData.gems} Credits` : 'Confirm'}
+      />
     </div>
   );
 } 

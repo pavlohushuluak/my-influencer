@@ -111,6 +111,8 @@ export default function Lora() {
   const [warningType, setWarningType] = useState<'not-trained' | 'training' | null>(null);
   const [showLoraManagementModal, setShowLoraManagementModal] = useState(false);
 
+
+
   const fetchInfluencers = async () => {
     try {
       dispatch(setLoading(true));
@@ -689,6 +691,8 @@ export default function Lora() {
           </div>
         </DialogContent>
       </Dialog>
+
+
     </div>
   );
 } 

@@ -44,6 +44,7 @@ import {
 import VaultSelector from '@/components/VaultSelector';
 import config from '@/config/config';
 import { toast } from 'sonner';
+import { CreditConfirmationModal } from '@/components/CreditConfirmationModal';
 
 interface UpscaleResult {
   id: string;
@@ -143,6 +144,17 @@ export default function ContentUpscaler() {
   
   // File input ref
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Credit check state for content optimization
+  const [showGemWarning, setShowGemWarning] = useState(false);
+  const [gemCostData, setGemCostData] = useState<{
+    id: number;
+    item: string;
+    description: string;
+    gems: number;
+  } | null>(null);
+  const [isCheckingGems, setIsCheckingGems] = useState(false);
+  const [pendingTask, setPendingTask] = useState<{ task: string; parameters: any } | null>(null);
 
   const handleFileUpload = useCallback((file: File) => {
     if (file && file.type.startsWith('image/')) {
@@ -259,21 +271,62 @@ export default function ContentUpscaler() {
     }
   };
 
-  const processImage = async (task: string, parameters: any) => {
-    if (!previewUrl) {
-      toast.error('Please select an image first');
-      return;
+  // Function to get the correct item name for credit checking
+  const getItemNameForTask = (task: string): string => {
+    switch (task) {
+      case 'image_upscale':
+      case 'image_upscale_esrgan':
+        return 'upscaler_standard';
+      case 'image_realism':
+        return 'image_realism';
+      case 'image_reframe':
+        return 'image_reframe';
+      default:
+        return 'upscaler_standard'; // Default fallback
     }
+  };
 
-    if (!userData.id) {
-      toast.error('User not authenticated');
-      return;
+  // Function to check gem cost for the task
+  const checkGemCost = async (task: string) => {
+    try {
+      setIsCheckingGems(true);
+      const itemName = getItemNameForTask(task);
+      const response = await fetch('https://api.nymia.ai/v1/getgems', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({ item: itemName })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch gem cost: ${response.status}`);
+      }
+
+      const gemData = await response.json();
+      return gemData;
+    } catch (error) {
+      console.error('Error checking gem cost:', error);
+      toast.error('Failed to check credit cost. Please try again.');
+      return null;
+    } finally {
+      setIsCheckingGems(false);
     }
+  };
 
+  // Function to proceed with image processing after credit confirmation
+  const proceedWithImageProcessing = async () => {
+    if (!pendingTask) return;
+    
+    setShowGemWarning(false);
     setIsProcessing(true);
 
     try {
+      const { task, parameters } = pendingTask;
+      
       // Show warning for large files
+      
       const fileSize = selectedFile?.size || 0;
       const isLargeFile = fileSize > 5 * 1024 * 1024; // 5MB threshold
       
@@ -391,6 +444,32 @@ export default function ContentUpscaler() {
       toast.error(`Failed to process image: ${error instanceof Error ? error.message : 'Unknown error'}`);
       setIsProcessing(false);
     }
+  };
+
+  // Main processImage function with credit checking
+  const processImage = async (task: string, parameters: any) => {
+    if (!previewUrl) {
+      toast.error('Please select an image first');
+      return;
+    }
+
+    if (!userData.id) {
+      toast.error('User not authenticated');
+      return;
+    }
+
+    // Check gem cost before proceeding
+    const gemData = await checkGemCost(task);
+    if (gemData) {
+      setGemCostData(gemData);
+      setPendingTask({ task, parameters });
+      setShowGemWarning(true);
+      return;
+    }
+
+    // If credit check fails, don't proceed
+    toast.error('Unable to verify credit cost. Please try again.');
+    return;
   };
 
   const pollForResult = async (result: UpscaleResult) => {
@@ -756,13 +835,13 @@ export default function ContentUpscaler() {
                   </div>
                   <Button
                     onClick={() => processImage('image_upscale', { scaling_factor: parseInt(upscaleScale) })}
-                    disabled={!previewUrl || isProcessing}
+                    disabled={!previewUrl || isProcessing || isCheckingGems}
                     className="w-full bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white font-semibold py-3 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300"
                   >
-                    {isProcessing ? (
+                    {isProcessing || isCheckingGems ? (
                       <>
                         <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                        Processing...
+                        {isCheckingGems ? 'Checking Cost...' : 'Processing...'}
                       </>
                     ) : (
                       <>
@@ -794,13 +873,13 @@ export default function ContentUpscaler() {
                   </div>
                   <Button
                     onClick={() => processImage('image_upscale_esrgan', { scaling_factor: parseInt(esrganScale) })}
-                    disabled={!previewUrl || isProcessing}
+                    disabled={!previewUrl || isProcessing || isCheckingGems}
                     className="w-full bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-semibold py-3 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300"
                   >
-                    {isProcessing ? (
+                    {isProcessing || isCheckingGems ? (
                       <>
                         <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                        Processing...
+                        {isCheckingGems ? 'Checking Cost...' : 'Processing...'}
                       </>
                     ) : (
                       <>
@@ -833,13 +912,13 @@ export default function ContentUpscaler() {
                   </div>
                   <Button
                     onClick={() => processImage('image_realism', { strength: realismStrength[0] })}
-                    disabled={!previewUrl || isProcessing}
+                    disabled={!previewUrl || isProcessing || isCheckingGems}
                     className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-semibold py-3 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300"
                   >
-                    {isProcessing ? (
+                    {isProcessing || isCheckingGems ? (
                       <>
                         <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                        Processing...
+                        {isCheckingGems ? 'Checking Cost...' : 'Processing...'}
                       </>
                     ) : (
                       <>
@@ -871,13 +950,13 @@ export default function ContentUpscaler() {
                   </div>
                   <Button
                     onClick={() => processImage('image_reframe', { aspect_ratio: selectedAspectRatio })}
-                    disabled={!previewUrl || isProcessing}
+                    disabled={!previewUrl || isProcessing || isCheckingGems}
                     className="w-full bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white font-semibold py-3 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300"
                   >
-                    {isProcessing ? (
+                    {isProcessing || isCheckingGems ? (
                       <>
                         <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                        Processing...
+                        {isCheckingGems ? 'Checking Cost...' : 'Processing...'}
                       </>
                     ) : (
                       <>
@@ -1047,6 +1126,20 @@ export default function ContentUpscaler() {
             </DialogContentZoom>
           </DialogZoom>
         )}
+
+        {/* Credit Confirmation Modal */}
+        <CreditConfirmationModal
+          isOpen={showGemWarning}
+          onClose={() => setShowGemWarning(false)}
+          onConfirm={proceedWithImageProcessing}
+          gemCostData={gemCostData}
+          userCredits={userData.credits}
+          isProcessing={isProcessing}
+          processingText="Processing..."
+          title="Content Optimization Cost"
+          confirmButtonText={gemCostData ? `Confirm & Use ${gemCostData.gems} Credits` : 'Confirm'}
+          itemType="optimization"
+        />
       </div>
     </div>
   );

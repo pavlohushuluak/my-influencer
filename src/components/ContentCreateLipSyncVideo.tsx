@@ -18,6 +18,7 @@ import VideoSelector from '@/components/VideoSelector';
 import { AudioPlayer } from '@/components/ui/audio-player';
 import LipsyncPresetsManager from '@/components/LipsyncPresetsManager';
 import LipsyncLibraryManager from '@/components/LipsyncLibraryManager';
+import { CreditConfirmationModal } from '@/components/CreditConfirmationModal';
 
 interface ContentCreateLipSyncVideoProps {
   influencerData?: any;
@@ -138,6 +139,16 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
       preview_url: 'https://example.com/custom2.mp3'
     }
   ]);
+
+  // Credit check state for lipsync generation
+  const [showGemWarning, setShowGemWarning] = useState(false);
+  const [gemCostData, setGemCostData] = useState<{
+    id: number;
+    item: string;
+    description: string;
+    gems: number;
+  } | null>(null);
+  const [isCheckingGems, setIsCheckingGems] = useState(false);
 
   // Fetch videos from Supabase
   useEffect(() => {
@@ -348,7 +359,7 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
       }
     } else {
       // Check if audio is selected for other phases
-      if (!selectedAudioUrl) {
+      if (!selectedAudioUrl || !selectedAudioId) {
         errors.push('Please select an audio file for lip-sync video generation');
       }
     }
@@ -392,9 +403,13 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
   // Silent validation for button disabled state
   const isFormValid = () => {
     if (!selectedVideo) return false;
-    if (!selectedAudioUrl) return false;
-
-    if (activePhase === 'upload' && !uploadedAudioFile) return false;
+    
+    if (activePhase === 'upload') {
+      if (!uploadedAudioFile || !selectedAudioUrl) return false;
+    } else {
+      // For elevenlabs and individual phases, require selected audio
+      if (!selectedAudioUrl || !selectedAudioId) return false;
+    }
 
     if (activePhase === 'elevenlabs') {
       if (!selectedElevenLabsVoice || !textToSpeak.trim()) return false;
@@ -411,18 +426,51 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
   const handleGenerate = async () => {
     if (!validateForm()) return;
 
+    // Credit check for lipsync generation using item: kling_lipsync
+    try {
+      setIsCheckingGems(true);
+      const response = await fetch('https://api.nymia.ai/v1/getgems', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({ item: 'kling_lipsync' })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch gem cost: ${response.status}`);
+      }
+
+      const gemData = await response.json();
+      setGemCostData(gemData);
+      setShowGemWarning(true);
+      return; // Wait for user confirmation in modal
+    } catch (error) {
+      console.error('Error checking gem cost for lipsync:', error);
+      toast.error('Unable to verify credit cost. Please try again.');
+      return;
+    } finally {
+      setIsCheckingGems(false);
+    }
+  };
+
+  // Proceed with generation after confirmation
+  const proceedWithLipSyncGeneration = async () => {
+    setShowGemWarning(false);
     setIsGenerating(true);
     try {
       // Validate required data
       if (!selectedVideo) {
         toast.error('Please select a video for lip-sync');
+        setIsGenerating(false);
         return;
       }
-
-      // if (!generatedAudioData) {
-      //   toast.error('Please generate audio first');
-      //   return;
-      // }
+      if (!selectedAudioUrl || !selectedAudioId) {
+        toast.error('Please select or generate audio for lip-sync');
+        setIsGenerating(false);
+        return;
+      }
 
       // Prepare the lip-sync generation data
       const lipSyncData = {
@@ -435,9 +483,7 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
         status: "new"
       };
 
-      console.log('Generating lip-sync video:', lipSyncData);
-
-              const response = await fetch(`${config.backend_url}/generatelipsyncvideo`, {
+      const response = await fetch(`${config.backend_url}/generatelipsyncvideo`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -450,7 +496,9 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
         const result = await response.json();
         console.log('Lip-sync generation response:', result);
         toast.success('Lip-sync video generation started! Check your history for progress.');
-        handleClear();
+        // Keep selections so user sees context; do not clear entire form
+        setIsGenerating(false);
+        setShowHistory(true);
       } else {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.message || 'Failed to start lip-sync generation');
@@ -555,6 +603,10 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
             return newAudioUrls;
           });
 
+          // Don't auto-select - let user choose from the generated audio list
+          // setSelectedAudioUrl(audioUrl);
+          // setSelectedAudioId(result.audio_id);
+
           // Set as currently playing
           setPlayingAudioId(result.audio_id);
 
@@ -588,9 +640,18 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
     console.log('Found audioUrl:', audioUrl);
     
     if (audioUrl) {
-      console.log('Setting selectedAudioUrl to:', audioUrl);
-      setSelectedAudioUrl(audioUrl);
-      toast.success('Audio selected for lip sync video generation');
+      // Toggle selection - if already selected, deselect it
+      if (selectedAudioId === audioId) {
+        console.log('Deselecting audio:', audioId);
+        setSelectedAudioUrl(null);
+        setSelectedAudioId('');
+        toast.success('Audio deselected');
+      } else {
+        console.log('Setting selectedAudioUrl to:', audioUrl);
+        setSelectedAudioUrl(audioUrl);
+        setSelectedAudioId(audioId);
+        toast.success('Audio selected for lip sync video generation');
+      }
     } else {
       console.log('No audioUrl found for audioId:', audioId);
       toast.error('Audio not found. Please try again.');
@@ -950,14 +1011,14 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-1 gap-2">
           <Button
             onClick={handleGenerate}
-            disabled={!isFormValid() || isGenerating}
+            disabled={!isFormValid() || isGenerating || isCheckingGems}
             className="bg-gradient-to-r from-purple-600 to-pink-600"
             size="lg"
           >
-            {isGenerating ? (
+            {isGenerating || isCheckingGems ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Generating...
+                {isCheckingGems ? 'Checking Cost...' : 'Generating...'}
               </>
             ) : (
               <>
@@ -1125,6 +1186,29 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
                   <Label htmlFor="text-to-speak" className="text-sm font-medium">
                     Text for Voice Generation
                   </Label>
+                  
+                  {/* Professional Warning */}
+                  <div className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border border-amber-200 dark:border-amber-700 rounded-lg p-4">
+                    <div className="flex items-start gap-3">
+                      <div className="flex-shrink-0">
+                        <div className="w-6 h-6 bg-amber-500 rounded-full flex items-center justify-center">
+                          <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                          </svg>
+                        </div>
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="text-sm font-semibold text-amber-800 dark:text-amber-200 mb-1">
+                          Character Requirement for Video Generation
+                        </h4>
+                        <p className="text-sm text-amber-700 dark:text-amber-300">
+                          To generate a lip-sync video, your text must be between <strong>10-500 characters</strong>. 
+                          This ensures optimal audio quality and video synchronization.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  
                   <Textarea
                     id="text-to-speak"
                     placeholder="Enter the text you want the voice to speak... (e.g., 'Hello everyone, welcome to my channel!')"
@@ -1138,7 +1222,7 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
                   />
                   <div className="flex items-center justify-between text-xs text-muted-foreground">
                     <span>{textToSpeak.length} characters</span>
-                    <span>Recommended: 50-200 characters</span>
+                    <span>Required: 10-500 characters • Recommended: 50-200 characters</span>
                   </div>
                 </div>
 
@@ -1522,114 +1606,7 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
               </div>
             </div>
           )}
-
-          {/* Audio Selection Section */}
-          {Object.keys(audioUrls).length > 0 && (
-            <Card className="bg-white/80 dark:bg-slate-800/80 border-0 shadow-xl">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Volume2 className="w-5 h-5 text-green-500" />
-                  Select Audio for LipSync (Debug: {Object.keys(audioUrls).length} available)
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Debug info */}
-                <div className="p-2 bg-yellow-50 dark:bg-yellow-900/20 rounded text-xs">
-                  <p>Debug: audioUrls keys: {Object.keys(audioUrls).join(', ')}</p>
-                  <p>Debug: selectedAudioUrl: {selectedAudioUrl || 'null'}</p>
-                  <Button 
-                    size="sm" 
-                    onClick={() => {
-                      const firstAudioId = Object.keys(audioUrls)[0];
-                      if (firstAudioId) {
-                        console.log('Manual test: setting selectedAudioUrl to first audio');
-                        setSelectedAudioUrl(audioUrls[firstAudioId]);
-                      }
-                    }}
-                    className="mt-2"
-                  >
-                    Test Set First Audio
-                  </Button>
-                </div>
-                <div className="space-y-3">
-                  {Object.entries(audioUrls).map(([audioId, audioUrl]) => (
-                    <div
-                      key={audioId}
-                      className={`p-3 rounded-lg border-2 transition-all cursor-pointer ${
-                        selectedAudioUrl === audioUrl
-                          ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
-                          : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
-                      }`}
-                      onClick={() => {
-                        console.log('Audio card clicked with audioId:', audioId);
-                        handleAudioSelect(audioId);
-                      }}
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          <Volume2 className="w-4 h-4 text-slate-600 dark:text-slate-400" />
-                          <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                            Audio {audioId}
-                          </span>
-                          {selectedAudioUrl === audioUrl && (
-                            <Badge variant="outline" className="text-xs border-green-500 text-green-700 dark:text-green-400">
-                              Selected
-                            </Badge>
-                          )}
-                        </div>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (playingAudioId === audioId) {
-                              stopAudioPlayback(audioId);
-                            } else {
-                              setPlayingAudioId(audioId);
-                            }
-                          }}
-                        >
-                          {playingAudioId === audioId ? (
-                            <>
-                              <Square className="w-3 h-3 mr-1" />
-                              Stop
-                            </>
-                          ) : (
-                            <>
-                              <Play className="w-3 h-3 mr-1" />
-                              Play
-                            </>
-                          )}
-                        </Button>
-                      </div>
-                      <AudioPlayer
-                        src={audioUrl}
-                        onPlay={() => setPlayingAudioId(audioId)}
-                        onPause={() => setPlayingAudioId(null)}
-                        onEnded={() => setPlayingAudioId(null)}
-                        onError={(error) => {
-                          console.error('Audio player error:', error);
-                          setPlayingAudioId(null);
-                          toast.error('Failed to play audio');
-                        }}
-                        className="w-full"
-                      />
-                    </div>
-                  ))}
-                </div>
-                {selectedAudioUrl && (
-                  <div className="mt-4 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
-                    <p className="text-sm text-green-700 dark:text-green-300">
-                      <strong>Selected Audio:</strong> {Object.keys(audioUrls).find(key => audioUrls[key] === selectedAudioUrl)}
-                    </p>
-                    <p className="text-xs text-green-600 dark:text-green-400 mt-1">
-                      This audio will be used for lip sync video generation
-                    </p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
+          
           <Card className="bg-white/80 dark:bg-slate-800/80 border-0 shadow-xl">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -2293,6 +2270,20 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
           onApplyPreset={handleApplyLipsyncPreset}
         />
       )}
+
+      {/* Credit Confirmation Modal */}
+      <CreditConfirmationModal
+        isOpen={showGemWarning}
+        onClose={() => setShowGemWarning(false)}
+        onConfirm={proceedWithLipSyncGeneration}
+        gemCostData={gemCostData}
+        userCredits={userData.credits}
+        isProcessing={isGenerating}
+        processingText="Generating LipSync..."
+        title="LipSync Generation Cost"
+        confirmButtonText={gemCostData ? `Confirm & Use ${gemCostData.gems} Credits` : 'Confirm'}
+        itemType="video"
+      />
     </div>
   );
 }

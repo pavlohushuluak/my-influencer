@@ -40,6 +40,7 @@ import { toast } from 'sonner';
 import { DialogContentZoom } from '@/components/ui/zoomdialog';
 import { DialogZoom } from '@/components/ui/zoomdialog';
 import { CreditConfirmationModal } from '@/components/CreditConfirmationModal';
+import LoraVaultSelector from '@/components/LoraVaultSelector';
 import config from '@/config/config';
 
 // Interface for file data from getfilenames API
@@ -76,6 +77,43 @@ interface LoraStatus {
   description: string;
   lastjobid: string;
   status: string;
+}
+
+// Interface for generated image data from vault
+interface GeneratedImageData {
+  id: string;
+  task_id: string;
+  image_sequence_number: number;
+  system_filename: string;
+  user_filename: string | null;
+  user_notes: string | null;
+  user_tags: string[] | null;
+  file_path: string;
+  file_size_bytes: number;
+  image_format: string;
+  seed: number;
+  guidance: number;
+  steps: number;
+  nsfw_strength: number;
+  lora_strength: number;
+  model_version: string;
+  t5xxl_prompt: string;
+  clip_l_prompt: string;
+  negative_prompt: string;
+  generation_status: string;
+  generation_started_at: string;
+  generation_completed_at: string;
+  generation_time_seconds: number;
+  error_message: string;
+  retry_count: number;
+  created_at: string;
+  updated_at: string;
+  actual_seed_used: number;
+  prompt_file_used: string;
+  quality_setting: string;
+  rating: number;
+  favorite: boolean;
+  file_type: string;
 }
 
 interface LoraManagementProps {
@@ -130,6 +168,9 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
   const [uploadFileName, setUploadFileName] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [dragOverUpload, setDragOverUpload] = useState(false);
+  
+  // Vault selector state
+  const [showVaultSelector, setShowVaultSelector] = useState(false);
 
   // Fetch LoRA status from database
   const fetchLoraStatus = useCallback(async () => {
@@ -659,6 +700,45 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
   };
 
   // Handle file upload
+  // Function to handle vault image selection and copy to LoRA training
+  const handleVaultImageSelect = async (image: GeneratedImageData) => {
+    try {
+      setIsUploading(true);
+      
+      // Determine the source path based on user_filename
+      const sourcePath = image.user_filename === "" || image.user_filename === null ? "output" : `vault/${image.user_filename}`;
+      
+      // Use copyfile API to copy the image from vault to LoRA training folder
+      const copyResponse = await fetch(`${config.backend_url}/copyfile`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          user: userData.id,
+          sourcefilename: `${sourcePath}/${image.system_filename}`,
+          destinationfilename: `models/${influencerId}/loratraining/${image.system_filename}`
+        })
+      });
+
+      if (!copyResponse.ok) {
+        throw new Error('Failed to copy image from vault');
+      }
+
+      toast.success('Image copied to LoRA training folder successfully');
+      setShowVaultSelector(false);
+      
+      // Refresh the files list
+      fetchLoraFiles();
+    } catch (error) {
+      console.error('Error copying image from vault:', error);
+      toast.error('Failed to copy image from vault');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const handleUploadFile = async () => {
     if (!uploadedFile) {
       toast.error('Please select a file to upload');
@@ -1321,11 +1401,26 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => setUploadModal({ open: true })}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setUploadModal({ open: true });
+                        }}
                         className="flex-1"
                       >
                         <Upload className="w-4 h-4 mr-2" />
                         Upload
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowVaultSelector(true);
+                        }}
+                        className="flex-1"
+                      >
+                        <Folder className="w-4 h-4 mr-2" />
+                        From Vault
                       </Button>
                     </div>
                   </div>
@@ -1607,6 +1702,17 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
         title="Fast LoRA Training Cost"
         confirmButtonText={gemCostData ? `Confirm & Use ${gemCostData.gems} Credits` : 'Confirm'}
       />
+
+      {/* Lora Vault Selector Modal */}
+      {showVaultSelector && (
+        <LoraVaultSelector
+          open={showVaultSelector}
+          onOpenChange={setShowVaultSelector}
+          onImageUpload={handleVaultImageSelect}
+          title="Select Image from Vault"
+          description="Browse your vault and select an image to copy to LoRA training folder. Only completed images are shown."
+        />
+      )}
     </div>
   );
 } 

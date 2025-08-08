@@ -30,6 +30,7 @@ import PresetsManager from '@/components/PresetsManager';
 import LibraryManager from '@/components/LibraryManager';
 import { Image, Wand2, Settings, Image as ImageIcon, Sparkles, Loader2, Camera, Search, X, Filter, Plus, RotateCcw, Download, Trash2, Calendar, Share, Pencil, Edit3, BookOpen, Save, FolderOpen, Upload, Edit, AlertTriangle, Eye, User, Monitor, ZoomIn, SortAsc, SortDesc } from 'lucide-react';
 import HistoryCard from '@/components/HistoryCard';
+import { CreditConfirmationModal } from '@/components/CreditConfirmationModal';
 
 const TASK_OPTIONS = [
   { value: 'generate_image', label: 'Generate Image', description: 'Generate a single image' },
@@ -71,6 +72,17 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
   const [openFilter, setOpenFilter] = useState(false);
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
   const [showHistory, setShowHistory] = useState(false);
+
+  // Gem cost checking state
+  const [showGemWarning, setShowGemWarning] = useState(false);
+  const [gemCostData, setGemCostData] = useState<{
+    id: number;
+    item: string;
+    description: string;
+    gems: number;
+    originalGemsPerImage?: number;
+  } | null>(null);
+  const [isCheckingGems, setIsCheckingGems] = useState(false);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -253,6 +265,33 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
 
     fetchInfluencers();
   }, [userData.id, dispatch]);
+
+  const getCodeforEngine = (engine: string) => {
+    switch (engine) {
+      case 'Nymia General':
+        return 'nymia_image';
+      case 'PPV':
+        return 'ppv_engine_v1';
+      case 'WAN 2.2 Image':
+        return 'wan_2_2_image';
+      case 'Google Imagen4':
+        return 'imagen4';
+      case 'Bytedance Seedream V3':
+        return 'seedream-v3';
+      // case 'Runway Gen4':
+      //   return 'runway_gen4';
+      // case 'DEV01':
+      //   return 'dev01';
+      // case 'DEV02':
+      //   return 'dev02';
+      // case 'DEV03':
+      //   return 'dev03';
+      // case 'DEV04':
+      //   return 'dev04';
+      default:
+        return 'nymia_image';
+    }
+  }
 
   useEffect(() => {
     if (influencerData) {
@@ -559,6 +598,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
         });
         if (response.ok) {
           const data = await response.json();
+          console.log(data);
           if (data && data.fieldoptions && Array.isArray(data.fieldoptions)) {
             const options = data.fieldoptions.map((item: any) => ({
               label: item.label,
@@ -815,12 +855,109 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
     setSearchTerm('');
   };
 
+  // Function to check gem cost for the selected engine
+  const checkGemCost = async (engineName: string) => {
+    try {
+      setIsCheckingGems(true);
+      const response = await fetch('https://api.nymia.ai/v1/getgems', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          item: engineName
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch gem cost: ${response.status}`);
+      }
+
+      const gemData = await response.json();
+      return gemData;
+    } catch (error) {
+      console.error('Error checking gem cost:', error);
+      toast.error('Failed to check gem cost. Proceeding without verification.');
+      return null;
+    } finally {
+      setIsCheckingGems(false);
+    }
+  };
+
+  // Function to proceed with generation after gem confirmation
+  const proceedWithGeneration = async () => {
+    try {
+      setShowGemWarning(false);
+      console.log('Starting generation after credit confirmation...');
+      await executeGeneration();
+    } catch (error) {
+      console.error('Error in proceedWithGeneration:', error);
+      toast.error('Failed to start generation. Please try again.');
+      setIsGenerating(false);
+    }
+  };
+
+  // Main generation function that includes gem checking
   const handleGenerate = async () => {
     if (!formData.model && !formData.prompt) {
       toast.error('Please provide either a model description or a prompt');
       return;
     }
 
+    // Check gem cost before proceeding
+    if (formData.engine) {
+      const engineName = getCodeforEngine(formData.engine);
+      const gemData = await checkGemCost(engineName);
+      if (gemData) {
+        // Calculate total required credits: gems per image * number of images
+        const totalRequiredCredits = gemData.gems * formData.numberOfImages;
+        
+        // Update gem data with calculated total
+        const updatedGemData = {
+          ...gemData,
+          gems: totalRequiredCredits,
+          originalGemsPerImage: gemData.gems // Store original per-image cost
+        };
+        
+        setGemCostData(updatedGemData);
+        
+        // Check if user has enough credits
+        if (userData.credits < totalRequiredCredits) {
+          setShowGemWarning(true);
+          return;
+        } else {
+          // Show confirmation for gem cost
+          setShowGemWarning(true);
+          return;
+        }
+      }
+    }
+
+    // If no gem checking needed or failed, show error and don't proceed
+    toast.error('Unable to verify credit cost. Please try again.');
+    return;
+  };
+
+  // Separated generation execution function
+  const executeGeneration = async () => {
+    console.log('executeGeneration called');
+    console.log('Form data:', formData);
+    console.log('Model data:', modelData);
+    
+    if (!formData.model && !formData.prompt) {
+      console.log('Validation failed: no model or prompt');
+      toast.error('Please provide either a model description or a prompt');
+      return;
+    }
+
+    if (!modelData || !modelData.id) {
+      console.log('Validation failed: no model data');
+      toast.error('Please select an influencer before generating');
+      return;
+    }
+
+    console.log('Starting generation process...');
     setIsGenerating(true);
 
     const response = await fetch(`${config.supabase_server_url}/influencer?id=eq.${modelData.id}`, {
@@ -913,6 +1050,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
 
       // Add new task ID to the list
       setGeneratedTaskIds(prev => [...prev, result.id]);
+      console.log('Generation completed successfully, task ID:', result.id);
       toast.success('Content generation started successfully');
 
       // Update guide_step if it's currently 3
@@ -2575,11 +2713,16 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-1 gap-2">
           <Button
             onClick={handleGenerate}
-            disabled={!validateForm() || isGenerating}
+            disabled={!validateForm() || isGenerating || isCheckingGems}
             className="bg-gradient-to-r from-purple-600 to-blue-600"
             size="lg"
           >
-            {isGenerating ? (
+            {isCheckingGems ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Checking Cost...
+              </>
+            ) : isGenerating ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                 Generating...
@@ -6364,6 +6507,19 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
       </Dialog>
 
       {showHistory && <HistoryCard userId={userData.id} />}
+
+      {/* Credit Confirmation Modal */}
+      <CreditConfirmationModal
+        isOpen={showGemWarning}
+        onClose={() => setShowGemWarning(false)}
+        onConfirm={proceedWithGeneration}
+        gemCostData={gemCostData}
+        userCredits={userData.credits}
+        isProcessing={isGenerating}
+        processingText="Generating..."
+        numberOfItems={formData.numberOfImages}
+        itemType="image"
+      />
     </div>
   );
 }

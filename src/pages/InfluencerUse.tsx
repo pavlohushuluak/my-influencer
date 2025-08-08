@@ -4,9 +4,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useState, useEffect } from 'react';
-import { Search, MessageCircle, Instagram, Send, X, Filter, Crown, Plus, Sparkles, Image, Copy, Upload, Trash } from 'lucide-react';
+import { Search, MessageCircle, Instagram, Send, X, Filter, Crown, Plus, Sparkles, Image, Copy, Upload, Trash, Loader2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Command, CommandItem, CommandList } from '@/components/ui/command';
+import { CreditConfirmationModal } from '@/components/CreditConfirmationModal';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -48,6 +49,16 @@ export default function InfluencerUse() {
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [influencerToDelete, setInfluencerToDelete] = useState<Influencer | null>(null);
+  
+  // Credit checking state for LoRA training
+  const [showGemWarning, setShowGemWarning] = useState(false);
+  const [gemCostData, setGemCostData] = useState<{
+    id: number;
+    item: string;
+    description: string;
+    gems: number;
+  } | null>(null);
+  const [isCheckingGems, setIsCheckingGems] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
   const filteredInfluencers = influencers.filter(influencer => {
@@ -189,7 +200,78 @@ export default function InfluencerUse() {
     }
   };
 
+  // Function to check gem cost for LoRA training
+  const checkLoraGemCost = async () => {
+    try {
+      setIsCheckingGems(true);
+      const response = await fetch('https://api.nymia.ai/v1/getgems', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          item: 'lora_images_only'
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch gem cost: ${response.status}`);
+      }
+
+      const gemData = await response.json();
+      return gemData;
+    } catch (error) {
+      console.error('Error checking LoRA gem cost:', error);
+      toast.error('Failed to check training cost. Proceeding without verification.');
+      return null;
+    } finally {
+      setIsCheckingGems(false);
+    }
+  };
+
+  // Function to proceed with LoRA training after gem confirmation
+  const proceedWithLoraTraining = async () => {
+    try {
+      setShowGemWarning(false);
+      console.log('Starting LoRA training after credit confirmation...');
+      await executeLoraTraining();
+    } catch (error) {
+      console.error('Error in proceedWithLoraTraining:', error);
+      toast.error('Failed to start LoRA training. Please try again.');
+      setIsCopyingImage(false);
+    }
+  };
+
+
+
+  // Main LoRA training function with credit checking
   const handleCopyProfileImage = async () => {
+    if (!selectedInfluencerData) return;
+
+    // Check gem cost before proceeding
+    const gemData = await checkLoraGemCost();
+    if (gemData) {
+      setGemCostData(gemData);
+      
+      // Check if user has enough credits
+      if (userData.credits < gemData.gems) {
+        setShowGemWarning(true);
+        return;
+      } else {
+        // Show confirmation for gem cost
+        setShowGemWarning(true);
+        return;
+      }
+    }
+
+    // If no gem checking needed or failed, show error and don't proceed
+    toast.error('Unable to verify credit cost. Please try again.');
+    return;
+  };
+
+  // Separated LoRA training execution function
+  const executeLoraTraining = async () => {
     if (!selectedInfluencerData) return;
 
     setIsCopyingImage(true);
@@ -746,10 +828,15 @@ export default function InfluencerUse() {
                 </Button>
                 <Button
                   onClick={handleCopyProfileImage}
-                  disabled={isCopyingImage || (!selectedProfileImage && !uploadedFile)}
+                  disabled={isCopyingImage || isCheckingGems || (!selectedProfileImage && !uploadedFile)}
                   className="flex-1 h-12 text-base font-medium bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {isCopyingImage ? (
+                  {isCheckingGems ? (
+                    <>
+                      <Loader2 className="w-5 h-5 mr-3 animate-spin" />
+                      Checking Cost...
+                    </>
+                  ) : isCopyingImage ? (
                     <>
                       <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-3" />
                       Setting for LoRA training...
@@ -833,6 +920,19 @@ export default function InfluencerUse() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* LoRA Training Credit Confirmation Modal */}
+      <CreditConfirmationModal
+        isOpen={showGemWarning}
+        onClose={() => setShowGemWarning(false)}
+        onConfirm={proceedWithLoraTraining}
+        gemCostData={gemCostData}
+        userCredits={userData.credits}
+        isProcessing={isCopyingImage}
+        processingText="Training..."
+        title="LoRA Training Cost"
+        confirmButtonText={gemCostData ? `Confirm & Use ${gemCostData.gems} Credits` : 'Confirm'}
+      />
     </div>
   );
 }

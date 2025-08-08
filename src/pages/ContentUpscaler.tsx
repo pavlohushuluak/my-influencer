@@ -229,7 +229,7 @@ export default function ContentUpscaler() {
 
   const handleVaultImageSelect = (image: GeneratedImageData) => {
     // Use the same URL construction logic as VaultSelector
-    const imageUrl = `${config.data_url}/cdn-cgi/image/w=800/${userData.id}/${image.user_filename === "" ? "output" : "vault/" + image.user_filename}/${image.system_filename}`;
+    const imageUrl = `${config.data_url}/${userData.id}/${image.user_filename === "" ? "output" : "vault/" + image.user_filename}/${image.system_filename}`;
     setPreviewUrl(imageUrl);
     setSelectedFile(null); // Clear file since we're using vault image
     setShowVaultSelector(false);
@@ -492,7 +492,7 @@ export default function ContentUpscaler() {
 
         if (data.length > 0 && data[0].generation_status === 'completed' && data[0].system_filename) {
           const completedImage = data[0];
-          const upscaledUrl = `${config.data_url}/cdn-cgi/image/w=800/${userData.id}/${completedImage.user_filename === "" || completedImage.user_filename === null ? "output" : "vault/" + completedImage.user_filename}/${completedImage.system_filename}`;
+          const upscaledUrl = `${config.data_url}/${userData.id}/${completedImage.user_filename === "" || completedImage.user_filename === null ? "output" : "vault/" + completedImage.user_filename}/${completedImage.system_filename}`;
 
           // Update the result
           setUpscaleResults(prev => prev.map(r =>

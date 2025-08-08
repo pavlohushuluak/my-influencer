@@ -2528,14 +2528,33 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
 
   // Apply preset to current form
   const handleApplyPreset = (preset: any) => {
+    console.log(preset);
+
     try {
+      console.log(preset);
       const jsonjob = preset.jsonjob;
 
       // Apply form data
       if (jsonjob.task) setFormData(prev => ({ ...prev, task: jsonjob.task }));
       if (jsonjob.lora) setFormData(prev => ({ ...prev, lora: jsonjob.lora }));
       if (jsonjob.noAI) setFormData(prev => ({ ...prev, noAI: jsonjob.noAI }));
-      if (jsonjob.prompt) setFormData(prev => ({ ...prev, prompt: jsonjob.prompt }));
+      if (jsonjob.prompt) {
+        setFormData(prev => {
+          const currentPrompt = prev.prompt || '';
+          const presetPrompt = jsonjob.prompt || '';
+          
+          // Merge the prompts: current prompt + preset prompt
+          const mergedPrompt = currentPrompt.trim() 
+            ? `${currentPrompt.trim()}, ${presetPrompt.trim()}`
+            : presetPrompt.trim();
+
+          console.log("mergedPrompt", mergedPrompt);
+          console.log("currentPrompt", currentPrompt);
+          console.log("presetPrompt", presetPrompt);
+          
+          return { ...prev, prompt: mergedPrompt };
+        });
+      }
       if (jsonjob.negative_prompt) setFormData(prev => ({ ...prev, negative_prompt: jsonjob.negative_prompt }));
       if (jsonjob.nsfw_strength) setFormData(prev => ({ ...prev, nsfw_strength: jsonjob.nsfw_strength }));
       if (jsonjob.lora_strength) setFormData(prev => ({ ...prev, lora_strength: jsonjob.lora_strength }));
@@ -5161,7 +5180,19 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
               if (jsonjob.task) setFormData(prev => ({ ...prev, task: jsonjob.task }));
               if (jsonjob.lora !== undefined) setFormData(prev => ({ ...prev, lora: jsonjob.lora }));
               if (jsonjob.noAI !== undefined) setFormData(prev => ({ ...prev, noAI: jsonjob.noAI }));
-              if (jsonjob.prompt) setFormData(prev => ({ ...prev, prompt: jsonjob.prompt }));
+              if (jsonjob.prompt) {
+                setFormData(prev => {
+                  const currentPrompt = prev.prompt || '';
+                  const presetPrompt = jsonjob.prompt || '';
+                  
+                  // Merge the prompts: current prompt + preset prompt
+                  const mergedPrompt = currentPrompt.trim() 
+                    ? `${currentPrompt.trim()}, ${presetPrompt.trim()}`
+                    : presetPrompt.trim();
+                  
+                  return { ...prev, prompt: mergedPrompt };
+                });
+              }
               if (jsonjob.negative_prompt) setFormData(prev => ({ ...prev, negative_prompt: jsonjob.negative_prompt }));
               if (jsonjob.nsfw_strength !== undefined) setFormData(prev => ({ ...prev, nsfw_strength: jsonjob.nsfw_strength }));
               if (jsonjob.lora_strength !== undefined) setFormData(prev => ({ ...prev, lora_strength: jsonjob.lora_strength }));
@@ -6072,7 +6103,19 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
               if (jsonjob.task) setFormData(prev => ({ ...prev, task: jsonjob.task }));
               if (jsonjob.lora !== undefined) setFormData(prev => ({ ...prev, lora: jsonjob.lora }));
               if (jsonjob.noAI !== undefined) setFormData(prev => ({ ...prev, noAI: jsonjob.noAI }));
-              if (jsonjob.prompt) setFormData(prev => ({ ...prev, prompt: jsonjob.prompt }));
+              if (jsonjob.prompt) {
+                setFormData(prev => {
+                  const currentPrompt = prev.prompt || '';
+                  const presetPrompt = jsonjob.prompt || '';
+                  
+                  // Merge the prompts: current prompt + preset prompt
+                  const mergedPrompt = currentPrompt.trim() 
+                    ? `${currentPrompt.trim()}, ${presetPrompt.trim()}`
+                    : presetPrompt.trim();
+                  
+                  return { ...prev, prompt: mergedPrompt };
+                });
+              }
               if (jsonjob.negative_prompt) setFormData(prev => ({ ...prev, negative_prompt: jsonjob.negative_prompt }));
               if (jsonjob.nsfw_strength !== undefined) setFormData(prev => ({ ...prev, nsfw_strength: jsonjob.nsfw_strength }));
               if (jsonjob.lora_strength !== undefined) setFormData(prev => ({ ...prev, lora_strength: jsonjob.lora_strength }));

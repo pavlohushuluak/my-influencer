@@ -32,6 +32,7 @@ import VideoPresetsManager from '@/components/VideoPresetsManager';
 import VideoLibraryManager from '@/components/VideoLibraryManager';
 import { Video, Play, Settings, Sparkles, Loader2, Camera, Search, X, Filter, Plus, RotateCcw, Download, Trash2, Calendar, Share, Pencil, Edit3, BookOpen, Save, FolderOpen, Upload, Edit, AlertTriangle, Eye, User, Monitor, ZoomIn, SortAsc, SortDesc, Wand2, Image as ImageIcon, ArrowLeft, Share2, Clock, Heart } from 'lucide-react';
 import HistoryCard from '@/components/HistoryCard';
+import { CreditConfirmationModal } from '@/components/CreditConfirmationModal';
 
 const VIDEO_OPTIONS = [
   { value: 'generate_video', label: 'Generate Video', description: 'Generate a single video' },
@@ -112,6 +113,16 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
   const influencers = useSelector((state: RootState) => state.influencers.influencers);
   const [activeTab, setActiveTab] = useState('scene');
   const [isGenerating, setIsGenerating] = useState(false);
+
+  // Credit checking state for video generation
+  const [showGemWarning, setShowGemWarning] = useState(false);
+  const [gemCostData, setGemCostData] = useState<{
+    id: number;
+    item: string;
+    description: string;
+    gems: number;
+  } | null>(null);
+  const [isCheckingGems, setIsCheckingGems] = useState(false);
 
   // Model data state to store influencer or selected image information
   const [modelData, setModelData] = useState<any>(null);
@@ -474,10 +485,19 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
         [field]: value
       };
 
-      // Reset mode when engine changes
+      // Handle engine changes
       if (field === 'engine') {
+        // Get allowed resolutions for the new engine
+        const allowedResolutions = getAllowedResolutions(value);
+        
+        // If current resolution is not allowed, auto-adjust to the first allowed resolution
+        if (!allowedResolutions.includes(newData.format)) {
+          newData.format = allowedResolutions[0];
+          toast.info(`Resolution automatically adjusted to ${allowedResolutions[0]} for ${value}`);
+        }
+        
+        // Set mode for Kling models
         if (value.includes('kling')) {
-          // Set mode based on current resolution
           newData.mode = (newData.format === '480p' || newData.format === '720p') ? 'standard' : 'pro';
         } else {
           newData.mode = '';
@@ -649,7 +669,110 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
     return true;
   };
 
-  const handleGenerate = async () => {
+  // Function to get allowed resolutions for a given engine
+  const getAllowedResolutions = (engine: string): string[] => {
+    switch (engine) {
+      case 'kling-v2.1':
+      case 'kling-v2.1-master':
+        return ['720p'];
+      case 'seedance-1-lite':
+        return ['480p', '720p'];
+      case 'seedance-1-pro':
+        return ['1080p'];
+      case 'wan-2.1-i2v-480p':
+        return ['480p'];
+      case 'wan-2.1-i2v-720p':
+        return ['720p'];
+      default:
+        return ['480p', '720p', '1080p']; // Default fallback
+    }
+  };
+
+  // Function to determine the correct item name based on engine, duration, and format
+  const getVideoItemName = (engine: string, duration: string, format: string): string => {
+    const durationNum = parseInt(duration);
+    
+    // Kling models
+    if (engine === 'kling-v2.1') {
+      return durationNum === 5 ? 'kling_video_standard_5s' : 'kling_video_standard_10s';
+    }
+    if (engine === 'kling-v2.1-master') {
+      return durationNum === 5 ? 'kling_video_master_5s' : 'kling_video_master_10s';
+    }
+    if (engine === 'kling-v2.1-pro') {
+      return durationNum === 5 ? 'kling_video_pro_5s' : 'kling_video_pro_10s';
+    }
+    
+    // Seedance models
+    if (engine === 'seedance-1-lite') {
+      if (format === '480p') {
+        return durationNum === 5 ? 'seedance_lite_480p_5s' : 'seedance_lite_480p_10s';
+      } else if (format === '720p') {
+        return durationNum === 5 ? 'seedance_lite_720p_5s' : 'seedance_lite_720p_10s';
+      }
+    }
+    if (engine === 'seedance-1-pro') {
+      return durationNum === 5 ? 'seedance_pro_1080p_5s' : 'seedance_pro_1080p_10s';
+    }
+    
+    // WAN models
+    if (engine === 'wan-2.1-i2v-480p') {
+      return durationNum === 5 ? 'wan_480p_5s' : 'wan_480p_8s';
+    }
+    if (engine === 'wan-2.1-i2v-720p') {
+      return 'wan_720p_5s'; // Both 5s and 10s use the same item
+    }
+    
+    // Default fallback
+    return 'kling_video_standard_5s';
+  };
+
+  // Function to check gem cost for video generation
+  const checkVideoGemCost = async (engine: string, duration: string, format: string) => {
+    try {
+      setIsCheckingGems(true);
+      const itemName = getVideoItemName(engine, duration, format);
+      
+      const response = await fetch('https://api.nymia.ai/v1/getgems', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          item: itemName
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch gem cost: ${response.status}`);
+      }
+
+      const gemData = await response.json();
+      return gemData;
+    } catch (error) {
+      console.error('Error checking gem cost:', error);
+      toast.error('Failed to check gem cost. Please try again.');
+      return null;
+    } finally {
+      setIsCheckingGems(false);
+    }
+  };
+
+  // Function to proceed with video generation after credit confirmation
+  const proceedWithVideoGeneration = async () => {
+    try {
+      setShowGemWarning(false);
+      await executeVideoGeneration();
+    } catch (error) {
+      console.error('Error in proceedWithVideoGeneration:', error);
+      toast.error('Failed to start video generation. Please try again.');
+      setIsGenerating(false);
+    }
+  };
+
+  // Separated video generation execution function
+  const executeVideoGeneration = async () => {
     if (!validateForm()) return;
 
     setIsGenerating(true);
@@ -747,6 +870,29 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
     }
   };
 
+  // Main video generation function with credit checking
+  const handleGenerate = async () => {
+    // Check gem cost before proceeding
+    const gemData = await checkVideoGemCost(formData.engine, formData.duration, formData.format);
+    if (gemData) {
+      setGemCostData(gemData);
+      
+      // Check if user has enough credits
+      if (userData.credits < gemData.gems) {
+        setShowGemWarning(true);
+        return;
+      } else {
+        // Show confirmation for gem cost
+        setShowGemWarning(true);
+        return;
+      }
+    }
+
+    // If no gem checking needed or failed, show error and don't proceed
+    toast.error('Unable to verify credit cost. Please try again.');
+    return;
+  };
+
   const handleSavePreset = async () => {
     if (!presetName.trim()) {
       toast.error('Please enter a preset name');
@@ -800,18 +946,32 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
   };
 
   const handleApplyVideoPreset = (preset: any) => {
+    const engine = preset.video_model || 'kling-v2.1';
+    const presetResolution = preset.resolution || '720p';
+    const allowedResolutions = getAllowedResolutions(engine);
+    
+    // Auto-adjust resolution if not allowed for the engine
+    const finalResolution = allowedResolutions.includes(presetResolution) 
+      ? presetResolution 
+      : allowedResolutions[0];
+    
     // Apply the preset data to the form
     setFormData(prev => ({
       ...prev,
       task: 'generate_video',
-      engine: preset.video_model || 'kling-v2.1',
-      format: preset.resolution || '720p',
+      engine: engine,
+      format: finalResolution,
       duration: preset.video_length?.toString() || '10',
       numberOfVideos: 1,
       seed: preset.seed?.toString() || '',
       prompt: preset.prompt || '',
       negative_prompt: preset.negative_prompt || ''
     }));
+
+    // Show notification if resolution was adjusted
+    if (finalResolution !== presetResolution) {
+      toast.info(`Resolution automatically adjusted to ${finalResolution} for ${engine}`);
+    }
 
     // Apply influencer image if available
     if (preset.influencer_image) {
@@ -1002,10 +1162,30 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
   };
 
   const handleModelSelect = (model: VideoModel) => {
-    setFormData(prev => ({
-      ...prev,
-      engine: model.label
-    }));
+    setFormData(prev => {
+      const newData = {
+        ...prev,
+        engine: model.label
+      };
+
+      // Get allowed resolutions for the new engine
+      const allowedResolutions = getAllowedResolutions(model.label);
+      
+      // If current resolution is not allowed, auto-adjust to the first allowed resolution
+      if (!allowedResolutions.includes(newData.format)) {
+        newData.format = allowedResolutions[0];
+        toast.info(`Resolution automatically adjusted to ${allowedResolutions[0]} for ${model.label}`);
+      }
+      
+      // Set mode for Kling models
+      if (model.label.includes('kling')) {
+        newData.mode = (newData.format === '480p' || newData.format === '720p') ? 'standard' : 'pro';
+      } else {
+        newData.mode = '';
+      }
+
+      return newData;
+    });
     setShowModelSelector(false);
     toast.success(`Selected model: ${model.label}`);
   };
@@ -1118,14 +1298,14 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-1 gap-2">
           <Button
             onClick={handleGenerate}
-            disabled={!isFormValid() || isGenerating}
+            disabled={!isFormValid() || isGenerating || isCheckingGems}
             className="bg-gradient-to-r from-blue-600 to-indigo-600"
             size="lg"
           >
-            {isGenerating ? (
+            {isGenerating || isCheckingGems ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Generating...
+                {isCheckingGems ? 'Checking Cost...' : 'Generating...'}
               </>
             ) : (
               <>
@@ -2401,7 +2581,9 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                {videoResolutions.map((resolution) => (
+                {videoResolutions
+                  .filter(resolution => getAllowedResolutions(formData.engine).includes(resolution.label))
+                  .map((resolution) => (
                   <Card
                     key={resolution.label}
                     className={`group cursor-pointer transition-all duration-500 border-0 shadow-lg hover:shadow-2xl hover:scale-[1.02] ${formData.format === resolution.label
@@ -2553,7 +2735,7 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
 
           <div className="flex justify-between items-center pt-6 border-t border-slate-200 dark:border-slate-700">
             <div className="text-sm text-slate-500 dark:text-slate-400">
-              {videoResolutions.length} resolution options available
+              {videoResolutions.filter(resolution => getAllowedResolutions(formData.engine).includes(resolution.label)).length} resolution options available for {formData.engine}
             </div>
             <div className="flex gap-3">
               <Button
@@ -2847,6 +3029,20 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
           onApplyPreset={handleApplyVideoPreset}
         />
       )}
+
+      {/* Video Generation Credit Confirmation Modal */}
+      <CreditConfirmationModal
+        isOpen={showGemWarning}
+        onClose={() => setShowGemWarning(false)}
+        onConfirm={proceedWithVideoGeneration}
+        gemCostData={gemCostData}
+        userCredits={userData.credits}
+        isProcessing={isGenerating}
+        processingText="Generating Video..."
+        title="Video Generation Cost"
+        confirmButtonText={gemCostData ? `Confirm & Use ${gemCostData.gems} Credits` : 'Confirm'}
+        itemType="video"
+      />
     </div>
   );
 }

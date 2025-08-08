@@ -7,17 +7,17 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { 
-  Search, 
-  Download, 
-  Trash2, 
-  SortAsc, 
-  SortDesc, 
-  ZoomIn, 
-  Folder, 
-  Plus, 
-  RefreshCcw, 
-  Edit, 
+import {
+  Search,
+  Download,
+  Trash2,
+  SortAsc,
+  SortDesc,
+  ZoomIn,
+  Folder,
+  Plus,
+  RefreshCcw,
+  Edit,
   Brain,
   ChevronDown,
   Star,
@@ -86,7 +86,7 @@ interface LoraManagementProps {
 
 export default function LoraManagement({ influencerId, influencerName, onClose }: LoraManagementProps) {
   const userData = useSelector((state: RootState) => state.user);
-  
+
   // State management
   const [files, setFiles] = useState<LoraFile[]>([]);
   const [folders, setFolders] = useState<FolderData[]>([]);
@@ -102,7 +102,7 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
   const [isInTrash, setIsInTrash] = useState(false);
   const [trashFiles, setTrashFiles] = useState<LoraFile[]>([]);
   const [isStartingTraining, setIsStartingTraining] = useState(false);
-  
+
   // LoRA status state
   const [loraStatus, setLoraStatus] = useState<LoraStatus | null>(null);
   const [isLoadingLoraStatus, setIsLoadingLoraStatus] = useState(true);
@@ -123,7 +123,7 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
     gems: number;
   } | null>(null);
   const [isCheckingGems, setIsCheckingGems] = useState(false);
-  
+
   // Upload state
   const [uploadModal, setUploadModal] = useState<{ open: boolean }>({ open: false });
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
@@ -135,7 +135,7 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
   const fetchLoraStatus = useCallback(async () => {
     try {
       setIsLoadingLoraStatus(true);
-      
+
       const response = await fetch(`${config.supabase_server_url}/loras?user_uuid=eq.${userData.id}&model_id=eq.${influencerId}`, {
         method: 'GET',
         headers: {
@@ -148,7 +148,7 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
       }
 
       const loraData: LoraStatus[] = await response.json();
-      
+
       // Set the first (and should be only) LoRA record for this model
       if (loraData && loraData.length > 0) {
         setLoraStatus(loraData[0]);
@@ -167,7 +167,7 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
   const fetchLoraFiles = useCallback(async () => {
     try {
       setIsLoading(true);
-      
+
       // Get files from the loratraining folder
       const filesResponse = await fetch(`${config.backend_url}/getfilenames`, {
         method: 'POST',
@@ -186,14 +186,14 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
       }
 
       const filesData: FileData[] = await filesResponse.json();
-      
+
       // Transform files data to LoraFile format
       const transformedFiles: LoraFile[] = filesData
         .filter((file: FileData) => file.Key && typeof file.Key === 'string') // Filter out files with invalid keys
         .map((file: FileData) => {
           const filename = file.Key.split('/').pop() || '';
           const fileExtension = filename.split('.').pop()?.toLowerCase() || '';
-          
+
           // Determine file type
           let type: LoraFile['type'] = 'other';
           if (['png', 'jpg', 'jpeg', 'webp'].includes(fileExtension)) {
@@ -244,7 +244,7 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
         setFolders(foldersData);
 
         console.log(foldersData);
-        
+
         // If no folders exist, create Trash folder
         if (foldersData.length === 0 || foldersData[0].Key !== 'Trash') {
           await createTrashFolder();
@@ -305,7 +305,12 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
   const handleDownload = async (file: LoraFile) => {
     try {
       setDownloadingFiles(prev => new Set(prev).add(file.id));
-      
+
+      console.log(file.key);
+      const result = file.key.match(/(models\/[^\s]+)/);
+
+      console.log(result[0]);
+
       const response = await fetch(`${config.backend_url}/downloadfile`, {
         method: 'POST',
         headers: {
@@ -314,7 +319,7 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
         },
         body: JSON.stringify({
           user: userData.id,
-          filename: file.key
+          filename: result[0]
         })
       });
 
@@ -324,14 +329,14 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
 
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
-      
+
       const link = document.createElement('a');
       link.href = url;
       link.download = file.filename;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      
+
       window.URL.revokeObjectURL(url);
       toast.success('Download completed successfully!');
     } catch (error) {
@@ -351,7 +356,7 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
     try {
       setMovingFiles(prev => new Set(prev).add(file.id));
       console.log(file);
-      
+
       // Copy file to Trash folder
       const copyResponse = await fetch(`${config.backend_url}/copyfile`, {
         method: 'POST',
@@ -406,7 +411,7 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
   const handleRestoreFromTrash = async (file: LoraFile) => {
     try {
       setMovingFiles(prev => new Set(prev).add(file.id));
-      
+
       // Copy file back to main folder
       const copyResponse = await fetch(`${config.backend_url}/copyfile`, {
         method: 'POST',
@@ -479,13 +484,13 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
       }
 
       const filesData: FileData[] = await filesResponse.json();
-      
+
       const transformedFiles: LoraFile[] = filesData
         .filter((file: FileData) => file.Key && typeof file.Key === 'string') // Filter out files with invalid keys
         .map((file: FileData) => {
           const filename = file.Key.split('/').pop() || '';
           const fileExtension = filename.split('.').pop()?.toLowerCase() || '';
-          
+
           let type: LoraFile['type'] = 'other';
           if (['png', 'jpg', 'jpeg', 'webp'].includes(fileExtension)) {
             type = 'image';
@@ -545,7 +550,7 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
   const handleStartLoraTraining = async (isFast: boolean = false) => {
     try {
       setIsStartingTraining(true);
-      
+
       const response = await fetch(`${config.backend_url}/startloratraining`, {
         method: 'POST',
         headers: {
@@ -564,7 +569,7 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
       }
 
       toast.success(`LoRA ${isFast ? 'fast ' : ''}training started successfully`);
-      
+
       // Refresh files to show new training files
       await fetchLoraFiles();
     } catch (error) {
@@ -586,7 +591,7 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
   // Filter and sort files
   const currentFiles = isInTrash ? trashFiles : files;
   const filteredFiles = currentFiles.filter(file => {
-    const matchesSearch = searchTerm === '' || 
+    const matchesSearch = searchTerm === '' ||
       file.filename.toLowerCase().includes(searchTerm.toLowerCase());
 
     return matchesSearch;
@@ -594,7 +599,7 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
 
   const sortedFiles = [...filteredFiles].sort((a, b) => {
     let comparison = 0;
-    
+
     switch (sortBy) {
       case 'newest':
         comparison = new Date(b.lastModified).getTime() - new Date(a.lastModified).getTime();
@@ -753,7 +758,7 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
   const executeRestartLoraTraining = async () => {
     try {
       setIsStartingTraining(true);
-      
+
       // Get userid from database
       const useridResponse = await fetch(`${config.supabase_server_url}/user?uuid=eq.${userData.id}`, {
         method: 'GET',
@@ -803,7 +808,7 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
       });
 
       toast.success('LoRA training restarted successfully');
-      
+
       // Refresh files to show new training files
       await fetchLoraFiles();
     } catch (error) {
@@ -820,7 +825,7 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
     const gemData = await checkRestartLoraGemCost();
     if (gemData) {
       setRestartGemCostData(gemData);
-      
+
       // Check if user has enough credits
       if (userData.credits < gemData.gems) {
         setShowRestartGemWarning(true);
@@ -883,7 +888,7 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
   const executeFastLoraTraining = async () => {
     try {
       setIsStartingTraining(true);
-      
+
       // Get userid from database
       const useridResponse = await fetch(`${config.supabase_server_url}/user?uuid=eq.${userData.id}`, {
         method: 'GET',
@@ -933,7 +938,7 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
       });
 
       toast.success('Fast LoRA training started successfully');
-      
+
       // Refresh files to show new training files
       await fetchLoraFiles();
     } catch (error) {
@@ -950,7 +955,7 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
     const gemData = await checkFastLoraGemCost();
     if (gemData) {
       setGemCostData(gemData);
-      
+
       // Check if user has enough credits
       if (userData.credits < gemData.gems) {
         setShowGemWarning(true);
@@ -1018,7 +1023,7 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
       return {
         text: 'Loading...',
         disabled: true,
-        onClick: () => {},
+        onClick: () => { },
         variant: 'outline' as const
       };
     }
@@ -1045,7 +1050,7 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
     return {
       text: 'Training in Progress',
       disabled: true,
-      onClick: () => {},
+      onClick: () => { },
       variant: 'outline' as const
     };
   };
@@ -1106,48 +1111,43 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
               <div className="grid">
                 <button
                   onClick={() => setSortBy('newest')}
-                  className={`flex items-center px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors ${
-                    sortBy === 'newest' ? 'bg-accent text-accent-foreground' : ''
-                  }`}
+                  className={`flex items-center px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors ${sortBy === 'newest' ? 'bg-accent text-accent-foreground' : ''
+                    }`}
                 >
                   Newest
                 </button>
                 <button
                   onClick={() => setSortBy('oldest')}
-                  className={`flex items-center px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors ${
-                    sortBy === 'oldest' ? 'bg-accent text-accent-foreground' : ''
-                  }`}
+                  className={`flex items-center px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors ${sortBy === 'oldest' ? 'bg-accent text-accent-foreground' : ''
+                    }`}
                 >
                   Oldest
                 </button>
                 <button
                   onClick={() => setSortBy('name')}
-                  className={`flex items-center px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors ${
-                    sortBy === 'name' ? 'bg-accent text-accent-foreground' : ''
-                  }`}
+                  className={`flex items-center px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors ${sortBy === 'name' ? 'bg-accent text-accent-foreground' : ''
+                    }`}
                 >
                   Name
                 </button>
                 <button
                   onClick={() => setSortBy('size')}
-                  className={`flex items-center px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors ${
-                    sortBy === 'size' ? 'bg-accent text-accent-foreground' : ''
-                  }`}
+                  className={`flex items-center px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors ${sortBy === 'size' ? 'bg-accent text-accent-foreground' : ''
+                    }`}
                 >
                   Size
                 </button>
                 <button
                   onClick={() => setSortBy('type')}
-                  className={`flex items-center px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors ${
-                    sortBy === 'type' ? 'bg-accent text-accent-foreground' : ''
-                  }`}
+                  className={`flex items-center px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors ${sortBy === 'type' ? 'bg-accent text-accent-foreground' : ''
+                    }`}
                 >
                   Type
                 </button>
               </div>
             </PopoverContent>
           </Popover>
-          
+
           <Button
             variant="outline"
             size="sm"
@@ -1161,33 +1161,29 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
       {/* Trash Folder and Training Buttons */}
       <div className="flex items-center justify-between gap-4 mb-6">
         {/* Trash Folder */}
-        <Card 
-          className={`cursor-pointer transition-all duration-300 hover:shadow-lg ${
-            isInTrash 
-              ? 'border-red-500 bg-red-50 dark:bg-red-950/20' 
+        <Card
+          className={`cursor-pointer transition-all duration-300 hover:shadow-lg ${isInTrash
+              ? 'border-red-500 bg-red-50 dark:bg-red-950/20'
               : 'border-border/50 hover:border-red-300'
-          }`}
+            }`}
           onDoubleClick={handleTrashFolderClick}
         >
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className={`p-3 rounded-lg transition-colors ${
-                isInTrash 
-                  ? 'bg-red-100 dark:bg-red-900/30' 
+              <div className={`p-3 rounded-lg transition-colors ${isInTrash
+                  ? 'bg-red-100 dark:bg-red-900/30'
                   : 'bg-gray-100 dark:bg-gray-800'
-              }`}>
-                <Trash2 className={`w-6 h-6 ${
-                  isInTrash 
-                    ? 'text-red-600 dark:text-red-400' 
+                }`}>
+                <Trash2 className={`w-6 h-6 ${isInTrash
+                    ? 'text-red-600 dark:text-red-400'
                     : 'text-gray-600 dark:text-gray-400'
-                }`} />
+                  }`} />
               </div>
               <div>
-                <h3 className={`font-semibold ${
-                  isInTrash 
-                    ? 'text-red-700 dark:text-red-300' 
+                <h3 className={`font-semibold ${isInTrash
+                    ? 'text-red-700 dark:text-red-300'
                     : 'text-foreground'
-                }`}>
+                  }`}>
                   Trash Folder
                 </h3>
                 <p className="text-sm text-muted-foreground">
@@ -1204,7 +1200,7 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
             onClick={getTrainingButtonState().onClick}
             disabled={getTrainingButtonState().disabled || isCheckingGems}
             variant={getTrainingButtonState().variant}
-            className={getTrainingButtonState().variant === 'default' 
+            className={getTrainingButtonState().variant === 'default'
               ? "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
               : "border-orange-300 text-orange-600 hover:bg-orange-50 dark:border-orange-600 dark:text-orange-400 dark:hover:bg-orange-950/20"
             }
@@ -1216,9 +1212,9 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
             )}
             {isCheckingGems ? 'Checking Cost...' : getTrainingButtonState().text}
           </Button>
-          
+
           <Button
-            onClick={canStartFastTraining() ? handleStartFastLoraTraining : () => {}}
+            onClick={canStartFastTraining() ? handleStartFastLoraTraining : () => { }}
             disabled={isStartingTraining || isCheckingGems || !canStartFastTraining()}
             variant="outline"
             className="border-orange-300 text-orange-600 hover:bg-orange-50 dark:border-orange-600 dark:text-orange-400 dark:hover:bg-orange-950/20"
@@ -1257,7 +1253,7 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
               <p className="text-muted-foreground">
                 {searchTerm
                   ? 'Try adjusting your search'
-                  : isInTrash 
+                  : isInTrash
                     ? 'No files in trash'
                     : 'LoRA training files will appear here once training begins'
                 }
@@ -1337,7 +1333,7 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
               </CardContent>
             </Card>
           )}
-          
+
           {sortedFiles.map((file) => (
             <Card key={file.id} className="group hover:shadow-lg transition-all duration-300 border-border/50 hover:border-ai-purple-500/20">
               <CardContent className="p-6 h-full">

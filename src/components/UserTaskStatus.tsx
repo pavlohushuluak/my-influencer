@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/store/store';
-import { Clock, CheckCircle, AlertCircle, Play, Loader2, ChevronUp, ChevronDown, Eye, Calendar, FileText, Hash } from 'lucide-react';
+import { Clock, CheckCircle, AlertCircle, Play, Loader2, ChevronUp, ChevronDown, Eye, Calendar, FileText, Hash, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   Tooltip,
@@ -19,6 +19,13 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import config from '@/config/config';
 
 interface TaskStatusData {
@@ -58,6 +65,9 @@ export function UserTaskStatus({ className, isCollapsed = false }: TaskStatusPro
   const [selectedTaskStatus, setSelectedTaskStatus] = useState<number | null>(null);
   const [taskDetails, setTaskDetails] = useState<TaskDetail[]>([]);
   const [isLoadingTasks, setIsLoadingTasks] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(12);
+  const [totalTasksInModal, setTotalTasksInModal] = useState(0);
   const modalStateRef = useRef(false);
   const user = useSelector((state: RootState) => state.user);
 
@@ -106,7 +116,42 @@ export function UserTaskStatus({ className, isCollapsed = false }: TaskStatusPro
     return () => clearInterval(interval);
   }, [user.id]);
 
-  const fetchTaskDetails = async (status: number) => {
+  // Pagination helper functions
+  const totalPages = Math.ceil(totalTasksInModal / pageSize);
+  
+  const handlePageChange = (newPage: number) => {
+    if (newPage >= 1 && newPage <= totalPages && selectedTaskStatus !== null) {
+      setCurrentPage(newPage);
+      fetchTaskDetails(selectedTaskStatus, newPage, pageSize);
+    }
+  };
+
+  const handlePageSizeChange = (newPageSize: string) => {
+    const size = parseInt(newPageSize);
+    setPageSize(size);
+    setCurrentPage(1);
+    if (selectedTaskStatus !== null) {
+      fetchTaskDetails(selectedTaskStatus, 1, size);
+    }
+  };
+
+  const getPageNumbers = () => {
+    const pages = [];
+    const maxVisible = 5;
+    let start = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+    let end = Math.min(totalPages, start + maxVisible - 1);
+    
+    if (end - start + 1 < maxVisible) {
+      start = Math.max(1, end - maxVisible + 1);
+    }
+    
+    for (let i = start; i <= end; i++) {
+      pages.push(i);
+    }
+    return pages;
+  };
+
+  const fetchTaskDetails = async (status: number, page: number = 1, size: number = 12) => {
     if (!user.id) return;
     
     setIsLoadingTasks(true);
@@ -115,8 +160,23 @@ export function UserTaskStatus({ className, isCollapsed = false }: TaskStatusPro
     modalStateRef.current = true;
     
     try {
+      // Calculate offset for pagination
+      const offset = (page - 1) * size;
+      
+      // Fetch tasks with pagination
       const response = await fetch(
-        `${config.supabase_server_url}/tasks?uuid=eq.${user.id}&state=eq.${status}&order=created_at.desc&limit=50`,
+        `${config.supabase_server_url}/tasks?uuid=eq.${user.id}&state=eq.${status}&order=created_at.desc&limit=${size}&offset=${offset}`,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer WeInfl3nc3withAI'
+          }
+        }
+      );
+
+      // Fetch total count
+      const countResponse = await fetch(
+        `${config.supabase_server_url}/tasks?uuid=eq.${user.id}&state=eq.${status}&select=count`,
         {
           headers: {
             'Content-Type': 'application/json',
@@ -128,13 +188,22 @@ export function UserTaskStatus({ className, isCollapsed = false }: TaskStatusPro
       if (response.ok) {
         const data = await response.json();
         setTaskDetails(data || []);
+        
+        if (countResponse.ok) {
+          const countData = await countResponse.json();
+          setTotalTasksInModal(countData[0]?.count || 0);
+        } else {
+          setTotalTasksInModal(data?.length || 0);
+        }
       } else {
         console.error('Failed to fetch task details');
         setTaskDetails([]);
+        setTotalTasksInModal(0);
       }
     } catch (error) {
       console.error('Error fetching task details:', error);
       setTaskDetails([]);
+      setTotalTasksInModal(0);
     } finally {
       setIsLoadingTasks(false);
     }
@@ -309,7 +378,8 @@ export function UserTaskStatus({ className, isCollapsed = false }: TaskStatusPro
                             size="sm"
                             onClick={(e) => {
                               e.stopPropagation();
-                              fetchTaskDetails(state);
+                              setCurrentPage(1);
+                              fetchTaskDetails(state, 1, pageSize);
                             }}
                             className="h-6 w-6 p-0 hover:bg-white/50 dark:hover:bg-black/20"
                           >
@@ -337,6 +407,12 @@ export function UserTaskStatus({ className, isCollapsed = false }: TaskStatusPro
       <Dialog open={showTaskModal} onOpenChange={(open) => {
         setShowTaskModal(open);
         modalStateRef.current = open;
+        if (!open) {
+          // Reset pagination when modal closes
+          setCurrentPage(1);
+          setTotalTasksInModal(0);
+          setTaskDetails([]);
+        }
       }}>
         <DialogContent className="max-w-4xl max-h-[80vh]">
           <DialogHeader>
@@ -360,22 +436,49 @@ export function UserTaskStatus({ className, isCollapsed = false }: TaskStatusPro
             </DialogTitle>
           </DialogHeader>
           
-          <ScrollArea className="h-[60vh] pr-4">
-            {isLoadingTasks ? (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-                <span className="ml-2 text-sm text-muted-foreground">Loading tasks...</span>
-              </div>
-            ) : taskDetails.length === 0 ? (
-              <div className="text-center py-8">
-                <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
-                  <FileText className="w-8 h-8 text-muted-foreground" />
+                    <div className="flex flex-col h-[60vh]">
+            {/* Pagination Controls - Top */}
+            {!isLoadingTasks && taskDetails.length > 0 && (
+              <div className="flex items-center justify-between p-4 border-b border-border/50">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <span>
+                    Showing {Math.min((currentPage - 1) * pageSize + 1, totalTasksInModal)} to {Math.min(currentPage * pageSize, totalTasksInModal)} of {totalTasksInModal} tasks
+                  </span>
                 </div>
-                <p className="text-muted-foreground">No tasks found for this status</p>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">Show:</span>
+                  <Select value={String(pageSize)} onValueChange={handlePageSizeChange}>
+                    <SelectTrigger className="w-20 h-8">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="6">6</SelectItem>
+                      <SelectItem value="12">12</SelectItem>
+                      <SelectItem value="24">24</SelectItem>
+                      <SelectItem value="48">48</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {taskDetails.map((task) => (
+            )}
+
+            {/* Content Area */}
+            <ScrollArea className="flex-1 px-4">
+              {isLoadingTasks ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                  <span className="ml-2 text-sm text-muted-foreground">Loading tasks...</span>
+                </div>
+              ) : taskDetails.length === 0 ? (
+                <div className="text-center py-8">
+                  <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
+                    <FileText className="w-8 h-8 text-muted-foreground" />
+                  </div>
+                  <p className="text-muted-foreground">No tasks found for this status</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
+                  {taskDetails.map((task) => (
                     <Card key={String(task.id)} className="hover:shadow-md transition-shadow duration-200">
                       <CardHeader className="pb-3">
                         <div className="flex items-start justify-between">
@@ -409,11 +512,76 @@ export function UserTaskStatus({ className, isCollapsed = false }: TaskStatusPro
                           <span>Created: {new Date(task.created_at).toLocaleDateString()} {new Date(task.created_at).toLocaleTimeString()}</span>
                         </div>
                       </CardContent>
-                                          </Card>
-                ))}
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </ScrollArea>
+
+            {/* Pagination Controls - Bottom */}
+            {!isLoadingTasks && taskDetails.length > 0 && totalPages > 1 && (
+              <div className="flex items-center justify-center p-4 border-t border-border/50">
+                <div className="flex items-center gap-1">
+                  {/* First Page */}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handlePageChange(1)}
+                    disabled={currentPage === 1}
+                    className="h-8 w-8 p-0"
+                  >
+                    <ChevronsLeft className="w-4 h-4" />
+                  </Button>
+
+                  {/* Previous Page */}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className="h-8 w-8 p-0"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </Button>
+
+                  {/* Page Numbers */}
+                  {getPageNumbers().map((pageNum) => (
+                    <Button
+                      key={pageNum}
+                      variant={currentPage === pageNum ? "default" : "ghost"}
+                      size="sm"
+                      onClick={() => handlePageChange(pageNum)}
+                      className="h-8 w-8 p-0"
+                    >
+                      {pageNum}
+                    </Button>
+                  ))}
+
+                  {/* Next Page */}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    className="h-8 w-8 p-0"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
+
+                  {/* Last Page */}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handlePageChange(totalPages)}
+                    disabled={currentPage === totalPages}
+                    className="h-8 w-8 p-0"
+                  >
+                    <ChevronsRight className="w-4 h-4" />
+                  </Button>
+                </div>
               </div>
             )}
-          </ScrollArea>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

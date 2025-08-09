@@ -1164,8 +1164,8 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
   const handleModelSelect = (model: VideoModel) => {
     setFormData(prev => {
       const newData = {
-        ...prev,
-        engine: model.label
+      ...prev,
+      engine: model.label
       };
 
       // Get allowed resolutions for the new engine

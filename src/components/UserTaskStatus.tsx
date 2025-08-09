@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/store/store';
-import { Clock, CheckCircle, AlertCircle, Play, Loader2, ChevronUp, ChevronDown } from 'lucide-react';
+import { Clock, CheckCircle, AlertCircle, Play, Loader2, ChevronUp, ChevronDown, Eye, Calendar, FileText, Hash } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   Tooltip,
@@ -10,6 +10,15 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import config from '@/config/config';
 
 interface TaskStatusData {
@@ -18,6 +27,22 @@ interface TaskStatusData {
   tasks_state_1: number;
   tasks_state_2: number;
   tasks_state_99: number;
+}
+
+interface TaskDetail {
+  id: number;
+  uuid: string;
+  type: string;
+  state: number;
+  jsonjob: string;
+  created_at: string;
+  updated_at: string;
+  started_at: string | null;
+  finished_at: string | null;
+  error_message: string | null;
+  priority: number;
+  retry_count: number;
+  progress: number;
 }
 
 interface TaskStatusProps {
@@ -29,14 +54,23 @@ export function UserTaskStatus({ className, isCollapsed = false }: TaskStatusPro
   const [taskStatus, setTaskStatus] = useState<TaskStatusData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [showTaskModal, setShowTaskModal] = useState(false);
+  const [selectedTaskStatus, setSelectedTaskStatus] = useState<number | null>(null);
+  const [taskDetails, setTaskDetails] = useState<TaskDetail[]>([]);
+  const [isLoadingTasks, setIsLoadingTasks] = useState(false);
+  const modalStateRef = useRef(false);
   const user = useSelector((state: RootState) => state.user);
 
   useEffect(() => {
-    const fetchTaskStatus = async () => {
+    const fetchTaskStatus = async (isInitialLoad = false) => {
       if (!user.id) return;
       
       try {
-        setIsLoading(true);
+        // Only show loading state on initial load, not during background refresh when modal is open
+        if (isInitialLoad) {
+          setIsLoading(true);
+        }
+        
         const response = await fetch(`${config.supabase_server_url}/user_task_status_counts?user_uuid=eq.${user.id}`, {
           headers: {
             'Content-Type': 'application/json',
@@ -53,15 +87,58 @@ export function UserTaskStatus({ className, isCollapsed = false }: TaskStatusPro
       } catch (error) {
         console.error('Error fetching task status:', error);
       } finally {
-        setIsLoading(false);
+        if (isInitialLoad) {
+          setIsLoading(false);
+        }
       }
     };
 
-    fetchTaskStatus();
-    // Refresh every 30 seconds
-    const interval = setInterval(fetchTaskStatus, 30000);
+    // Initial load with loading state
+    fetchTaskStatus(true);
+    
+    // Background refresh every 30 seconds without affecting loading state
+    const interval = setInterval(() => {
+      // Don't refresh task details if modal is currently open to avoid disrupting user experience
+      if (!modalStateRef.current) {
+        fetchTaskStatus(false);
+      }
+    }, 30000);
     return () => clearInterval(interval);
   }, [user.id]);
+
+  const fetchTaskDetails = async (status: number) => {
+    if (!user.id) return;
+    
+    setIsLoadingTasks(true);
+    setSelectedTaskStatus(status);
+    setShowTaskModal(true);
+    modalStateRef.current = true;
+    
+    try {
+      const response = await fetch(
+        `${config.supabase_server_url}/tasks?uuid=eq.${user.id}&state=eq.${status}&order=created_at.desc&limit=50`,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer WeInfl3nc3withAI'
+          }
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        setTaskDetails(data || []);
+      } else {
+        console.error('Failed to fetch task details');
+        setTaskDetails([]);
+      }
+    } catch (error) {
+      console.error('Error fetching task details:', error);
+      setTaskDetails([]);
+    } finally {
+      setIsLoadingTasks(false);
+    }
+  };
 
   const getStatusInfo = (state: number, count: number) => {
     switch (state) {
@@ -222,9 +299,24 @@ export function UserTaskStatus({ className, isCollapsed = false }: TaskStatusPro
                           {statusInfo.text}
                         </span>
                       </div>
-                      <span className={cn('text-xs font-bold', statusInfo.color)}>
-                        {count}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className={cn('text-xs font-bold', statusInfo.color)}>
+                          {count}
+                        </span>
+                        {count > 0 && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              fetchTaskDetails(state);
+                            }}
+                            className="h-6 w-6 p-0 hover:bg-white/50 dark:hover:bg-black/20"
+                          >
+                            <Eye className={cn('w-3 h-3', statusInfo.color)} />
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   </TooltipTrigger>
                   <TooltipContent side="right" className="max-w-xs">
@@ -240,6 +332,90 @@ export function UserTaskStatus({ className, isCollapsed = false }: TaskStatusPro
           })}
         </div>
       )}
+
+      {/* Task Details Modal */}
+      <Dialog open={showTaskModal} onOpenChange={(open) => {
+        setShowTaskModal(open);
+        modalStateRef.current = open;
+      }}>
+        <DialogContent className="max-w-4xl max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {selectedTaskStatus !== null && (
+                <>
+                  {(() => {
+                    const statusInfo = getStatusInfo(selectedTaskStatus, 0);
+                    const IconComponent = statusInfo.icon;
+                    return (
+                      <>
+                        <IconComponent className={cn('w-5 h-5', statusInfo.color)} />
+                        <span>
+                          {statusInfo.text} Tasks ({taskDetails.length})
+                        </span>
+                      </>
+                    );
+                  })()}
+                </>
+              )}
+            </DialogTitle>
+          </DialogHeader>
+          
+          <ScrollArea className="h-[60vh] pr-4">
+            {isLoadingTasks ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                <span className="ml-2 text-sm text-muted-foreground">Loading tasks...</span>
+              </div>
+            ) : taskDetails.length === 0 ? (
+              <div className="text-center py-8">
+                <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
+                  <FileText className="w-8 h-8 text-muted-foreground" />
+                </div>
+                <p className="text-muted-foreground">No tasks found for this status</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {taskDetails.map((task) => (
+                    <Card key={String(task.id)} className="hover:shadow-md transition-shadow duration-200">
+                      <CardHeader className="pb-3">
+                        <div className="flex items-start justify-between">
+                          <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                            <Hash className="w-4 h-4 text-muted-foreground" />
+                            {String(task.id).slice(-8)}
+                          </CardTitle>
+                          <Badge 
+                            variant={task.state === 2 ? 'default' : 
+                                   task.state === 1 ? 'secondary' : 
+                                   task.state === 99 ? 'destructive' : 'outline'}
+                            className="text-xs"
+                          >
+                            {task.state === 0 ? 'Scheduled' : 
+                             task.state === 1 ? 'Processing' : 
+                             task.state === 2 ? 'Completed' : 
+                             task.state === 99 ? 'Failed' : 'Unknown'}
+                          </Badge>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="p-4">
+                        {/* Task Type */}
+                        <div className="flex items-center gap-2 mb-3">
+                          <FileText className="w-4 h-4 text-indigo-500" />
+                          <span className="text-sm font-semibold text-indigo-600 dark:text-indigo-400">{task.type}</span>
+                        </div>
+
+                        {/* Created Time */}
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <Calendar className="w-3 h-3" />
+                          <span>Created: {new Date(task.created_at).toLocaleDateString()} {new Date(task.created_at).toLocaleTimeString()}</span>
+                        </div>
+                      </CardContent>
+                                          </Card>
+                ))}
+              </div>
+            )}
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 } 

@@ -403,7 +403,7 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
   // Silent validation for button disabled state
   const isFormValid = () => {
     if (!selectedVideo) return false;
-    
+
     if (activePhase === 'upload') {
       if (!uploadedAudioFile || !selectedAudioUrl) return false;
     } else {
@@ -483,7 +483,7 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
         status: "new"
       };
 
-      const response = await fetch(`${config.backend_url}/generatelipsyncvideo`, {
+              const response = await fetch(`${config.backend_url}/generatelipsyncvideo`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -647,10 +647,10 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
         setSelectedAudioId('');
         toast.success('Audio deselected');
       } else {
-        console.log('Setting selectedAudioUrl to:', audioUrl);
-        setSelectedAudioUrl(audioUrl);
+      console.log('Setting selectedAudioUrl to:', audioUrl);
+      setSelectedAudioUrl(audioUrl);
         setSelectedAudioId(audioId);
-        toast.success('Audio selected for lip sync video generation');
+      toast.success('Audio selected for lip sync video generation');
       }
     } else {
       console.log('No audioUrl found for audioId:', audioId);
@@ -1606,7 +1606,7 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
               </div>
             </div>
           )}
-          
+
           <Card className="bg-white/80 dark:bg-slate-800/80 border-0 shadow-xl">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">

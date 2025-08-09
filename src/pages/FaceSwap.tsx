@@ -5,6 +5,7 @@ import config from '@/config/config';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import VaultSelector from '@/components/VaultSelector';
 import { toast } from 'sonner';
 import { 
@@ -16,7 +17,9 @@ import {
   X, 
   RotateCcw,
   Download,
-  Sparkles
+  Sparkles,
+  Eye,
+  ExternalLink
 } from 'lucide-react';
 
 interface GeneratedImageData {
@@ -53,8 +56,16 @@ export default function FaceSwap() {
   const [showVaultSelector, setShowVaultSelector] = useState(false);
   const [vaultSelectorMode, setVaultSelectorMode] = useState<'source' | 'target'>('source');
   
+  // View Modal State
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [viewResult, setViewResult] = useState<FaceSwapResult | null>(null);
+  
   // Processing State
   const [isProcessing, setIsProcessing] = useState(false);
+  
+  // Upload States
+  const [isUploadingSource, setIsUploadingSource] = useState(false);
+  const [isUploadingTarget, setIsUploadingTarget] = useState(false);
   
   // Results State
   const [faceSwapResults, setFaceSwapResults] = useState<FaceSwapResult[]>([]);
@@ -72,17 +83,29 @@ export default function FaceSwap() {
     status: 'processing' | 'completed' | 'failed';
     progress: number;
     createdAt: Date;
+    // Add fields for download API
+    systemFilename?: string;
+    userFilename?: string | null;
   }
 
   // Handle file upload for source image
-  const handleSourceFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSourceFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       if (file.type.startsWith('image/')) {
-        setSourceImage(file);
-        setSourceImageUrl(URL.createObjectURL(file));
-        setSourceImageFromVault(null);
-        toast.success('Source image uploaded successfully');
+        setIsUploadingSource(true);
+        try {
+          // Upload to vault and get the URL
+          const uploadedUrl = await uploadImageToVault(file);
+          if (uploadedUrl) {
+            setSourceImage(file);
+            setSourceImageUrl(uploadedUrl); // Use the uploaded URL instead of local object URL
+            setSourceImageFromVault(null);
+            toast.success('Source image uploaded successfully');
+          }
+        } finally {
+          setIsUploadingSource(false);
+        }
       } else {
         toast.error('Please select a valid image file');
       }
@@ -90,14 +113,23 @@ export default function FaceSwap() {
   };
 
   // Handle file upload for target image
-  const handleTargetFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleTargetFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       if (file.type.startsWith('image/')) {
-        setTargetImage(file);
-        setTargetImageUrl(URL.createObjectURL(file));
-        setTargetImageFromVault(null);
-        toast.success('Target face uploaded successfully');
+        setIsUploadingTarget(true);
+        try {
+          // Upload to vault and get the URL
+          const uploadedUrl = await uploadImageToVault(file);
+          if (uploadedUrl) {
+            setTargetImage(file);
+            setTargetImageUrl(uploadedUrl); // Use the uploaded URL instead of local object URL
+            setTargetImageFromVault(null);
+            toast.success('Target face uploaded successfully');
+          }
+        } finally {
+          setIsUploadingTarget(false);
+        }
       } else {
         toast.error('Please select a valid image file');
       }
@@ -105,7 +137,7 @@ export default function FaceSwap() {
   };
 
   // Handle drag and drop for source
-  const handleSourceDrop = (event: React.DragEvent) => {
+  const handleSourceDrop = async (event: React.DragEvent) => {
     event.preventDefault();
     setDragOverSource(false);
     
@@ -113,10 +145,19 @@ export default function FaceSwap() {
     if (files.length > 0) {
       const file = files[0];
       if (file.type.startsWith('image/')) {
-        setSourceImage(file);
-        setSourceImageUrl(URL.createObjectURL(file));
-        setSourceImageFromVault(null);
-        toast.success('Source image uploaded successfully');
+        setIsUploadingSource(true);
+        try {
+          // Upload to vault and get the URL
+          const uploadedUrl = await uploadImageToVault(file);
+          if (uploadedUrl) {
+            setSourceImage(file);
+            setSourceImageUrl(uploadedUrl); // Use the uploaded URL instead of local object URL
+            setSourceImageFromVault(null);
+            toast.success('Source image uploaded successfully');
+          }
+        } finally {
+          setIsUploadingSource(false);
+        }
       } else {
         toast.error('Please drop a valid image file');
       }
@@ -124,7 +165,7 @@ export default function FaceSwap() {
   };
 
   // Handle drag and drop for target
-  const handleTargetDrop = (event: React.DragEvent) => {
+  const handleTargetDrop = async (event: React.DragEvent) => {
     event.preventDefault();
     setDragOverTarget(false);
     
@@ -132,10 +173,19 @@ export default function FaceSwap() {
     if (files.length > 0) {
       const file = files[0];
       if (file.type.startsWith('image/')) {
-        setTargetImage(file);
-        setTargetImageUrl(URL.createObjectURL(file));
-        setTargetImageFromVault(null);
-        toast.success('Target face uploaded successfully');
+        setIsUploadingTarget(true);
+        try {
+          // Upload to vault and get the URL
+          const uploadedUrl = await uploadImageToVault(file);
+          if (uploadedUrl) {
+            setTargetImage(file);
+            setTargetImageUrl(uploadedUrl); // Use the uploaded URL instead of local object URL
+            setTargetImageFromVault(null);
+            toast.success('Target face uploaded successfully');
+          }
+        } finally {
+          setIsUploadingTarget(false);
+        }
       } else {
         toast.error('Please drop a valid image file');
       }
@@ -164,8 +214,96 @@ export default function FaceSwap() {
     setShowVaultSelector(true);
   };
 
+  // Handle image download using the correct API
+  const handleDownloadImage = async (result: FaceSwapResult) => {
+    try {
+      if (!result.systemFilename) {
+        toast.error('Unable to download: file information not available');
+        return;
+      }
+
+      const folder = result.userFilename === "" || result.userFilename === null ? "output" : `vault/${result.userFilename}`;
+      const filename = `${folder}/${result.systemFilename}`;
+
+      const response = await fetch(`${config.backend_url}/downloadfile`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          user: userData.id,
+          filename: filename
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to download file');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `faceswap_${result.id}.jpg`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      window.URL.revokeObjectURL(url);
+      toast.success('Download completed successfully!');
+    } catch (error) {
+      console.error('Download error:', error);
+      toast.error('Failed to download file');
+    }
+  };
+
+  // Handle view image
+  const handleViewImage = (result: FaceSwapResult) => {
+    setViewResult(result);
+    setShowViewModal(true);
+  };
+
+  // Upload image to vault
+  const uploadImageToVault = async (file: File): Promise<string | null> => {
+    if (!userData.id) {
+      toast.error('User not authenticated');
+      return null;
+    }
+
+    try {
+      // Generate a unique filename
+      const timestamp = Date.now();
+      const fileExtension = file.name.split('.').pop() || 'jpg';
+      const filename = `upload_${timestamp}.${fileExtension}`;
+
+      // Upload file using the correct API
+      const uploadResponse = await fetch(`${config.backend_url}/uploadfile?user=${userData.id}&filename=upload/${filename}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: file
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error('Failed to upload image');
+      }
+
+      // Return the uploaded image URL
+      const imageUrl = `${config.data_url}/${userData.id}/upload/${filename}`;
+      return imageUrl;
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      toast.error('Failed to upload image');
+      return null;
+    }
+  };
+
   // Clear source image
   const clearSourceImage = () => {
+    // No need to revoke URL since we're using server URLs now
     setSourceImage(null);
     setSourceImageUrl(null);
     setSourceImageFromVault(null);
@@ -176,6 +314,7 @@ export default function FaceSwap() {
 
   // Clear target image
   const clearTargetImage = () => {
+    // No need to revoke URL since we're using server URLs now
     setTargetImage(null);
     setTargetImageUrl(null);
     setTargetImageFromVault(null);
@@ -189,7 +328,7 @@ export default function FaceSwap() {
     if (sourceImageUrl) return sourceImageUrl;
     if (sourceImageFromVault) {
       const folder = sourceImageFromVault.user_filename === "" || sourceImageFromVault.user_filename === null ? "output" : `vault/${sourceImageFromVault.user_filename}`;
-      return `${config.data_url}/cdn-cgi/image/w=400/${userData.id}/${folder}/${sourceImageFromVault.system_filename}`;
+      return `${config.data_url}/${userData.id}/${folder}/${sourceImageFromVault.system_filename}`;
     }
     return null;
   };
@@ -199,7 +338,7 @@ export default function FaceSwap() {
     if (targetImageUrl) return targetImageUrl;
     if (targetImageFromVault) {
       const folder = targetImageFromVault.user_filename === "" || targetImageFromVault.user_filename === null ? "output" : `vault/${targetImageFromVault.user_filename}`;
-      return `${config.data_url}/cdn-cgi/image/w=400/${userData.id}/${folder}/${targetImageFromVault.system_filename}`;
+      return `${config.data_url}/${userData.id}/${folder}/${targetImageFromVault.system_filename}`;
     }
     return null;
   };
@@ -218,7 +357,7 @@ export default function FaceSwap() {
 
         if (imagesData.length > 0 && imagesData[0].generation_status === 'completed' && imagesData[0].system_filename) {
           const completedImage = imagesData[0];
-          const resultUrl = `${config.data_url}/cdn-cgi/image/w=800/${userData.id}/${completedImage.user_filename === "" || completedImage.user_filename === null ? "output" : "vault/" + completedImage.user_filename}/${completedImage.system_filename}`;
+          const resultUrl = `${config.data_url}/${userData.id}/${completedImage.user_filename === "" || completedImage.user_filename === null ? "output" : "vault/" + completedImage.user_filename}/${completedImage.system_filename}`;
           
           // Update the result
           setFaceSwapResults(prev => prev.map(r => 
@@ -227,7 +366,9 @@ export default function FaceSwap() {
                   ...r, 
                   status: 'completed', 
                   progress: 100,
-                  resultUrl
+                  resultUrl,
+                  systemFilename: completedImage.system_filename,
+                  userFilename: completedImage.user_filename
                 }
               : r
           ));
@@ -280,9 +421,10 @@ export default function FaceSwap() {
     setIsProcessing(true);
     try {
       // Get userid for API request
-      const useridResponse = await fetch(`${config.supabase_server_url}/users?user_uuid=eq.${userData.id}&select=userid`, {
+      const useridResponse = await fetch(`${config.supabase_server_url}/user?uuid=eq.${userData.id}&select=userid`, {
         headers: {
-          'Authorization': 'Bearer WeInfl3nc3withAI'
+          'Authorization': 'Bearer WeInfl3nc3withAI',
+          'Content-Type': 'application/json'
         }
       });
 
@@ -347,11 +489,11 @@ export default function FaceSwap() {
           <div className="p-3 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl shadow-lg">
             <Users className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-indigo-600 bg-clip-text text-transparent">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-indigo-600 bg-clip-text text-transparent">
             Face Swap Studio
           </h1>
         </div>
-        <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+        <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto px-4">
           Seamlessly swap faces between images with our advanced AI technology. Upload your source image and target face to create stunning results.
         </p>
       </div>
@@ -375,7 +517,7 @@ export default function FaceSwap() {
               
               {/* Upload Area */}
               <div
-                className={`relative border-2 border-dashed rounded-xl p-8 text-center transition-all duration-300 cursor-pointer hover:border-purple-400 ${
+                className={`relative border-2 border-dashed rounded-xl p-4 sm:p-6 lg:p-8 text-center transition-all duration-300 cursor-pointer hover:border-purple-400 ${
                   dragOverSource 
                     ? 'border-purple-500 bg-purple-100/50 dark:bg-purple-900/30 scale-105' 
                     : 'border-purple-300 dark:border-purple-700 hover:bg-purple-50/30 dark:hover:bg-purple-900/20'
@@ -389,7 +531,14 @@ export default function FaceSwap() {
                 onDrop={handleSourceDrop}
               >
                 
-                {getSourceDisplayUrl() ? (
+                {isUploadingSource ? (
+                  <div className="w-full h-48 flex items-center justify-center bg-purple-100/50 dark:bg-purple-900/30 rounded-lg">
+                    <div className="text-center">
+                      <div className="w-12 h-12 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+                      <p className="text-purple-600 dark:text-purple-400 font-medium">Uploading...</p>
+                    </div>
+                  </div>
+                ) : getSourceDisplayUrl() ? (
                   <div className="relative group">
                     <img
                       src={getSourceDisplayUrl()!}
@@ -421,12 +570,12 @@ export default function FaceSwap() {
                     </div>
                   </div>
                 ) : (
-                  <div className="space-y-4">
-                    <div className="mx-auto w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
-                      <Upload className="w-8 h-8 text-white" />
+                  <div className="space-y-3 sm:space-y-4">
+                    <div className="mx-auto w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
+                      <Upload className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
                     </div>
                     <div>
-                      <p className="text-lg font-medium text-purple-700 dark:text-purple-300 mb-2">
+                      <p className="text-base sm:text-lg font-medium text-purple-700 dark:text-purple-300 mb-2">
                         Drop your source image here
                       </p>
                       <p className="text-sm text-muted-foreground">
@@ -474,7 +623,7 @@ export default function FaceSwap() {
               
               {/* Upload Area */}
               <div
-                className={`relative border-2 border-dashed rounded-xl p-8 text-center transition-all duration-300 cursor-pointer hover:border-blue-400 ${
+                className={`relative border-2 border-dashed rounded-xl p-4 sm:p-6 lg:p-8 text-center transition-all duration-300 cursor-pointer hover:border-blue-400 ${
                   dragOverTarget 
                     ? 'border-blue-500 bg-blue-100/50 dark:bg-blue-900/30 scale-105' 
                     : 'border-blue-300 dark:border-blue-700 hover:bg-blue-50/30 dark:hover:bg-blue-900/20'
@@ -488,7 +637,14 @@ export default function FaceSwap() {
                 onDrop={handleTargetDrop}
               >
                 
-                {getTargetDisplayUrl() ? (
+                {isUploadingTarget ? (
+                  <div className="w-full h-48 flex items-center justify-center bg-blue-100/50 dark:bg-blue-900/30 rounded-lg">
+                    <div className="text-center">
+                      <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+                      <p className="text-blue-600 dark:text-blue-400 font-medium">Uploading...</p>
+                    </div>
+                  </div>
+                ) : getTargetDisplayUrl() ? (
                   <div className="relative group">
                     <img
                       src={getTargetDisplayUrl()!}
@@ -520,12 +676,12 @@ export default function FaceSwap() {
                     </div>
                   </div>
                 ) : (
-                  <div className="space-y-4">
-                    <div className="mx-auto w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-full flex items-center justify-center">
-                      <Upload className="w-8 h-8 text-white" />
+                  <div className="space-y-3 sm:space-y-4">
+                    <div className="mx-auto w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-full flex items-center justify-center">
+                      <Upload className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
                     </div>
                     <div>
-                      <p className="text-lg font-medium text-blue-700 dark:text-blue-300 mb-2">
+                      <p className="text-base sm:text-lg font-medium text-blue-700 dark:text-blue-300 mb-2">
                         Drop your target face here
                       </p>
                       <p className="text-sm text-muted-foreground">
@@ -560,28 +716,30 @@ export default function FaceSwap() {
         </div>
 
         {/* Process Button */}
-        <div className="mt-8 text-center">
+        <div className="mt-8 text-center px-4">
           <Button
             onClick={handleFaceSwap}
             disabled={!getSourceDisplayUrl() || !getTargetDisplayUrl() || isProcessing}
             size="lg"
-            className="bg-gradient-to-r from-purple-600 via-pink-600 to-indigo-600 hover:from-purple-700 hover:via-pink-700 hover:to-indigo-700 text-white font-semibold px-8 py-4 rounded-xl shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+            className="w-full sm:w-auto bg-gradient-to-r from-purple-600 via-pink-600 to-indigo-600 hover:from-purple-700 hover:via-pink-700 hover:to-indigo-700 text-white font-semibold px-6 sm:px-8 py-3 sm:py-4 rounded-xl shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
           >
             {isProcessing ? (
               <>
                 <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                Processing Face Swap...
+                <span className="hidden sm:inline">Processing Face Swap...</span>
+                <span className="sm:hidden">Processing...</span>
               </>
             ) : (
               <>
                 <Wand2 className="w-5 h-5 mr-2" />
-                Create Face Swap
+                <span className="hidden sm:inline">Create Face Swap</span>
+                <span className="sm:hidden">Create</span>
               </>
             )}
           </Button>
           
           {(!getSourceDisplayUrl() || !getTargetDisplayUrl()) && (
-            <p className="text-sm text-muted-foreground mt-3">
+            <p className="text-sm text-muted-foreground mt-3 px-4">
               Please upload both source image and target face to proceed
             </p>
           )}
@@ -590,10 +748,10 @@ export default function FaceSwap() {
         {/* Results Section */}
         {faceSwapResults.length > 0 && (
           <div className="mt-12">
-            <h2 className="text-2xl font-bold text-center mb-8 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+            <h2 className="text-xl sm:text-2xl font-bold text-center mb-6 sm:mb-8 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent px-4">
               Face Swap Results
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
               {faceSwapResults.map((result) => (
                 <Card key={result.id} className="overflow-hidden group hover:shadow-xl transition-all duration-300">
                   <CardContent className="p-0">
@@ -602,7 +760,8 @@ export default function FaceSwap() {
                         <img
                           src={result.resultUrl}
                           alt="Face swap result"
-                          className="w-full h-full object-cover"
+                          className="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform duration-200"
+                          onClick={() => handleViewImage(result)}
                         />
                       ) : result.status === 'failed' ? (
                         <div className="w-full h-full bg-gradient-to-br from-red-100 to-red-200 dark:from-red-900/20 dark:to-red-800/20 flex items-center justify-center">
@@ -640,25 +799,31 @@ export default function FaceSwap() {
                     
                     {/* Preview Section */}
                     <div className="p-4">
-                      <div className="flex items-center justify-between mb-3">
+                      <div className="flex flex-col sm:items-center sm:justify-between gap-3 mb-3">
                         <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
                           Created: {result.createdAt.toLocaleTimeString()}
                         </span>
                         {result.status === 'completed' && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              const link = document.createElement('a');
-                              link.href = result.resultUrl;
-                              link.download = `faceswap_${result.id}.jpg`;
-                              link.click();
-                            }}
-                            className="hover:bg-purple-50 dark:hover:bg-purple-900/30"
-                          >
-                            <Download className="w-4 h-4 mr-1" />
-                            Download
-                          </Button>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleViewImage(result)}
+                              className="flex-1 sm:flex-none hover:bg-purple-50 dark:hover:bg-purple-900/30"
+                            >
+                              <Eye className="w-4 h-4 mr-1" />
+                              View
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleDownloadImage(result)}
+                              className="flex-1 sm:flex-none hover:bg-purple-50 dark:hover:bg-purple-900/30"
+                            >
+                              <Download className="w-4 h-4 mr-1" />
+                              Download
+                            </Button>
+                          </div>
                         )}
                       </div>
                       
@@ -674,8 +839,8 @@ export default function FaceSwap() {
                             />
                           </div>
                         </div>
-                        <div className="flex items-center">
-                          <Wand2 className="w-4 h-4 text-purple-500" />
+                        <div className="flex items-center px-1">
+                          <Wand2 className="w-3 h-3 sm:w-4 sm:h-4 text-purple-500" />
                         </div>
                         <div className="flex-1">
                           <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Target</p>
@@ -705,6 +870,62 @@ export default function FaceSwap() {
         title={`Select ${vaultSelectorMode === 'source' ? 'Source Image' : 'Target Face'} from Vault`}
         description={`Choose an image from your vault to use as the ${vaultSelectorMode === 'source' ? 'source image' : 'target face'}`}
       />
+
+      {/* View Image Modal */}
+      <Dialog open={showViewModal} onOpenChange={setShowViewModal}>
+        <DialogContent className="max-w-4xl w-[95vw] max-h-[90vh] p-0 overflow-hidden">
+          <DialogHeader className="p-4 sm:p-6 pb-2 sm:pb-4">
+            <DialogTitle className="flex items-center gap-2 text-lg sm:text-xl font-semibold">
+              <Eye className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600" />
+              Face Swap Result
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="px-4 sm:px-6 pb-4 sm:pb-6">
+            <div className="relative bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden">
+              {viewResult && (
+                <img
+                  src={viewResult.resultUrl}
+                  alt="Face swap result"
+                  className="w-full h-auto max-h-[60vh] sm:max-h-[70vh] object-contain"
+                  onError={(e) => {
+                    // Fallback for CDN issues
+                    const target = e.target as HTMLImageElement;
+                    console.error('Failed to load image:', viewResult.resultUrl);
+                    toast.error('Failed to load image');
+                  }}
+                />
+              )}
+              
+              {/* Action buttons overlay */}
+              {viewResult && (
+                <div className="absolute top-2 sm:top-4 right-2 sm:right-4 flex flex-col sm:flex-row gap-2">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => handleDownloadImage(viewResult)}
+                    className="bg-white/90 hover:bg-white text-black shadow-lg text-xs sm:text-sm"
+                  >
+                    <Download className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                    <span className="hidden sm:inline">Download</span>
+                    <span className="sm:hidden">Save</span>
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => window.open(viewResult.resultUrl, '_blank')}
+                    className="bg-white/90 hover:bg-white text-black shadow-lg text-xs sm:text-sm"
+                  >
+                    <ExternalLink className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                    <span className="hidden sm:inline">Open in New Tab</span>
+                    <span className="sm:hidden">Open</span>
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 } 

@@ -614,58 +614,58 @@ export default function Start() {
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex flex-col md:flex-row items-center justify-between gap-5">
+      <div className="flex flex-col md:flex-row items-center justify-between gap-3 sm:gap-5">
         <div className="flex flex-col items-center md:items-start">
-          <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 bg-clip-text text-transparent">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 bg-clip-text text-transparent">
             Start
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-sm sm:text-base text-muted-foreground text-center md:text-left">
             Welcome to your AI influencer journey
           </p>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="flex gap-6 w-full">
+      <div className="w-full">
         {/* Left Side - Main Card */}
         <div className="w-full">
           <Card className="bg-gradient-to-br from-slate-900/90 to-slate-800/90 border-slate-700/50 shadow-2xl grid grid-cols-1 lg:grid-cols-5 xl:grid-cols-3">
-            <CardContent className="p-8 lg:col-span-3 xl:col-span-2">
-              <div className="text-center space-y-6">
+            <CardContent className="p-4 sm:p-6 lg:p-8 lg:col-span-3 xl:col-span-2">
+              <div className="text-center space-y-4 sm:space-y-6">
                 <div className="space-y-4">
-                  <h2 className="text-3xl font-bold text-white">
+                  <h2 className="text-2xl sm:text-3xl font-bold text-white">
                     Let's launch your AI Influencer
                   </h2>
-                  <p className="text-lg text-slate-300">
+                  <p className="text-base sm:text-lg text-slate-300">
                     All you need is 4 simple steps – start with Phase 1 below.
                   </p>
                 </div>
 
                 {/* Phases List */}
-                <div className="space-y-4">
+                <div className="space-y-3 sm:space-y-4">
                   {phases.map((phase) => (
                     <div
                       key={phase.id}
                       onClick={() => handlePhaseClick(phase.id)}
-                      className={`flex items-center gap-4 p-4 rounded-lg border-2 transition-all duration-300 cursor-pointer hover:scale-105 hover:shadow-lg ${phase.completed
+                      className={`flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-lg border-2 transition-all duration-300 cursor-pointer hover:scale-105 hover:shadow-lg ${phase.completed
                           ? 'bg-gradient-to-r from-green-900/20 to-emerald-900/20 border-green-500/30 hover:border-green-400/50'
                           : phase.isPending
                             ? `bg-gradient-to-r from-blue-900/20 to-indigo-900/20 border-blue-500/30 hover:border-blue-400/50 ${blinkState ? 'opacity-100' : 'opacity-50'}`
                             : 'bg-gradient-to-r from-slate-800/50 to-slate-700/50 border-slate-600/30 hover:border-slate-500/50'
                         }`}
                     >
-                      <div className={`w-10 h-10 rounded-full bg-gradient-to-r ${phase.color} flex items-center justify-center shadow-lg transition-opacity duration-300 ${phase.isPending ? (blinkState ? 'opacity-100' : 'opacity-50') : ''
+                      <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-r ${phase.color} flex items-center justify-center shadow-lg transition-opacity duration-300 ${phase.isPending ? (blinkState ? 'opacity-100' : 'opacity-50') : ''
                         }`}>
-                        <phase.icon className="w-5 h-5 text-white" />
+                        <phase.icon className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                       </div>
-                      <div className="flex-1 text-left">
-                        <h3 className={`text-lg font-semibold transition-opacity duration-300 ${phase.completed ? 'text-green-400' : phase.isPending ? (blinkState ? 'text-blue-400' : 'text-blue-600') : 'text-slate-300'
+                      <div className="flex-1 text-left min-w-0">
+                        <h3 className={`text-base sm:text-lg font-semibold transition-opacity duration-300 ${phase.completed ? 'text-green-400' : phase.isPending ? (blinkState ? 'text-blue-400' : 'text-blue-600') : 'text-slate-300'
                           }`}>
                           {phase.title}
                         </h3>
-                        <p className="text-sm text-slate-400">
+                        <p className="text-sm text-slate-400 break-words">
                           {phase.description}
                         </p>
 
@@ -675,10 +675,10 @@ export default function Start() {
                 </div>
 
                 {/* Call to Action Button */}
-                <div className="pt-6 flex gap-4 justify-center">
+                <div className="pt-6 flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-center">
                   <Button
                     onClick={handleCreateInfluencer}
-                    className="bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 hover:from-purple-700 hover:via-blue-700 hover:to-indigo-700 text-white font-semibold text-lg px-8 py-4 rounded-xl shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105"
+                    className="w-full sm:w-auto bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 hover:from-purple-700 hover:via-blue-700 hover:to-indigo-700 text-white font-semibold text-base sm:text-lg px-6 sm:px-8 py-3 sm:py-4 rounded-xl shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105"
                   >
                     {getButtonText()}
                   </Button>
@@ -689,7 +689,7 @@ export default function Start() {
                       onClick={handleContinueWork}
                       variant="outline"
                       disabled={!latestGeneratedInfluencerWithLora0}
-                      className={`font-semibold text-lg px-8 py-4 rounded-xl shadow-xl transition-all duration-300 transform ${latestGeneratedInfluencerWithLora0
+                      className={`w-full sm:w-auto font-semibold text-base sm:text-lg px-6 sm:px-8 py-3 sm:py-4 rounded-xl shadow-xl transition-all duration-300 transform ${latestGeneratedInfluencerWithLora0
                           ? 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white hover:shadow-2xl hover:scale-105 border-green-500'
                           : 'bg-gradient-to-r from-slate-600 to-slate-700 text-slate-400 border-slate-500 cursor-not-allowed opacity-50'
                         }`}
@@ -700,7 +700,7 @@ export default function Start() {
                 </div>
               </div>
             </CardContent>
-            <div className="lg:col-span-2 xl:col-span-1 w-full h-full flex flex-col items-center justify-center">
+            <div className="lg:col-span-2 xl:col-span-1 w-full h-full flex flex-col items-center justify-center p-4 lg:p-0">
               {currentPhase === 2 ? (
                 // Always show latest generated influencer with lorastatus === 0
                 (() => {
@@ -708,10 +708,10 @@ export default function Start() {
 
                   if (!displayInfluencer) {
                     return (
-                      <div className="m-4 flex flex-col items-center justify-center text-center">
-                        <div className="w-64 h-64 bg-gradient-to-br from-slate-800/50 to-slate-700/50 rounded-2xl border border-slate-600/30 flex items-center justify-center">
+                      <div className="flex flex-col items-center justify-center text-center">
+                        <div className="w-48 h-48 sm:w-56 sm:h-56 lg:w-64 lg:h-64 bg-gradient-to-br from-slate-800/50 to-slate-700/50 rounded-2xl border border-slate-600/30 flex items-center justify-center">
                           <div className="text-slate-400">
-                            <Circle className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                            <Circle className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-4 opacity-50" />
                             <p className="text-sm">No influencers found</p>
                           </div>
                         </div>
@@ -720,8 +720,8 @@ export default function Start() {
                   }
 
                   return (
-                    <div className="m-4 flex flex-col items-center justify-center">
-                      <Card className="bg-gradient-to-br from-slate-800/90 to-slate-700/90 border-slate-600/50 shadow-2xl w-64">
+                    <div className="flex flex-col items-center justify-center">
+                      <Card className="bg-gradient-to-br from-slate-800/90 to-slate-700/90 border-slate-600/50 shadow-2xl w-48 sm:w-56 lg:w-64">
                         <CardContent className="p-6">
                           <div className="space-y-4">
                             {/* Profile Image */}
@@ -775,10 +775,10 @@ export default function Start() {
 
                   if (!displayInfluencer) {
                     return (
-                      <div className="m-4 flex flex-col items-center justify-center text-center">
-                        <div className="w-64 h-64 bg-gradient-to-br from-slate-800/50 to-slate-700/50 rounded-2xl border border-slate-600/30 flex items-center justify-center">
+                      <div className="flex flex-col items-center justify-center text-center">
+                        <div className="w-48 h-48 sm:w-56 sm:h-56 lg:w-64 lg:h-64 bg-gradient-to-br from-slate-800/50 to-slate-700/50 rounded-2xl border border-slate-600/30 flex items-center justify-center">
                           <div className="text-slate-400">
-                            <Circle className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                            <Circle className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-4 opacity-50" />
                             <p className="text-sm">No influencers found</p>
                           </div>
                         </div>
@@ -787,8 +787,8 @@ export default function Start() {
                   }
 
                   return (
-                    <div className="m-4 flex flex-col items-center justify-center space-y-4">
-                      <Card className="bg-gradient-to-br from-slate-800/90 to-slate-700/90 border-slate-600/50 shadow-2xl w-64">
+                    <div className="flex flex-col items-center justify-center space-y-4">
+                      <Card className="bg-gradient-to-br from-slate-800/90 to-slate-700/90 border-slate-600/50 shadow-2xl w-48 sm:w-56 lg:w-64">
                         <CardContent className="p-6">
                           <div className="space-y-4">
                             {/* Profile Image */}

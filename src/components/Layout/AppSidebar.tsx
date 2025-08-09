@@ -38,7 +38,8 @@ import {
   Brain,
   Rocket,
   Video,
-  Maximize2
+  Maximize2,
+  Users
 } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
@@ -91,6 +92,7 @@ const menuItems = [
     items: [
       { title: "Vault", url: "/content/vault", icon: Layers },
       { title: "Images", url: "/content/create-image", icon: Image },
+      { title: "Face Swap", url: "/faceswap", icon: Users },
       { title: "Videos", url: "/content/create-video", icon: Video },
       { title: "Optimizer", url: "/content/upscaler", icon: Maximize2 },
       { title: "Edit", url: "/content/edit", icon: Edit },

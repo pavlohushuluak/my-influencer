@@ -44,6 +44,7 @@ import ContentEdit from '@/pages/ContentEdit';
 import ContentStory from '@/pages/ContentStory';
 import ContentSchedule from '@/pages/ContentSchedule';
 import ContentBatch from '@/pages/ContentBatch';
+import FaceSwap from '@/pages/FaceSwap';
 import Settings from '@/pages/Settings';
 import NotFound from '@/pages/NotFound';
 import { MainLayout } from '@/components/Layout/MainLayout';
@@ -87,10 +88,11 @@ const App = () => {
                   <Route path='/catalog/location' element={<Location />} />
                   <Route path='/catalog/poses' element={<Poses />} />
                   <Route path='/catalog/accessories' element={<Accessories />} />
-                  <Route path='/content/vault' element={<Vault />} />
-                  <Route path='/content/create-image' element={<ContentCreateImageWrapper />} />
-                  <Route path='/content/create-video' element={<ContentCreateVideoWrapper />} />
-                  <Route path='/content/upscaler' element={<ContentUpscaler />} />
+                                  <Route path='/content/vault' element={<Vault />} />
+                <Route path='/content/create-image' element={<ContentCreateImageWrapper />} />
+                <Route path='/faceswap' element={<FaceSwap />} />
+                <Route path='/content/create-video' element={<ContentCreateVideoWrapper />} />
+                <Route path='/content/upscaler' element={<ContentUpscaler />} />
                   <Route path='/content/edit' element={<ContentEdit />} />
                   <Route path='/content/story' element={<ContentStory />} />
                   <Route path='/content/schedule' element={<ContentSchedule />} />

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/store/store';
-import { Clock, CheckCircle, AlertCircle, Play, Loader2, ChevronUp, ChevronDown, Eye, Calendar, FileText, Hash, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { Clock, CheckCircle, AlertCircle, Play, Loader2, ChevronUp, ChevronDown, Eye, Calendar, FileText, Hash, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, X, XCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   Tooltip,
@@ -26,6 +26,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { toast } from 'sonner';
 import config from '@/config/config';
 
 interface TaskStatusData {
@@ -68,6 +79,9 @@ export function UserTaskStatus({ className, isCollapsed = false }: TaskStatusPro
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(12);
   const [totalTasksInModal, setTotalTasksInModal] = useState(0);
+  const [cancelingTasks, setCancelingTasks] = useState<Set<number>>(new Set());
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [taskToCancel, setTaskToCancel] = useState<{ id: number; type: string } | null>(null);
   const modalStateRef = useRef(false);
   const user = useSelector((state: RootState) => state.user);
 
@@ -149,6 +163,54 @@ export function UserTaskStatus({ className, isCollapsed = false }: TaskStatusPro
       pages.push(i);
     }
     return pages;
+  };
+
+  const handleCancelClick = (taskId: number, taskType: string) => {
+    setTaskToCancel({ id: taskId, type: taskType });
+    setShowCancelDialog(true);
+  };
+
+  const confirmCancelTask = async () => {
+    if (!taskToCancel || !user.id) return;
+    
+    const taskId = taskToCancel.id;
+    setShowCancelDialog(false);
+    
+    try {
+      setCancelingTasks(prev => new Set(prev).add(taskId));
+      
+      const response = await fetch(`${config.backend_url}/canceltask`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          id: taskId
+        })
+      });
+
+      if (response.ok) {
+        toast.success('Task cancelled successfully');
+        // Refresh the current page data
+        if (selectedTaskStatus !== null) {
+          await fetchTaskDetails(selectedTaskStatus, currentPage, pageSize);
+        }
+      } else {
+        console.error('Failed to cancel task');
+        toast.error('Failed to cancel task');
+      }
+    } catch (error) {
+      console.error('Error canceling task:', error);
+      toast.error('Failed to cancel task');
+    } finally {
+      setCancelingTasks(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(taskId);
+        return newSet;
+      });
+      setTaskToCancel(null);
+    }
   };
 
   const fetchTaskDetails = async (status: number, page: number = 1, size: number = 12) => {
@@ -408,10 +470,13 @@ export function UserTaskStatus({ className, isCollapsed = false }: TaskStatusPro
         setShowTaskModal(open);
         modalStateRef.current = open;
         if (!open) {
-          // Reset pagination when modal closes
+          // Reset pagination and states when modal closes
           setCurrentPage(1);
           setTotalTasksInModal(0);
           setTaskDetails([]);
+          setCancelingTasks(new Set());
+          setShowCancelDialog(false);
+          setTaskToCancel(null);
         }
       }}>
         <DialogContent className="max-w-4xl max-h-[80vh]">
@@ -501,9 +566,46 @@ export function UserTaskStatus({ className, isCollapsed = false }: TaskStatusPro
                       </CardHeader>
                       <CardContent className="p-4">
                         {/* Task Type */}
-                        <div className="flex items-center gap-2 mb-3">
-                          <FileText className="w-4 h-4 text-indigo-500" />
-                          <span className="text-sm font-semibold text-indigo-600 dark:text-indigo-400">{task.type}</span>
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-2">
+                            <FileText className="w-4 h-4 text-indigo-500" />
+                            <span className="text-sm font-semibold text-indigo-600 dark:text-indigo-400">{task.type}</span>
+                          </div>
+                          
+                          {/* Cancel Button for Scheduled (0) and Processing (1) tasks */}
+                          {(task.state === 0 || task.state === 1) && (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="destructive"
+                                    size="sm"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleCancelClick(task.id, task.type);
+                                    }}
+                                    disabled={cancelingTasks.has(task.id)}
+                                    className="h-9 px-3 gap-2 text-sm font-medium shadow-sm hover:shadow-md transition-all duration-200"
+                                  >
+                                    {cancelingTasks.has(task.id) ? (
+                                      <>
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                        <span>Cancelling...</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <XCircle className="w-4 h-4" />
+                                        <span>Cancel</span>
+                                      </>
+                                    )}
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Cancel this {task.state === 0 ? 'scheduled' : 'running'} task</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          )}
                         </div>
 
                         {/* Created Time */}
@@ -584,6 +686,32 @@ export function UserTaskStatus({ className, isCollapsed = false }: TaskStatusPro
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Cancel Confirmation Dialog */}
+      <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <XCircle className="w-5 h-5 text-red-500" />
+              Cancel Task
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to cancel the "{taskToCancel?.type}" task? This action cannot be undone and may interrupt ongoing processing.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="font-medium">
+              Keep Task
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmCancelTask}
+              className="bg-red-600 hover:bg-red-700 text-white font-medium"
+            >
+              Yes, Cancel Task
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 } 

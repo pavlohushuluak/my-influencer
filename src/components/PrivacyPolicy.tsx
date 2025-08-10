@@ -718,6 +718,51 @@ export function PrivacyPolicy({ open, onOpenChange }: PrivacyPolicyProps) {
                         <li>• Log files and error reports</li>
                       </ul>
                     </div>
+                    <div>
+                      <h4 className="font-medium text-gray-800 dark:text-gray-200 mb-1">Performance Data:</h4>
+                      <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1 ml-4">
+                        <li>• Service performance metrics</li>
+                        <li>• Error logs and crash reports</li>
+                        <li>• Feature usage statistics</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-gray-50 dark:bg-gray-900/30 rounded-lg p-4">
+                  <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2 flex items-center gap-2">
+                    <Globe className="w-4 h-4" />
+                    Information from Third Parties
+                  </h3>
+                  <div className="space-y-3">
+                    <div>
+                      <h4 className="font-medium text-gray-800 dark:text-gray-200 mb-1">Authentication Services:</h4>
+                      <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1 ml-4">
+                        <li>• Information from social media login providers (if used)</li>
+                        <li>• Profile information from connected accounts</li>
+                      </ul>
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-gray-800 dark:text-gray-200 mb-1">Payment Processors:</h4>
+                      <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1 ml-4">
+                        <li>• Transaction information and payment status</li>
+                        <li>• Billing information (stored by payment processors, not by us)</li>
+                      </ul>
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-gray-800 dark:text-gray-200 mb-1">Age Verification Services:</h4>
+                      <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1 ml-4">
+                        <li>• Age verification status and related information</li>
+                        <li>• Identity verification data (processed by third-party providers)</li>
+                      </ul>
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-gray-800 dark:text-gray-200 mb-1">AI Service Providers:</h4>
+                      <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1 ml-4">
+                        <li>• Processing logs and usage metrics from AI providers</li>
+                        <li>• Content generation metadata</li>
+                      </ul>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -751,6 +796,15 @@ export function PrivacyPolicy({ open, onOpenChange }: PrivacyPolicyProps) {
                   </ul>
                 </div>
                 <div className="bg-gray-50 dark:bg-gray-900/30 rounded-lg p-4">
+                  <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Communication</h3>
+                  <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1 ml-4">
+                    <li>• Send service-related notifications</li>
+                    <li>• Provide customer support responses</li>
+                    <li>• Send marketing communications (with consent)</li>
+                    <li>• Notify you of policy changes or updates</li>
+                  </ul>
+                </div>
+                <div className="bg-gray-50 dark:bg-gray-900/30 rounded-lg p-4">
                   <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Legal and Safety</h3>
                   <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1 ml-4">
                     <li>• Comply with legal obligations</li>
@@ -760,39 +814,249 @@ export function PrivacyPolicy({ open, onOpenChange }: PrivacyPolicyProps) {
                     <li>• Respond to legal requests</li>
                   </ul>
                 </div>
+                <div className="bg-gray-50 dark:bg-gray-900/30 rounded-lg p-4">
+                  <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Marketing and Promotion</h3>
+                  <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1 ml-4">
+                    <li>• Use anonymized User Content for marketing purposes</li>
+                    <li>• Display generated content on our website and in advertisements</li>
+                    <li>• Promote the Service through various channels</li>
+                    <li>• Analyze marketing effectiveness</li>
+                  </ul>
+                </div>
               </div>
             </section>
 
-            {/* Section 4: Data Security */}
+            {/* Section 4: Legal Basis for Processing (EU Users) */}
             <section>
               <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
                 <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">4</span>
-                Data Security
+                Legal Basis for Processing (EU Users)
               </h2>
-              <div className="bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+              <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
                 <div className="flex items-start gap-3">
-                  <Shield className="w-5 h-5 text-green-600 dark:text-green-400 mt-0.5 flex-shrink-0" />
+                  <Globe className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
                   <div>
-                    <h3 className="font-semibold text-green-900 dark:text-green-100 mb-2">Security Measures</h3>
-                    <p className="text-sm text-green-800 dark:text-green-200 mb-3">
-                      We implement appropriate technical and organizational measures to protect your personal information:
+                    <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">EU/UK Legal Grounds</h3>
+                    <p className="text-sm text-blue-800 dark:text-blue-200 mb-3">
+                      For users in the European Economic Area (EEA) and United Kingdom, we process your personal information based on the following legal grounds:
                     </p>
-                    <ul className="text-sm text-green-800 dark:text-green-200 space-y-1 ml-4">
-                      <li>• Encryption of data in transit and at rest</li>
-                      <li>• Access controls and authentication systems</li>
-                      <li>• Regular security assessments and updates</li>
-                      <li>• Employee training on data protection</li>
-                      <li>• Incident response procedures</li>
+                    <ul className="text-sm text-blue-800 dark:text-blue-200 space-y-1 ml-4">
+                      <li>• <strong>Contract Performance:</strong> To provide the Service and fulfill our contractual obligations</li>
+                      <li>• <strong>Legitimate Interests:</strong> To improve our Service, prevent fraud, and conduct marketing</li>
+                      <li>• <strong>Legal Compliance:</strong> To comply with applicable laws and regulations</li>
+                      <li>• <strong>Consent:</strong> For marketing communications and certain data processing activities</li>
                     </ul>
                   </div>
                 </div>
               </div>
             </section>
 
-            {/* Section 5: Your Privacy Rights */}
+            {/* Section 5: How We Share Your Information */}
             <section>
               <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
                 <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">5</span>
+                How We Share Your Information
+              </h2>
+              <div className="space-y-4">
+                <div className="bg-gray-50 dark:bg-gray-900/30 rounded-lg p-4">
+                  <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Service Providers</h3>
+                  <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">
+                    We share information with trusted third-party service providers who assist us in operating the Service:
+                  </p>
+                  <div className="space-y-3">
+                    <div>
+                      <h4 className="font-medium text-gray-800 dark:text-gray-200 mb-1">AI Technology Providers:</h4>
+                      <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1 ml-4">
+                        <li>• OpenAI, x.ai, Black Forest Labs, Bytedance, Kling</li>
+                        <li>• Replicate, Wavespeed, and fal.ai (API providers)</li>
+                      </ul>
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-gray-800 dark:text-gray-200 mb-1">Infrastructure Providers:</h4>
+                      <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1 ml-4">
+                        <li>• Cloudflare (content delivery and security)</li>
+                        <li>• OVH (data hosting and storage)</li>
+                        <li>• Cloud GPU providers (temporary processing)</li>
+                      </ul>
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-gray-800 dark:text-gray-200 mb-1">Payment Processing:</h4>
+                      <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1 ml-4">
+                        <li>• Payment processors (CCBill and others)</li>
+                        <li>• Fraud prevention services</li>
+                      </ul>
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-gray-800 dark:text-gray-200 mb-1">Age Verification:</h4>
+                      <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1 ml-4">
+                        <li>• AgeChecker.net and other verification providers</li>
+                      </ul>
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-gray-800 dark:text-gray-200 mb-1">Analytics and Marketing:</h4>
+                      <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1 ml-4">
+                        <li>• Analytics service providers</li>
+                        <li>• Marketing and advertising platforms</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-gray-50 dark:bg-gray-900/30 rounded-lg p-4">
+                  <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Legal Requirements</h3>
+                  <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">
+                    We may disclose your information when required by law or to:
+                  </p>
+                  <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1 ml-4">
+                    <li>• Comply with legal processes or government requests</li>
+                    <li>• Enforce our Terms of Service</li>
+                    <li>• Protect our rights, property, or safety</li>
+                    <li>• Protect the rights, property, or safety of others</li>
+                    <li>• Prevent fraud or illegal activities</li>
+                  </ul>
+                </div>
+                <div className="bg-gray-50 dark:bg-gray-900/30 rounded-lg p-4">
+                  <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Business Transfers</h3>
+                  <p className="text-sm text-gray-700 dark:text-gray-300">
+                    In the event of a merger, acquisition, or sale of assets, your information may be transferred to the acquiring entity.
+                  </p>
+                </div>
+                <div className="bg-gray-50 dark:bg-gray-900/30 rounded-lg p-4">
+                  <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Anonymized Data</h3>
+                  <p className="text-sm text-gray-700 dark:text-gray-300">
+                    We may share anonymized, aggregated data that cannot identify you for research, marketing, or business purposes.
+                  </p>
+                </div>
+              </div>
+            </section>
+
+            {/* Section 6: International Data Transfers */}
+            <section>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+                <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">6</span>
+                International Data Transfers
+              </h2>
+              <div className="space-y-4">
+                <div className="bg-gray-50 dark:bg-gray-900/30 rounded-lg p-4">
+                  <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Data Location</h3>
+                  <p className="text-sm text-gray-700 dark:text-gray-300">
+                    Your personal information may be processed and stored in the United States and other countries where our service providers operate.
+                  </p>
+                </div>
+                <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                  <div className="flex items-start gap-3">
+                    <Globe className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">EU Data Transfers</h3>
+                      <p className="text-sm text-blue-800 dark:text-blue-200 mb-3">
+                        For users in the EEA and UK, we ensure adequate protection for international data transfers through:
+                      </p>
+                      <ul className="text-sm text-blue-800 dark:text-blue-200 space-y-1 ml-4">
+                        <li>• <strong>Standard Contractual Clauses (SCCs)</strong> approved by the European Commission</li>
+                        <li>• <strong>Adequacy decisions</strong> for certain countries</li>
+                        <li>• <strong>Additional safeguards</strong> as required by applicable law</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle className="w-5 h-5 text-yellow-600 dark:text-yellow-400 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <h3 className="font-semibold text-yellow-900 dark:text-yellow-100 mb-2">Data Migration</h3>
+                      <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                        We are in the process of migrating data storage from Germany to the United States to simplify our data processing operations while maintaining appropriate security measures.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* Section 7: Data Retention */}
+            <section>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+                <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">7</span>
+                Data Retention
+              </h2>
+              <div className="space-y-4">
+                <div className="bg-gray-50 dark:bg-gray-900/30 rounded-lg p-4">
+                  <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Account Data</h3>
+                  <p className="text-sm text-gray-700 dark:text-gray-300">
+                    We retain your account information and personal data for as long as your account is active or as needed to provide the Service.
+                  </p>
+                </div>
+                <div className="bg-gray-50 dark:bg-gray-900/30 rounded-lg p-4">
+                  <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Content Storage</h3>
+                  <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1 ml-4">
+                    <li>• <strong>Long-term Storage:</strong> Content stored in your allocated space is retained according to your subscription plan</li>
+                    <li>• <strong>Temporary Content:</strong> Content not in long-term storage is automatically deleted after 30 days</li>
+                    <li>• <strong>Generated Content:</strong> Metadata and processing logs may be retained for service improvement</li>
+                  </ul>
+                </div>
+                <div className="bg-gray-50 dark:bg-gray-900/30 rounded-lg p-4">
+                  <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Post-Termination</h3>
+                  <p className="text-sm text-gray-700 dark:text-gray-300">
+                    After account termination, we retain your data for 90 days for legal and operational purposes, then permanently delete it unless required by law to retain it longer.
+                  </p>
+                </div>
+                <div className="bg-gray-50 dark:bg-gray-900/30 rounded-lg p-4">
+                  <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Legal Requirements</h3>
+                  <p className="text-sm text-gray-700 dark:text-gray-300">
+                    We may retain information longer when required by law, regulation, or legal process.
+                  </p>
+                </div>
+              </div>
+            </section>
+
+            {/* Section 8: Data Security */}
+            <section>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+                <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">8</span>
+                Data Security
+              </h2>
+              <div className="space-y-4">
+                <div className="bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+                  <div className="flex items-start gap-3">
+                    <Shield className="w-5 h-5 text-green-600 dark:text-green-400 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <h3 className="font-semibold text-green-900 dark:text-green-100 mb-2">Security Measures</h3>
+                      <p className="text-sm text-green-800 dark:text-green-200 mb-3">
+                        We implement appropriate technical and organizational measures to protect your personal information:
+                      </p>
+                      <ul className="text-sm text-green-800 dark:text-green-200 space-y-1 ml-4">
+                        <li>• Encryption of data in transit and at rest</li>
+                        <li>• Access controls and authentication systems</li>
+                        <li>• Regular security assessments and updates</li>
+                        <li>• Employee training on data protection</li>
+                        <li>• Incident response procedures</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-gray-50 dark:bg-gray-900/30 rounded-lg p-4">
+                  <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Third-Party Security</h3>
+                  <p className="text-sm text-gray-700 dark:text-gray-300">
+                    We require our service providers to implement appropriate security measures and comply with applicable data protection laws.
+                  </p>
+                </div>
+                <div className="bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle className="w-5 h-5 text-yellow-600 dark:text-yellow-400 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <h3 className="font-semibold text-yellow-900 dark:text-yellow-100 mb-2">Security Limitations</h3>
+                      <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                        No method of transmission or storage is 100% secure. While we strive to protect your information, we cannot guarantee absolute security.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* Section 9: Your Privacy Rights */}
+            <section>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+                <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">9</span>
                 Your Privacy Rights
               </h2>
               <div className="space-y-4">
@@ -829,54 +1093,241 @@ export function PrivacyPolicy({ open, onOpenChange }: PrivacyPolicyProps) {
                     </div>
                   </div>
                 </div>
-              </div>
-            </section>
-
-            {/* Section 6: Children's Privacy */}
-            <section>
-              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
-                <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">6</span>
-                Children's Privacy
-              </h2>
-              <div className="bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
-                <div className="flex items-start gap-3">
-                  <AlertTriangle className="w-5 h-5 text-yellow-600 dark:text-yellow-400 mt-0.5 flex-shrink-0" />
-                  <div>
-                    <h3 className="font-semibold text-yellow-900 dark:text-yellow-100 mb-2">Age Restrictions</h3>
-                    <p className="text-sm text-yellow-800 dark:text-yellow-200 mb-3">
-                      The Service is not intended for individuals under 18 years of age. We do not knowingly collect personal information from minors.
-                    </p>
-                    <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                      If we become aware that we have collected personal information from a minor, we will take steps to delete such information promptly.
-                    </p>
+                <div className="bg-gray-50 dark:bg-gray-900/30 rounded-lg p-4">
+                  <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Exercising Your Rights</h3>
+                  <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">
+                    To exercise your privacy rights, contact us at contact@sayasaas.com. We will respond to your request within 30 days (or as required by applicable law).
+                  </p>
+                  <p className="text-sm text-gray-700 dark:text-gray-300">
+                    We may require additional information to verify your identity before processing your request.
+                  </p>
+                </div>
+                <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <h3 className="font-semibold text-red-900 dark:text-red-100 mb-2">Complaints</h3>
+                      <p className="text-sm text-red-800 dark:text-red-200">
+                        You have the right to lodge a complaint with your local data protection authority if you believe we have violated your privacy rights.
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
             </section>
 
-            {/* Section 7: Contact Information */}
+            {/* Section 10: Cookies and Tracking Technologies */}
             <section>
               <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
-                <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">7</span>
-                Contact Information
+                <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">10</span>
+                Cookies and Tracking Technologies
               </h2>
-              <div className="bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
-                <div className="flex items-start gap-3">
-                  <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400 mt-0.5 flex-shrink-0" />
-                  <div>
-                    <h3 className="font-semibold text-green-900 dark:text-green-100 mb-2">Get in Touch</h3>
-                    <p className="text-sm text-green-800 dark:text-green-200 mb-3">
-                      For questions about this Privacy Policy or our privacy practices, contact us at:
-                    </p>
-                    <div className="text-sm text-green-800 dark:text-green-200 space-y-1">
-                      <p><strong>Email:</strong> contact@sayasaas.com</p>
-                      <p><strong>Mail:</strong></p>
-                      <p className="ml-4">sayasaas llc</p>
-                      <p className="ml-4">5203 JUAN TABO BLVD NE SUITE 2B</p>
-                      <p className="ml-4">ALBUQUERQUE NM 87111</p>
-                      <p className="ml-4">USA</p>
+              <div className="space-y-4">
+                <div className="bg-gray-50 dark:bg-gray-900/30 rounded-lg p-4">
+                  <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Types of Cookies</h3>
+                  <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">
+                    We use the following types of cookies and similar technologies:
+                  </p>
+                  <div className="space-y-3">
+                    <div>
+                      <h4 className="font-medium text-gray-800 dark:text-gray-200 mb-1">Essential Cookies:</h4>
+                      <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1 ml-4">
+                        <li>• Required for basic Service functionality</li>
+                        <li>• Authentication and security</li>
+                        <li>• Load balancing and performance</li>
+                      </ul>
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-gray-800 dark:text-gray-200 mb-1">Analytics Cookies:</h4>
+                      <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1 ml-4">
+                        <li>• Usage statistics and performance monitoring</li>
+                        <li>• User behavior analysis</li>
+                        <li>• Service improvement insights</li>
+                      </ul>
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-gray-800 dark:text-gray-200 mb-1">Marketing Cookies:</h4>
+                      <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1 ml-4">
+                        <li>• Advertising effectiveness measurement</li>
+                        <li>• Personalized marketing content</li>
+                        <li>• Cross-platform tracking (with consent)</li>
+                      </ul>
                     </div>
                   </div>
+                </div>
+                <div className="bg-gray-50 dark:bg-gray-900/30 rounded-lg p-4">
+                  <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Cookie Management</h3>
+                  <p className="text-sm text-gray-700 dark:text-gray-300">
+                    You can control cookies through your browser settings. However, disabling certain cookies may limit Service functionality.
+                  </p>
+                </div>
+                <div className="bg-gray-50 dark:bg-gray-900/30 rounded-lg p-4">
+                  <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Third-Party Cookies</h3>
+                  <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">
+                    Third-party service providers may set their own cookies. We are not responsible for third-party cookie practices.
+                  </p>
+                  <p className="text-sm text-gray-700 dark:text-gray-300">
+                    These may include cookies from analytics services, advertising networks, and social media platforms that help us understand how users interact with our Service.
+                  </p>
+                </div>
+              </div>
+            </section>
+
+            {/* Section 11: Children's Privacy */}
+            <section>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+                <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">11</span>
+                Children's Privacy
+              </h2>
+              <div className="space-y-4">
+                <div className="bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle className="w-5 h-5 text-yellow-600 dark:text-yellow-400 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <h3 className="font-semibold text-yellow-900 dark:text-yellow-100 mb-2">Age Restrictions</h3>
+                      <p className="text-sm text-yellow-800 dark:text-yellow-200 mb-3">
+                        The Service is not intended for individuals under 18 years of age. We do not knowingly collect personal information from minors.
+                      </p>
+                      <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                        If we become aware that we have collected personal information from a minor, we will take steps to delete such information promptly.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-gray-50 dark:bg-gray-900/30 rounded-lg p-4">
+                  <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Parental Notice</h3>
+                  <p className="text-sm text-gray-700 dark:text-gray-300">
+                    Parents or guardians who believe their child has provided personal information to us should contact us immediately. We will take steps to verify the parent's identity and delete the child's information.
+                  </p>
+                </div>
+                <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <h3 className="font-semibold text-red-900 dark:text-red-100 mb-2">Reporting</h3>
+                      <p className="text-sm text-red-800 dark:text-red-200">
+                        If you believe we have collected information from a minor, please contact us immediately at contact@sayasaas.com.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* Section 12: California Privacy Rights */}
+            <section>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+                <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">12</span>
+                California Privacy Rights
+              </h2>
+              <div className="space-y-4">
+                <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                  <div className="flex items-start gap-3">
+                    <Shield className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">CCPA Rights</h3>
+                      <p className="text-sm text-blue-800 dark:text-blue-200 mb-3">
+                        California residents have additional rights under the California Consumer Privacy Act (CCPA):
+                      </p>
+                      <ul className="text-sm text-blue-800 dark:text-blue-200 space-y-1 ml-4">
+                        <li>• Right to know what personal information is collected</li>
+                        <li>• Right to delete personal information</li>
+                        <li>• Right to opt out of the sale of personal information</li>
+                        <li>• Right to non-discrimination for exercising privacy rights</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-gray-50 dark:bg-gray-900/30 rounded-lg p-4">
+                  <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Information Sales</h3>
+                  <p className="text-sm text-gray-700 dark:text-gray-300">
+                    We do not sell personal information as defined by the CCPA. We may share information with service providers as described in this Privacy Policy.
+                  </p>
+                </div>
+                <div className="bg-gray-50 dark:bg-gray-900/30 rounded-lg p-4">
+                  <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Exercising CCPA Rights</h3>
+                  <p className="text-sm text-gray-700 dark:text-gray-300">
+                    California residents may exercise their rights by contacting us at contact@sayasaas.com.
+                  </p>
+                </div>
+              </div>
+            </section>
+
+            {/* Section 13: Changes to This Privacy Policy */}
+            <section>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+                <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">13</span>
+                Changes to This Privacy Policy
+              </h2>
+              <div className="space-y-4">
+                <div className="bg-gray-50 dark:bg-gray-900/30 rounded-lg p-4">
+                  <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Policy Updates</h3>
+                  <p className="text-sm text-gray-700 dark:text-gray-300">
+                    We may update this Privacy Policy from time to time to reflect changes in our practices, technology, or legal requirements.
+                  </p>
+                </div>
+                <div className="bg-gray-50 dark:bg-gray-900/30 rounded-lg p-4">
+                  <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Notification</h3>
+                  <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">
+                    We will notify you of material changes by:
+                  </p>
+                  <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1 ml-4">
+                    <li>• Posting the updated policy on our website</li>
+                    <li>• Sending email notifications to registered users</li>
+                    <li>• Providing in-Service notifications</li>
+                  </ul>
+                </div>
+                <div className="bg-gray-50 dark:bg-gray-900/30 rounded-lg p-4">
+                  <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Continued Use</h3>
+                  <p className="text-sm text-gray-700 dark:text-gray-300">
+                    Your continued use of the Service after policy changes constitutes acceptance of the updated Privacy Policy.
+                  </p>
+                </div>
+              </div>
+            </section>
+
+            {/* Section 14: Contact Information */}
+            <section>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+                <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">14</span>
+                Contact Information
+              </h2>
+              <div className="space-y-4">
+                <div className="bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+                  <div className="flex items-start gap-3">
+                    <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <h3 className="font-semibold text-green-900 dark:text-green-100 mb-2">Privacy Questions</h3>
+                      <p className="text-sm text-green-800 dark:text-green-200 mb-3">
+                        For questions about this Privacy Policy or our privacy practices, contact us at:
+                      </p>
+                      <div className="text-sm text-green-800 dark:text-green-200 space-y-1">
+                        <p><strong>Email:</strong> contact@sayasaas.com</p>
+                        <p><strong>Mail:</strong></p>
+                        <p className="ml-4">sayasaas llc</p>
+                        <p className="ml-4">5203 JUAN TABO BLVD NE SUITE 2B</p>
+                        <p className="ml-4">ALBUQUERQUE NM 87111</p>
+                        <p className="ml-4">USA</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                  <div className="flex items-start gap-3">
+                    <Shield className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">Data Protection Officer</h3>
+                      <p className="text-sm text-blue-800 dark:text-blue-200">
+                        For EU-related privacy matters, you may contact our designated representative at contact@sayasaas.com.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-gray-50 dark:bg-gray-900/30 rounded-lg p-4">
+                  <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Response Time</h3>
+                  <p className="text-sm text-gray-700 dark:text-gray-300">
+                    We will respond to privacy inquiries within 30 days of receipt.
+                  </p>
                 </div>
               </div>
             </section>

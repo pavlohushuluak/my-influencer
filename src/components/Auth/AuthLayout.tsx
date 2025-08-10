@@ -6,6 +6,7 @@ import { Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { AppHeader } from '@/components/Layout/AppHeader';
 import { AppFooter } from '@/components/Layout/AppFooter';
+import { useEffect } from 'react';
 
 interface AuthLayoutProps {
   children: React.ReactNode;
@@ -15,6 +16,16 @@ interface AuthLayoutProps {
 
 export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
   const { theme } = useSelector((state: RootState) => state.ui);
+
+  // Apply theme to document root
+  useEffect(() => {
+    const root = document.documentElement;
+    if (theme === 'dark') {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+  }, [theme]);
 
   return (
     <div className={cn("min-h-screen bg-gradient-to-br from-background via-background to-muted", theme)}>

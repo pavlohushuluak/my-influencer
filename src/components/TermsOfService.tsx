@@ -1,4 +1,6 @@
 import React from 'react';
+import { useSelector } from 'react-redux';
+import { RootState } from '@/store/store';
 import {
   Dialog,
   DialogContent,
@@ -26,6 +28,8 @@ interface TermsOfServiceProps {
 }
 
 export function TermsOfService({ open, onOpenChange }: TermsOfServiceProps) {
+  const { theme } = useSelector((state: RootState) => state.ui);
+  
   const handlePrint = () => {
     try {
       // Get the content element
@@ -651,80 +655,265 @@ export function TermsOfService({ open, onOpenChange }: TermsOfServiceProps) {
               </div>
             </section>
 
-            {/* Section 3: User Accounts */}
+            {/* Section 3: Eligibility and Age Requirements */}
             <section>
               <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
                 <span className="bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">3</span>
-                User Accounts
+                Eligibility and Age Requirements
+              </h2>
+              <div className="space-y-4">
+                <div className="bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800 rounded-lg p-4">
+                  <h3 className="font-semibold text-orange-900 dark:text-orange-100 mb-2 flex items-center gap-2">
+                    <Users className="w-4 h-4" />
+                    Age Requirement
+                  </h3>
+                  <p className="text-sm text-orange-800 dark:text-orange-200">
+                    You must be at least <strong>18 years of age</strong> to use the Service. By using the Service, you represent and warrant that you are at least 18 years old and have the legal capacity to enter into these Terms.
+                  </p>
+                </div>
+                <div className="bg-gray-50 dark:bg-gray-900/30 rounded-lg p-4">
+                  <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Age Verification</h3>
+                  <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">
+                    For access to adult content features, you may be required to complete additional age verification through our third-party verification service. Failure to complete age verification may result in restricted access to certain features.
+                  </p>
+                  <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Prohibited Users</h3>
+                  <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
+                    You may not use the Service if you:
+                  </p>
+                  <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1 ml-4">
+                    <li>• Are under 18 years of age</li>
+                    <li>• Have been previously banned from the Service</li>
+                    <li>• Are prohibited by applicable law from using the Service</li>
+                    <li>• Reside in a jurisdiction where the Service is not available</li>
+                  </ul>
+                </div>
+              </div>
+            </section>
+
+            {/* Section 4: Account Registration and Security */}
+            <section>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+                <span className="bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">4</span>
+                Account Registration and Security
               </h2>
               <div className="space-y-4">
                 <div className="bg-gray-50 dark:bg-gray-900/30 rounded-lg p-4">
                   <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Account Creation</h3>
-                  <p className="text-gray-700 dark:text-gray-300 text-sm">
-                    To access certain features of the Service, you must create an account. You agree to provide accurate, current, and complete information during registration and to update such information to keep it accurate, current, and complete.
+                  <p className="text-sm text-gray-700 dark:text-gray-300">
+                    To access certain features of the Service, you must create an account by providing accurate, current, and complete information. You agree to maintain and update your account information as necessary.
                   </p>
                 </div>
                 <div className="bg-gray-50 dark:bg-gray-900/30 rounded-lg p-4">
                   <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Account Security</h3>
-                  <p className="text-gray-700 dark:text-gray-300 text-sm">
-                    You are responsible for safeguarding your account credentials and for all activities that occur under your account. You agree to notify us immediately of any unauthorized use of your account.
+                  <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">
+                    You are responsible for:
                   </p>
+                  <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1 ml-4">
+                    <li>• Maintaining the confidentiality of your account credentials</li>
+                    <li>• All activities that occur under your account</li>
+                    <li>• Immediately notifying us of any unauthorized use of your account</li>
+                  </ul>
+                </div>
+                <div className="bg-gray-50 dark:bg-gray-900/30 rounded-lg p-4">
+                  <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Account Restrictions</h3>
+                  <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
+                    You may not:
+                  </p>
+                  <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1 ml-4">
+                    <li>• Share your account with others</li>
+                    <li>• Create multiple accounts</li>
+                    <li>• Use another person's account</li>
+                    <li>• Transfer your account to another person</li>
+                  </ul>
                 </div>
               </div>
             </section>
 
-            {/* Section 4: Acceptable Use */}
-            <section>
-              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
-                <span className="bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">4</span>
-                Acceptable Use
-              </h2>
-              <div className="bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
-                <div className="flex items-start gap-3">
-                  <AlertTriangle className="w-5 h-5 text-yellow-600 dark:text-yellow-400 mt-0.5 flex-shrink-0" />
-                  <div>
-                    <h3 className="font-semibold text-yellow-900 dark:text-yellow-100 mb-2">Prohibited Activities</h3>
-                    <p className="text-sm text-yellow-800 dark:text-yellow-200 mb-3">
-                      You agree not to use the Service to:
-                    </p>
-                    <ul className="text-sm text-yellow-800 dark:text-yellow-200 space-y-1 ml-4">
-                      <li>• Violate any applicable laws or regulations</li>
-                      <li>• Infringe upon the rights of others</li>
-                      <li>• Create content that is harmful, offensive, or inappropriate</li>
-                      <li>• Attempt to gain unauthorized access to the Service</li>
-                      <li>• Interfere with the proper functioning of the Service</li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-            </section>
-
-            {/* Section 5: Intellectual Property */}
+            {/* Section 5: Subscription and Payment Terms */}
             <section>
               <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
                 <span className="bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">5</span>
-                Intellectual Property
+                Subscription and Payment Terms
               </h2>
               <div className="space-y-4">
+                <div className="bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+                  <h3 className="font-semibold text-green-900 dark:text-green-100 mb-2 flex items-center gap-2">
+                    <CreditCard className="w-4 h-4" />
+                    Subscription Plans
+                  </h3>
+                  <div className="text-sm text-green-800 dark:text-green-200 space-y-2">
+                    <p><strong>Subscription Plans:</strong> The Service operates on a subscription basis with monthly billing cycles. Each subscription includes a base allocation of "Gems" (our credit system currency) and access to platform features.</p>
+                    <p><strong>Pricing:</strong> Current subscription pricing ranges from $9.95 to $149.95 per month. Additional Gems may be purchased separately for $9.95, $19.95, $49.95, or $99.95.</p>
+                    <p><strong>Free Trial:</strong> New users receive 15 Gems upon registration for trial purposes.</p>
+                  </div>
+                </div>
                 <div className="bg-gray-50 dark:bg-gray-900/30 rounded-lg p-4">
-                  <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Service Ownership</h3>
-                  <p className="text-gray-700 dark:text-gray-300 text-sm">
-                    The Service and its original content, features, and functionality are owned by sayasaas llc and are protected by international copyright, trademark, patent, trade secret, and other intellectual property laws.
+                  <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Payment Processing</h3>
+                  <p className="text-sm text-gray-700 dark:text-gray-300">
+                    Payments are processed through third-party payment processors. You authorize us to charge your designated payment method for all applicable fees.
                   </p>
                 </div>
                 <div className="bg-gray-50 dark:bg-gray-900/30 rounded-lg p-4">
-                  <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">User Content</h3>
-                  <p className="text-gray-700 dark:text-gray-300 text-sm">
-                    You retain ownership of content you create using the Service. However, by using the Service, you grant us a worldwide, non-exclusive, royalty-free license to use, reproduce, and distribute your content solely for the purpose of providing the Service.
+                  <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Automatic Renewal</h3>
+                  <p className="text-sm text-gray-700 dark:text-gray-300">
+                    Subscriptions automatically renew at the end of each billing cycle unless cancelled. You may cancel your subscription at any time through your account settings.
+                  </p>
+                </div>
+                <div className="bg-gray-50 dark:bg-gray-900/30 rounded-lg p-4">
+                  <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Gems System</h3>
+                  <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1 ml-4">
+                    <li>• Monthly subscription Gems expire at the end of each billing cycle</li>
+                    <li>• Purchased Gems roll over and do not expire</li>
+                    <li>• Subscription Gems are consumed before purchased Gems</li>
+                    <li>• Gems cannot be transferred between users or converted to cash</li>
+                  </ul>
+                </div>
+              </div>
+            </section>
+
+            {/* Section 6: Acceptable Use Policy */}
+            <section>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+                <span className="bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">6</span>
+                Acceptable Use Policy
+              </h2>
+              <div className="space-y-4">
+                <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                  <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">Permitted Uses</h3>
+                  <p className="text-sm text-blue-800 dark:text-blue-200 mb-2">
+                    You may use the Service to:
+                  </p>
+                  <ul className="text-sm text-blue-800 dark:text-blue-200 space-y-1 ml-4">
+                    <li>• Create virtual influencers and digital characters</li>
+                    <li>• Generate content for personal or commercial use</li>
+                    <li>• Customize and manage your virtual personas</li>
+                    <li>• Access and use generated content in accordance with these Terms</li>
+                  </ul>
+                </div>
+                <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+                  <h3 className="font-semibold text-red-900 dark:text-red-100 mb-2">Prohibited Uses</h3>
+                  <p className="text-sm text-red-800 dark:text-red-200 mb-2">
+                    You may not use the Service to:
+                  </p>
+                  <ul className="text-sm text-red-800 dark:text-red-200 space-y-1 ml-4">
+                    <li>• Create content depicting real individuals without their explicit consent</li>
+                    <li>• Generate content involving minors or individuals who appear to be under 18</li>
+                    <li>• Create content that violates applicable laws or regulations</li>
+                    <li>• Engage in harassment, bullying, or threatening behavior</li>
+                    <li>• Distribute malware, viruses, or other harmful code</li>
+                    <li>• Attempt to reverse engineer or hack the Service</li>
+                    <li>• Violate intellectual property rights of others</li>
+                    <li>• Create content for illegal purposes</li>
+                    <li>• Impersonate others or provide false information</li>
+                  </ul>
+                </div>
+                <div className="bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800 rounded-lg p-4">
+                  <h3 className="font-semibold text-orange-900 dark:text-orange-100 mb-2">Adult Content</h3>
+                  <p className="text-sm text-orange-800 dark:text-orange-200 mb-2">
+                    The Service permits the creation of adult content, including nudity and sexual content, subject to the following restrictions:
+                  </p>
+                  <ul className="text-sm text-orange-800 dark:text-orange-200 space-y-1 ml-4">
+                    <li>• All virtual characters must appear to be adults (18+)</li>
+                    <li>• Content must not depict illegal activities</li>
+                    <li>• Content must not violate applicable obscenity laws</li>
+                    <li>• Users must comply with age verification requirements</li>
+                  </ul>
+                </div>
+              </div>
+            </section>
+
+            {/* Section 7: Intellectual Property Rights */}
+            <section>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+                <span className="bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">7</span>
+                Intellectual Property Rights
+              </h2>
+              <div className="space-y-4">
+                <div className="bg-gray-50 dark:bg-gray-900/30 rounded-lg p-4">
+                  <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">User Content Ownership</h3>
+                  <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">
+                    You retain ownership of content you create using the Service ("User Content"), subject to the license granted to us below.
+                  </p>
+                  <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">License to Company</h3>
+                  <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">
+                    By using the Service, you grant us a worldwide, non-exclusive, royalty-free, sublicensable license to:
+                  </p>
+                  <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1 ml-4">
+                    <li>• Host, store, and display your User Content</li>
+                    <li>• Use your User Content to provide and improve the Service</li>
+                    <li>• Use your User Content for moderation and compliance purposes</li>
+                    <li>• Use your User Content anonymously for marketing and promotional purposes on our website and in advertising materials</li>
+                  </ul>
+                </div>
+                <div className="bg-gray-50 dark:bg-gray-900/30 rounded-lg p-4">
+                  <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Company Intellectual Property</h3>
+                  <p className="text-sm text-gray-700 dark:text-gray-300">
+                    The Service, including all software, algorithms, designs, and content provided by us, is protected by intellectual property laws. You may not copy, modify, distribute, or create derivative works based on our intellectual property.
+                  </p>
+                </div>
+                <div className="bg-gray-50 dark:bg-gray-900/30 rounded-lg p-4">
+                  <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">AI Technology</h3>
+                  <p className="text-sm text-gray-700 dark:text-gray-300">
+                    The Service utilizes AI technology from third-party providers including OpenAI, x.ai, Black Forest Labs, Bytedance, and Kling. Your use of the Service is subject to the terms and policies of these providers.
                   </p>
                 </div>
               </div>
             </section>
 
-            {/* Section 6: Privacy and Data */}
+            {/* Section 8: Content Moderation and Removal */}
             <section>
               <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
-                <span className="bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">6</span>
+                <span className="bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">8</span>
+                Content Moderation and Removal
+              </h2>
+              <div className="space-y-4">
+                <div className="bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+                  <h3 className="font-semibold text-yellow-900 dark:text-yellow-100 mb-2">Automated Moderation</h3>
+                  <p className="text-sm text-yellow-800 dark:text-yellow-200 mb-3">
+                    We employ automated content moderation systems to detect and prevent prohibited content. Content that violates these Terms may be automatically removed or restricted.
+                  </p>
+                  <h3 className="font-semibold text-yellow-900 dark:text-yellow-100 mb-2">Content Removal</h3>
+                  <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                    We reserve the right to remove, restrict, or refuse to display any User Content that violates these Terms, applicable law, infringes third-party rights, is reported by other users, or we determine is inappropriate in our sole discretion.
+                  </p>
+                </div>
+                <div className="bg-gray-50 dark:bg-gray-900/30 rounded-lg p-4">
+                  <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">No Obligation to Monitor</h3>
+                  <p className="text-sm text-gray-700 dark:text-gray-300">
+                    We have no obligation to monitor User Content but reserve the right to do so.
+                  </p>
+                </div>
+              </div>
+            </section>
+
+            {/* Section 9: Data Storage and Retention */}
+            <section>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+                <span className="bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">9</span>
+                Data Storage and Retention
+              </h2>
+              <div className="space-y-4">
+                <div className="bg-gray-50 dark:bg-gray-900/30 rounded-lg p-4">
+                  <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Content Storage</h3>
+                  <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1 ml-4">
+                    <li>• Subscription plans include varying amounts of long-term storage</li>
+                    <li>• Content not stored in your allocated space is automatically deleted after 30 days</li>
+                    <li>• We are not responsible for deleted content</li>
+                  </ul>
+                </div>
+                <div className="bg-gray-50 dark:bg-gray-900/30 rounded-lg p-4">
+                  <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Account Deletion</h3>
+                  <p className="text-sm text-gray-700 dark:text-gray-300">
+                    Upon account termination, your data will be retained for 90 days for legal and operational purposes, then permanently deleted.
+                  </p>
+                </div>
+              </div>
+            </section>
+
+            {/* Section 10: Privacy and Data Protection */}
+            <section>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+                <span className="bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">10</span>
                 Privacy and Data Protection
               </h2>
               <div className="bg-blue-50 dark:bg-blue-950/20 rounded-lg p-4 border-l-4 border-blue-500">
@@ -733,83 +922,176 @@ export function TermsOfService({ open, onOpenChange }: TermsOfServiceProps) {
                   <div>
                     <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">Data Protection</h3>
                     <p className="text-sm text-blue-800 dark:text-blue-200">
-                      Your privacy is important to us. Our collection and use of personal information is governed by our Privacy Policy, which is incorporated into these Terms by reference. By using the Service, you consent to the collection and use of your information as described in our Privacy Policy.
+                      Your privacy is important to us. Our collection, use, and protection of your personal information is governed by our Privacy Policy, which is incorporated into these Terms by reference.
                     </p>
                   </div>
                 </div>
               </div>
             </section>
 
-            {/* Section 7: Payment Terms */}
-            <section>
-              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
-                <span className="bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">7</span>
-                Payment Terms
-              </h2>
-              <div className="space-y-4">
-                <div className="bg-gray-50 dark:bg-gray-900/30 rounded-lg p-4">
-                  <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Subscription Services</h3>
-                  <p className="text-gray-700 dark:text-gray-300 text-sm">
-                    Some features of the Service may require a paid subscription. Subscription fees are billed in advance on a recurring basis. You may cancel your subscription at any time through your account settings.
-                  </p>
-                </div>
-                <div className="bg-gray-50 dark:bg-gray-900/30 rounded-lg p-4">
-                  <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Payment Processing</h3>
-                  <p className="text-gray-700 dark:text-gray-300 text-sm">
-                    All payments are processed securely through our third-party payment processors. By providing payment information, you authorize us to charge the specified amount to your payment method.
-                  </p>
-                </div>
-              </div>
-            </section>
-
-            {/* Section 8: Limitation of Liability */}
-            <section>
-              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
-                <span className="bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">8</span>
-                Limitation of Liability
-              </h2>
-              <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
-                <div className="flex items-start gap-3">
-                  <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" />
-                  <div>
-                    <p className="text-sm text-red-800 dark:text-red-200">
-                      TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL SAYASAAS LLC BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, INCLUDING WITHOUT LIMITATION, LOSS OF PROFITS, DATA, USE, GOODWILL, OR OTHER INTANGIBLE LOSSES, RESULTING FROM YOUR USE OF THE SERVICE.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </section>
-
-            {/* Section 9: Termination */}
-            <section>
-              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
-                <span className="bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">9</span>
-                Termination
-              </h2>
-              <div className="bg-gray-50 dark:bg-gray-900/30 rounded-lg p-4">
-                <p className="text-gray-700 dark:text-gray-300">
-                  We may terminate or suspend your account and access to the Service immediately, without prior notice or liability, for any reason whatsoever, including without limitation if you breach the Terms. Upon termination, your right to use the Service will cease immediately.
-                </p>
-              </div>
-            </section>
-
-            {/* Section 10: Governing Law */}
-            <section>
-              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
-                <span className="bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">10</span>
-                Governing Law
-              </h2>
-              <div className="bg-gray-50 dark:bg-gray-900/30 rounded-lg p-4">
-                <p className="text-gray-700 dark:text-gray-300">
-                  These Terms shall be governed by and construed in accordance with the laws of the jurisdiction in which sayasaas llc is incorporated, without regard to its conflict of law provisions.
-                </p>
-              </div>
-            </section>
-
-            {/* Section 11: Contact Information */}
+            {/* Section 11: Disclaimers and Warranties */}
             <section>
               <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
                 <span className="bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">11</span>
+                Disclaimers and Warranties
+              </h2>
+              <div className="space-y-4">
+                <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+                  <h3 className="font-semibold text-red-900 dark:text-red-100 mb-2">Service Availability</h3>
+                  <p className="text-sm text-red-800 dark:text-red-200 mb-3">
+                    The Service is provided "as is" and "as available." We do not guarantee uninterrupted or error-free service.
+                  </p>
+                  <h3 className="font-semibold text-red-900 dark:text-red-100 mb-2">Content Accuracy</h3>
+                  <p className="text-sm text-red-800 dark:text-red-200 mb-3">
+                    We make no warranties regarding the accuracy, reliability, or quality of AI-generated content.
+                  </p>
+                  <h3 className="font-semibold text-red-900 dark:text-red-100 mb-2">Third-Party Services</h3>
+                  <p className="text-sm text-red-800 dark:text-red-200 mb-3">
+                    We are not responsible for the availability, accuracy, or content of third-party services integrated with our platform.
+                  </p>
+                  <h3 className="font-semibold text-red-900 dark:text-red-100 mb-2">Disclaimer of Warranties</h3>
+                  <p className="text-sm text-red-800 dark:text-red-200 font-semibold">
+                    TO THE MAXIMUM EXTENT PERMITTED BY LAW, WE DISCLAIM ALL WARRANTIES, EXPRESS OR IMPLIED, INCLUDING WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT.
+                  </p>
+                </div>
+              </div>
+            </section>
+
+            {/* Section 12: Limitation of Liability */}
+            <section>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+                <span className="bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">12</span>
+                Limitation of Liability
+              </h2>
+              <div className="space-y-4">
+                <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+                  <h3 className="font-semibold text-red-900 dark:text-red-100 mb-2">Liability Cap</h3>
+                  <p className="text-sm text-red-800 dark:text-red-200 mb-3 font-semibold">
+                    TO THE MAXIMUM EXTENT PERMITTED BY LAW, OUR TOTAL LIABILITY TO YOU SHALL NOT EXCEED THE GREATER OF (A) $100 OR (B) THE AMOUNT YOU PAID TO US IN THE 12 MONTHS PRECEDING THE CLAIM.
+                  </p>
+                  <h3 className="font-semibold text-red-900 dark:text-red-100 mb-2">Excluded Damages</h3>
+                  <p className="text-sm text-red-800 dark:text-red-200">
+                    WE SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, INCLUDING LOSS OF PROFITS, DATA, OR GOODWILL.
+                  </p>
+                </div>
+                <div className="bg-gray-50 dark:bg-gray-900/30 rounded-lg p-4">
+                  <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">User Responsibility</h3>
+                  <p className="text-sm text-gray-700 dark:text-gray-300">
+                    You are solely responsible for your use of the Service and any consequences thereof.
+                  </p>
+                </div>
+              </div>
+            </section>
+
+            {/* Section 13: Indemnification */}
+            <section>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+                <span className="bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">13</span>
+                Indemnification
+              </h2>
+              <div className="bg-gray-50 dark:bg-gray-900/30 rounded-lg p-4">
+                <p className="text-sm text-gray-700 dark:text-gray-300">
+                  You agree to indemnify, defend, and hold harmless the Company and its officers, directors, employees, and agents from any claims, damages, losses, or expenses arising from your use of the Service, your violation of these Terms, your violation of any third-party rights, or your User Content.
+                </p>
+              </div>
+            </section>
+
+            {/* Section 14: Termination */}
+            <section>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+                <span className="bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">14</span>
+                Termination
+              </h2>
+              <div className="space-y-4">
+                <div className="bg-gray-50 dark:bg-gray-900/30 rounded-lg p-4">
+                  <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Termination by User</h3>
+                  <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">
+                    You may terminate your account at any time through your account settings. Paid subscriptions will continue until the end of the current billing cycle.
+                  </p>
+                  <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Termination by Company</h3>
+                  <p className="text-sm text-gray-700 dark:text-gray-300">
+                    We may terminate or suspend your account immediately if you violate these Terms, engage in fraudulent or illegal activity, pose a risk to other users or the Service, or fail to pay applicable fees.
+                  </p>
+                </div>
+                <div className="bg-gray-50 dark:bg-gray-900/30 rounded-lg p-4">
+                  <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Effect of Termination</h3>
+                  <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
+                    Upon termination:
+                  </p>
+                  <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1 ml-4">
+                    <li>• Your access to the Service will cease</li>
+                    <li>• Your User Content may be deleted</li>
+                    <li>• Unused Gems will be forfeited</li>
+                    <li>• These Terms will remain in effect for applicable provisions</li>
+                  </ul>
+                </div>
+              </div>
+            </section>
+
+            {/* Section 15: Dispute Resolution */}
+            <section>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+                <span className="bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">15</span>
+                Dispute Resolution
+              </h2>
+              <div className="space-y-4">
+                <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                  <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">Binding Arbitration</h3>
+                  <p className="text-sm text-blue-800 dark:text-blue-200 mb-3">
+                    Any dispute arising from these Terms or your use of the Service shall be resolved through binding arbitration administered by the American Arbitration Association under its Commercial Arbitration Rules.
+                  </p>
+                  <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">Class Action Waiver</h3>
+                  <p className="text-sm text-blue-800 dark:text-blue-200">
+                    You agree to resolve disputes individually and waive any right to participate in class actions or representative proceedings.
+                  </p>
+                </div>
+                <div className="bg-gray-50 dark:bg-gray-900/30 rounded-lg p-4">
+                  <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Governing Law</h3>
+                  <p className="text-sm text-gray-700 dark:text-gray-300">
+                    These Terms are governed by the laws of New Mexico, without regard to conflict of law principles.
+                  </p>
+                </div>
+                <div className="bg-gray-50 dark:bg-gray-900/30 rounded-lg p-4">
+                  <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Jurisdiction</h3>
+                  <p className="text-sm text-gray-700 dark:text-gray-300">
+                    Any legal proceedings not subject to arbitration shall be conducted in the courts of New Mexico.
+                  </p>
+                </div>
+              </div>
+            </section>
+
+            {/* Section 16: General Provisions */}
+            <section>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+                <span className="bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">16</span>
+                General Provisions
+              </h2>
+              <div className="space-y-4">
+                <div className="bg-gray-50 dark:bg-gray-900/30 rounded-lg p-4">
+                  <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Entire Agreement</h3>
+                  <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">
+                    These Terms, together with our Privacy Policy and other referenced policies, constitute the entire agreement between you and the Company.
+                  </p>
+                  <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Modifications</h3>
+                  <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">
+                    We may modify these Terms at any time by posting updated terms on our website. Continued use of the Service constitutes acceptance of modified terms.
+                  </p>
+                  <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Severability</h3>
+                  <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">
+                    If any provision of these Terms is found unenforceable, the remaining provisions will remain in full force and effect.
+                  </p>
+                  <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Assignment</h3>
+                  <p className="text-sm text-gray-700 dark:text-gray-300">
+                    You may not assign these Terms without our written consent. We may assign these Terms without restriction.
+                  </p>
+                </div>
+              </div>
+            </section>
+
+            {/* Section 17: Contact Information */}
+            <section>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+                <span className="bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">17</span>
                 Contact Information
               </h2>
               <div className="bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
@@ -817,9 +1099,14 @@ export function TermsOfService({ open, onOpenChange }: TermsOfServiceProps) {
                   <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400 mt-0.5 flex-shrink-0" />
                   <div>
                     <h3 className="font-semibold text-green-900 dark:text-green-100 mb-2">Get in Touch</h3>
-                    <p className="text-sm text-green-800 dark:text-green-200">
-                      If you have any questions about these Terms of Service, please contact us at support@nymia.ai or through our website at www.nymia.ai.
+                    <p className="text-sm text-green-800 dark:text-green-200 mb-3">
+                      For questions about these Terms, contact us at:
                     </p>
+                    <div className="text-sm text-green-800 dark:text-green-200 space-y-1">
+                      <p><strong>Company:</strong> sayasaas llc</p>
+                      <p><strong>Address:</strong> 5203 JUAN TABO BLVD NE SUITE 2B, ALBUQUERQUE NM 87111, USA</p>
+                      <p><strong>Email:</strong> contact@sayasaas.com</p>
+                    </div>
                   </div>
                 </div>
               </div>

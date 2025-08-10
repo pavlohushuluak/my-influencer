@@ -4,12 +4,14 @@ import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { TermsOfService } from '@/components/TermsOfService';
+import { PrivacyPolicy } from '@/components/PrivacyPolicy';
 
 export function AppFooter() {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [showTermsOfService, setShowTermsOfService] = useState(false);
+  const [showPrivacyPolicy, setShowPrivacyPolicy] = useState(false);
 
   const footerLinks = {
     product: [
@@ -25,7 +27,7 @@ export function AppFooter() {
       { name: 'Contact', href: '#contact', action: 'scroll' }
     ],
     legal: [
-      { name: 'Privacy Policy', href: '#privacy', action: 'scroll' },
+      { name: 'Privacy Policy', href: '#privacy', action: 'modal' },
       { name: 'Terms of Service', href: '#terms', action: 'modal' },
       { name: 'Cookie Policy', href: '#cookies', action: 'scroll' },
       { name: 'GDPR', href: '#gdpr', action: 'scroll' }
@@ -47,8 +49,12 @@ export function AppFooter() {
       if (element) {
         element.scrollIntoView({ behavior: 'smooth' });
       }
-    } else if (item.action === 'modal' && item.name === 'Terms of Service') {
-      setShowTermsOfService(true);
+    } else if (item.action === 'modal') {
+      if (item.name === 'Terms of Service') {
+        setShowTermsOfService(true);
+      } else if (item.name === 'Privacy Policy') {
+        setShowPrivacyPolicy(true);
+      }
     }
   };
 
@@ -175,6 +181,12 @@ export function AppFooter() {
       <TermsOfService 
         open={showTermsOfService} 
         onOpenChange={setShowTermsOfService} 
+      />
+
+      {/* Privacy Policy Modal */}
+      <PrivacyPolicy 
+        open={showPrivacyPolicy} 
+        onOpenChange={setShowPrivacyPolicy} 
       />
     </footer>
   );

@@ -19,6 +19,16 @@ export default function Homepage() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const isLoggedIn = sessionStorage.getItem('access_token') !== null;
 
+  // Apply theme to document root
+  useEffect(() => {
+    const root = document.documentElement;
+    if (theme === 'dark') {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+  }, [theme]);
+
   const features = [
     {
       icon: User,

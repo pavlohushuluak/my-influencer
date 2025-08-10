@@ -8,6 +8,7 @@ import { PrivacyPolicy } from '@/components/PrivacyPolicy';
 import { DMCAPolicy } from '@/components/DMCAPolicy';
 import { CommunityGuidelines } from '@/components/CommunityGuidelines';
 import { RefundPolicy } from '@/components/RefundPolicy';
+import { CookiePolicy } from '@/components/CookiePolicy';
 
 export function AppFooter() {
   const navigate = useNavigate();
@@ -18,6 +19,7 @@ export function AppFooter() {
   const [showDMCAPolicy, setShowDMCAPolicy] = useState(false);
   const [showCommunityGuidelines, setShowCommunityGuidelines] = useState(false);
   const [showRefundPolicy, setShowRefundPolicy] = useState(false);
+  const [showCookiePolicy, setShowCookiePolicy] = useState(false);
 
   const footerLinks = {
     product: [
@@ -38,7 +40,7 @@ export function AppFooter() {
         { name: 'DMCA Policy', href: '#dmca', action: 'modal' },
         { name: 'Community Guidelines', href: '#guidelines', action: 'modal' },
         { name: 'Refund Policy', href: '#refund', action: 'modal' },
-        { name: 'Cookie Policy', href: '#cookies', action: 'scroll' },
+        { name: 'Cookie Policy', href: '#cookies', action: 'modal' },
         { name: 'GDPR', href: '#gdpr', action: 'scroll' }
       ]
   };
@@ -65,11 +67,13 @@ export function AppFooter() {
         setShowPrivacyPolicy(true);
       } else if (item.name === 'DMCA Policy') {
         setShowDMCAPolicy(true);
-              } else if (item.name === 'Community Guidelines') {
-          setShowCommunityGuidelines(true);
-        } else if (item.name === 'Refund Policy') {
-          setShowRefundPolicy(true);
-        }
+      } else if (item.name === 'Community Guidelines') {
+        setShowCommunityGuidelines(true);
+      } else if (item.name === 'Refund Policy') {
+        setShowRefundPolicy(true);
+      } else if (item.name === 'Cookie Policy') {
+        setShowCookiePolicy(true);
+      }
     }
   };
 
@@ -214,6 +218,10 @@ export function AppFooter() {
         <RefundPolicy
           open={showRefundPolicy}
           onOpenChange={setShowRefundPolicy}
+        />
+        <CookiePolicy
+          open={showCookiePolicy}
+          onOpenChange={setShowCookiePolicy}
         />
       </footer>
   );

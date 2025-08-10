@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import VaultSelector from '@/components/VaultSelector';
+import { CreditConfirmationModal } from '@/components/CreditConfirmationModal';
 import { toast } from 'sonner';
 import { 
   Upload, 
@@ -73,6 +74,11 @@ export default function FaceSwap() {
   // Drag and Drop States
   const [dragOverSource, setDragOverSource] = useState(false);
   const [dragOverTarget, setDragOverTarget] = useState(false);
+  
+  // Credit Logic States
+  const [showCreditModal, setShowCreditModal] = useState(false);
+  const [gemCostData, setGemCostData] = useState<any>(null);
+  const [isCheckingCredits, setIsCheckingCredits] = useState(false);
 
   // Face Swap Result Interface
   interface FaceSwapResult {
@@ -412,12 +418,32 @@ export default function FaceSwap() {
   };
 
   // Handle face swap processing
-  const handleFaceSwap = async () => {
-    if (!getSourceDisplayUrl() || !getTargetDisplayUrl()) {
-      toast.error('Please select both source image and target face');
-      return;
-    }
+  const checkGemCost = async () => {
+    try {
+      const response = await fetch(`${config.backend_url}/getgems`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          item: 'faceswap'
+        })
+      });
 
+      if (!response.ok) {
+        throw new Error('Failed to fetch credit cost');
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error checking credit cost:', error);
+      throw error;
+    }
+  };
+
+  const proceedWithFaceSwap = async () => {
     setIsProcessing(true);
     try {
       // Get userid for API request
@@ -478,6 +504,25 @@ export default function FaceSwap() {
       console.error('Error processing face swap:', error);
       toast.error('Failed to process face swap');
       setIsProcessing(false);
+    }
+  };
+
+  const handleFaceSwap = async () => {
+    if (!getSourceDisplayUrl() || !getTargetDisplayUrl()) {
+      toast.error('Please select both source image and target face');
+      return;
+    }
+
+    setIsCheckingCredits(true);
+    try {
+      const costData = await checkGemCost();
+      setGemCostData(costData);
+      setShowCreditModal(true);
+    } catch (error) {
+      console.error('Error checking credit cost:', error);
+      toast.error('Unable to verify credit cost. Please try again.');
+    } finally {
+      setIsCheckingCredits(false);
     }
   };
 
@@ -719,15 +764,19 @@ export default function FaceSwap() {
         <div className="mt-8 text-center px-4">
           <Button
             onClick={handleFaceSwap}
-            disabled={!getSourceDisplayUrl() || !getTargetDisplayUrl() || isProcessing}
+            disabled={!getSourceDisplayUrl() || !getTargetDisplayUrl() || isProcessing || isCheckingCredits}
             size="lg"
             className="w-full sm:w-auto bg-gradient-to-r from-purple-600 via-pink-600 to-indigo-600 hover:from-purple-700 hover:via-pink-700 hover:to-indigo-700 text-white font-semibold px-6 sm:px-8 py-3 sm:py-4 rounded-xl shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
           >
-            {isProcessing ? (
+            {isProcessing || isCheckingCredits ? (
               <>
                 <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                <span className="hidden sm:inline">Processing Face Swap...</span>
-                <span className="sm:hidden">Processing...</span>
+                <span className="hidden sm:inline">
+                  {isCheckingCredits ? 'Checking Credits...' : 'Processing Face Swap...'}
+                </span>
+                <span className="sm:hidden">
+                  {isCheckingCredits ? 'Checking...' : 'Processing...'}
+                </span>
               </>
             ) : (
               <>
@@ -926,6 +975,24 @@ export default function FaceSwap() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Credit Confirmation Modal */}
+      <CreditConfirmationModal
+        isOpen={showCreditModal}
+        onClose={() => setShowCreditModal(false)}
+        onConfirm={() => {
+          proceedWithFaceSwap();
+          setShowCreditModal(false);
+        }}
+        gemCostData={gemCostData}
+        userCredits={userData.credits}
+        isProcessing={isCheckingCredits}
+        processingText="Checking credit cost..."
+        confirmButtonText="Create Face Swap"
+        title="Face Swap Credit Check"
+        numberOfItems={1}
+        itemType="face swap"
+      />
     </div>
   );
 } 

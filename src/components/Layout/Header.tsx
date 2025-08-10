@@ -106,19 +106,20 @@ export function Header() {
   };
 
   const handleCreditPurchase = () => {
+    setShowCreditPurchase(true);
     // If user is not on free plan, always allow credit purchase
-    if (subscription !== 'free') {
-      setShowCreditPurchase(true);
-      return;
-    }
+    // if (subscription !== 'free') {
+    //   setShowCreditPurchase(true);
+    //   return;
+    // }
     
     // If user is on free plan, check if they can still purchase
-    if (subscription === 'free' && free_purchase) {
-      setShowCreditPurchase(true);
-    } else {
-      toast.error('You can purchase credits only once on a free plan. Please upgrade to continue.');
-      navigate('/pricing');
-    }
+    // if (subscription === 'free' && free_purchase) {
+    //   setShowCreditPurchase(true);
+    // } else {
+    //   toast.error('You can purchase credits only once on a free plan. Please upgrade to continue.');
+    //   navigate('/pricing');
+    // }
   }
 
   return (

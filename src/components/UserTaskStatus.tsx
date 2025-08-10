@@ -178,6 +178,7 @@ export function UserTaskStatus({ className, isCollapsed = false }: TaskStatusPro
     
     try {
       setCancelingTasks(prev => new Set(prev).add(taskId));
+      console.log(taskId);
       
       const response = await fetch(`${config.backend_url}/canceltask`, {
         method: 'POST',

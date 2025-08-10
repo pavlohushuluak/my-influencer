@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { TermsOfService } from '@/components/TermsOfService';
 import { PrivacyPolicy } from '@/components/PrivacyPolicy';
+import { DMCAPolicy } from '@/components/DMCAPolicy';
 
 export function AppFooter() {
   const navigate = useNavigate();
@@ -12,6 +13,7 @@ export function AppFooter() {
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [showTermsOfService, setShowTermsOfService] = useState(false);
   const [showPrivacyPolicy, setShowPrivacyPolicy] = useState(false);
+  const [showDMCAPolicy, setShowDMCAPolicy] = useState(false);
 
   const footerLinks = {
     product: [
@@ -29,6 +31,7 @@ export function AppFooter() {
     legal: [
       { name: 'Privacy Policy', href: '#privacy', action: 'modal' },
       { name: 'Terms of Service', href: '#terms', action: 'modal' },
+      { name: 'DMCA Policy', href: '#dmca', action: 'modal' },
       { name: 'Cookie Policy', href: '#cookies', action: 'scroll' },
       { name: 'GDPR', href: '#gdpr', action: 'scroll' }
     ]
@@ -54,6 +57,8 @@ export function AppFooter() {
         setShowTermsOfService(true);
       } else if (item.name === 'Privacy Policy') {
         setShowPrivacyPolicy(true);
+      } else if (item.name === 'DMCA Policy') {
+        setShowDMCAPolicy(true);
       }
     }
   };
@@ -184,9 +189,13 @@ export function AppFooter() {
       />
 
       {/* Privacy Policy Modal */}
-      <PrivacyPolicy 
-        open={showPrivacyPolicy} 
-        onOpenChange={setShowPrivacyPolicy} 
+            <PrivacyPolicy
+        open={showPrivacyPolicy}
+        onOpenChange={setShowPrivacyPolicy}
+      />
+      <DMCAPolicy
+        open={showDMCAPolicy}
+        onOpenChange={setShowDMCAPolicy}
       />
     </footer>
   );

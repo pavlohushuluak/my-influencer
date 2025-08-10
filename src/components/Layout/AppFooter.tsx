@@ -3,11 +3,13 @@ import { Star, Github, Twitter, Linkedin, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
+import { TermsOfService } from '@/components/TermsOfService';
 
 export function AppFooter() {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [isSubscribed, setIsSubscribed] = useState(false);
+  const [showTermsOfService, setShowTermsOfService] = useState(false);
 
   const footerLinks = {
     product: [
@@ -24,7 +26,7 @@ export function AppFooter() {
     ],
     legal: [
       { name: 'Privacy Policy', href: '#privacy', action: 'scroll' },
-      { name: 'Terms of Service', href: '#terms', action: 'scroll' },
+      { name: 'Terms of Service', href: '#terms', action: 'modal' },
       { name: 'Cookie Policy', href: '#cookies', action: 'scroll' },
       { name: 'GDPR', href: '#gdpr', action: 'scroll' }
     ]
@@ -45,6 +47,8 @@ export function AppFooter() {
       if (element) {
         element.scrollIntoView({ behavior: 'smooth' });
       }
+    } else if (item.action === 'modal' && item.name === 'Terms of Service') {
+      setShowTermsOfService(true);
     }
   };
 
@@ -166,6 +170,12 @@ export function AppFooter() {
           </div>
         </div>
       </div>
+
+      {/* Terms of Service Modal */}
+      <TermsOfService 
+        open={showTermsOfService} 
+        onOpenChange={setShowTermsOfService} 
+      />
     </footer>
   );
 }

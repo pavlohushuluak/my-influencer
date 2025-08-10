@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { TermsOfService } from '@/components/TermsOfService';
 import { PrivacyPolicy } from '@/components/PrivacyPolicy';
 import { DMCAPolicy } from '@/components/DMCAPolicy';
+import { CommunityGuidelines } from '@/components/CommunityGuidelines';
 
 export function AppFooter() {
   const navigate = useNavigate();
@@ -14,6 +15,7 @@ export function AppFooter() {
   const [showTermsOfService, setShowTermsOfService] = useState(false);
   const [showPrivacyPolicy, setShowPrivacyPolicy] = useState(false);
   const [showDMCAPolicy, setShowDMCAPolicy] = useState(false);
+  const [showCommunityGuidelines, setShowCommunityGuidelines] = useState(false);
 
   const footerLinks = {
     product: [
@@ -32,6 +34,7 @@ export function AppFooter() {
       { name: 'Privacy Policy', href: '#privacy', action: 'modal' },
       { name: 'Terms of Service', href: '#terms', action: 'modal' },
       { name: 'DMCA Policy', href: '#dmca', action: 'modal' },
+      { name: 'Community Guidelines', href: '#guidelines', action: 'modal' },
       { name: 'Cookie Policy', href: '#cookies', action: 'scroll' },
       { name: 'GDPR', href: '#gdpr', action: 'scroll' }
     ]
@@ -59,6 +62,8 @@ export function AppFooter() {
         setShowPrivacyPolicy(true);
       } else if (item.name === 'DMCA Policy') {
         setShowDMCAPolicy(true);
+      } else if (item.name === 'Community Guidelines') {
+        setShowCommunityGuidelines(true);
       }
     }
   };
@@ -196,6 +201,10 @@ export function AppFooter() {
       <DMCAPolicy
         open={showDMCAPolicy}
         onOpenChange={setShowDMCAPolicy}
+      />
+      <CommunityGuidelines
+        open={showCommunityGuidelines}
+        onOpenChange={setShowCommunityGuidelines}
       />
     </footer>
   );

@@ -385,11 +385,11 @@ export default function InfluencerEdit() {
   };
 
   const handleInputChange = (field: string, value: string) => {
-    if (isFeatureLocked(field)) {
-      setLockedFeature(field);
-      setShowUpgradeModal(true);
-      return;
-    }
+    // if (isFeatureLocked(field)) {
+    //   setLockedFeature(field);
+    //   setShowUpgradeModal(true);
+    //   return;
+    // }
 
     setInfluencerData(prev => ({
       ...prev,
@@ -1391,12 +1391,12 @@ export default function InfluencerEdit() {
     maxSelections: number,
     field: string
   }) => {
-    if (isFeatureLocked(field)) {
-      setLockedFeature(field);
-      setShowUpgradeModal(true);
-      onClose();
-      return;
-    }
+    // if (isFeatureLocked(field)) {
+    //   setLockedFeature(field);
+    //   setShowUpgradeModal(true);
+    //   onClose();
+    //   return;
+    // }
 
     const [localSelected, setLocalSelected] = useState<string[]>(selectedValues);
     const [previewImage, setPreviewImage] = useState<string | null>(null);

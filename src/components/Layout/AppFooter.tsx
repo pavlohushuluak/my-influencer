@@ -7,6 +7,7 @@ import { TermsOfService } from '@/components/TermsOfService';
 import { PrivacyPolicy } from '@/components/PrivacyPolicy';
 import { DMCAPolicy } from '@/components/DMCAPolicy';
 import { CommunityGuidelines } from '@/components/CommunityGuidelines';
+import { RefundPolicy } from '@/components/RefundPolicy';
 
 export function AppFooter() {
   const navigate = useNavigate();
@@ -16,6 +17,7 @@ export function AppFooter() {
   const [showPrivacyPolicy, setShowPrivacyPolicy] = useState(false);
   const [showDMCAPolicy, setShowDMCAPolicy] = useState(false);
   const [showCommunityGuidelines, setShowCommunityGuidelines] = useState(false);
+  const [showRefundPolicy, setShowRefundPolicy] = useState(false);
 
   const footerLinks = {
     product: [
@@ -30,14 +32,15 @@ export function AppFooter() {
       { name: 'Careers', href: '#careers', action: 'scroll' },
       { name: 'Contact', href: '#contact', action: 'scroll' }
     ],
-    legal: [
-      { name: 'Privacy Policy', href: '#privacy', action: 'modal' },
-      { name: 'Terms of Service', href: '#terms', action: 'modal' },
-      { name: 'DMCA Policy', href: '#dmca', action: 'modal' },
-      { name: 'Community Guidelines', href: '#guidelines', action: 'modal' },
-      { name: 'Cookie Policy', href: '#cookies', action: 'scroll' },
-      { name: 'GDPR', href: '#gdpr', action: 'scroll' }
-    ]
+          legal: [
+        { name: 'Privacy Policy', href: '#privacy', action: 'modal' },
+        { name: 'Terms of Service', href: '#terms', action: 'modal' },
+        { name: 'DMCA Policy', href: '#dmca', action: 'modal' },
+        { name: 'Community Guidelines', href: '#guidelines', action: 'modal' },
+        { name: 'Refund Policy', href: '#refund', action: 'modal' },
+        { name: 'Cookie Policy', href: '#cookies', action: 'scroll' },
+        { name: 'GDPR', href: '#gdpr', action: 'scroll' }
+      ]
   };
 
   const socialLinks = [
@@ -62,9 +65,11 @@ export function AppFooter() {
         setShowPrivacyPolicy(true);
       } else if (item.name === 'DMCA Policy') {
         setShowDMCAPolicy(true);
-      } else if (item.name === 'Community Guidelines') {
-        setShowCommunityGuidelines(true);
-      }
+              } else if (item.name === 'Community Guidelines') {
+          setShowCommunityGuidelines(true);
+        } else if (item.name === 'Refund Policy') {
+          setShowRefundPolicy(true);
+        }
     }
   };
 
@@ -202,10 +207,14 @@ export function AppFooter() {
         open={showDMCAPolicy}
         onOpenChange={setShowDMCAPolicy}
       />
-      <CommunityGuidelines
-        open={showCommunityGuidelines}
-        onOpenChange={setShowCommunityGuidelines}
-      />
-    </footer>
+              <CommunityGuidelines
+          open={showCommunityGuidelines}
+          onOpenChange={setShowCommunityGuidelines}
+        />
+        <RefundPolicy
+          open={showRefundPolicy}
+          onOpenChange={setShowRefundPolicy}
+        />
+      </footer>
   );
 }

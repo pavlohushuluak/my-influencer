@@ -39,7 +39,21 @@ import {
   Rocket,
   Video,
   Maximize2,
-  Users
+  Users,
+  Sparkles,
+  FileImage,
+  FileVideo,
+  FileAudio,
+  Palette as PaletteIcon,
+  RefreshCw,
+  Zap,
+  FolderOpen,
+  MessageSquare,
+  FileText,
+  Calendar as CalendarIcon,
+  Repeat,
+  Heart,
+  Cog
 } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
@@ -66,40 +80,51 @@ const menuItems = [
     isActive: (pathname: string) => pathname === "/dashboard"
   },
   {
-    title: "Influencer",
+    title: "Influencers",
     icon: User,
     items: [
-      { title: "Create", url: "/influencers/create", icon: Plus },
-      { title: "Edit", url: "/influencers/edit", icon: Edit },
-      { title: "Use", url: "/influencers", icon: Play },
-      { title: "LoRA", url: "/lora", icon: Brain },
+      { title: "New", url: "/influencers/new", icon: Plus, badge: "Wizard" },
+      { title: "Profiles", url: "/influencers/profiles", icon: Edit },
+      { title: "AI Consistency", url: "/influencers/consistency", icon: Brain },
       { title: "Templates", url: "/influencers/templates", icon: BookOpen },
     ]
   },
-  // {
-  //   title: "Catalog",
-  //   icon: BookOpen,
-  //   items: [
-  //     { title: "Clothing", url: "/catalog/clothing", icon: Shirt },
-  //     { title: "Location", url: "/catalog/location", icon: MapPin },
-  //     { title: "Poses", url: "/catalog/poses", icon: Palette },
-  //     { title: "Accessories", url: "/catalog/accessories", icon: Watch },
-  //   ]
-  // },
   {
-    title: "Content",
-    icon: Image,
+    title: "Create",
+    icon: Sparkles,
     items: [
-      { title: "Vault", url: "/content/vault", icon: Layers },
-      { title: "Images", url: "/content/create-image", icon: Image },
-      { title: "Face Swap", url: "/faceswap", icon: Users },
-      { title: "Videos", url: "/content/create-video", icon: Video },
-      { title: "Optimizer", url: "/content/upscaler", icon: Maximize2 },
-      { title: "Edit", url: "/content/edit", icon: Edit },
-      { title: "Story", url: "/content/story", icon: BookOpen },
-      { title: "Schedule", url: "/content/schedule", icon: Clock },
-      { title: "Batch", url: "/content/batch", icon: Layers },
+      { title: "Images", url: "/create/images", icon: FileImage },
+      { title: "Videos", url: "/create/videos", icon: FileVideo },
+      { title: "AI Edit", url: "/create/aiedit", icon: PaletteIcon },
+      { title: "Face Swap", url: "/create/faceswap", icon: RefreshCw, badge: "Future" },
+      { title: "Optimizer", url: "/create/optimizer", icon: Zap },
     ]
+  },
+  {
+    title: "Library",
+    icon: FolderOpen,
+    items: [
+      { title: "Images", url: "/library/images", icon: FileImage },
+      { title: "Videos", url: "/library/videos", icon: FileVideo },
+      { title: "Audios", url: "/library/audios", icon: FileAudio },
+    ]
+  },
+  {
+    title: "Social",
+    icon: MessageSquare,
+    items: [
+      { title: "Bio", url: "/social/bio", icon: FileText },
+      { title: "Story", url: "/social/story", icon: BookOpen },
+      { title: "Schedule", url: "/social/schedule", icon: CalendarIcon },
+      { title: "Batch", url: "/social/batch", icon: Repeat },
+      { title: "Fanvue", url: "/social/fanvue", icon: Heart, badge: "Primary" },
+    ]
+  },
+  {
+    title: "Settings",
+    icon: Cog,
+    url: "/settings",
+    isActive: (pathname: string) => pathname === "/settings"
   },
 ];
 
@@ -135,12 +160,12 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent className="bg-gradient-to-b from-background/50 to-background/80">
-        <SidebarGroup className="px-4 py-4 overflow-auto">
-          <SidebarGroupLabel className="text-xs font-semibold text-muted-foreground/80 uppercase tracking-wider mb-3 px-3">
-            {!isCollapsed && "Navigation"}
+        <SidebarGroup className="px-3 py-6 overflow-auto">
+          <SidebarGroupLabel className="text-xs font-semibold text-muted-foreground/80 uppercase tracking-wider mb-4 px-3">
+            {!isCollapsed && "Main Navigation"}
           </SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu className="gap-1">
+            <SidebarMenu className="gap-2">
               {menuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   {item.items ? (
@@ -148,7 +173,7 @@ export function AppSidebar() {
                       <CollapsibleTrigger asChild>
                         <SidebarMenuButton 
                           className={cn(
-                            "w-full hover:bg-gradient-to-r hover:from-purple-50 hover:to-blue-50 dark:hover:from-purple-950/30 dark:hover:to-blue-950/30 transition-all duration-300 rounded-lg py-3 px-3",
+                            "w-full hover:bg-gradient-to-r hover:from-purple-50 hover:to-blue-50 dark:hover:from-purple-950/30 dark:hover:to-blue-950/30 transition-all duration-300 rounded-xl py-3 px-3 group",
                           )}
                           tooltip={isCollapsed ? item.title : undefined}
                           onClick={(e) => {
@@ -158,7 +183,7 @@ export function AppSidebar() {
                             }
                           }}
                         >
-                          <div className={`${isCollapsed ? "" : "w-8 h-8 rounded-lg bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/50 dark:to-blue-900/50"} flex items-center justify-center`}>
+                          <div className={`${isCollapsed ? "" : "w-8 h-8 rounded-lg bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/50 dark:to-blue-900/50 group-hover:scale-105 transition-transform"} flex items-center justify-center`}>
                             <item.icon className="w-4 h-4 text-purple-600 dark:text-purple-400" />
                           </div>
                           {!isCollapsed && (
@@ -178,7 +203,7 @@ export function AppSidebar() {
                                   <div
                                     onClick={() => navigate(subItem.url)}
                                     className={cn(
-                                      "hover:bg-gradient-to-r hover:from-purple-50/80 hover:to-blue-50/80 dark:hover:from-purple-950/40 dark:hover:to-blue-950/40 transition-all duration-200 rounded-md py-1 my-1 px-1 cursor-pointer",
+                                      "hover:bg-gradient-to-r hover:from-purple-50/80 hover:to-blue-50/80 dark:hover:from-purple-950/40 dark:hover:to-blue-950/40 transition-all duration-200 rounded-md py-1 my-1 px-1 cursor-pointer relative",
                                       location.pathname === subItem.url && "bg-gradient-to-r from-purple-100 to-blue-100 dark:from-purple-900/60 dark:to-blue-900/60 text-purple-700 dark:text-purple-300 font-medium shadow-sm border border-purple-200/50 dark:border-purple-800/30"
                                     )}
                                   >
@@ -186,6 +211,9 @@ export function AppSidebar() {
                                       <div className="flex items-center justify-center w-6 h-6 rounded-md bg-white/80 dark:bg-gray-800/80 shadow-sm">
                                         <subItem.icon className="w-3 h-3 text-purple-600 dark:text-purple-400" />
                                       </div>
+                                    )}
+                                    {subItem.badge && (
+                                      <div className="absolute -top-1 -right-1 w-3 h-3 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full border border-white dark:border-gray-800"></div>
                                     )}
                                   </div>
                                 </TooltipTrigger>
@@ -198,7 +226,7 @@ export function AppSidebar() {
                           :
                           <CollapsibleContent>
                             <SidebarMenuSub className={cn(
-                              "ml-6 mt-2 space-y-1 border-l-2 border-gradient-to-b from-purple-200 to-blue-200 dark:from-purple-800 dark:to-blue-800 pl-4 cursor-pointer"
+                              "ml-6 mt-3 space-y-1 border-l-2 border-gradient-to-b from-purple-200 to-blue-200 dark:from-purple-800 dark:to-blue-800 pl-4 cursor-pointer"
                             )}>
                               {item.items.map((subItem) => (
                                 <SidebarMenuSubItem key={subItem.title}>
@@ -228,12 +256,12 @@ export function AppSidebar() {
                       onClick={() => navigate(item.url)}
                       isActive={item.isActive ? item.isActive(location.pathname) : location.pathname === item.url}
                       className={cn(
-                        "hover:bg-gradient-to-r hover:from-purple-50 hover:to-blue-50 dark:hover:from-purple-950/30 dark:hover:to-blue-950/30 transition-all duration-300 rounded-lg py-3 px-3",
+                        "hover:bg-gradient-to-r hover:from-purple-50 hover:to-blue-50 dark:hover:from-purple-950/30 dark:hover:to-blue-950/30 transition-all duration-300 rounded-xl py-3 px-3 group",
                         (item.isActive ? item.isActive(location.pathname) : location.pathname === item.url) && "bg-gradient-to-r from-purple-100 to-blue-100 dark:from-purple-900/60 dark:to-blue-900/60 text-purple-700 dark:text-purple-300 font-medium shadow-lg border border-purple-200/50 dark:border-purple-800/30"
                       )}
                       tooltip={isCollapsed ? item.title : undefined}
                     >
-                      <div className={`${isCollapsed ? "" : "w-8 h-8 rounded-lg bg-gradient-to-br"} from-purple-100 to-blue-100 dark:from-purple-900/50 dark:to-blue-900/50 flex items-center justify-center`}>
+                      <div className={`${isCollapsed ? "" : "w-8 h-8 rounded-lg bg-gradient-to-br"} from-purple-100 to-blue-100 dark:from-purple-900/50 dark:to-blue-900/50 group-hover:scale-105 transition-transform flex items-center justify-center`}>
                         <item.icon className="w-4 h-4 text-purple-600 dark:text-purple-400" />
                       </div>
                       {!isCollapsed && <span className="text-foreground/90 font-medium">{item.title}</span>}

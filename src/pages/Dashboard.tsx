@@ -124,11 +124,11 @@ export default function Dashboard() {
   }, [dispatch]);
 
   const handleCreateNew = () => {
-    navigate('/influencers/create');
+            navigate('/influencers/new');
   };
 
   const handleEditInfluencer = (id: string) => {
-    navigate('/influencers/edit', { state: { influencerData: influencers.find(inf => inf.id === id) } });
+            navigate('/influencers/profiles', { state: { influencerData: influencers.find(inf => inf.id === id) } });
   };
 
   const handleUseInfluencer = (id: string) => {
@@ -144,7 +144,7 @@ export default function Dashboard() {
     const influencer = influencers.find(inf => inf.id === selectedInfluencer);
 
     if (influencer) {
-      navigate('/content/create-image', {
+              navigate('/create/images', {
         state: {
           influencerData: influencer,
           mode: 'create'
@@ -158,7 +158,7 @@ export default function Dashboard() {
     const influencer = influencers.find(inf => inf.id === selectedInfluencer);
 
     if (influencer) {
-      navigate('/content/create-video', {
+              navigate('/create/videos', {
         state: {
           influencerData: influencer,
           mode: 'create'

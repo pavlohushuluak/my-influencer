@@ -194,7 +194,7 @@ export default function InfluencerTemplates() {
       });
 
       if (response.ok) {
-        navigate('/influencers/edit', { state: { influencerData: data[0] } });
+        navigate('/influencers/profiles', { state: { influencerData: data[0] } });
       }
     } catch (error) {
       console.error('Error using template:', error);

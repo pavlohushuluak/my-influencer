@@ -14,8 +14,7 @@ import { toast } from 'sonner';
 import { DialogContentZoom } from '@/components/ui/zoomdialog';
 import { DialogZoom } from '@/components/ui/zoomdialog';
 import { setInfluencers, updateInfluencer } from '@/store/slices/influencersSlice';
-import VideoFolder from '@/components/VideoFolder';
-import AudioFolder from '@/components/AudioFolder';
+
 import config from '@/config/config';
 
 // Interface for folder data from API
@@ -219,7 +218,7 @@ export default function Vault() {
   const [isMultiSelectMode, setIsMultiSelectMode] = useState<boolean>(false);
 
   // Special folder navigation state
-  const [currentSpecialFolder, setCurrentSpecialFolder] = useState<'none' | 'video' | 'audio'>('none');
+
   const [multiSelectContextMenu, setMultiSelectContextMenu] = useState<{ x: number; y: number } | null>(null);
 
   // Pagination state
@@ -361,21 +360,10 @@ export default function Vault() {
   // Navigate to home (root)
   const navigateToHome = () => {
     setCurrentPath('');
-    setCurrentSpecialFolder('none');
     fetchHomeFiles();
   };
 
-  const navigateToVideoFolder = () => {
-    setCurrentSpecialFolder('video');
-  };
 
-  const navigateToAudioFolder = () => {
-    setCurrentSpecialFolder('audio');
-  };
-
-  const handleBackFromSpecialFolder = () => {
-    setCurrentSpecialFolder('none');
-  };
 
   // Get breadcrumb items
   const getBreadcrumbItems = () => {
@@ -3053,7 +3041,7 @@ export default function Vault() {
       jsonjob.regenerated_from = image.id || '12345678-1111-2222-3333-caffebabe0123';
 
       // Step 5: Navigate to ContentCreate with the JSON job data
-      navigate('/content/create-image', {
+              navigate('/create/images', {
         state: {
           jsonjobData: jsonjob,
           isRegeneration: true,
@@ -3526,14 +3514,7 @@ export default function Vault() {
     );
   }
 
-  // Render special folders if active
-  if (currentSpecialFolder === 'video') {
-    return <VideoFolder onBack={handleBackFromSpecialFolder} />;
-  }
 
-  if (currentSpecialFolder === 'audio') {
-    return <AudioFolder onBack={handleBackFromSpecialFolder} />;
-  }
 
   return (
     <div className="p-6 animate-fade-in">
@@ -3547,29 +3528,7 @@ export default function Vault() {
           </p>
         </div>
 
-        {/* Special Folder Buttons */}
-        {currentPath === '' && (
-          <div className="flex items-center gap-2">
-            <Button
-              onClick={navigateToVideoFolder}
-              variant="outline"
-              size="sm"
-              className="flex items-center gap-2 bg-gradient-to-r from-red-50 to-pink-50 dark:from-red-900/20 dark:to-pink-900/20 border-red-200 dark:border-red-700 hover:from-red-100 hover:to-pink-100 dark:hover:from-red-800/30 dark:hover:to-pink-800/30 text-red-700 dark:text-red-300 font-medium shadow-sm hover:shadow-md transition-all duration-200"
-            >
-              <Video className="w-4 h-4" />
-              Video
-            </Button>
-            <Button
-              onClick={navigateToAudioFolder}
-              variant="outline"
-              size="sm"
-              className="flex items-center gap-2 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-blue-200 dark:border-blue-700 hover:from-blue-100 hover:to-indigo-100 dark:hover:from-blue-800/30 dark:hover:to-indigo-800/30 text-blue-700 dark:text-blue-300 font-medium shadow-sm hover:shadow-md transition-all duration-200"
-            >
-              <Music className="w-4 h-4" />
-              Audio
-            </Button>
-          </div>
-        )}
+
       </div>
 
       {/* Professional Search and Filter Bar */}
@@ -5603,7 +5562,7 @@ export default function Vault() {
           <button
             className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
             onClick={() => {
-              navigate('/content/edit', { state: { imageData: fileContextMenu.image } });
+              navigate('/create/aiedit', { state: { imageData: fileContextMenu.image } });
               setFileContextMenu(null);
             }}
           >

@@ -160,7 +160,7 @@ export default function InfluencerUse() {
     const influencer = influencers.find(inf => inf.id === selectedInfluencer);
 
     if (influencer) {
-      navigate('/content/create-image', {
+              navigate('/create/images', {
         state: {
           influencerData: influencer,
           mode: 'create'
@@ -174,7 +174,7 @@ export default function InfluencerUse() {
     const influencer = influencers.find(inf => inf.id === selectedInfluencer);
 
     if (influencer) {
-      navigate('/content/create-video', {
+              navigate('/create/videos', {
         state: {
           influencerData: influencer,
           mode: 'create'

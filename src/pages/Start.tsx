@@ -273,7 +273,7 @@ export default function Start() {
     if (currentPhase === 0) {
       navigate('/dashboard');
     } else if (currentPhase === 1) {
-      navigate('/influencers/create');
+              navigate('/influencers/new');
     } else if (currentPhase === 2) {
       setShowPhase2Modal(true);
     } else if (currentPhase === 3) {
@@ -309,7 +309,7 @@ export default function Start() {
         toast.error('Failed to update progress');
       }
 
-      navigate('/content/vault');
+              navigate('/library/images');
     }
     else {
       navigate('/dashboard');
@@ -394,7 +394,7 @@ export default function Start() {
       if (localGuideStep === 3) {
         navigate('/content/create');
       } else if (localGuideStep === 4) {
-        navigate('/content/upscaler');
+        navigate('/create/optimizer');
       } else {
         // Default to content creation for any step > 2
         navigate('/content/create');

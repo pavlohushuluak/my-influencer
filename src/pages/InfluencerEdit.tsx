@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { DialogZoom, DialogContentZoom } from '@/components/ui/zoomdialog';
-import { updateInfluencer, setInfluencers, setLoading, setError, addInfluencer, formatDate, parseDate } from '@/store/slices/influencersSlice';
+import { updateInfluencer, setInfluencers, setLoading, setError, addInfluencer, formatDate, parseDate, Influencer } from '@/store/slices/influencersSlice';
 import { setUser } from '@/store/slices/userSlice';
 import { X, Plus, Save, Crown, Image, Settings, User, ChevronRight, MoreHorizontal, Loader2, ZoomIn, Pencil, Trash2, Brain, Copy, Upload } from 'lucide-react';
 import { HexColorPicker } from 'react-colorful';
@@ -371,9 +371,14 @@ export default function InfluencerEdit() {
   // Add state for enhanced facial features functionality
   const [selectedFacialTemplate, setSelectedFacialTemplate] = useState<FacialTemplateDetail | null>(null);
   const [showFacialTemplateDetails, setShowFacialTemplateDetails] = useState(false);
+
+  // Delete functionality state
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [influencerToDelete, setInfluencerToDelete] = useState<Influencer | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [showFacialTemplateConfirm, setShowFacialTemplateConfirm] = useState(false);
   const [isApplyingTemplate, setIsApplyingTemplate] = useState(false);
-  
+
   // LoRA Training Modal States
   const [showTrainingModal, setShowTrainingModal] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
@@ -653,7 +658,7 @@ export default function InfluencerEdit() {
           setActiveTab('basic');
 
           console.log(influencerData.lorastatus);
-          
+
           // Check if LoRA status is 0 and show prompt dialog
           if (influencerData.lorastatus === 0) {
             setShowLoraPrompt(true);
@@ -683,7 +688,7 @@ export default function InfluencerEdit() {
         dispatch(updateInfluencer(updatedInfluencerData));
         if (response.ok) {
           setActiveTab('basic');
-          
+
           console.log(influencerData.lorastatus);
           // Check if LoRA status is 0 and show prompt dialog
           if (influencerData.lorastatus === 0) {
@@ -692,7 +697,7 @@ export default function InfluencerEdit() {
             toast.success('Influencer updated successfully');
             setShowEditView(false);
           }
-          
+
           if (userData.guide_step === 1) {
             try {
               const guideStepResponse = await fetch(`${config.supabase_server_url}/user?uuid=eq.${userData.id}`, {
@@ -785,7 +790,7 @@ export default function InfluencerEdit() {
           }
           return;
         }
-        
+
         // Check if LoRA exists (only for non-Build from Scratch users)
         try {
           const loraCheckResponse = await fetch(`${config.backend_url}/listfiles?user=${userData.id}&folder=models/${influencerData.id}/lora`, {
@@ -793,7 +798,7 @@ export default function InfluencerEdit() {
               'Authorization': 'Bearer WeInfl3nc3withAI'
             }
           });
-          
+
           if (loraCheckResponse.ok) {
             const loraFiles = await loraCheckResponse.json();
             if (loraFiles.length === 0) {
@@ -826,12 +831,12 @@ export default function InfluencerEdit() {
     }
 
     setIsPreviewLoading(true);
-    
+
     // Initialize preview images with loading states - only 1 image
     const initialPreviewImages = [
       { imageUrl: '', negativePrompt: '1', isRecommended: true, isLoading: true, taskId: '' }
     ];
-    
+
     setPreviewImages(initialPreviewImages);
     setShowPreviewModal(true);
 
@@ -919,11 +924,11 @@ export default function InfluencerEdit() {
 
         const result = await response.json();
         console.log(result.id, ": ", request.negative_prompt);
-        return { 
-          taskId: result.id, 
-          order: request.order, 
+        return {
+          taskId: result.id,
+          order: request.order,
           displayIndex: request.displayIndex,
-          negativePrompt: request.negative_prompt 
+          negativePrompt: request.negative_prompt
         };
       });
 
@@ -949,16 +954,16 @@ export default function InfluencerEdit() {
               const imageUrl = `${config.data_url}/cdn-cgi/image/w=800/${userData.id}/${completedImage.user_filename === "" || completedImage.user_filename === null ? "output" : "vault/" + completedImage.user_filename}/${completedImage.system_filename}`;
               console.log('Generated image URL:', imageUrl);
               console.log('Completed image data:', completedImage);
-              
+
               // Update the specific image in the array
-              setPreviewImages(prev => prev.map((img, index) => 
-                index === taskResult.displayIndex 
-                  ? { 
-                      ...img, 
-                      imageUrl, 
-                      isLoading: false,
-                      taskId: taskResult.taskId 
-                    }
+              setPreviewImages(prev => prev.map((img, index) =>
+                index === taskResult.displayIndex
+                  ? {
+                    ...img,
+                    imageUrl,
+                    isLoading: false,
+                    taskId: taskResult.taskId
+                  }
                   : img
               ));
             } else {
@@ -971,7 +976,7 @@ export default function InfluencerEdit() {
             toast.success('All preview images generated successfully!', {
               description: 'Your influencer preview variations are ready to view'
             });
-            
+
             // Fetch generated preview image data again after 1 second
             setTimeout(async () => {
               try {
@@ -987,18 +992,18 @@ export default function InfluencerEdit() {
                   if (imagesData.length > 0) {
                     const completedImage = imagesData[0];
                     console.log('Refetched generated image data:', completedImage);
-                    
+
                     // Update the preview image with refreshed data
                     const imageUrl = `${config.data_url}/cdn-cgi/image/w=800/${userData.id}/${completedImage.user_filename === "" || completedImage.user_filename === null ? "output" : "vault/" + completedImage.user_filename}/${completedImage.system_filename}`;
-                    
-                    setPreviewImages(prev => prev.map((img, index) => 
-                      index === taskResult.displayIndex 
-                        ? { 
-                            ...img, 
-                            imageUrl, 
-                            isLoading: false,
-                            taskId: taskResult.taskId 
-                          }
+
+                    setPreviewImages(prev => prev.map((img, index) =>
+                      index === taskResult.displayIndex
+                        ? {
+                          ...img,
+                          imageUrl,
+                          isLoading: false,
+                          taskId: taskResult.taskId
+                        }
                         : img
                     ));
                   }
@@ -1007,7 +1012,7 @@ export default function InfluencerEdit() {
                 console.error('Error refetching generated image data:', error);
               }
             }, 3000);
-            
+
             return;
           }
 
@@ -1151,7 +1156,56 @@ export default function InfluencerEdit() {
   };
 
   const handleCreateNew = () => {
-    navigate('/influencers/create');
+    navigate('/influencers/new');
+  };
+
+  // Delete functionality
+  const handleDeleteInfluencer = (influencer: Influencer) => {
+    setInfluencerToDelete(influencer);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!influencerToDelete) return;
+
+    setIsDeleting(true);
+    try {
+      const response = await fetch(`${config.supabase_server_url}/influencer?id=eq.${influencerToDelete.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete influencer');
+      }
+
+      await fetch(`${config.backend_url}/deletefolder`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          user: userData.id,
+          folder: `models/${influencerToDelete.id}`
+        })
+      });
+
+      // Remove from local state
+      const updatedInfluencers = influencers.filter(inf => inf.id !== influencerToDelete.id);
+      dispatch(setInfluencers(updatedInfluencers));
+
+      toast.success('Influencer deleted successfully');
+      setShowDeleteModal(false);
+      setInfluencerToDelete(null);
+    } catch (error) {
+      console.error('Error deleting influencer:', error);
+      toast.error('Failed to delete influencer');
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const handleUseTemplate = () => {
@@ -1664,7 +1718,7 @@ export default function InfluencerEdit() {
         toast.error('File size must be less than 10MB');
         return;
       }
-      
+
       if (!file.type.startsWith('image/')) {
         toast.error('Please select an image file');
         return;
@@ -1693,7 +1747,7 @@ export default function InfluencerEdit() {
         toast.error('File size must be less than 10MB');
         return;
       }
-      
+
       if (!file.type.startsWith('image/')) {
         toast.error('Please select an image file');
         return;
@@ -1742,7 +1796,7 @@ export default function InfluencerEdit() {
             'Authorization': 'Bearer WeInfl3nc3withAI'
           }
         });
-  
+
         const useridData = await useridResponse.json();
 
         await fetch(`${config.backend_url}/createtask?userid=${useridData[0].userid}&type=createlora`, {
@@ -1770,7 +1824,7 @@ export default function InfluencerEdit() {
             'Authorization': 'Bearer WeInfl3nc3withAI'
           }
         });
-  
+
         const useridData = await useridResponse.json();
 
         await fetch(`${config.backend_url}/createtask?userid=${useridData[0].userid}&type=createlora`, {
@@ -1915,15 +1969,25 @@ export default function InfluencerEdit() {
                       </div>
                     </div>
 
-                    <div className="flex gap-2">
+                    <div className="flex flex-col gap-2">
                       <Button
                         size="sm"
                         variant="outline"
                         onClick={() => handleEditInfluencer(influencer.id)}
-                        className="flex-1 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                        className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
                       >
                         <Settings className="w-4 h-4 mr-2" />
                         Edit
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleDeleteInfluencer(influencer)}
+                        className="relative overflow-hidden border-red-200 hover:border-red-300 bg-white hover:bg-red-50 text-red-600 hover:text-red-700 font-medium shadow-sm hover:shadow-md transition-all duration-300 transform hover:scale-[1.02]"
+                      >
+                        <div className="absolute inset-0 bg-gradient-to-r from-red-500/0 via-red-500/5 to-red-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                        <Trash2 className="w-4 h-4 mr-2 transition-transform duration-300 group-hover:scale-110" />
+                        <span className="relative z-10">Delete</span>
                       </Button>
                     </div>
                   </div>
@@ -1932,7 +1996,72 @@ export default function InfluencerEdit() {
             </Card>
           ))}
         </div>
+        {/* Delete Confirmation Modal */}
+        <Dialog
+          open={showDeleteModal}
+          onOpenChange={(open) => setShowDeleteModal(open)}
+        >
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-red-600">
+                <Trash2 className="w-5 h-5" />
+                Delete Influencer
+              </DialogTitle>
+              <DialogDescription className="text-base">
+                Are you sure you want to delete <strong>{influencerToDelete?.name_first} {influencerToDelete?.name_last}</strong>?
+              </DialogDescription>
+            </DialogHeader>
 
+            <div className="space-y-4">
+              <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <div className="w-5 h-5 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <span className="text-red-600 dark:text-red-400 text-sm font-bold">!</span>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium text-red-800 dark:text-red-200">
+                      This action cannot be undone
+                    </p>
+                    <p className="text-sm text-red-600 dark:text-red-300">
+                      All associated data, images, and content will be permanently deleted.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-3 pt-4">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowDeleteModal(false);
+                    setInfluencerToDelete(null);
+                  }}
+                  className="flex-1"
+                  disabled={isDeleting}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={confirmDelete}
+                  disabled={isDeleting}
+                  className="flex-1 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800"
+                >
+                  {isDeleting ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                      Deleting...
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Delete
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     );
   }
@@ -4402,7 +4531,7 @@ export default function InfluencerEdit() {
                         Recommended
                       </Badge>
                     )}
-                    
+
                     {preview.isLoading ? (
                       <div className="w-full h-64 bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-700 rounded-lg shadow-lg flex items-center justify-center">
                         <div className="text-center">
@@ -4446,7 +4575,7 @@ export default function InfluencerEdit() {
                                   if (!preview.taskId) {
                                     throw new Error('No task ID found for the selected image');
                                   }
-                                  
+
                                   // Find the generated image data using the taskId
                                   const imageResponse = await fetch(`${config.supabase_server_url}/generated_images?task_id=eq.${preview.taskId}`, {
                                     method: 'GET',
@@ -4454,16 +4583,16 @@ export default function InfluencerEdit() {
                                       'Authorization': 'Bearer WeInfl3nc3withAI'
                                     }
                                   });
-                                  
+
                                   const imageData = await imageResponse.json();
-                                  
+
                                   if (imageData.length > 0) {
                                     const generatedImage = imageData[0];
                                     console.log('Generated image for profile picture:', generatedImage);
-                                    
+
                                     // Get current image number
                                     const num = influencerData.image_num === null || influencerData.image_num === undefined || isNaN(influencerData.image_num) ? 0 : influencerData.image_num;
-                                    
+
                                     // Copy the generated image to the profile picture location
                                     const copyResponse = await fetch(`${config.backend_url}/copyfile`, {
                                       method: 'POST',
@@ -5423,7 +5552,7 @@ export default function InfluencerEdit() {
               <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent"></div>
               <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -translate-y-16 translate-x-16"></div>
               <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full translate-y-12 -translate-x-12"></div>
-              
+
               <div className="relative z-10 text-center">
                 <div className="w-16 h-16 mx-auto mb-4 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm border border-white/30">
                   <Brain className="w-8 h-8 text-white" />

@@ -230,7 +230,7 @@ export const InfluencerUseModal: React.FC<InfluencerUseModalProps> = ({
                   onClick={() => {
                     if (influencer) {
                       // Navigate to video creation page with influencer data
-                      navigate('/content/create-video', {
+                      navigate('/create/videos', {
                         state: { 
                           influencerData: influencer,
                           autoSelect: 'image' // Auto-select "Create Influencer Video" option

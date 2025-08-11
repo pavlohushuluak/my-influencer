@@ -177,7 +177,7 @@ Best regards,
 ${contactForm.firstName} ${contactForm.lastName}`;
 
     // Open email client with pre-filled content
-    const email = 'business220999@gmail.com';
+    const email = 'contact@sayasaas.com';
     const subject = `Contact from AI Influencer Platform: ${contactForm.subject}`;
 
     window.location.href = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(emailBody)}`;
@@ -581,10 +581,10 @@ ${contactForm.firstName} ${contactForm.lastName}`;
                   <div>
                     <h3 className="font-semibold text-foreground mb-1">Email Us</h3>
                     <a
-                      href="mailto:business220999@gmail.com"
+                      href="mailto:contact@sayasaas.com"
                       className="text-primary hover:text-primary/80 transition-colors font-medium"
                     >
-                      business220999@gmail.com
+                      contact@sayasaas.com
                     </a>
                     <p className="text-sm text-muted-foreground mt-1">We typically respond within 24 hours</p>
                   </div>
@@ -595,9 +595,9 @@ ${contactForm.firstName} ${contactForm.lastName}`;
                   <div>
                     <h3 className="font-semibold text-foreground mb-1">Our Location</h3>
                     <p className="text-foreground text-md">5203 JUAN TABO BLVD. NE</p>
-                    <p className="text-foreground">SUITE 2B</p>
-                    <p className="text-foreground">ALBUQUERQUE, NM 87111</p>
-                    <p className="text-foreground">USA</p>
+                    <p className="text-foreground text-md">SUITE 2B</p>
+                    <p className="text-foreground text-md">ALBUQUERQUE, NM 87111</p>
+                    <p className="text-foreground text-md">USA</p>
                   </div>
                 </div>
               </div>

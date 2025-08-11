@@ -694,7 +694,7 @@ export default function InfluencerLoraTraining() {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => navigate('/influencers/edit')}
+            onClick={() => navigate('/influencers/profiles')}
             className="text-muted-foreground hover:text-foreground"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />

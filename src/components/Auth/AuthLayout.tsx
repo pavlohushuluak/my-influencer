@@ -5,7 +5,6 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { AppHeader } from '@/components/Layout/AppHeader';
-import { AppFooter } from '@/components/Layout/AppFooter';
 
 interface AuthLayoutProps {
   children: React.ReactNode;
@@ -35,8 +34,6 @@ export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
           </Card>
         </div>
       </div>
-
-      <AppFooter />
     </div>
   );
 }

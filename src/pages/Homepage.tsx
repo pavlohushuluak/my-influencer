@@ -19,6 +19,15 @@ export default function Homepage() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const isLoggedIn = sessionStorage.getItem('access_token') !== null;
 
+  // Contact form state
+  const [contactForm, setContactForm] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    subject: '',
+    message: ''
+  });
+
   const features = [
     {
       icon: User,
@@ -134,6 +143,53 @@ export default function Homepage() {
     }
 
     navigate('/pricing');
+  };
+
+  const handleContactFormChange = (field: string, value: string) => {
+    setContactForm(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const handleContactSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    // Validate form
+    if (!contactForm.firstName || !contactForm.lastName || !contactForm.email || !contactForm.subject || !contactForm.message) {
+      alert('Please fill in all required fields');
+      return;
+    }
+
+    // Create email content
+    const emailBody = `Hello,
+
+I would like to get in touch regarding your AI influencer platform.
+
+Name: ${contactForm.firstName} ${contactForm.lastName}
+Email: ${contactForm.email}
+Subject: ${contactForm.subject}
+
+Message:
+${contactForm.message}
+
+Best regards,
+${contactForm.firstName} ${contactForm.lastName}`;
+
+    // Open email client with pre-filled content
+    const email = 'business220999@gmail.com';
+    const subject = `Contact from AI Influencer Platform: ${contactForm.subject}`;
+
+    window.location.href = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(emailBody)}`;
+
+    // Reset form
+    setContactForm({
+      firstName: '',
+      lastName: '',
+      email: '',
+      subject: '',
+      message: ''
+    });
   };
 
   return (
@@ -503,98 +559,127 @@ export default function Homepage() {
       </section>
 
       {/* Contact Section */}
-      <section id="contact" className="py-12 sm:py-16 lg:py-20 px-4 bg-muted/30 backdrop-blur">
+      <section id="contact" className="py-12 sm:py-16 lg:py-20 px-4 bg-gradient-to-br from-background via-muted/20 to-background backdrop-blur">
         <div className="container mx-auto">
           <div className="text-center mb-12 sm:mb-16">
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4 text-foreground">
               Get in Touch
             </h2>
             <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed px-4">
-              Have questions? We'd love to hear from you. Send us a message and we'll respond as soon as possible.
+              Have questions about our AI influencer platform? We'd love to hear from you. Send us a message and we'll respond as soon as possible.
             </p>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-12 max-w-6xl mx-auto">
             {/* Contact Info */}
-            <div className="space-y-6">
-              <div className="flex items-start gap-4">
-                <Mail className="w-6 h-6 text-primary mt-1 flex-shrink-0" />
-                <div>
-                  <h3 className="font-semibold text-foreground mb-1">Email Us</h3>
-                  <p className="text-muted-foreground">support@aiinfluence.com</p>
-                  <p className="text-muted-foreground">hello@aiinfluence.com</p>
+            <div className="space-y-8">
+
+              {/* Contact Methods */}
+              <div className="space-y-6">
+                <div className="flex items-start gap-4 p-4 bg-card/30 backdrop-blur border border-border/30 rounded-lg hover:bg-card/50 transition-colors">
+                  <Mail className="w-6 h-6 text-primary mt-1 flex-shrink-0" />
+                  <div>
+                    <h3 className="font-semibold text-foreground mb-1">Email Us</h3>
+                    <a
+                      href="mailto:business220999@gmail.com"
+                      className="text-primary hover:text-primary/80 transition-colors font-medium"
+                    >
+                      business220999@gmail.com
+                    </a>
+                    <p className="text-sm text-muted-foreground mt-1">We typically respond within 24 hours</p>
+                  </div>
                 </div>
-              </div>
-              <div className="flex items-start gap-4">
-                <Phone className="w-6 h-6 text-primary mt-1 flex-shrink-0" />
-                <div>
-                  <h3 className="font-semibold text-foreground mb-1">Call Us</h3>
-                  <p className="text-muted-foreground">+49 123 456 7890</p>
-                  <p className="text-muted-foreground">Mon-Fri 9am-6pm CEST</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-4">
-                <MapPin className="w-6 h-6 text-primary mt-1 flex-shrink-0" />
-                <div>
-                  <h3 className="font-semibold text-foreground mb-1">Visit Us</h3>
-                  <p className="text-muted-foreground">AI influencer platform</p>
-                  <p className="text-muted-foreground">Berlin, Germany</p>
+
+                <div className="flex items-start gap-4 p-4 bg-card/30 backdrop-blur border border-border/30 rounded-lg hover:bg-card/50 transition-colors">
+                  <MapPin className="w-6 h-6 text-primary mt-1 flex-shrink-0" />
+                  <div>
+                    <h3 className="font-semibold text-foreground mb-1">Our Location</h3>
+                    <p className="text-foreground text-md">5203 JUAN TABO BLVD. NE</p>
+                    <p className="text-foreground">SUITE 2B</p>
+                    <p className="text-foreground">ALBUQUERQUE, NM 87111</p>
+                    <p className="text-foreground">USA</p>
+                  </div>
                 </div>
               </div>
             </div>
 
             {/* Contact Form */}
-            <Card className="border-border/50 bg-card/50 backdrop-blur">
-              <CardHeader>
-                <CardTitle className="text-xl text-card-foreground">Send Message</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium text-foreground mb-2 block">First Name</label>
-                    <input
-                      type="text"
-                      className="w-full px-3 py-2 bg-background border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary/20"
-                      placeholder="John"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-foreground mb-2 block">Last Name</label>
-                    <input
-                      type="text"
-                      className="w-full px-3 py-2 bg-background border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary/20"
-                      placeholder="Doe"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-foreground mb-2 block">Email</label>
-                  <input
-                    type="email"
-                    className="w-full px-3 py-2 bg-background border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary/20"
-                    placeholder="john@example.com"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-foreground mb-2 block">Subject</label>
-                  <input
-                    type="text"
-                    className="w-full px-3 py-2 bg-background border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary/20"
-                    placeholder="How can we help?"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-foreground mb-2 block">Message</label>
-                  <textarea
-                    rows={4}
-                    className="w-full px-3 py-2 bg-background border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none"
-                    placeholder="Tell us more about your inquiry..."
-                  />
-                </div>
-                <Button className="w-full bg-ai-gradient hover:opacity-90">
+            <Card className="border-border/50 bg-card/50 backdrop-blur shadow-lg">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-xl text-card-foreground flex items-center gap-2">
+                  <Mail className="w-5 h-5 text-primary" />
                   Send Message
-                </Button>
-              </CardContent>
+                </CardTitle>
+                <p className="text-sm text-muted-foreground">We'll get back to you as soon as possible</p>
+              </CardHeader>
+              <form onSubmit={handleContactSubmit}>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-2 block">First Name *</label>
+                      <input
+                        type="text"
+                        value={contactForm.firstName}
+                        onChange={(e) => handleContactFormChange('firstName', e.target.value)}
+                        className="w-full px-3 py-2 bg-background border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
+                        placeholder="John"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-2 block">Last Name *</label>
+                      <input
+                        type="text"
+                        value={contactForm.lastName}
+                        onChange={(e) => handleContactFormChange('lastName', e.target.value)}
+                        className="w-full px-3 py-2 bg-background border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
+                        placeholder="Doe"
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-foreground mb-2 block">Email Address *</label>
+                    <input
+                      type="email"
+                      value={contactForm.email}
+                      onChange={(e) => handleContactFormChange('email', e.target.value)}
+                      className="w-full px-3 py-2 bg-background border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
+                      placeholder="john@example.com"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-foreground mb-2 block">Subject *</label>
+                    <input
+                      type="text"
+                      value={contactForm.subject}
+                      onChange={(e) => handleContactFormChange('subject', e.target.value)}
+                      className="w-full px-3 py-2 bg-background border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
+                      placeholder="How can we help?"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-foreground mb-2 block">Message *</label>
+                    <textarea
+                      rows={4}
+                      value={contactForm.message}
+                      onChange={(e) => handleContactFormChange('message', e.target.value)}
+                      className="w-full px-3 py-2 bg-background border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors resize-none"
+                      placeholder="Tell us more about your inquiry..."
+                      required
+                    />
+                  </div>
+                  <Button
+                    type="submit"
+                    className="w-full bg-ai-gradient hover:opacity-90 shadow-lg transition-all hover:shadow-xl"
+                  >
+                    <Mail className="w-4 h-4 mr-2" />
+                    Send Message
+                  </Button>
+                </CardContent>
+              </form>
             </Card>
           </div>
         </div>

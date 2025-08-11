@@ -9,6 +9,7 @@ import { DMCAPolicy } from '@/components/DMCAPolicy';
 import { CommunityGuidelines } from '@/components/CommunityGuidelines';
 import { RefundPolicy } from '@/components/RefundPolicy';
 import { CookiePolicy } from '@/components/CookiePolicy';
+import { ComplaintPolicy } from '@/components/ComplaintPolicy';
 
 export function AppFooter() {
   const navigate = useNavigate();
@@ -20,6 +21,7 @@ export function AppFooter() {
   const [showCommunityGuidelines, setShowCommunityGuidelines] = useState(false);
   const [showRefundPolicy, setShowRefundPolicy] = useState(false);
   const [showCookiePolicy, setShowCookiePolicy] = useState(false);
+  const [showComplaintPolicy, setShowComplaintPolicy] = useState(false);
 
   const footerLinks = {
     product: [
@@ -41,6 +43,7 @@ export function AppFooter() {
         { name: 'Community Guidelines', href: '#guidelines', action: 'modal' },
         { name: 'Refund Policy', href: '#refund', action: 'modal' },
         { name: 'Cookie Policy', href: '#cookies', action: 'modal' },
+        { name: 'Complaint Policy', href: '#complaints', action: 'modal' },
         { name: 'GDPR', href: '#gdpr', action: 'scroll' }
       ]
   };
@@ -71,9 +74,11 @@ export function AppFooter() {
         setShowCommunityGuidelines(true);
       } else if (item.name === 'Refund Policy') {
         setShowRefundPolicy(true);
-      } else if (item.name === 'Cookie Policy') {
-        setShowCookiePolicy(true);
-      }
+              } else if (item.name === 'Cookie Policy') {
+          setShowCookiePolicy(true);
+        } else if (item.name === 'Complaint Policy') {
+          setShowComplaintPolicy(true);
+        }
     }
   };
 
@@ -222,6 +227,10 @@ export function AppFooter() {
         <CookiePolicy
           open={showCookiePolicy}
           onOpenChange={setShowCookiePolicy}
+        />
+        <ComplaintPolicy
+          open={showComplaintPolicy}
+          onOpenChange={setShowComplaintPolicy}
         />
       </footer>
   );

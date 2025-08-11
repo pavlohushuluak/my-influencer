@@ -5,16 +5,13 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Progress } from '@/components/ui/progress';
-import { Mail, Lock, Eye, EyeOff, User, AlertCircle, CheckCircle, Shield } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, User, AlertCircle, CheckCircle } from 'lucide-react';
 import { FcGoogle } from 'react-icons/fc';
 import { validatePassword, getStrengthColor, getStrengthProgress } from '@/utils/passwordValidation';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import config from '@/config/config';
-import { LegalComplianceManager, LegalComplianceData } from '@/components/Legal/LegalComplianceManager';
-import { TermsOfService } from '@/components/TermsOfService';
-import { PrivacyPolicy } from '@/components/PrivacyPolicy';
 
 interface SignUpFormProps {
   onToggleMode: () => void;
@@ -37,10 +34,6 @@ export function SignUpForm({ onToggleMode }: SignUpFormProps) {
     password: false,
     confirmPassword: false
   });
-  const [showLegalCompliance, setShowLegalCompliance] = useState(false);
-  const [legalComplianceData, setLegalComplianceData] = useState<LegalComplianceData | null>(null);
-  const [showTermsOfService, setShowTermsOfService] = useState(false);
-  const [showPrivacyPolicy, setShowPrivacyPolicy] = useState(false);
 
   const passwordValidation = validatePassword(formData.password);
   const passwordsMatch = formData.password === formData.confirmPassword;
@@ -63,11 +56,6 @@ export function SignUpForm({ onToggleMode }: SignUpFormProps) {
 
     if (!acceptTerms) {
       toast.error('Please accept the terms and conditions');
-      return;
-    }
-
-    if (!legalComplianceData?.isFullyCompliant) {
-      setShowLegalCompliance(true);
       return;
     }
 
@@ -222,23 +210,6 @@ export function SignUpForm({ onToggleMode }: SignUpFormProps) {
     console.log('Google sign up');
   };
 
-  const handleLegalComplianceComplete = (data: LegalComplianceData) => {
-    setLegalComplianceData(data);
-    setShowLegalCompliance(false);
-    // Continue with registration after legal compliance
-    handleSubmit(new Event('submit') as any);
-  };
-
-  const handleTermsClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    setShowTermsOfService(true);
-  };
-
-  const handlePrivacyClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    setShowPrivacyPolicy(true);
-  };
-
   const updateFormData = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
@@ -333,7 +304,7 @@ export function SignUpForm({ onToggleMode }: SignUpFormProps) {
               onBlur={handlePasswordBlur}
               className={cn(
                 "pl-10 pr-10 bg-background border-border text-foreground placeholder:text-muted-foreground",
-                showPasswordErrors && !passwordValidation.isValid && "border-red-500 dark:border-red-400"
+                showPasswordErrors && !passwordValidation.isValid && "border-red-500"
               )}
               required
             />
@@ -367,7 +338,7 @@ export function SignUpForm({ onToggleMode }: SignUpFormProps) {
           {showPasswordErrors && passwordValidation.errors.length > 0 && (
             <div className="space-y-1">
               {passwordValidation.errors.map((error, index) => (
-                <div key={index} className="flex items-center gap-2 text-xs text-red-500 dark:text-red-400">
+                <div key={index} className="flex items-center gap-2 text-xs text-red-500">
                   <AlertCircle className="h-3 w-3" />
                   <span>{error}</span>
                 </div>
@@ -389,8 +360,8 @@ export function SignUpForm({ onToggleMode }: SignUpFormProps) {
               onBlur={handleConfirmPasswordBlur}
               className={cn(
                 "pl-10 pr-10 bg-background border-border text-foreground placeholder:text-muted-foreground",
-                showConfirmPasswordError && "border-red-500 dark:border-red-400",
-                touched.confirmPassword && passwordsMatch && formData.confirmPassword.length > 0 && "border-green-500 dark:border-green-400"
+                showConfirmPasswordError && "border-red-500",
+                touched.confirmPassword && passwordsMatch && formData.confirmPassword.length > 0 && "border-green-500"
               )}
               required
             />
@@ -410,80 +381,41 @@ export function SignUpForm({ onToggleMode }: SignUpFormProps) {
             <div className="flex items-center gap-2 text-xs">
               {passwordsMatch ? (
                 <>
-                  <CheckCircle className="h-3 w-3 text-green-500 dark:text-green-400" />
-                  <span className="text-green-500 dark:text-green-400">Passwords match</span>
+                  <CheckCircle className="h-3 w-3 text-green-500" />
+                  <span className="text-green-500">Passwords match</span>
                 </>
               ) : (
                 <>
-                  <AlertCircle className="h-3 w-3 text-red-500 dark:text-red-400" />
-                  <span className="text-red-500 dark:text-red-400">Passwords do not match</span>
+                  <AlertCircle className="h-3 w-3 text-red-500" />
+                  <span className="text-red-500">Passwords do not match</span>
                 </>
               )}
             </div>
           )}
         </div>
 
-        <div className="space-y-4">
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="terms"
-              checked={acceptTerms}
-              onCheckedChange={(checked) => setAcceptTerms(checked as boolean)}
-            />
-            <Label htmlFor="terms" className="text-sm text-foreground">
-              I agree to the{' '}
-              <button 
-                type="button"
-                onClick={handleTermsClick}
-                className="text-ai-purple-500 hover:text-ai-purple-600 underline"
-              >
-                Terms of Service
-              </button>{' '}
-              and{' '}
-              <button 
-                type="button"
-                onClick={handlePrivacyClick}
-                className="text-ai-purple-500 hover:text-ai-purple-600 underline"
-              >
-                Privacy Policy
-              </button>
-            </Label>
-          </div>
-
-          {/* Legal Compliance Status */}
-          <div className="p-3 rounded-lg border border-orange-200/50 bg-orange-50/50 dark:border-orange-200/20 dark:bg-orange-950/20">
-            <div className="flex items-center gap-2 mb-2">
-              <Shield className="h-4 w-4 text-orange-600 dark:text-orange-400" />
-              <span className="text-sm font-medium text-orange-800 dark:text-orange-200">Legal Compliance</span>
-            </div>
-            {legalComplianceData?.isFullyCompliant ? (
-              <div className="flex items-center gap-2 text-sm text-green-700 dark:text-green-400">
-                <CheckCircle className="h-4 w-4" />
-                <span>All legal requirements completed</span>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <p className="text-sm text-orange-700 dark:text-orange-300">
-                  Age verification and legal document acceptance required
-                </p>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowLegalCompliance(true)}
-                  className="text-orange-600 dark:text-orange-400 border-orange-300 dark:border-orange-600 hover:bg-orange-100 dark:hover:bg-orange-900/30"
-                >
-                  Complete Legal Requirements
-                </Button>
-              </div>
-            )}
-          </div>
+        <div className="flex items-center space-x-2">
+          <Checkbox
+            id="terms"
+            checked={acceptTerms}
+            onCheckedChange={(checked) => setAcceptTerms(checked as boolean)}
+          />
+          <Label htmlFor="terms" className="text-sm text-foreground">
+            I agree to the{' '}
+            <a href="#" className="text-ai-purple-500 hover:text-ai-purple-600 underline">
+              Terms of Service
+            </a>{' '}
+            and{' '}
+            <a href="#" className="text-ai-purple-500 hover:text-ai-purple-600 underline">
+              Privacy Policy
+            </a>
+          </Label>
         </div>
 
         <Button
           type="submit"
           className="w-full bg-ai-gradient hover:bg-ai-gradient-dark text-white"
-          disabled={isLoading || !passwordValidation.isValid || !passwordsMatch || !acceptTerms || !legalComplianceData?.isFullyCompliant}
+          disabled={isLoading || !passwordValidation.isValid || !passwordsMatch || !acceptTerms}
         >
           {isLoading ? 'Creating account...' : 'Create account'}
         </Button>
@@ -518,26 +450,6 @@ export function SignUpForm({ onToggleMode }: SignUpFormProps) {
           Sign in
         </Button>
       </div>
-
-      {/* Legal Compliance Manager */}
-      <LegalComplianceManager
-        open={showLegalCompliance}
-        onOpenChange={setShowLegalCompliance}
-        onComplete={handleLegalComplianceComplete}
-        isRegistration={true}
-      />
-
-      {/* Terms of Service Modal */}
-      <TermsOfService 
-        open={showTermsOfService} 
-        onOpenChange={setShowTermsOfService} 
-      />
-
-      {/* Privacy Policy Modal */}
-      <PrivacyPolicy
-        open={showPrivacyPolicy}
-        onOpenChange={setShowPrivacyPolicy}
-      />
     </div>
   );
 }

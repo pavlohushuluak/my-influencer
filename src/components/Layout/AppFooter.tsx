@@ -3,25 +3,11 @@ import { Star, Github, Twitter, Linkedin, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
-import { TermsOfService } from '@/components/TermsOfService';
-import { PrivacyPolicy } from '@/components/PrivacyPolicy';
-import { DMCAPolicy } from '@/components/DMCAPolicy';
-import { CommunityGuidelines } from '@/components/CommunityGuidelines';
-import { RefundPolicy } from '@/components/RefundPolicy';
-import { CookiePolicy } from '@/components/CookiePolicy';
-import { ComplaintPolicy } from '@/components/ComplaintPolicy';
 
 export function AppFooter() {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [isSubscribed, setIsSubscribed] = useState(false);
-  const [showTermsOfService, setShowTermsOfService] = useState(false);
-  const [showPrivacyPolicy, setShowPrivacyPolicy] = useState(false);
-  const [showDMCAPolicy, setShowDMCAPolicy] = useState(false);
-  const [showCommunityGuidelines, setShowCommunityGuidelines] = useState(false);
-  const [showRefundPolicy, setShowRefundPolicy] = useState(false);
-  const [showCookiePolicy, setShowCookiePolicy] = useState(false);
-  const [showComplaintPolicy, setShowComplaintPolicy] = useState(false);
 
   const footerLinks = {
     product: [
@@ -36,16 +22,12 @@ export function AppFooter() {
       { name: 'Careers', href: '#careers', action: 'scroll' },
       { name: 'Contact', href: '#contact', action: 'scroll' }
     ],
-          legal: [
-        { name: 'Privacy Policy', href: '#privacy', action: 'modal' },
-        { name: 'Terms of Service', href: '#terms', action: 'modal' },
-        { name: 'DMCA Policy', href: '#dmca', action: 'modal' },
-        { name: 'Community Guidelines', href: '#guidelines', action: 'modal' },
-        { name: 'Refund Policy', href: '#refund', action: 'modal' },
-        { name: 'Cookie Policy', href: '#cookies', action: 'modal' },
-        { name: 'Complaint Policy', href: '#complaints', action: 'modal' },
-        { name: 'GDPR', href: '#gdpr', action: 'scroll' }
-      ]
+    legal: [
+      { name: 'Privacy Policy', href: '#privacy', action: 'scroll' },
+      { name: 'Terms of Service', href: '#terms', action: 'scroll' },
+      { name: 'Cookie Policy', href: '#cookies', action: 'scroll' },
+      { name: 'GDPR', href: '#gdpr', action: 'scroll' }
+    ]
   };
 
   const socialLinks = [
@@ -63,22 +45,6 @@ export function AppFooter() {
       if (element) {
         element.scrollIntoView({ behavior: 'smooth' });
       }
-    } else if (item.action === 'modal') {
-      if (item.name === 'Terms of Service') {
-        setShowTermsOfService(true);
-      } else if (item.name === 'Privacy Policy') {
-        setShowPrivacyPolicy(true);
-      } else if (item.name === 'DMCA Policy') {
-        setShowDMCAPolicy(true);
-      } else if (item.name === 'Community Guidelines') {
-        setShowCommunityGuidelines(true);
-      } else if (item.name === 'Refund Policy') {
-        setShowRefundPolicy(true);
-              } else if (item.name === 'Cookie Policy') {
-          setShowCookiePolicy(true);
-        } else if (item.name === 'Complaint Policy') {
-          setShowComplaintPolicy(true);
-        }
     }
   };
 
@@ -200,38 +166,6 @@ export function AppFooter() {
           </div>
         </div>
       </div>
-
-      {/* Terms of Service Modal */}
-      <TermsOfService 
-        open={showTermsOfService} 
-        onOpenChange={setShowTermsOfService} 
-      />
-
-      {/* Privacy Policy Modal */}
-            <PrivacyPolicy
-        open={showPrivacyPolicy}
-        onOpenChange={setShowPrivacyPolicy}
-      />
-      <DMCAPolicy
-        open={showDMCAPolicy}
-        onOpenChange={setShowDMCAPolicy}
-      />
-              <CommunityGuidelines
-          open={showCommunityGuidelines}
-          onOpenChange={setShowCommunityGuidelines}
-        />
-        <RefundPolicy
-          open={showRefundPolicy}
-          onOpenChange={setShowRefundPolicy}
-        />
-        <CookiePolicy
-          open={showCookiePolicy}
-          onOpenChange={setShowCookiePolicy}
-        />
-        <ComplaintPolicy
-          open={showComplaintPolicy}
-          onOpenChange={setShowComplaintPolicy}
-        />
-      </footer>
+    </footer>
   );
 }

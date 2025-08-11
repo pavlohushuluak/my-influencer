@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Star, Search, Download, Share, Trash2, Filter, Calendar, Image, Video, SortAsc, SortDesc, ZoomIn, Folder, Plus, Upload, ChevronRight, Home, ArrowLeft, Pencil, Menu, X, File, User, RefreshCcw, Edit, Music } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
+import { LibraryRetentionNotice } from '@/components/LibraryRetentionNotice';
 import { DialogContentZoom } from '@/components/ui/zoomdialog';
 import { DialogZoom } from '@/components/ui/zoomdialog';
 import { setInfluencers, updateInfluencer } from '@/store/slices/influencersSlice';
@@ -3496,6 +3497,7 @@ export default function Vault() {
   if (foldersLoading) {
     return (
       <div className="p-6 space-y-6 animate-fade-in">
+      <LibraryRetentionNotice libraryType="images" />
         <div className="flex flex-col md:flex-row items-center justify-between gap-5">
           <div>
             <h1 className="flex flex-col items-center md:items-start text-3xl font-bold tracking-tight bg-ai-gradient bg-clip-text text-transparent">
@@ -3518,6 +3520,7 @@ export default function Vault() {
 
   return (
     <div className="p-6 animate-fade-in">
+      <LibraryRetentionNotice libraryType="images" />
       <div className="flex flex-col md:flex-row items-center justify-between gap-5 mb-6">
         <div>
           <h1 className="flex flex-col items-center md:items-start text-3xl font-bold tracking-tight bg-ai-gradient bg-clip-text text-transparent">

@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Star, Search, Download, Share, Trash2, Filter, Calendar, Music, SortAsc, SortDesc, ZoomIn, Folder, Plus, ChevronRight, Home, ArrowLeft, Pencil, Menu, X, File, User, RefreshCcw, Edit, Play, Volume2 } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
+import { LibraryRetentionNotice } from '@/components/LibraryRetentionNotice';
 import { DialogContentZoom } from '@/components/ui/zoomdialog';
 import { DialogZoom } from '@/components/ui/zoomdialog';
 import config from '@/config/config';
@@ -2341,6 +2342,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
 
   return (
     <div className="px-6 space-y-4">
+      <LibraryRetentionNotice libraryType="audios" />
       {/* Header */}
       <div className="flex flex-col md:flex-row items-center justify-between gap-5">
         <div className="flex items-center gap-4">

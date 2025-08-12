@@ -7,7 +7,7 @@ import { selectLatestTrainedInfluencer, selectLatestGeneratedInfluencer, setInfl
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { CheckCircle, Circle, Play, Star, AlertTriangle, Brain, Copy, Upload, X, FileImage, FileVideo, Palette, RefreshCw, Zap, Sparkles } from 'lucide-react';
+import { CheckCircle, Circle, Play, Star, AlertTriangle, Brain, Copy, Upload, X, FileImage, FileVideo, Palette, RefreshCw, Zap, Sparkles, FolderOpen, Volume2 } from 'lucide-react';
 import InstructionVideo from '@/components/InstructionVideo';
 import { getInstructionVideoConfig } from '@/config/instructionVideos';
 import { toast } from 'sonner';
@@ -41,6 +41,7 @@ export default function Start() {
   const [showInfluencerSelectorModal, setShowInfluencerSelectorModal] = useState(false);
   const [showPhase2InfluencerSelectorModal, setShowPhase2InfluencerSelectorModal] = useState(false);
   const [showPhase3CreationModal, setShowPhase3CreationModal] = useState(false);
+  const [showPhase4LibraryModal, setShowPhase4LibraryModal] = useState(false);
   const [blinkState, setBlinkState] = useState(false);
   
   // Check localStorage for guide_step
@@ -281,31 +282,8 @@ export default function Start() {
       // Show creation options modal for Phase 3
       setShowPhase3CreationModal(true);
     } else if (currentPhase === 4) {
-      // Update guide_step to 5 when user clicks "Organize Content"
-      try {
-        const response = await fetch(`${config.supabase_server_url}/user?uuid=eq.${userData.id}`, {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer WeInfl3nc3withAI'
-          },
-          body: JSON.stringify({
-            guide_step: 5
-          })
-        });
-
-        if (response.ok) {
-          dispatch(setUser({ guide_step: 5 }));
-          toast.success('Progress updated! Moving to Phase 5...');
-        } else {
-          toast.error('Failed to update progress');
-        }
-      } catch (error) {
-        console.error('Failed to update guide_step:', error);
-        toast.error('Failed to update progress');
-      }
-
-              navigate('/library/images');
+      // Show library options modal for Phase 4
+      setShowPhase4LibraryModal(true);
     }
     else {
       navigate('/dashboard');
@@ -1582,6 +1560,225 @@ export default function Start() {
               >
                 <Sparkles className="w-5 h-5 mr-3" />
                 Select Another Influencer
+              </Button>
+            </div>
+          </div>
+                 </DialogContent>
+       </Dialog>
+
+      {/* Phase 4 Library Options Modal */}
+      <Dialog open={showPhase4LibraryModal} onOpenChange={setShowPhase4LibraryModal}>
+        <DialogContent className="max-w-4xl w-[95vw] max-h-[90vh] overflow-y-auto p-0">
+          {/* Header with gradient background */}
+          <div className="bg-gradient-to-br from-orange-600 via-amber-600 to-yellow-600 p-8 text-white relative overflow-hidden">
+            {/* Background pattern */}
+            <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent"></div>
+            <div className="absolute top-0 right-0 w-40 h-40 bg-white/5 rounded-full -translate-y-20 translate-x-20"></div>
+            <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/5 rounded-full translate-y-16 -translate-x-16"></div>
+
+            <div className="relative z-10 text-center">
+              <div className="w-20 h-20 mx-auto mb-6 bg-white/20 rounded-3xl flex items-center justify-center backdrop-blur-sm border border-white/30 shadow-2xl">
+                <FolderOpen className="w-10 h-10 text-white" />
+              </div>
+              <DialogTitle className="text-3xl font-bold mb-4 bg-gradient-to-r from-white to-orange-100 bg-clip-text text-transparent">
+                Organize Your Content
+              </DialogTitle>
+              <DialogDescription className="text-lg text-orange-100 leading-relaxed max-w-2xl mx-auto">
+                Choose a library to organize and manage your generated content. Keep your AI influencer's assets well-organized for easy access.
+              </DialogDescription>
+            </div>
+          </div>
+
+          {/* Content */}
+          <div className="p-8">
+            {/* Library Options Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Images Library */}
+              <Card 
+                onClick={async () => {
+                  setShowPhase4LibraryModal(false);
+                  // Update guide_step to 5
+                  try {
+                    const response = await fetch(`${config.supabase_server_url}/user?uuid=eq.${userData.id}`, {
+                      method: 'PATCH',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer WeInfl3nc3withAI'
+                      },
+                      body: JSON.stringify({
+                        guide_step: 5
+                      })
+                    });
+
+                    if (response.ok) {
+                      dispatch(setUser({ guide_step: 5 }));
+                      toast.success('Progress updated! Moving to Phase 5...');
+                    } else {
+                      toast.error('Failed to update progress');
+                    }
+                  } catch (error) {
+                    console.error('Failed to update guide_step:', error);
+                    toast.error('Failed to update progress');
+                  }
+                  navigate('/library/images');
+                }}
+                className="group cursor-pointer hover:shadow-2xl transition-all duration-300 transform hover:scale-105 border-2 hover:border-orange-300 dark:hover:border-orange-600 bg-gradient-to-br from-white to-orange-50/30 dark:from-slate-800/50 dark:to-orange-900/20"
+              >
+                <CardContent className="p-6 text-center">
+                  <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-r from-orange-500 to-red-500 rounded-2xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow duration-300">
+                    <FileImage className="w-8 h-8 text-white" />
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+                    Images Library
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed mb-4">
+                    Organize and manage all your AI-generated images, edit history, and image presets in one place.
+                  </p>
+                  <div className="flex items-center justify-center gap-2 text-xs text-orange-600 dark:text-orange-400">
+                    <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                    Image management & organization
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Videos Library */}
+              <Card 
+                onClick={async () => {
+                  setShowPhase4LibraryModal(false);
+                  // Update guide_step to 5
+                  try {
+                    const response = await fetch(`${config.supabase_server_url}/user?uuid=eq.${userData.id}`, {
+                      method: 'PATCH',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer WeInfl3nc3withAI'
+                      },
+                      body: JSON.stringify({
+                        guide_step: 5
+                      })
+                    });
+
+                    if (response.ok) {
+                      dispatch(setUser({ guide_step: 5 }));
+                      toast.success('Progress updated! Moving to Phase 5...');
+                    } else {
+                      toast.error('Failed to update progress');
+                    }
+                  } catch (error) {
+                    console.error('Failed to update guide_step:', error);
+                    toast.error('Failed to update progress');
+                  }
+                  navigate('/library/videos');
+                }}
+                className="group cursor-pointer hover:shadow-2xl transition-all duration-300 transform hover:scale-105 border-2 hover:border-amber-300 dark:hover:border-amber-600 bg-gradient-to-br from-white to-amber-50/30 dark:from-slate-800/50 dark:to-amber-900/20"
+              >
+                <CardContent className="p-6 text-center">
+                  <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-r from-amber-500 to-yellow-500 rounded-2xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow duration-300">
+                    <FileVideo className="w-8 h-8 text-white" />
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+                    Videos Library
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed mb-4">
+                    Manage your video content, lip-sync videos, and video presets with advanced organization tools.
+                  </p>
+                  <div className="flex items-center justify-center gap-2 text-xs text-amber-600 dark:text-amber-400">
+                    <div className="w-2 h-2 bg-amber-500 rounded-full"></div>
+                    Video management & organization
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Audios Library */}
+              <Card 
+                onClick={async () => {
+                  setShowPhase4LibraryModal(false);
+                  // Update guide_step to 5
+                  try {
+                    const response = await fetch(`${config.supabase_server_url}/user?uuid=eq.${userData.id}`, {
+                      method: 'PATCH',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer WeInfl3nc3withAI'
+                      },
+                      body: JSON.stringify({
+                        guide_step: 5
+                      })
+                    });
+
+                    if (response.ok) {
+                      dispatch(setUser({ guide_step: 5 }));
+                      toast.success('Progress updated! Moving to Phase 5...');
+                    } else {
+                      toast.error('Failed to update progress');
+                    }
+                  } catch (error) {
+                    console.error('Failed to update guide_step:', error);
+                    toast.error('Failed to update progress');
+                  }
+                  navigate('/library/audios');
+                }}
+                className="group cursor-pointer hover:shadow-2xl transition-all duration-300 transform hover:scale-105 border-2 hover:border-yellow-300 dark:hover:border-yellow-600 bg-gradient-to-br from-white to-yellow-50/30 dark:from-slate-800/50 dark:to-yellow-900/20"
+              >
+                <CardContent className="p-6 text-center">
+                  <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-2xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow duration-300">
+                    <Volume2 className="w-8 h-8 text-white" />
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+                    Audios Library
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed mb-4">
+                    Organize your audio files, voice samples, and audio presets for lip-sync video creation.
+                  </p>
+                  <div className="flex items-center justify-center gap-2 text-xs text-yellow-600 dark:text-yellow-400">
+                    <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                    Audio management & organization
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex flex-col sm:flex-row gap-4 pt-8 border-t border-gray-200 dark:border-gray-700">
+              <Button
+                variant="outline"
+                onClick={() => setShowPhase4LibraryModal(false)}
+                className="flex-1 h-12 text-base font-medium border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={async () => {
+                  setShowPhase4LibraryModal(false);
+                  // Update guide_step to 5 and navigate to images library as default
+                  try {
+                    const response = await fetch(`${config.supabase_server_url}/user?uuid=eq.${userData.id}`, {
+                      method: 'PATCH',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer WeInfl3nc3withAI'
+                      },
+                      body: JSON.stringify({
+                        guide_step: 5
+                      })
+                    });
+
+                    if (response.ok) {
+                      dispatch(setUser({ guide_step: 5 }));
+                      toast.success('Progress updated! Moving to Phase 5...');
+                    } else {
+                      toast.error('Failed to update progress');
+                    }
+                  } catch (error) {
+                    console.error('Failed to update guide_step:', error);
+                    toast.error('Failed to update progress');
+                  }
+                  navigate('/library/images');
+                }}
+                className="flex-1 h-12 text-base font-medium bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 shadow-lg hover:shadow-xl transition-all duration-300"
+              >
+                <FolderOpen className="w-5 h-5 mr-3" />
+                Go to Images Library (Default)
               </Button>
             </div>
           </div>

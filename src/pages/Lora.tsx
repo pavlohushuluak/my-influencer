@@ -543,7 +543,7 @@ export default function Lora() {
           </Button>
           <div>
             <h1 className="text-3xl font-bold tracking-tight bg-ai-gradient bg-clip-text text-transparent">
-              LoRA Management
+              AI Consistency
             </h1>
             <p className="text-muted-foreground">
               Manage character consistency training for your influencers
@@ -846,7 +846,7 @@ export default function Lora() {
                       className="flex-1 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white border-0"
                     >
                       <Brain className="w-4 h-4 mr-2" />
-                      {(influencer.lorastatus || 0) === 0 ? 'AI Consistency' : 'Manage LoRA'}
+                      {(influencer.lorastatus || 0) === 0 ? 'Train Consistency' : 'Manage Consistency'}
                     </Button>
                   </div>
                 </div>
@@ -948,7 +948,7 @@ export default function Lora() {
                       className="flex-1 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white"
                     >
                       <Zap className="w-4 h-4 mr-2" />
-                      Train LoRA
+                      Train Consistency
                     </Button>
                   )}
                 </div>
@@ -963,10 +963,10 @@ export default function Lora() {
         <DialogContent className="max-w-7xl max-h-[90vh] p-0 overflow-y-auto">
           <DialogHeader className="p-6 pb-0">
             <DialogTitle className="text-2xl font-bold bg-ai-gradient bg-clip-text text-transparent">
-              LoRA Management
+              AI Consistency
             </DialogTitle>
             <DialogDescription className='text-muted-foreground'>
-              Managing LoRA files for {selectedInfluencer?.name_first} {selectedInfluencer?.name_last}
+              Managing AI consistency files for {selectedInfluencer?.name_first} {selectedInfluencer?.name_last}
             </DialogDescription>
           </DialogHeader>
           <div className="p-6 pt-0">

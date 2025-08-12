@@ -1733,7 +1733,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
   };
 
   const handleEdit = (image: any) => {
-            navigate('/create/aiedit', {
+            navigate('/create/edit', {
       state: {
         imageData: image
       }

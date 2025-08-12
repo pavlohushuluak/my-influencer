@@ -107,7 +107,7 @@ const App = () => {
                 <Route path='/create/faceswap' element={<FaceSwap />} />
                 <Route path='/create/videos' element={<ContentCreateVideoWrapper />} />
                 <Route path='/create/optimizer' element={<ContentUpscaler />} />
-                                <Route path='/create/aiedit' element={<ContentEdit />} />
+                                <Route path='/create/edit' element={<ContentEdit />} />
                 <Route path='/library/images' element={<Vault />} />
                 <Route path='/library/videos' element={<VideoFolderWrapper />} />
                 <Route path='/library/audios' element={<AudioFolderWrapper />} />

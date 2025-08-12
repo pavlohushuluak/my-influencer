@@ -1059,7 +1059,7 @@ export default function ContentEdit() {
     setHasImage(false);
     setHistory([]);
     setHistoryIndex(-1);
-            navigate('/create/aiedit'); // Navigate back to the selection screen
+            navigate('/create/edit'); // Navigate back to the selection screen
   }, [navigate]);
 
   const [socialStickerUrls, setSocialStickerUrls] = useState<string[]>([]);

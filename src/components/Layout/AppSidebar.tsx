@@ -1,6 +1,7 @@
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/store/store';
+import { useState } from 'react';
 import {
   Sidebar,
   SidebarContent,
@@ -95,7 +96,7 @@ const menuItems = [
     items: [
       { title: "Images", url: "/create/images", icon: FileImage },
       { title: "Videos", url: "/create/videos", icon: FileVideo },
-      { title: "AI Edit", url: "/create/aiedit", icon: PaletteIcon },
+      { title: "Edit", url: "/create/edit", icon: PaletteIcon },
       { title: "Face Swap", url: "/create/faceswap", icon: RefreshCw, badge: "Future" },
       { title: "Optimizer", url: "/create/optimizer", icon: Zap },
     ]
@@ -135,6 +136,9 @@ export function AppSidebar() {
   const isCollapsed = sidebarState === "collapsed";
   const { firstName, lastName, email } = useSelector((state: RootState) => state.user);
   const fullName = `${firstName} ${lastName}`;
+  
+  // State to track which menu is currently open
+  const [openMenu, setOpenMenu] = useState<string | null>(null);
 
   return (
     <Sidebar collapsible="icon" variant="inset" className="border-r border-border/40 bg-gradient-to-b from-background via-background/98 to-background/95 p-0">
@@ -169,7 +173,17 @@ export function AppSidebar() {
               {menuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   {item.items ? (
-                    <Collapsible className="group/collapsible" defaultOpen={false}>
+                    <Collapsible 
+                      className="group/collapsible" 
+                      open={openMenu === item.title}
+                      onOpenChange={(open) => {
+                        if (open) {
+                          setOpenMenu(item.title);
+                        } else {
+                          setOpenMenu(null);
+                        }
+                      }}
+                    >
                       <CollapsibleTrigger asChild>
                         <SidebarMenuButton 
                           className={cn(

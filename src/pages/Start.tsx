@@ -1466,11 +1466,11 @@ export default function Start() {
                 </CardContent>
               </Card>
 
-              {/* AI Edit */}
+              {/* Edit */}
               <Card 
                 onClick={() => {
                   setShowPhase3CreationModal(false);
-                  navigate('/create/aiedit');
+                  navigate('/create/edit');
                 }}
                 className="group cursor-pointer hover:shadow-2xl transition-all duration-300 transform hover:scale-105 border-2 hover:border-green-300 dark:hover:border-green-600 bg-gradient-to-br from-white to-green-50/30 dark:from-slate-800/50 dark:to-green-900/20"
               >
@@ -1479,7 +1479,7 @@ export default function Start() {
                     <Palette className="w-8 h-8 text-white" />
                   </div>
                   <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-                    AI Edit & Enhance
+                    Edit & Enhance
                   </h3>
                   <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed mb-4">
                     Edit and enhance existing images with AI-powered tools for professional results.

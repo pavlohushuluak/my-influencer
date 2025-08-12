@@ -277,11 +277,11 @@ export const InfluencerUseModal: React.FC<InfluencerUseModalProps> = ({
                           Character Consistency
                         </h4>
                         <p className="text-sm text-muted-foreground mb-3 leading-relaxed">
-                          Train LORA model for consistent character representation across all generations
+                          Train AI consistency model for consistent character representation across all generations
                         </p>
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
                           <Target className="w-3 h-3" />
-                          <span>LORA training</span>
+                          <span>AI consistency training</span>
                         </div>
                       </div>
                       <ArrowRight className="w-5 h-5 text-muted-foreground group-hover:text-green-500 transition-colors" />
@@ -459,7 +459,7 @@ export const InfluencerUseModal: React.FC<InfluencerUseModalProps> = ({
                     ? 'bg-gradient-to-r from-blue-600 to-indigo-600' 
                     : 'bg-gradient-to-r from-green-600 to-emerald-600'
                 }`}>
-                  {loraWarningType === 'training' ? 'LoRA Training in Progress' : 'LoRA Already Trained'}
+                  {loraWarningType === 'training' ? 'AI consistency training in Progress' : 'AI consistency already trained'}
                 </DialogTitle>
                 <DialogDescription className="text-muted-foreground">
                   {loraWarningType === 'training' 

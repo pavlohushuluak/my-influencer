@@ -239,11 +239,11 @@ export default function Lora() {
   const proceedWithLoraTraining = async () => {
     try {
       setShowGemWarning(false);
-      console.log('Starting LoRA training after credit confirmation...');
+      console.log('Starting AI consistency training after credit confirmation...');
       await executeLoraTraining();
     } catch (error) {
       console.error('Error in proceedWithLoraTraining:', error);
-      toast.error('Failed to start LoRA training. Please try again.');
+              toast.error('Failed to start AI consistency training. Please try again.');
       setIsCopyingImage(false);
     }
   };
@@ -320,7 +320,7 @@ export default function Lora() {
           })
         });
 
-        toast.success('Image uploaded to LoRA training folder successfully');
+        toast.success('Image uploaded for AI consistency training successfully');
       } else {
         // Copy existing profile picture to LoRA folder
         const latestImageNum = selectedInfluencer.image_num - 1;
@@ -348,7 +348,7 @@ export default function Lora() {
           })
         });
 
-        toast.success('Profile image selected successfully for LoRA training');
+        toast.success('Profile image selected successfully for AI consistency training');
       }
 
       // Refresh influencer data to update lorastatus
@@ -382,7 +382,7 @@ export default function Lora() {
       setUploadedImageUrl(null);
     } catch (error) {
       console.error('Error uploading/copying image:', error);
-      toast.error('Failed to upload/copy image to LoRA training folder');
+              toast.error('Failed to upload/copy image for AI consistency training');
     } finally {
       setIsCopyingImage(false);
     }
@@ -546,7 +546,7 @@ export default function Lora() {
               AI Consistency
             </h1>
             <p className="text-muted-foreground">
-              Manage character consistency training for your influencers
+              Make sure your influencers look the same in every image and video
             </p>
           </div>
         </div>
@@ -876,12 +876,12 @@ export default function Lora() {
                   ? 'bg-gradient-to-r from-orange-600 to-red-600'
                   : 'bg-gradient-to-r from-blue-600 to-indigo-600'
                   }`}>
-                  {warningType === 'not-trained' ? 'LoRA Not Trained' : 'LoRA Training in Progress'}
+                  {warningType === 'not-trained' ? 'AI Consistency Not Trained' : 'AI Consistency Training in Progress'}
                 </DialogTitle>
                 <DialogDescription className="text-muted-foreground">
                   {warningType === 'not-trained'
-                    ? 'This influencer needs character consistency training'
-                    : 'Character consistency training is currently active'
+                    ? 'This influencer needs AI consistency training'
+                    : 'AI consistency training is currently active'
                   }
                 </DialogDescription>
               </div>
@@ -904,7 +904,7 @@ export default function Lora() {
                         Training Required
                       </h3>
                       <p className="text-sm text-muted-foreground mb-4">
-                        {selectedInfluencer?.name_first} needs character consistency training to enable high-quality AI generation.
+                        {selectedInfluencer?.name_first} needs AI consistency training to look the same in every image and video.
                       </p>
                     </div>
                     <div className="flex items-center justify-center gap-2 text-xs text-orange-600 dark:text-orange-400">
@@ -924,7 +924,7 @@ export default function Lora() {
                         Training in Progress
                       </h3>
                       <p className="text-sm text-muted-foreground mb-4">
-                        {selectedInfluencer?.name_first}'s LoRA model is currently being trained. This process typically takes 5-15 minutes.
+                        {selectedInfluencer?.name_first}'s AI consistency is currently being trained. This process typically takes 5-15 minutes.
                       </p>
                     </div>
                     <div className="flex items-center justify-center gap-2 text-xs text-blue-600 dark:text-blue-400">
@@ -1033,7 +1033,7 @@ export default function Lora() {
                           Character Consistency
                         </span>
                         <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
-                          LoRA Training
+                          AI consistency training
                         </span>
                       </div>
                     </div>
@@ -1078,7 +1078,7 @@ export default function Lora() {
                           </p>
                           <div className="flex items-center justify-center gap-2 text-xs text-green-600 dark:text-green-400">
                             <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                            Ready for LoRA Training
+                                                          Ready for AI Consistency
                           </div>
                         </div>
                       </div>
@@ -1101,11 +1101,11 @@ export default function Lora() {
                       <h4 className="font-semibold text-gray-900 dark:text-gray-100">
                         Character Consistency Training
                       </h4>
-                      <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
-                        This action will copy the selected profile picture to the LoRA training folder,
-                        enabling enhanced character consistency in AI-generated content. The image will be
-                        used as a reference for maintaining the influencer's visual characteristics.
-                      </p>
+                                              <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
+                          This action will copy the selected profile picture for AI consistency training,
+                          ensuring your influencer looks the same in every generated image and video. The image will be
+                          used as a reference for maintaining consistent visual characteristics.
+                        </p>
                     </div>
                   </div>
                 </CardContent>
@@ -1141,12 +1141,12 @@ export default function Lora() {
                   ) : isCopyingImage ? (
                     <>
                       <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-3" />
-                      Setting for LoRA training...
+                                              Setting up AI consistency training...
                     </>
                   ) : (
                     <>
                       <Copy className="w-5 h-5 mr-3" />
-                      {uploadedFile ? 'Upload to LoRA training Folder' : 'Select Profile Image for LORA training'}
+                                              {uploadedFile ? 'Upload for AI consistency training' : 'Select Profile Image for AI consistency training'}
                     </>
                   )}
                 </Button>
@@ -1164,9 +1164,9 @@ export default function Lora() {
         gemCostData={gemCostData}
         userCredits={userData.credits}
         isProcessing={isCopyingImage}
-        processingText="Setting for LoRA training..."
-        confirmButtonText="Start LoRA Training"
-        title="LoRA Training Cost"
+                      processingText="Setting up AI consistency training..."
+              confirmButtonText="Start AI Consistency Training"
+              title="AI Consistency Training Cost"
         itemType="training"
       />
 

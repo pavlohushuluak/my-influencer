@@ -264,7 +264,7 @@ export default function Dashboard() {
           })
         });
 
-        toast.success('Image uploaded to LoRA training folder successfully');
+        toast.success('Image uploaded to AI consistency training folder successfully');
       } else {
         // Copy existing profile picture to LoRA folder
         const latestImageNum = selectedInfluencerData.image_num - 1;
@@ -292,7 +292,7 @@ export default function Dashboard() {
           })
         });
 
-        toast.success('Profile image selected successfully for LoRA training');
+        toast.success('Profile image selected successfully for AI consistency training');
       }
 
       // Refresh influencer data to update lorastatus
@@ -307,7 +307,7 @@ export default function Dashboard() {
       setUploadedImageUrl(null);
     } catch (error) {
       console.error('Error uploading/copying image:', error);
-      toast.error('Failed to upload/copy image to LoRA training folder');
+      toast.error('Failed to upload/copy image to AI consistency training folder');
     } finally {
       setIsCopyingImage(false);
     }
@@ -886,7 +886,7 @@ export default function Dashboard() {
                           Character Consistency
                         </span>
                         <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
-                          LoRA Training
+                          AI consistency training
                         </span>
                       </div>
                     </div>
@@ -931,7 +931,7 @@ export default function Dashboard() {
                           </p>
                           <div className="flex items-center justify-center gap-2 text-xs text-green-600 dark:text-green-400">
                             <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                            Ready for LoRA Training
+                            Ready for AI consistency training
                           </div>
                         </div>
                       </div>
@@ -971,7 +971,7 @@ export default function Dashboard() {
                             </p>
                             <div className="flex items-center justify-center gap-2 text-xs text-blue-600 dark:text-blue-400 mb-3">
                               <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                              Ready for LoRA Training
+                              Ready for AI consistency training
                             </div>
                           </div>
                         </div>
@@ -1064,7 +1064,7 @@ export default function Dashboard() {
                         Character Consistency Training
                       </h4>
                       <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
-                        This action will copy the selected profile picture to the LoRA training folder,
+                        This action will copy the selected profile picture to the AI consistency training folder,
                         enabling enhanced character consistency in AI-generated content. The image will be
                         used as a reference for maintaining the influencer's visual characteristics.
                       </p>
@@ -1098,12 +1098,12 @@ export default function Dashboard() {
                   {isCopyingImage ? (
                     <>
                       <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-3" />
-                      Setting for LoRA training...
+                      Setting for AI consistency training...
                     </>
                   ) : (
                     <>
                       <Copy className="w-5 h-5 mr-3" />
-                      {uploadedFile ? 'Upload to LoRA training Folder' : 'Select Profile Image for LORA training'}
+                      {uploadedFile ? 'Upload to AI consistency training Folder' : 'Select Profile Image for AI consistency training'}
                     </>
                   )}
                 </Button>

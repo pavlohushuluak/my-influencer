@@ -123,7 +123,7 @@ export default function LoraVaultSelector({
   onOpenChange, 
   onImageUpload, 
   title = "Select Image from Vault",
-  description = "Browse your vault and select an image to copy to LoRA training folder"
+  description = "Browse your vault and select an image to copy to AI consistency training folder"
 }: LoraVaultSelectorProps) {
   const userData = useSelector((state: RootState) => state.user);
   const [searchTerm, setSearchTerm] = useState('');

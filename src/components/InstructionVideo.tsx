@@ -163,13 +163,13 @@ const InstructionVideo: React.FC<InstructionVideoProps> = ({
       case 'green':
         return {
           title: "Phase 2: Train Character Consistency",
-          description: "Improve your influencer's character consistency through LORA training.",
+          description: "Improve your influencer's character consistency through AI consistency training.",
           steps: [
             "Select an influencer from your created list",
             "Upload training images or copy from your Inbox",
             "Ensure you have at least 10 high-quality images",
             "Review and exclude any unsuitable images",
-            "Start the LORA training process",
+            "Start the AI consistency training process",
             "Monitor training progress and wait for completion"
           ],
           tips: [

@@ -516,7 +516,7 @@ export default function InfluencerLoraTraining() {
         throw new Error('Failed to start training');
       }
 
-      toast.success('LORA training started successfully');
+      toast.success('AI consistency training started successfully');
       
       // Refresh influencer data to update lorastatus
       await fetchInfluencers();
@@ -600,10 +600,10 @@ export default function InfluencerLoraTraining() {
         <div className="flex flex-col md:flex-row items-center justify-between gap-5">
           <div>
             <h1 className="text-3xl font-bold tracking-tight bg-ai-gradient bg-clip-text text-transparent">
-              LORA Training
+              AI consistency training
             </h1>
             <p className="text-muted-foreground">
-              Select an influencer to manage LORA training
+              Select an influencer to manage AI consistency training
             </p>
           </div>
         </div>
@@ -673,7 +673,7 @@ export default function InfluencerLoraTraining() {
                         className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
                       >
                         <Brain className="w-4 h-4 mr-2" />
-                        LORA Training
+                        AI consistency training
                       </Button>
                     </div>
                   </div>
@@ -701,7 +701,7 @@ export default function InfluencerLoraTraining() {
             Back
           </Button>
           <div>
-            <h1 className="text-2xl font-bold">LORA Training</h1>
+            <h1 className="text-2xl font-bold">AI consistency training</h1>
             <p className="text-muted-foreground">
               {selectedInfluencer.name} • Manage training images and LORA versions
             </p>
@@ -783,7 +783,7 @@ export default function InfluencerLoraTraining() {
                 <Brain className="w-5 h-5 text-purple-600 dark:text-purple-400" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">LORA Versions</p>
+                <p className="text-sm text-muted-foreground">AI consistency versions</p>
                 <p className="text-2xl font-bold">{loraVersions.length}</p>
               </div>
             </div>

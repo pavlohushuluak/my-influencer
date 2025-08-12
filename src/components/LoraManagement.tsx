@@ -611,16 +611,16 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
       });
 
       if (!response.ok) {
-        throw new Error('Failed to start LoRA training');
+        throw new Error('Failed to start AI consistency training');
       }
 
-      toast.success(`LoRA ${isFast ? 'fast ' : ''}training started successfully`);
+      toast.success(`AI consistency ${isFast ? 'fast ' : ''}training started successfully`);
 
       // Refresh files to show new training files
       await fetchLoraFiles();
     } catch (error) {
       console.error('Training error:', error);
-      toast.error('Failed to start LoRA training');
+      toast.error('Failed to start AI consistency training');
     } finally {
       setIsStartingTraining(false);
     }
@@ -731,7 +731,7 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
         throw new Error('Failed to copy image from vault');
       }
 
-      toast.success('Image copied to LoRA training folder successfully');
+      toast.success('Image copied to AI consistency training folder successfully');
       setShowVaultSelector(false);
       
       // Refresh the files list
@@ -834,7 +834,7 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
       await executeRestartLoraTraining();
     } catch (error) {
       console.error('Error in proceedWithRestartLoraTraining:', error);
-      toast.error('Failed to restart LoRA training. Please try again.');
+      toast.error('Failed to restart AI consistency training. Please try again.');
       setIsStartingTraining(false);
     }
   };
@@ -892,13 +892,13 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
         })
       });
 
-      toast.success('LoRA training restarted successfully');
+      toast.success('AI consistency training restarted successfully');
 
       // Refresh files to show new training files
       await fetchLoraFiles();
     } catch (error) {
       console.error('Restart training error:', error);
-      toast.error('Failed to restart LoRA training');
+      toast.error('Failed to restart AI consistency training.');
     } finally {
       setIsStartingTraining(false);
     }
@@ -964,7 +964,7 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
       await executeFastLoraTraining();
     } catch (error) {
       console.error('Error in proceedWithFastLoraTraining:', error);
-      toast.error('Failed to start fast LoRA training. Please try again.');
+      toast.error('Failed to start fast AI consistency training. Please try again.');
       setIsStartingTraining(false);
     }
   };
@@ -1022,13 +1022,13 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
         })
       });
 
-      toast.success('Fast LoRA training started successfully');
+      toast.success('Fast AI consistency training started successfully');
 
       // Refresh files to show new training files
       await fetchLoraFiles();
     } catch (error) {
       console.error('Fast training error:', error);
-      toast.error('Failed to start fast LoRA training');
+      toast.error('Failed to start fast AI consistency training.');
     } finally {
       setIsStartingTraining(false);
     }
@@ -1115,7 +1115,7 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
 
     if (!loraStatus) {
       return {
-        text: 'Start LoRA Training',
+        text: 'Start AI consistency Training',
         disabled: isStartingTraining,
         onClick: handleRestartLoraTraining,
         variant: 'default' as const
@@ -1124,7 +1124,7 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
 
     if (loraStatus.status === 'lora_provisioned') {
       return {
-        text: 'Restart LoRA Training',
+        text: 'Restart AI consistency Training',
         disabled: isStartingTraining,
         onClick: handleRestartLoraTraining,
         variant: 'default' as const
@@ -1377,7 +1377,7 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
             ) : (
               <Zap className="w-4 h-4 mr-2" />
             )}
-            {isCheckingGems ? 'Checking Cost...' : 'Start Fast LoRA Training'}
+            {isCheckingGems ? 'Checking Cost...' : 'Start Fast AI consistency Training'}
           </Button>
         </div>
       </div>
@@ -1402,13 +1402,13 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
           <div className="flex flex-col items-center gap-4">
             <Brain className="w-12 h-12 text-muted-foreground" />
             <div>
-              <h3 className="text-lg font-semibold mb-2">No LoRA files found</h3>
+              <h3 className="text-lg font-semibold mb-2">No AI consistency training files found</h3>
               <p className="text-muted-foreground">
                 {searchTerm
                   ? 'Try adjusting your search'
                   : isInTrash
                     ? 'No files in trash'
-                    : 'LoRA training files will appear here once training begins'
+                    : 'AI consistency training files will appear here once training begins'
                 }
               </p>
             </div>
@@ -1631,10 +1631,10 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Upload className="w-5 h-5 text-purple-500" />
-              Upload File to LoRA Training
+              Upload File to AI consistency training
             </DialogTitle>
             <DialogDescription>
-              Upload a file to the LoRA training folder for {influencerName}.
+              Upload a file to the AI consistency training folder for {influencerName}.
             </DialogDescription>
           </DialogHeader>
 
@@ -1769,7 +1769,7 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
         userCredits={userData.credits}
         isProcessing={isStartingTraining}
         processingText="Restarting Training..."
-        title="Restart LoRA Training Cost"
+        title="Restart AI consistency Training Cost"
         confirmButtonText={restartGemCostData ? `Confirm & Use ${restartGemCostData.gems} Credits` : 'Confirm'}
       />
 
@@ -1782,7 +1782,7 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
         userCredits={userData.credits}
         isProcessing={isStartingTraining}
         processingText="Starting Fast Training..."
-        title="Fast LoRA Training Cost"
+        title="Fast AI consistency Training Cost"
         confirmButtonText={gemCostData ? `Confirm & Use ${gemCostData.gems} Credits` : 'Confirm'}
       />
 
@@ -1792,7 +1792,7 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Plus className="w-5 h-5 text-blue-500" />
-              Create Image from LoRA Training
+              Create Image from AI consistency training
             </DialogTitle>
             <DialogDescription>
               This will create new images using the selected training image as input. The generated images will be added to your vault.
@@ -1855,7 +1855,7 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
           onOpenChange={setShowVaultSelector}
           onImageUpload={handleVaultImageSelect}
           title="Select Image from Vault"
-          description="Browse your vault and select an image to copy to LoRA training folder. Only completed images are shown."
+          description="Browse your vault and select an image to copy to AI consistency training folder. Only completed images are shown."
         />
       )}
     </div>

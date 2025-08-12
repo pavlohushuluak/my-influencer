@@ -231,8 +231,8 @@ export default function Start() {
     },
     {
       id: 2,
-      title: "Phase 2: Train your AI Model",
-      description: "Train your AI model for character consistency",
+      title: "Phase 2: AI Consistency",
+      description: "Make sure your influencer looks the same in every image and video",
       completed: currentPhase > 2,
       icon: currentPhase > 2 ? CheckCircle : Circle,
       color: "from-blue-500 to-indigo-500",
@@ -297,7 +297,7 @@ export default function Start() {
       case 1:
         return "Start Phase 1 - Create your Influencer";
       case 2:
-        return "Start Phase 2 - Train your AI Model";
+        return "Start Phase 2 - AI Consistency";
       case 3:
         return "Start Phase 3 - Generate Exclusive Content";
       case 4:
@@ -523,7 +523,7 @@ export default function Start() {
           })
         });
 
-        toast.success('Image uploaded to LoRA training folder successfully');
+        toast.success('Image uploaded for AI consistency training successfully');
       } else {
         // Copy existing profile picture to LoRA folder
         const latestImageNum = trainingInfluencer.image_num - 1;
@@ -551,7 +551,7 @@ export default function Start() {
           })
         });
 
-        toast.success('Profile image selected successfully for LoRA training');
+        toast.success('Profile image selected successfully for AI consistency training');
       }
 
       // Update guide_step if it's currently 2
@@ -734,7 +734,7 @@ export default function Start() {
                               </p>
                               <div className="flex items-center justify-center gap-2 text-xs text-blue-400">
                                 <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                                Ready for LoRA Training
+                                Ready for AI Consistency
                               </div>
                             </div>
                           </div>
@@ -846,10 +846,10 @@ export default function Start() {
             </DialogTitle>
             <DialogDescription className="text-slate-300 text-base leading-relaxed">
               <p className="mb-4">
-                By proceeding without LoRA training, you may experience reduced character consistency and quality in your generated content.
+                By proceeding without AI consistency training, your influencer may look different in each generated image and video.
               </p>
               <p className="text-sm text-slate-400">
-                LoRA training significantly enhances your AI influencer's visual consistency and produces more professional, cohesive results. We recommend completing the training for optimal results.
+                AI consistency training ensures your influencer looks the same in every piece of content, creating a more professional and recognizable brand.
               </p>
             </DialogDescription>
           </DialogHeader>
@@ -889,7 +889,7 @@ export default function Start() {
                 Latest Generated Influencer
               </DialogTitle>
               <DialogDescription className="text-blue-100 text-base leading-relaxed">
-                Choose how you'd like to proceed with your AI model training
+                Choose how you'd like to proceed with AI consistency training
               </DialogDescription>
             </div>
           </div>
@@ -946,7 +946,7 @@ export default function Start() {
                         </p>
                         <div className="flex items-center justify-center gap-2 text-xs text-blue-400">
                           <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                          Ready for LoRA Training
+                          Ready for AI consistency training
                         </div>
                       </div>
                     </div>
@@ -1038,7 +1038,7 @@ export default function Start() {
                             Character Consistency
                           </span>
                           <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
-                            LoRA Training
+                            AI Consistency Training
                           </span>
                         </div>
                       </div>
@@ -1083,7 +1083,7 @@ export default function Start() {
                             </p>
                             <div className="flex items-center justify-center gap-2 text-xs text-green-600 dark:text-green-400">
                               <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                              Ready for LoRA Training
+                              Ready for AI Consistency
                             </div>
                           </div>
                         </div>
@@ -1106,9 +1106,9 @@ export default function Start() {
                           Character Consistency Training
                         </h4>
                         <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
-                          This action will copy the selected profile picture to the LoRA training folder,
-                          enabling enhanced character consistency in AI-generated content. The image will be
-                          used as a reference for maintaining the influencer's visual characteristics.
+                          This action will copy the selected profile picture for AI consistency training,
+                          ensuring your influencer looks the same in every generated image and video. The image will be
+                          used as a reference for maintaining consistent visual characteristics.
                         </p>
                       </div>
                     </div>
@@ -1140,12 +1140,12 @@ export default function Start() {
                     {isCopyingImage ? (
                       <>
                         <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-3" />
-                        Setting for LoRA training...
+                        Setting up AI consistency training...
                       </>
                     ) : (
                       <>
                         <Copy className="w-5 h-5 mr-3" />
-                        {uploadedFile ? 'Upload to LoRA training Folder' : 'Select Profile Image for LORA training'}
+                        {uploadedFile ? 'Upload for AI consistency training' : 'Select Profile Image for AI consistency training'}
                       </>
                     )}
                   </Button>
@@ -1244,10 +1244,10 @@ export default function Start() {
         <DialogContent className="max-w-4xl w-[95vw] max-h-[90vh] overflow-y-auto">
           <DialogHeader className="text-center">
             <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-              Select Influencer for LoRA Training
+              Select Influencer for AI consistency training
             </DialogTitle>
             <DialogDescription className="text-base text-gray-600 dark:text-gray-300 mt-2">
-              Choose an influencer with lorastatus === 0 to train for character consistency
+              Choose an influencer that needs AI consistency training
             </DialogDescription>
           </DialogHeader>
 

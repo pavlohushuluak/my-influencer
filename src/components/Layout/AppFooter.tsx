@@ -3,11 +3,21 @@ import { Star, Github, Twitter, Linkedin, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
+import { TermsOfService } from '@/components/TermsOfService';
+import { PrivacyPolicy } from '@/components/PrivacyPolicy';
+
 
 export function AppFooter() {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [isSubscribed, setIsSubscribed] = useState(false);
+  const [showTermsOfService, setShowTermsOfService] = useState(false);
+  const [showPrivacyPolicy, setShowPrivacyPolicy] = useState(false);
+  const [showDMCAPolicy, setShowDMCAPolicy] = useState(false);
+  const [showCommunityGuidelines, setShowCommunityGuidelines] = useState(false);
+  const [showRefundPolicy, setShowRefundPolicy] = useState(false);
+  const [showCookiePolicy, setShowCookiePolicy] = useState(false);
+  const [showComplaintPolicy, setShowComplaintPolicy] = useState(false);
 
   const footerLinks = {
     product: [
@@ -23,10 +33,13 @@ export function AppFooter() {
       { name: 'Contact', href: '#contact', action: 'scroll' }
     ],
     legal: [
-      { name: 'Privacy Policy', href: '#privacy', action: 'scroll' },
-      { name: 'Terms of Service', href: '#terms', action: 'scroll' },
-      { name: 'Cookie Policy', href: '#cookies', action: 'scroll' },
-      { name: 'GDPR', href: '#gdpr', action: 'scroll' }
+      { name: 'Privacy Policy', href: '#privacy', action: 'modal' },
+      { name: 'Terms of Service', href: '#terms', action: 'modal' },
+      { name: 'DMCA Policy', href: '#dmca', action: 'modal' },
+      { name: 'Community Guidelines', href: '#guidelines', action: 'modal' },
+      { name: 'Refund Policy', href: '#refund', action: 'modal' },
+      { name: 'Cookie Policy', href: '#cookies', action: 'modal' },
+      { name: 'Complaint Policy', href: '#complaints', action: 'modal' },
     ]
   };
 
@@ -45,6 +58,22 @@ export function AppFooter() {
       if (element) {
         element.scrollIntoView({ behavior: 'smooth' });
       }
+    } else if (item.action === 'modal') {
+      if (item.name === 'Terms of Service') {
+        setShowTermsOfService(true);
+      } else if (item.name === 'Privacy Policy') {
+        setShowPrivacyPolicy(true);
+      } else if (item.name === 'DMCA Policy') {
+        setShowDMCAPolicy(true);
+      } else if (item.name === 'Community Guidelines') {
+        setShowCommunityGuidelines(true);
+      } else if (item.name === 'Refund Policy') {
+        setShowRefundPolicy(true);
+      } else if (item.name === 'Cookie Policy') {
+        setShowCookiePolicy(true);
+      } else if (item.name === 'Complaint Policy') {
+        setShowComplaintPolicy(true);
+      }
     }
   };
 
@@ -55,7 +84,7 @@ export function AppFooter() {
       // console.log('Newsletter subscription:', email);
       setIsSubscribed(true);
       setEmail('');
-      
+
       // Reset success message after 3 seconds
       setTimeout(() => setIsSubscribed(false), 3000);
     }
@@ -87,7 +116,7 @@ export function AppFooter() {
               </div>
             </div>
             <p className="text-muted-foreground text-sm leading-relaxed mb-6">
-              Transform your creative vision into reality with AI-powered content generation. 
+              Transform your creative vision into reality with AI-powered content generation.
               Create unique AI influencers and build your digital empire.
             </p>
           </div>
@@ -98,7 +127,7 @@ export function AppFooter() {
             <ul className="space-y-3">
               {footerLinks.product.map((link) => (
                 <li key={link.name}>
-                  <button 
+                  <button
                     onClick={() => handleLinkClick(link)}
                     className="text-sm text-muted-foreground hover:text-foreground transition-colors text-left"
                   >
@@ -115,7 +144,7 @@ export function AppFooter() {
             <ul className="space-y-3">
               {footerLinks.company.map((link) => (
                 <li key={link.name}>
-                  <button 
+                  <button
                     onClick={() => handleLinkClick(link)}
                     className="text-sm text-muted-foreground hover:text-foreground transition-colors text-left"
                   >
@@ -129,27 +158,26 @@ export function AppFooter() {
           {/* Legal Links */}
           <div>
             <h3 className="font-semibold text-foreground mb-4">Legal</h3>
-            <ul className="space-y-3">
+            <div className="grid grid-cols-2 gap-x-4 gap-y-3">
               {footerLinks.legal.map((link) => (
-                <li key={link.name}>
-                  <button 
-                    onClick={() => handleLinkClick(link)}
-                    className="text-sm text-muted-foreground hover:text-foreground transition-colors text-left"
-                  >
-                    {link.name}
-                  </button>
-                </li>
+                <button
+                  key={link.name}
+                  onClick={() => handleLinkClick(link)}
+                  className="text-sm text-muted-foreground hover:text-foreground transition-colors text-left"
+                >
+                  {link.name}
+                </button>
               ))}
-            </ul>
+            </div>
           </div>
         </div>
 
         {/* Bottom Section */}
         <div className="pt-6 sm:pt-8 border-t border-border flex flex-col sm:flex-row justify-between items-center gap-4">
           <p className="text-sm text-muted-foreground text-center sm:text-left">
-            © {new Date().getFullYear()} sayasaas llc. All rights reserved.
+            © {new Date().getFullYear()} AI Influence. All rights reserved.
           </p>
-          
+
           {/* Social Links */}
           <div className="flex items-center gap-2">
             {socialLinks.map((social) => (
@@ -166,6 +194,18 @@ export function AppFooter() {
           </div>
         </div>
       </div>
+
+      {/* Terms of Service Modal */}
+      <TermsOfService
+        open={showTermsOfService}
+        onOpenChange={setShowTermsOfService}
+      />
+
+      {/* Privacy Policy Modal */}
+      <PrivacyPolicy
+        open={showPrivacyPolicy}
+        onOpenChange={setShowPrivacyPolicy}
+      />
     </footer>
   );
 }

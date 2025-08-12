@@ -7,7 +7,7 @@ import { selectLatestTrainedInfluencer, selectLatestGeneratedInfluencer, setInfl
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { CheckCircle, Circle, Play, Star, AlertTriangle, Brain, Copy, Upload, X } from 'lucide-react';
+import { CheckCircle, Circle, Play, Star, AlertTriangle, Brain, Copy, Upload, X, FileImage, FileVideo, Palette, RefreshCw, Zap, Sparkles } from 'lucide-react';
 import InstructionVideo from '@/components/InstructionVideo';
 import { getInstructionVideoConfig } from '@/config/instructionVideos';
 import { toast } from 'sonner';
@@ -40,6 +40,7 @@ export default function Start() {
   const [showTrainingModal, setShowTrainingModal] = useState(false);
   const [showInfluencerSelectorModal, setShowInfluencerSelectorModal] = useState(false);
   const [showPhase2InfluencerSelectorModal, setShowPhase2InfluencerSelectorModal] = useState(false);
+  const [showPhase3CreationModal, setShowPhase3CreationModal] = useState(false);
   const [blinkState, setBlinkState] = useState(false);
   
   // Check localStorage for guide_step
@@ -277,13 +278,8 @@ export default function Start() {
     } else if (currentPhase === 2) {
       setShowPhase2Modal(true);
     } else if (currentPhase === 3) {
-      // Navigate to content create with selected influencer
-      const influencerToUse = selectedPhase3Influencer || latestTrainedInfluencer;
-      if (influencerToUse) {
-        navigate('/content/create', { state: { influencerData: influencerToUse } });
-      } else {
-        navigate('/content/create');
-      }
+      // Show creation options modal for Phase 3
+      setShowPhase3CreationModal(true);
     } else if (currentPhase === 4) {
       // Update guide_step to 5 when user clicks "Organize Content"
       try {
@@ -392,12 +388,13 @@ export default function Start() {
       
       // Navigate to the appropriate step
       if (localGuideStep === 3) {
-        navigate('/content/create');
+        // Show Phase 3 creation modal instead of directly navigating
+        setShowPhase3CreationModal(true);
       } else if (localGuideStep === 4) {
         navigate('/create/optimizer');
       } else {
         // Default to content creation for any step > 2
-        navigate('/content/create');
+        setShowPhase3CreationModal(true);
       }
     } else {
       // Original logic for phase 2
@@ -683,18 +680,18 @@ export default function Start() {
                     {getButtonText()}
                   </Button>
 
-                  {/* Continue my work button for Phase 2 */}
+                  {/* Continue my work button for Phase 2 and 3 */}
                   {(currentPhase === 2 || localGuideStep > 2) && (
                     <Button
                       onClick={handleContinueWork}
                       variant="outline"
-                      disabled={!latestGeneratedInfluencerWithLora0}
-                      className={`w-full sm:w-auto font-semibold text-base sm:text-lg px-6 sm:px-8 py-3 sm:py-4 rounded-xl shadow-xl transition-all duration-300 transform ${latestGeneratedInfluencerWithLora0
-                          ? 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white hover:shadow-2xl hover:scale-105 border-green-500'
-                          : 'bg-gradient-to-r from-slate-600 to-slate-700 text-slate-400 border-slate-500 cursor-not-allowed opacity-50'
+                      disabled={currentPhase === 2 && !latestGeneratedInfluencerWithLora0}
+                      className={`w-full sm:w-auto font-semibold text-base sm:text-lg px-6 sm:px-8 py-3 sm:py-4 rounded-xl shadow-xl transition-all duration-300 transform ${(currentPhase === 2 && !latestGeneratedInfluencerWithLora0)
+                          ? 'bg-gradient-to-r from-slate-600 to-slate-700 text-slate-400 border-slate-500 cursor-not-allowed opacity-50'
+                          : 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white hover:shadow-2xl hover:scale-105 border-green-500'
                         }`}
                     >
-                      Continue my work
+                      {currentPhase === 3 ? 'Continue Creating Content' : 'Continue my work'}
                     </Button>
                   )}
                 </div>
@@ -1082,9 +1079,9 @@ export default function Start() {
                     </p>
                   </div>
 
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div className="flex justify-center gap-6">
                     {/* Profile Image Card */}
-                    <Card className="group border-2 border-green-500/20 hover:border-green-500/40 transition-all duration-300 shadow-lg hover:shadow-xl bg-gradient-to-br from-green-50/30 to-emerald-50/30 dark:from-green-950/10 dark:to-emerald-950/10">
+                    <Card className="max-w-md group border-2 border-green-500/20 hover:border-green-500/40 transition-all duration-300 shadow-lg hover:shadow-xl bg-gradient-to-br from-green-50/30 to-emerald-50/30 dark:from-green-950/10 dark:to-emerald-950/10">
                       <CardContent className="p-6">
                         <div className="space-y-4">
                           <div className="relative">
@@ -1112,116 +1109,6 @@ export default function Start() {
                             </div>
                           </div>
                         </div>
-                      </CardContent>
-                    </Card>
-
-                    {/* Upload Card */}
-                    <Card className="group border-2 border-dashed border-gray-300 dark:border-gray-600 hover:border-blue-400 dark:hover:border-blue-500 transition-all duration-300 shadow-lg hover:shadow-xl bg-gradient-to-br from-blue-50/30 to-purple-50/30 dark:from-blue-950/10 dark:to-purple-950/10">
-                      <CardContent className="p-6">
-                        {uploadedImageUrl ? (
-                          // Show uploaded image
-                          <div className="space-y-4">
-                            <div className="relative">
-                              <div className="aspect-square bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/30 dark:to-purple-900/30 rounded-2xl overflow-hidden shadow-lg">
-                                <img
-                                  src={uploadedImageUrl}
-                                  alt="Uploaded profile picture"
-                                  className="w-full h-full object-cover"
-                                />
-                              </div>
-                              <button
-                                onClick={handleRemoveUploadedImage}
-                                className="absolute top-3 right-3 w-8 h-8 bg-red-500 hover:bg-red-600 rounded-full flex items-center justify-center shadow-lg transition-colors"
-                              >
-                                <X className="w-4 h-4 text-white" />
-                              </button>
-                              <div className="absolute top-3 left-3 w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center shadow-lg">
-                                <Upload className="w-4 h-4 text-white" />
-                              </div>
-                            </div>
-                            <div className="text-center space-y-3">
-                              <h4 className="font-semibold text-lg text-gray-900 dark:text-gray-100">
-                                Uploaded Image
-                              </h4>
-                              <p className="text-sm text-gray-600 dark:text-gray-300">
-                                {uploadedFile?.name} • {(uploadedFile?.size / 1024 / 1024).toFixed(2)} MB
-                              </p>
-                              <div className="flex items-center justify-center gap-2 text-xs text-blue-600 dark:text-blue-400 mb-3">
-                                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                                Ready for LoRA Training
-                              </div>
-                            </div>
-                          </div>
-                        ) : (
-                          // Show professional upload interface
-                          <div
-                            className="space-y-4"
-                            onDragOver={handleDragOver}
-                            onDragLeave={handleDragLeave}
-                            onDrop={handleDrop}
-                          >
-                            {/* Drag & Drop Area - Looks like an image */}
-                            <div className="relative group/drag">
-                              <div className="aspect-square bg-gradient-to-br from-blue-100 via-purple-100 to-indigo-100 dark:from-blue-900/20 dark:via-purple-900/20 dark:to-indigo-900/20 rounded-2xl overflow-hidden shadow-lg border-2 border-dashed border-blue-300 dark:border-blue-600 group-hover/drag:border-blue-400 dark:group-hover/drag:border-blue-500 transition-all duration-300">
-                                {/* Background Pattern */}
-                                <div className="absolute inset-0 bg-gradient-to-br from-blue-50/50 to-purple-50/50 dark:from-blue-950/30 dark:to-purple-950/30"></div>
-
-                                {/* Upload Icon and Text */}
-                                <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6">
-                                  <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-xl mb-4 group-hover/drag:scale-110 transition-transform duration-300">
-                                    <Upload className="w-8 h-8 text-white" />
-                                  </div>
-                                  <h4 className="font-semibold text-lg text-gray-900 dark:text-gray-100 mb-2">
-                                    Upload New Image
-                                  </h4>
-                                  <p className="text-sm text-gray-600 dark:text-gray-300 mb-3 max-w-xs">
-                                    Drag & drop your image here or click to browse
-                                  </p>
-                                  <div className="flex items-center gap-2 text-xs text-blue-600 dark:text-blue-400">
-                                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                                    PNG, JPG, JPEG up to 10MB
-                                  </div>
-                                </div>
-
-                                {/* Hover Overlay */}
-                                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-purple-500/10 opacity-0 group-hover/drag:opacity-100 transition-opacity duration-300 rounded-2xl"></div>
-                              </div>
-
-                              {/* File Input */}
-                              <input
-                                type="file"
-                                accept="image/*"
-                                onChange={handleFileUpload}
-                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                                id="profile-image-upload"
-                              />
-                            </div>
-
-                            {/* Additional Upload Options */}
-                            <div className="text-center space-y-3">
-                              <div className="flex items-center justify-center gap-4">
-                                <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-                                  <div className="w-1.5 h-1.5 bg-gray-400 rounded-full"></div>
-                                  High Quality
-                                </div>
-                                <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-                                  <div className="w-1.5 h-1.5 bg-gray-400 rounded-full"></div>
-                                  Secure Upload
-                                </div>
-                                <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-                                  <div className="w-1.5 h-1.5 bg-gray-400 rounded-full"></div>
-                                  Instant Processing
-                                </div>
-                              </div>
-
-                              <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-lg p-3 border border-blue-200/50 dark:border-blue-800/50">
-                                <p className="text-xs text-gray-600 dark:text-gray-300">
-                                  <span className="font-medium">Tip:</span> Use high-resolution images for better character consistency training results.
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-                        )}
                       </CardContent>
                     </Card>
                   </div>
@@ -1454,6 +1341,249 @@ export default function Start() {
                 </div>
               );
             })()}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Phase 3 Creation Options Modal */}
+      <Dialog open={showPhase3CreationModal} onOpenChange={setShowPhase3CreationModal}>
+        <DialogContent className="max-w-4xl w-[95vw] max-h-[90vh] overflow-y-auto p-0">
+          {/* Header with gradient background */}
+          <div className="bg-gradient-to-br from-purple-600 via-blue-600 to-indigo-700 p-8 text-white relative overflow-hidden">
+            {/* Background pattern */}
+            <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent"></div>
+            <div className="absolute top-0 right-0 w-40 h-40 bg-white/5 rounded-full -translate-y-20 translate-x-20"></div>
+            <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/5 rounded-full translate-y-16 -translate-x-16"></div>
+
+            <div className="relative z-10 text-center">
+              <div className="w-20 h-20 mx-auto mb-6 bg-white/20 rounded-3xl flex items-center justify-center backdrop-blur-sm border border-white/30 shadow-2xl">
+                <Sparkles className="w-10 h-10 text-white" />
+              </div>
+              <DialogTitle className="text-3xl font-bold mb-4 bg-gradient-to-r from-white to-purple-100 bg-clip-text text-transparent">
+                Generate Exclusive Content
+              </DialogTitle>
+              <DialogDescription className="text-lg text-purple-100 leading-relaxed max-w-2xl mx-auto">
+                Choose your preferred content creation method. Each option offers unique capabilities to bring your AI influencer to life.
+              </DialogDescription>
+            </div>
+          </div>
+
+          {/* Content */}
+          <div className="p-8">
+            {/* Influencer Info Card */}
+            {(() => {
+              const displayInfluencer = selectedPhase3Influencer || latestTrainedInfluencer;
+              
+              if (displayInfluencer) {
+                return (
+                  <Card className="mb-8 bg-gradient-to-br from-purple-50/50 to-blue-50/50 dark:from-purple-950/20 dark:to-blue-950/20 border-purple-200/50 dark:border-purple-800/50 shadow-xl">
+                    <CardContent className="p-6">
+                      <div className="flex flex-col sm:flex-row items-center gap-4">
+                        <div className="relative">
+                          <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden ring-4 ring-white dark:ring-gray-800 shadow-xl">
+                            <img
+                              src={displayInfluencer.image_url}
+                              alt={displayInfluencer.name_first}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                          {displayInfluencer.lorastatus === 2 && (
+                            <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center shadow-lg">
+                              <CheckCircle className="w-4 h-4 text-white" />
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1 text-center sm:text-left">
+                          <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-1">
+                            {displayInfluencer.name_first} {displayInfluencer.name_last}
+                          </h3>
+                          <p className="text-gray-600 dark:text-gray-300 mb-3">
+                            Ready for content creation • {displayInfluencer.influencer_type || 'AI Influencer'}
+                          </p>
+                          <div className="flex flex-wrap gap-2 justify-center sm:justify-start">
+                            {displayInfluencer.lorastatus === 2 ? (
+                              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
+                                <CheckCircle className="w-3 h-3 mr-1" />
+                                LoRA Trained
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
+                                <Brain className="w-3 h-3 mr-1" />
+                                Ready for Training
+                              </span>
+                            )}
+                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300">
+                              <Sparkles className="w-3 h-3 mr-1" />
+                              Content Ready
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              }
+              return null;
+            })()}
+
+            {/* Creation Options Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {/* Images */}
+              <Card 
+                onClick={() => {
+                  const influencerToUse = selectedPhase3Influencer || latestTrainedInfluencer;
+                  setShowPhase3CreationModal(false);
+                  if (influencerToUse) {
+                    navigate('/create/images', { state: { influencerData: influencerToUse } });
+                  } else {
+                    navigate('/create/images');
+                  }
+                }}
+                className="group cursor-pointer hover:shadow-2xl transition-all duration-300 transform hover:scale-105 border-2 hover:border-purple-300 dark:hover:border-purple-600 bg-gradient-to-br from-white to-purple-50/30 dark:from-slate-800/50 dark:to-purple-900/20"
+              >
+                <CardContent className="p-6 text-center">
+                  <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow duration-300">
+                    <FileImage className="w-8 h-8 text-white" />
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+                    Generate Images
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed mb-4">
+                    Create stunning AI-generated images with your influencer in various scenarios, poses, and styles.
+                  </p>
+                  <div className="flex items-center justify-center gap-2 text-xs text-purple-600 dark:text-purple-400">
+                    <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                    High-quality AI generation
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Videos */}
+              <Card 
+                onClick={() => {
+                  const influencerToUse = selectedPhase3Influencer || latestTrainedInfluencer;
+                  setShowPhase3CreationModal(false);
+                  if (influencerToUse) {
+                    navigate('/create/videos', { state: { influencerData: influencerToUse, autoSelect: 'image' } });
+                  } else {
+                    navigate('/create/videos', { state: { autoSelect: 'image' } });
+                  }
+                }}
+                className="group cursor-pointer hover:shadow-2xl transition-all duration-300 transform hover:scale-105 border-2 hover:border-blue-300 dark:hover:border-blue-600 bg-gradient-to-br from-white to-blue-50/30 dark:from-slate-800/50 dark:to-blue-900/20"
+              >
+                <CardContent className="p-6 text-center">
+                  <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-2xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow duration-300">
+                    <FileVideo className="w-8 h-8 text-white" />
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+                    Create Videos
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed mb-4">
+                    Generate dynamic videos featuring your AI influencer with lip-sync and motion capabilities.
+                  </p>
+                  <div className="flex items-center justify-center gap-2 text-xs text-blue-600 dark:text-blue-400">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                    Advanced video generation
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* AI Edit */}
+              <Card 
+                onClick={() => {
+                  setShowPhase3CreationModal(false);
+                  navigate('/create/aiedit');
+                }}
+                className="group cursor-pointer hover:shadow-2xl transition-all duration-300 transform hover:scale-105 border-2 hover:border-green-300 dark:hover:border-green-600 bg-gradient-to-br from-white to-green-50/30 dark:from-slate-800/50 dark:to-green-900/20"
+              >
+                <CardContent className="p-6 text-center">
+                  <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-r from-green-500 to-emerald-500 rounded-2xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow duration-300">
+                    <Palette className="w-8 h-8 text-white" />
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+                    AI Edit & Enhance
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed mb-4">
+                    Edit and enhance existing images with AI-powered tools for professional results.
+                  </p>
+                  <div className="flex items-center justify-center gap-2 text-xs text-green-600 dark:text-green-400">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    Professional editing tools
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Face Swap */}
+              <Card 
+                onClick={() => {
+                  setShowPhase3CreationModal(false);
+                  navigate('/create/faceswap');
+                }}
+                className="group cursor-pointer hover:shadow-2xl transition-all duration-300 transform hover:scale-105 border-2 hover:border-orange-300 dark:hover:border-orange-600 bg-gradient-to-br from-white to-orange-50/30 dark:from-slate-800/50 dark:to-orange-900/20"
+              >
+                <CardContent className="p-6 text-center">
+                  <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-r from-orange-500 to-red-500 rounded-2xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow duration-300">
+                    <RefreshCw className="w-8 h-8 text-white" />
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+                    Face Swap
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed mb-4">
+                    Seamlessly swap faces in images and videos with advanced AI technology.
+                  </p>
+                  <div className="flex items-center justify-center gap-2 text-xs text-orange-600 dark:text-orange-400">
+                    <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                    Advanced face swapping
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Optimizer */}
+              <Card 
+                onClick={() => {
+                  setShowPhase3CreationModal(false);
+                  navigate('/create/optimizer');
+                }}
+                className="group cursor-pointer hover:shadow-2xl transition-all duration-300 transform hover:scale-105 border-2 hover:border-indigo-300 dark:hover:border-indigo-600 bg-gradient-to-br from-white to-indigo-50/30 dark:from-slate-800/50 dark:to-indigo-900/20"
+              >
+                <CardContent className="p-6 text-center">
+                  <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-2xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow duration-300">
+                    <Zap className="w-8 h-8 text-white" />
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+                    Content Optimizer
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed mb-4">
+                    Optimize and upscale your content for maximum quality and performance.
+                  </p>
+                  <div className="flex items-center justify-center gap-2 text-xs text-indigo-600 dark:text-indigo-400">
+                    <div className="w-2 h-2 bg-indigo-500 rounded-full"></div>
+                    Quality optimization
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex flex-col sm:flex-row gap-4 pt-8 border-t border-gray-200 dark:border-gray-700">
+              <Button
+                variant="outline"
+                onClick={() => setShowPhase3CreationModal(false)}
+                className="flex-1 h-12 text-base font-medium border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={() => {
+                  setShowPhase3CreationModal(false);
+                  setShowInfluencerSelectorModal(true);
+                }}
+                className="flex-1 h-12 text-base font-medium bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 shadow-lg hover:shadow-xl transition-all duration-300"
+              >
+                <Sparkles className="w-5 h-5 mr-3" />
+                Select Another Influencer
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

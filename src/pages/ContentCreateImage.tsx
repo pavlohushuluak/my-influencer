@@ -28,7 +28,8 @@ import { DialogZoom, DialogContentZoom } from '@/components/ui/zoomdialog';
 import VaultSelector from '@/components/VaultSelector';
 import PresetsManager from '@/components/PresetsManager';
 import LibraryManager from '@/components/LibraryManager';
-import { Image, Wand2, Settings, Image as ImageIcon, Sparkles, Loader2, Camera, Search, X, Filter, Plus, RotateCcw, Download, Trash2, Calendar, Share, Pencil, Edit3, BookOpen, Save, FolderOpen, Upload, Edit, AlertTriangle, Eye, User, Monitor, ZoomIn, SortAsc, SortDesc } from 'lucide-react';
+import { Image, Wand2, Settings, Image as ImageIcon, Sparkles, Loader2, Camera, Search, X, Filter, Plus, RotateCcw, Download, Trash2, Calendar, Share, Pencil, Edit3, BookOpen, Save, FolderOpen, Upload, Edit, AlertTriangle, Eye, User, Monitor, ZoomIn, SortAsc, SortDesc, QrCode } from 'lucide-react';
+import QRCode from 'qrcode';
 import HistoryCard from '@/components/HistoryCard';
 import { CreditConfirmationModal } from '@/components/CreditConfirmationModal';
 
@@ -197,6 +198,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
 
   // Share modal state
   const [shareModal, setShareModal] = useState<{ open: boolean; itemId: string | null; itemPath: string | null }>({ open: false, itemId: null, itemPath: null });
+  const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>('');
 
   // Status bar edit popup state
   const [statusEditPopup, setStatusEditPopup] = useState<{
@@ -616,6 +618,14 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
     };
     fetchEngineOptions();
   }, []);
+
+  // Generate QR code when share modal opens
+  useEffect(() => {
+    if (shareModal.open && shareModal.itemId && shareModal.itemPath) {
+      const directLink = `${config.data_url}/${userData.id}/${shareModal.itemPath}/${shareModal.itemId}`;
+      generateQRCode(directLink);
+    }
+  }, [shareModal.open, shareModal.itemId, shareModal.itemPath, userData.id]);
 
   const handleDownload = async (image: any) => {
     try {
@@ -1703,6 +1713,23 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
       toast.success('Link copied to clipboard');
     } catch (error) {
       console.error('Failed to copy to clipboard:', error);
+    }
+  };
+
+  const generateQRCode = async (url: string) => {
+    try {
+      const qrCodeDataUrl = await QRCode.toDataURL(url, {
+        width: 200,
+        margin: 2,
+        color: {
+          dark: '#000000',
+          light: '#FFFFFF'
+        }
+      });
+      setQrCodeDataUrl(qrCodeDataUrl);
+    } catch (error) {
+      console.error('Failed to generate QR code:', error);
+      toast.error('Failed to generate QR code');
     }
   };
 
@@ -6479,17 +6506,54 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
                   <Label className="text-sm font-medium">Direct Link</Label>
                   <div className="flex gap-2">
                     <Input
-                      value={`${config.data_url}/cdn-cgi/image/w=800/${userData.id}/${shareModal.itemPath}/${shareModal.itemId}`}
+                      value={`${config.data_url}/${userData.id}/${shareModal.itemPath}/${shareModal.itemId}`}
                       readOnly
                       className="text-xs"
                     />
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => copyToClipboard(`${config.data_url}/cdn-cgi/image/w=800/${userData.id}/${shareModal.itemPath}/${shareModal.itemId}`)}
+                      onClick={() => copyToClipboard(`${config.data_url}/${userData.id}/${shareModal.itemPath}/${shareModal.itemId}`)}
                     >
                       Copy
                     </Button>
+                  </div>
+                </div>
+
+                {/* QR Code Section */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">QR Code</Label>
+                  <div className="flex flex-col items-center space-y-3 p-4 bg-gray-50 rounded-lg border">
+                    {qrCodeDataUrl ? (
+                      <>
+                        <img 
+                          src={qrCodeDataUrl} 
+                          alt="QR Code" 
+                          className="w-32 h-32 border border-gray-200 rounded-lg"
+                        />
+                        <div className="text-xs text-gray-600 text-center">
+                          Scan to access content directly
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            const link = document.createElement('a');
+                            link.href = qrCodeDataUrl;
+                            link.download = 'qr-code.png';
+                            link.click();
+                          }}
+                          className="flex items-center gap-2"
+                        >
+                          <Download className="w-4 h-4" />
+                          Download QR Code
+                        </Button>
+                      </>
+                    ) : (
+                      <div className="flex items-center justify-center w-32 h-32">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-400"></div>
+                      </div>
+                    )}
                   </div>
                 </div>
 

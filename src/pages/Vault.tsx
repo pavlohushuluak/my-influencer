@@ -8,7 +8,8 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Star, Search, Download, Share, Trash2, Filter, Calendar, Image, Video, SortAsc, SortDesc, ZoomIn, Folder, Plus, Upload, ChevronRight, Home, ArrowLeft, Pencil, Menu, X, File, User, RefreshCcw, Edit, Music } from 'lucide-react';
+import { Star, Search, Download, Share, Trash2, Filter, Calendar, Image, Video, SortAsc, SortDesc, ZoomIn, Folder, Plus, Upload, ChevronRight, Home, ArrowLeft, Pencil, Menu, X, File, User, RefreshCcw, Edit, Music, QrCode } from 'lucide-react';
+import QRCode from 'qrcode';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { LibraryRetentionNotice } from '@/components/LibraryRetentionNotice';
@@ -88,6 +89,7 @@ export default function Vault() {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [shareModal, setShareModal] = useState<{ open: boolean; itemId: string | null; itemPath: string | null }>({ open: false, itemId: null, itemPath: null });
+  const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>('');
 
   // New folder modal state
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
@@ -245,6 +247,14 @@ export default function Vault() {
     localStorage.setItem('copystate', copyState.toString());
     localStorage.setItem('copiedPath', copiedPath);
   }, [copyState, copiedPath]);
+
+  // Generate QR code when share modal opens
+  useEffect(() => {
+    if (shareModal.open && shareModal.itemId && shareModal.itemPath) {
+      const directLink = `${config.data_url}/${userData.id}/${shareModal.itemPath}/${shareModal.itemId}`;
+      generateQRCode(directLink);
+    }
+  }, [shareModal.open, shareModal.itemId, shareModal.itemPath, userData.id]);
 
   // Add tag to filter when clicked on card
   const addTagToFilter = (tag: string) => {
@@ -712,6 +722,23 @@ export default function Vault() {
       toast.success('Link copied to clipboard');
     } catch (error) {
       console.error('Failed to copy to clipboard:', error);
+    }
+  };
+
+  const generateQRCode = async (url: string) => {
+    try {
+      const qrCodeDataUrl = await QRCode.toDataURL(url, {
+        width: 200,
+        margin: 2,
+        color: {
+          dark: '#000000',
+          light: '#FFFFFF'
+        }
+      });
+      setQrCodeDataUrl(qrCodeDataUrl);
+    } catch (error) {
+      console.error('Failed to generate QR code:', error);
+      toast.error('Failed to generate QR code');
     }
   };
 
@@ -4882,17 +4909,54 @@ export default function Vault() {
                   <Label className="text-sm font-medium">Direct Link</Label>
                   <div className="flex gap-2">
                     <Input
-                      value={`${config.data_url}/cdn-cgi/image/w=800/${userData.id}/${shareModal.itemPath}/${shareModal.itemId}`}
+                      value={`${config.data_url}/${userData.id}/${shareModal.itemPath}/${shareModal.itemId}`}
                       readOnly
                       className="text-xs"
                     />
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => copyToClipboard(`${config.data_url}/cdn-cgi/image/w=800/${userData.id}/${shareModal.itemPath}/${shareModal.itemId}`)}
+                      onClick={() => copyToClipboard(`${config.data_url}/${userData.id}/${shareModal.itemPath}/${shareModal.itemId}`)}
                     >
                       Copy
                     </Button>
+                  </div>
+                </div>
+
+                {/* QR Code Section */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">QR Code</Label>
+                  <div className="flex flex-col items-center space-y-3 p-4 bg-gray-50 rounded-lg border">
+                    {qrCodeDataUrl ? (
+                      <>
+                        <img 
+                          src={qrCodeDataUrl} 
+                          alt="QR Code" 
+                          className="w-32 h-32 border border-gray-200 rounded-lg"
+                        />
+                        <div className="text-xs text-gray-600 text-center">
+                          Scan to access content directly
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            const link = document.createElement('a');
+                            link.href = qrCodeDataUrl;
+                            link.download = 'qr-code.png';
+                            link.click();
+                          }}
+                          className="flex items-center gap-2"
+                        >
+                          <Download className="w-4 h-4" />
+                          Download QR Code
+                        </Button>
+                      </>
+                    ) : (
+                      <div className="flex items-center justify-center w-32 h-32">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-400"></div>
+                      </div>
+                    )}
                   </div>
                 </div>
 

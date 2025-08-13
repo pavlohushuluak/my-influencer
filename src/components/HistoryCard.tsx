@@ -9,7 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { Loader2, RefreshCw, Calendar as CalendarIcon, ZoomIn, Download, Share, Trash2, Edit3, RotateCcw, Search, Filter, X, SortAsc, SortDesc } from 'lucide-react';
+import { Loader2, RefreshCw, Calendar as CalendarIcon, ZoomIn, Download, Share, Trash2, Edit3, RotateCcw, Search, Filter, X, SortAsc, SortDesc, QrCode } from 'lucide-react';
+import QRCode from 'qrcode';
 import { useToast } from '@/hooks/use-toast';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/store/store';
@@ -34,6 +35,7 @@ export default function HistoryCard({ userId }: { userId: string }) {
   const [zoomModal, setZoomModal] = useState<{ open: boolean; imageUrl: string; imageName: string }>({ open: false, imageUrl: '', imageName: '' });
   const [regeneratingImages, setRegeneratingImages] = useState<Set<string>>(new Set());
   const [shareModal, setShareModal] = useState<{ open: boolean; itemId: string | null; itemPath: string | null }>({ open: false, itemId: null, itemPath: null });
+  const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>('');
 
   // Search and filter state
   const [searchTerm, setSearchTerm] = useState('');
@@ -137,6 +139,14 @@ export default function HistoryCard({ userId }: { userId: string }) {
     if (statusFilter !== 'all') filters.push(`Status: ${statusFilter}`);
     setActiveFilters(filters);
   }, [searchTerm, dateRange, statusFilter]);
+
+  // Generate QR code when share modal opens
+  useEffect(() => {
+    if (shareModal.open && shareModal.itemId && shareModal.itemPath) {
+      const directLink = `${config.data_url}/${userData.id}/${shareModal.itemPath}/${shareModal.itemId}`;
+      generateQRCode(directLink);
+    }
+  }, [shareModal.open, shareModal.itemId, shareModal.itemPath, userData.id]);
 
   // Paginate images instead of tasks
   const start = pageSize === -1 ? 0 : (page - 1) * pageSize;
@@ -306,6 +316,27 @@ export default function HistoryCard({ userId }: { userId: string }) {
       });
     } catch (error) {
       console.error('Failed to copy to clipboard:', error);
+    }
+  };
+
+  const generateQRCode = async (url: string) => {
+    try {
+      const qrCodeDataUrl = await QRCode.toDataURL(url, {
+        width: 200,
+        margin: 2,
+        color: {
+          dark: '#000000',
+          light: '#FFFFFF'
+        }
+      });
+      setQrCodeDataUrl(qrCodeDataUrl);
+    } catch (error) {
+      console.error('Failed to generate QR code:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to generate QR code',
+        variant: 'destructive'
+      });
     }
   };
 
@@ -764,17 +795,54 @@ export default function HistoryCard({ userId }: { userId: string }) {
                   <Label className="text-sm font-medium">Direct Link</Label>
                   <div className="flex gap-2">
                     <Input
-                      value={`${config.data_url}/cdn-cgi/image/w=800/${userData.id}/${shareModal.itemPath}/${shareModal.itemId}`}
+                      value={`${config.data_url}/${userData.id}/${shareModal.itemPath}/${shareModal.itemId}`}
                       readOnly
                       className="text-xs"
                     />
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => copyToClipboard(`${config.data_url}/cdn-cgi/image/w=800/${userData.id}/${shareModal.itemPath}/${shareModal.itemId}`)}
+                      onClick={() => copyToClipboard(`${config.data_url}/${userData.id}/${shareModal.itemPath}/${shareModal.itemId}`)}
                     >
                       Copy
                     </Button>
+                  </div>
+                </div>
+
+                {/* QR Code Section */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">QR Code</Label>
+                  <div className="flex flex-col items-center space-y-3 p-4 bg-gray-50 rounded-lg border">
+                    {qrCodeDataUrl ? (
+                      <>
+                        <img 
+                          src={qrCodeDataUrl} 
+                          alt="QR Code" 
+                          className="w-32 h-32 border border-gray-200 rounded-lg"
+                        />
+                        <div className="text-xs text-gray-600 text-center">
+                          Scan to access content directly
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            const link = document.createElement('a');
+                            link.href = qrCodeDataUrl;
+                            link.download = 'qr-code.png';
+                            link.click();
+                          }}
+                          className="flex items-center gap-2"
+                        >
+                          <Download className="w-4 h-4" />
+                          Download QR Code
+                        </Button>
+                      </>
+                    ) : (
+                      <div className="flex items-center justify-center w-32 h-32">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-400"></div>
+                      </div>
+                    )}
                   </div>
                 </div>
 

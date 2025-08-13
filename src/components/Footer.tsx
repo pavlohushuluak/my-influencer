@@ -118,7 +118,7 @@ const Footer = () => {
           <div className="flex flex-col md:flex-row items-center justify-between">
             <div className="flex items-center space-x-6 mb-4 md:mb-0">
               <div className="text-slate-500 text-sm">
-                © 2024 Nymia. All rights reserved.
+                © 2025 sayasaas llc. All rights reserved.
               </div>
             </div>
 

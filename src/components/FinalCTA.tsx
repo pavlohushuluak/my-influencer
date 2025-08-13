@@ -1,8 +1,31 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Play } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
+import { RootState } from '@/store/store';
 
 const FinalCTA = () => {
+  const navigate = useNavigate();
+  const userData = useSelector((state: RootState) => state.user);
+  const isAuthenticated = userData.id && sessionStorage.getItem('access_token');
+
+  const handleStartFree = () => {
+    if (isAuthenticated) {
+      navigate('/start');
+    } else {
+      navigate('/signup');
+    }
+  };
+
+  const handleWatchDemo = () => {
+    if (isAuthenticated) {
+      navigate('/dashboard');
+    } else {
+      navigate('/signin');
+    }
+  };
+
   return (
     <section className="relative py-32 bg-slate-800 overflow-hidden">
       {/* Background Image */}
@@ -56,15 +79,17 @@ const FinalCTA = () => {
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="bg-purple-500 text-white px-8 py-4 rounded-md text-lg font-semibold hover:bg-purple-400 transition-all duration-300"
+              onClick={handleStartFree}
+              className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-8 py-4 rounded-lg text-lg font-medium hover:from-purple-600 hover:to-pink-600 transition-all duration-300 shadow-lg hover:shadow-xl hover:shadow-purple-500/25 flex items-center space-x-2"
             >
-              Start free
+              <span>{isAuthenticated ? 'Start Creating' : 'Start free'}</span>
             </motion.button>
             
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="border border-slate-600 text-white px-8 py-4 rounded-md text-lg font-medium hover:bg-slate-800 transition-colors inline-flex items-center space-x-2"
+              onClick={handleWatchDemo}
+              className="border border-slate-600 text-white px-8 py-4 rounded-md text-lg font-medium hover:bg-slate-800 transition-colors flex items-center space-x-2"
             >
               <Play size={16} />
               <span>Watch demo</span>

@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { User, Brain, Image, FolderOpen, ArrowRight, ZoomIn } from 'lucide-react';
+import { User, Brain, Image, FolderOpen, ArrowRight, ZoomIn, Sparkles, Zap } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
+import { RootState } from '@/store/store';
 
 const phases = [
   {
@@ -39,6 +42,17 @@ const phases = [
 
 const HowItWorks = () => {
   const [hoveredImage, setHoveredImage] = useState<string | null>(null);
+  const navigate = useNavigate();
+  const userData = useSelector((state: RootState) => state.user);
+  const isAuthenticated = userData.id && sessionStorage.getItem('access_token');
+
+  const handleStartFlow = () => {
+    if (isAuthenticated) {
+      navigate('/start');
+    } else {
+      navigate('/signin');
+    }
+  };
 
   return (
     <section id="how-it-works" className="relative py-32 bg-slate-900 overflow-hidden">
@@ -179,13 +193,56 @@ const HowItWorks = () => {
           transition={{ duration: 0.8, delay: 0.8 }}
           className="text-center mt-16"
         >
+          {/* Enhanced Professional Button */}
           <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className="bg-purple-500 text-white px-12 py-6 rounded-md text-xl font-semibold hover:bg-purple-400 transition-colors inline-flex items-center space-x-3"
+            whileHover={{ 
+              scale: 1.02,
+              boxShadow: "0 20px 40px rgba(168, 85, 247, 0.3)"
+            }}
+            whileTap={{ scale: 0.98 }}
+            onClick={handleStartFlow}
+            className="group relative bg-gradient-to-r from-purple-600 via-purple-500 to-pink-500 text-white px-12 py-6 rounded-2xl text-xl font-semibold transition-all duration-300 inline-flex items-center space-x-4 shadow-2xl hover:shadow-purple-500/25 overflow-hidden"
           >
-            <span>Start the 4‑phase flow</span>
-            <ArrowRight size={24} />
+            {/* Animated background gradient */}
+            <div className="absolute inset-0 bg-gradient-to-r from-purple-600 via-purple-500 to-pink-500 opacity-100 group-hover:opacity-90 transition-opacity duration-300" />
+            
+            {/* Sparkle effect */}
+            <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+              <motion.div
+                animate={{ 
+                  rotate: [0, 360],
+                  scale: [1, 1.1, 1]
+                }}
+                transition={{ 
+                  duration: 3, 
+                  repeat: Infinity, 
+                  ease: "linear" 
+                }}
+                className="absolute top-2 right-2"
+              >
+                <Sparkles className="w-4 h-4 text-white/60" />
+              </motion.div>
+            </div>
+
+            {/* Button content */}
+            <div className="relative z-10 flex items-center space-x-3">
+              <span className="font-medium tracking-wide">
+                {isAuthenticated ? 'Continue Your Journey' : 'Start the 4‑phase flow'}
+              </span>
+              <motion.div
+                animate={{ x: [0, 4, 0] }}
+                transition={{ 
+                  duration: 1.5, 
+                  repeat: Infinity, 
+                  ease: "easeInOut" 
+                }}
+              >
+                <ArrowRight size={24} className="group-hover:translate-x-1 transition-transform duration-300" />
+              </motion.div>
+            </div>
+
+            {/* Glow effect */}
+            <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-purple-400/20 to-pink-400/20 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
           </motion.button>
         </motion.div>
       </div>

@@ -1,10 +1,14 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Twitter, Github, Mail, Globe } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { PrivacyPolicy } from './PrivacyPolicy';
+import { TermsOfService } from './TermsOfService';
 
 const Footer = () => {
   const navigate = useNavigate();
+  const [privacyModalOpen, setPrivacyModalOpen] = useState(false);
+  const [termsModalOpen, setTermsModalOpen] = useState(false);
   const footerLinks = {
     'Product': [
       'Features',
@@ -32,7 +36,7 @@ const Footer = () => {
       'Terms of Service',
       'Cookie Policy',
       'Compliance',
-      'GDPR'
+      'DMCA'
     ]
   };
 
@@ -82,12 +86,27 @@ const Footer = () => {
               <ul className="space-y-3">
                 {links.map((link, index) => (
                   <li key={index}>
-                    <a
-                      href="#"
-                      className="text-slate-400 hover:text-white transition-colors text-sm"
-                    >
-                      {link}
-                    </a>
+                    {category === 'Legal' ? (
+                      <button
+                        onClick={() => {
+                          if (link === 'Privacy Policy') {
+                            setPrivacyModalOpen(true);
+                          } else if (link === 'Terms of Service') {
+                            setTermsModalOpen(true);
+                          }
+                        }}
+                        className="text-slate-400 hover:text-white transition-colors text-sm cursor-pointer text-left w-full"
+                      >
+                        {link}
+                      </button>
+                    ) : (
+                      <a
+                        href="#"
+                        className="text-slate-400 hover:text-white transition-colors text-sm"
+                      >
+                        {link}
+                      </a>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -104,12 +123,18 @@ const Footer = () => {
             </div>
 
             <div className="flex items-center space-x-6 text-slate-500 text-sm">
-              <a href="#" className="hover:text-white transition-colors">
+              <button 
+                onClick={() => setPrivacyModalOpen(true)}
+                className="hover:text-white transition-colors cursor-pointer"
+              >
                 Privacy policy
-              </a>
-              <a href="#" className="hover:text-white transition-colors">
+              </button>
+              <button 
+                onClick={() => setTermsModalOpen(true)}
+                className="hover:text-white transition-colors cursor-pointer"
+              >
                 Terms of service
-              </a>
+              </button>
               <a href="#" className="hover:text-white transition-colors">
                 Compliance
               </a>
@@ -117,6 +142,18 @@ const Footer = () => {
           </div>
         </div>
       </div>
+
+      {/* Privacy Policy Modal */}
+      <PrivacyPolicy 
+        open={privacyModalOpen} 
+        onOpenChange={setPrivacyModalOpen} 
+      />
+
+      {/* Terms of Service Modal */}
+      <TermsOfService 
+        open={termsModalOpen} 
+        onOpenChange={setTermsModalOpen} 
+      />
     </footer>
   );
 };

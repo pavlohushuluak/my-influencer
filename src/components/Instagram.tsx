@@ -1,6 +1,9 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Check, Instagram as InstagramIcon, QrCode } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
+import { RootState } from '@/store/store';
 
 const features = [
   'QR hand‑off: scan to send images straight to your device',
@@ -9,6 +12,18 @@ const features = [
 ];
 
 const Instagram = () => {
+  const navigate = useNavigate();
+  const userData = useSelector((state: RootState) => state.user);
+  const isAuthenticated = userData.id && sessionStorage.getItem('access_token');
+
+  const handleStartCreating = () => {
+    if (isAuthenticated) {
+      navigate('/create/videos');
+    } else {
+      navigate('/signin');
+    }
+  };
+
   return (
     <section id="instagram-safety" className="py-32 bg-slate-900 w-full">
       <div className="max-w-7xl mx-auto px-6">
@@ -194,9 +209,10 @@ const Instagram = () => {
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
+              onClick={handleStartCreating}
               className="bg-purple-500 text-white px-8 py-4 rounded-md text-lg font-medium hover:bg-purple-400 transition-colors"
             >
-              Start creating content
+              {isAuthenticated ? 'Continue creating content' : 'Start creating content'}
             </motion.button>
           </div>
         </motion.div>

@@ -298,7 +298,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
   const [hasAutoRendered, setHasAutoRendered] = useState(false);
   const [showStep3Modal, setShowStep3Modal] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(5);
+  const [itemsPerPage, setItemsPerPage] = useState(20);
   const userData = useSelector((state: RootState) => state.user);
 
   const [influencerData, setInfluencerData] = useState<InfluencerData>({

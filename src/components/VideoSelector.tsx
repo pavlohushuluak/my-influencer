@@ -93,7 +93,7 @@ export default function VideoSelector({
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(5);
+  const [itemsPerPage, setItemsPerPage] = useState(20);
 
   // Extract folder name from full path
   const extractFolderName = (fullPath: string): string => {

@@ -97,7 +97,7 @@ export default function AudioFolder({ onBack }: AudioFolderProps) {
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(5);
+  const [itemsPerPage, setItemsPerPage] = useState(20);
   const [goToPageInput, setGoToPageInput] = useState('');
 
   // Multi-selection state

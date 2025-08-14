@@ -1999,12 +1999,35 @@ export default function InfluencerEdit() {
           </div>
         </div>
 
+        {/* Professional Hint */}
+        <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0 mt-0.5">
+              <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
+                <Pencil className="w-4 h-4 text-white" />
+              </div>
+            </div>
+            <div className="flex-1">
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-1">
+                Quick Edit Tip
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-300">
+                Double-click on any influencer's image to quickly edit their profile. This provides instant access to all customization options.
+              </p>
+            </div>
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-6">
           {displayedInfluencers.map((influencer) => (
             <Card key={influencer.id} className="group hover:shadow-lg transition-all duration-300 border-border/50 hover:border-ai-purple-500/20">
               <CardContent className="p-4 sm:p-6 h-full">
                 <div className="flex flex-col justify-between h-full space-y-3 sm:space-y-4">
-                  <div className="relative w-full h-full bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg overflow-hidden">
+                  <div 
+                    className="relative w-full h-full bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg overflow-hidden cursor-pointer group/image"
+                    onDoubleClick={() => handleEditInfluencer(influencer.id)}
+                    title="Double-click to edit influencer"
+                  >
                     {/* LoraStatusIndicator positioned at top right */}
                     <div className="absolute right-[-15px] top-[-15px] z-10">
                       <LoraStatusIndicator
@@ -2012,6 +2035,7 @@ export default function InfluencerEdit() {
                         className="flex-shrink-0"
                       />
                     </div>
+                    
                     {
                       influencer.image_url ? (
                         <img

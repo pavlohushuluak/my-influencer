@@ -8,7 +8,7 @@ import { setUser } from '@/store/slices/userSlice';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Settings, MoreHorizontal, Image, Copy, Upload, X, Loader2 } from 'lucide-react';
+import { Plus, Settings, MoreHorizontal, Image, Copy, Upload, X, Loader2, Sparkles, FileVideo, Palette, RefreshCw, Zap, CheckCircle, Brain, FolderOpen, Volume2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Influencer } from '@/store/slices/influencersSlice';
 import axios from 'axios';
@@ -47,6 +47,13 @@ export default function Dashboard() {
     gems: number;
   } | null>(null);
   const [isCheckingGems, setIsCheckingGems] = useState(false);
+  
+  // Phase 3 Content Creation Modal state
+  const [showPhase3CreationModal, setShowPhase3CreationModal] = useState(false);
+  const [selectedPhase3Influencer, setSelectedPhase3Influencer] = useState<Influencer | null>(null);
+  
+  // Phase 4 Library Organization Modal state
+  const [showPhase4LibraryModal, setShowPhase4LibraryModal] = useState(false);
   const displayedInfluencerOne = showAllPhaseOne ? influencers : influencers.slice(0, 3);
   const displayedInfluencerTwo = showAllPhaseTwo ? influencers : influencers.slice(0, 3);
   const displayedInfluencerThree = showAllPhaseThree ? influencers : influencers.slice(0, 3);
@@ -233,25 +240,13 @@ export default function Dashboard() {
   const handleCreateSocialMedia = (influencerId: string) => {
     const influencer = influencers.find(inf => inf.id === influencerId);
     if (influencer) {
-      navigate('/content/create', {
-        state: {
-          influencerData: influencer,
-          mode: 'create'
-        }
-      });
+      setSelectedPhase3Influencer(influencer);
+      setShowPhase3CreationModal(true);
     }
   };
 
   const handleCreatePPVSet = (influencerId: string) => {
-    const influencer = influencers.find(inf => inf.id === influencerId);
-    if (influencer) {
-      navigate('/content/create', {
-        state: {
-          influencerData: influencer,
-          mode: 'ppv'
-        }
-      });
-    }
+    setShowPhase4LibraryModal(true);
   };
 
   const handleCharacterConsistency = () => {
@@ -554,17 +549,20 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex flex-col md:flex-row items-center justify-between gap-5">
-        <div className="flex flex-col items-center md:items-start">
-          <h1 className="text-3xl font-bold tracking-tight bg-ai-gradient bg-clip-text text-transparent">
+    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-5">
+        <div className="flex flex-col items-center sm:items-start text-center sm:text-left">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight bg-ai-gradient bg-clip-text text-transparent">
             Dashboard
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-sm sm:text-base text-muted-foreground">
             Welcome to your AI influencer management dashboard
           </p>
         </div>
-        <Button onClick={handleCreateNew} className="bg-gradient-to-r from-purple-600 to-blue-600">
+        <Button 
+          onClick={handleCreateNew} 
+          className="w-full sm:w-auto bg-gradient-to-r from-purple-600 to-blue-600 text-sm sm:text-base px-4 sm:px-6 py-2 sm:py-3"
+        >
           <Plus className="w-4 h-4 mr-2" />
           Create New Influencer
         </Button>
@@ -572,27 +570,32 @@ export default function Dashboard() {
 
       {/* Phase 1 - Create your Influencer Container */}
       <Card>
-        <CardHeader className="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-950/30 dark:to-blue-950/30 border-b border-purple-200/50 dark:border-purple-800/50 p-3 px-10 mb-6">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-xl font-semibold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">Phase 1 - Create your Influencer</CardTitle>
-            <Button variant="ghost" size="sm" className="text-purple-600 hover:text-purple-700 hover:bg-purple-100 dark:hover:bg-purple-900/30" onClick={() => setShowAllPhaseOne(!showAllPhaseOne)}>
+        <CardHeader className="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-950/30 dark:to-blue-950/30 border-b border-purple-200/50 dark:border-purple-800/50 p-3 sm:px-6 lg:px-10 mb-4 sm:mb-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
+            <CardTitle className="text-lg sm:text-xl font-semibold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">Phase 1 - Create your Influencer</CardTitle>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="text-purple-600 hover:text-purple-700 hover:bg-purple-100 dark:hover:bg-purple-900/30 text-sm px-3 sm:px-4 py-2" 
+              onClick={() => setShowAllPhaseOne(!showAllPhaseOne)}
+            >
               <MoreHorizontal className="w-4 h-4 mr-2" />
               {showAllPhaseOne ? 'Show Less' : 'Show More'}
             </Button>
           </div>
         </CardHeader>
-        <div className="w-full p-6 xl:hidden">
+        <div className="w-full p-4 sm:p-6 xl:hidden">
           <InstructionVideo {...getInstructionVideoConfig('phase1')} />
         </div>
-        <CardContent>
-          <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
+        <CardContent className="p-4 sm:p-6">
+          <div className="grid grid-cols-1 xl:grid-cols-5 gap-4 sm:gap-6">
             {/* Left side - Influencer cards (3 width) */}
             <div className="col-span-3">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                 {displayedInfluencerOne.map((influencer) => (
               <Card key={influencer.id} className="group hover:shadow-lg transition-all duration-300 border-border/50 hover:border-ai-purple-500/20">
-                <CardContent className="p-6 h-full">
-                  <div className="flex flex-col justify-between h-full space-y-4">
+                <CardContent className="p-4 sm:p-6 h-full">
+                  <div className="flex flex-col justify-between h-full space-y-3 sm:space-y-4">
                     <div className="relative w-full h-full bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg overflow-hidden">
                       {/* LoraStatusIndicator positioned at top right */}
                       <div className="absolute right-[-15px] top-[-15px] z-10">
@@ -617,47 +620,47 @@ export default function Dashboard() {
                       }
                     </div>
 
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <h3 className="font-semibold text-lg group-hover:text-ai-purple-500 transition-colors">
-                          {influencer.name_first} {influencer.name_last}
-                        </h3>
-                      </div>
+                                            <div>
+                          <div className="flex items-center justify-between mb-2">
+                            <h3 className="font-semibold text-base sm:text-lg group-hover:text-ai-purple-500 transition-colors">
+                              {influencer.name_first} {influencer.name_last}
+                            </h3>
+                          </div>
 
-                      <div className="flex flex-col gap-1 mb-3">
-                        <div className="flex text-sm text-muted-foreground flex-col">
-                          {influencer.notes ? (
-                            <span className="text-sm text-muted-foreground">
-                              {influencer.notes.length > 50 
-                                ? `${influencer.notes.substring(0, 50)}...` 
-                                : influencer.notes
-                              }
-                            </span>
-                          ) : (
-                            <span className="text-sm text-muted-foreground">
-                              {influencer.lifestyle || 'No lifestyle'} • {influencer.origin_residence || 'No residence'}
-                            </span>
-                          )}
-                        </div>
-                      </div>
+                          <div className="flex flex-col gap-1 mb-3">
+                            <div className="flex text-xs sm:text-sm text-muted-foreground flex-col">
+                              {influencer.notes ? (
+                                <span className="text-xs sm:text-sm text-muted-foreground">
+                                  {influencer.notes.length > 50 
+                                    ? `${influencer.notes.substring(0, 50)}...` 
+                                    : influencer.notes
+                                  }
+                                </span>
+                              ) : (
+                                <span className="text-xs sm:text-sm text-muted-foreground">
+                                  {influencer.lifestyle || 'No lifestyle'} • {influencer.origin_residence || 'No residence'}
+                                </span>
+                              )}
+                            </div>
+                          </div>
 
                           <div className="grid gap-2 grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
                         <Button
                           size="sm"
                           variant="outline"
                           onClick={() => handleEditInfluencer(influencer.id)}
-                          className="flex-1 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                          className="flex-1 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-xs sm:text-sm px-2 sm:px-3 py-2"
                         >
-                          <Settings className="w-4 h-4 mr-2" />
+                          <Settings className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
                           Edit
                         </Button>
                         <Button
                           size="sm"
                           variant="outline"
                           onClick={() => handleUseInfluencer(influencer.id)}
-                          className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+                          className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-xs sm:text-sm px-2 sm:px-3 py-2"
                         >
-                          <Plus className="w-4 h-4 mr-2" />
+                          <Plus className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
                           Use
                         </Button>
                       </div>
@@ -681,27 +684,32 @@ export default function Dashboard() {
 
       {/* Phase 2 - Train Character Consistency Container */}
       <Card>
-        <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 border-b border-green-200/50 dark:border-green-800/50 p-3 px-10 mb-6">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-xl font-semibold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">Phase 2 - Train Character Consistency</CardTitle>
-            <Button variant="ghost" size="sm" className="text-green-600 hover:text-green-700 hover:bg-green-100 dark:hover:bg-green-900/30" onClick={() => setShowAllPhaseTwo(!showAllPhaseTwo)}>
+                <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 border-b border-green-200/50 dark:border-green-800/50 p-3 sm:px-6 lg:px-10 mb-4 sm:mb-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
+            <CardTitle className="text-lg sm:text-xl font-semibold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">Phase 2 - Train Character Consistency</CardTitle>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="text-green-600 hover:text-green-700 hover:bg-green-100 dark:hover:bg-green-900/30 text-sm px-3 sm:px-4 py-2" 
+              onClick={() => setShowAllPhaseTwo(!showAllPhaseTwo)}
+            >
                 <MoreHorizontal className="w-4 h-4 mr-2" />
               {showAllPhaseTwo ? 'Show Less' : 'Show More'}
-              </Button>
-            </div>
+            </Button>
+          </div>
         </CardHeader>
-        <div className="w-full p-6 xl:hidden">
+        <div className="w-full p-4 sm:p-6 xl:hidden">
           <InstructionVideo {...getInstructionVideoConfig('phase2')} />
         </div>
-        <CardContent>
-          <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
+        <CardContent className="p-4 sm:p-6">
+          <div className="grid grid-cols-1 xl:grid-cols-5 gap-4 sm:gap-6">
             {/* Left side - Influencer cards (3 width) */}
             <div className="col-span-3">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                 {displayedInfluencerTwo.map((influencer) => (
                   <Card key={influencer.id} className="group hover:shadow-lg transition-all duration-300 border-border/50 hover:border-ai-purple-500/20">
-                    <CardContent className="p-6 h-full">
-                      <div className="flex flex-col justify-between h-full space-y-4">
+                    <CardContent className="p-4 sm:p-6 h-full">
+                      <div className="flex flex-col justify-between h-full space-y-3 sm:space-y-4">
                         <div className="relative w-full h-full bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg overflow-hidden">
                           {/* LoraStatusIndicator positioned at top right */}
                           <div className="absolute right-[-15px] top-[-15px] z-10">
@@ -728,22 +736,22 @@ export default function Dashboard() {
 
                         <div>
                           <div className="flex items-center justify-between mb-2">
-                            <h3 className="font-semibold text-lg group-hover:text-ai-purple-500 transition-colors">
+                            <h3 className="font-semibold text-base sm:text-lg group-hover:text-ai-purple-500 transition-colors">
                               {influencer.name_first} {influencer.name_last}
                             </h3>
                           </div>
 
                           <div className="flex flex-col gap-1 mb-3">
-                            <div className="flex text-sm text-muted-foreground flex-col">
+                            <div className="flex text-xs sm:text-sm text-muted-foreground flex-col">
                               {influencer.notes ? (
-                                <span className="text-sm text-muted-foreground">
+                                <span className="text-xs sm:text-sm text-muted-foreground">
                                   {influencer.notes.length > 50 
                                     ? `${influencer.notes.substring(0, 50)}...` 
                                     : influencer.notes
                                   }
                                 </span>
                               ) : (
-                                <span className="text-sm text-muted-foreground">
+                                <span className="text-xs sm:text-sm text-muted-foreground">
                                   {influencer.lifestyle || 'No lifestyle'} • {influencer.origin_residence || 'No residence'}
                                 </span>
                               )}
@@ -755,9 +763,9 @@ export default function Dashboard() {
                               size="sm"
                               variant="outline"
                               onClick={() => handleTrainCharacterConsistency(influencer.id)}
-                              className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+                              className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-xs sm:text-sm px-2 sm:px-3 py-2"
                             >
-                              <Copy className="w-4 h-4 mr-2" />
+                              <Copy className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
                               Train CC
                             </Button>
                           </div>
@@ -781,27 +789,32 @@ export default function Dashboard() {
 
       {/* Phase 3 - Create Social Media Content Container */}
       <Card>
-        <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border-b border-blue-200/50 dark:border-blue-800/50 p-3 px-10 mb-6">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-xl font-semibold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">Phase 3 - Create Social Media Content</CardTitle>
-            <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-700 hover:bg-blue-100 dark:hover:bg-blue-900/30" onClick={() => setShowAllPhaseThree(!showAllPhaseThree)}>
+        <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border-b border-blue-200/50 dark:border-blue-800/50 p-3 sm:px-6 lg:px-10 mb-4 sm:mb-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
+            <CardTitle className="text-lg sm:text-xl font-semibold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">Phase 3 - Create Social Media Content</CardTitle>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="text-blue-600 hover:text-blue-700 hover:bg-blue-100 dark:hover:bg-blue-900/30 text-sm px-3 sm:px-4 py-2" 
+              onClick={() => setShowAllPhaseThree(!showAllPhaseThree)}
+            >
               <MoreHorizontal className="w-4 h-4 mr-2" />
               {showAllPhaseThree ? 'Show Less' : 'Show More'}
             </Button>
           </div>
         </CardHeader>
-        <div className="w-full p-6 xl:hidden">
+        <div className="w-full p-4 sm:p-6 xl:hidden">
           <InstructionVideo {...getInstructionVideoConfig('phase3')} />
         </div>
-        <CardContent>
-          <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
+        <CardContent className="p-4 sm:p-6">
+          <div className="grid grid-cols-1 xl:grid-cols-5 gap-4 sm:gap-6">
             {/* Left side - Influencer cards (3 width) */}
             <div className="col-span-3">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                 {displayedInfluencerThree.map((influencer) => (
                   <Card key={influencer.id} className="group hover:shadow-lg transition-all duration-300 border-border/50 hover:border-ai-purple-500/20">
-                    <CardContent className="p-6 h-full">
-                      <div className="flex flex-col justify-between h-full space-y-4">
+                    <CardContent className="p-4 sm:p-6 h-full">
+                      <div className="flex flex-col justify-between h-full space-y-3 sm:space-y-4">
                         <div className="relative w-full h-full bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg overflow-hidden">
                           {/* LoraStatusIndicator positioned at top right */}
                           <div className="absolute right-[-15px] top-[-15px] z-10">
@@ -828,22 +841,22 @@ export default function Dashboard() {
 
                         <div>
                           <div className="flex items-center justify-between mb-2">
-                            <h3 className="font-semibold text-lg group-hover:text-ai-purple-500 transition-colors">
+                            <h3 className="font-semibold text-base sm:text-lg group-hover:text-ai-purple-500 transition-colors">
                               {influencer.name_first} {influencer.name_last}
                             </h3>
                           </div>
 
                           <div className="flex flex-col gap-1 mb-3">
-                            <div className="flex text-sm text-muted-foreground flex-col">
+                            <div className="flex text-xs sm:text-sm text-muted-foreground flex-col">
                               {influencer.notes ? (
-                                <span className="text-sm text-muted-foreground">
+                                <span className="text-xs sm:text-sm text-muted-foreground">
                                   {influencer.notes.length > 50 
                                     ? `${influencer.notes.substring(0, 50)}...` 
                                     : influencer.notes
                                   }
                                 </span>
                               ) : (
-                                <span className="text-sm text-muted-foreground">
+                                <span className="text-xs sm:text-sm text-muted-foreground">
                                   {influencer.lifestyle || 'No lifestyle'} • {influencer.origin_residence || 'No residence'}
                                 </span>
                               )}
@@ -855,9 +868,9 @@ export default function Dashboard() {
                               size="sm"
                               variant="outline"
                               onClick={() => handleCreateSocialMedia(influencer.id)}
-                              className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+                              className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-xs sm:text-sm px-2 sm:px-3 py-2"
                             >
-                              <Image className="w-4 h-4 mr-2" />
+                              <Image className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
                               Social Media
                             </Button>
                           </div>
@@ -881,27 +894,32 @@ export default function Dashboard() {
 
       {/* Phase 4 - Monetize Container */}
       <Card>
-        <CardHeader className="bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-950/30 dark:to-amber-950/30 border-b border-orange-200/50 dark:border-orange-800/50 p-3 px-10 mb-6">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-xl font-semibold bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent">Phase 4 - Monetize</CardTitle>
-            <Button variant="ghost" size="sm" className="text-orange-600 hover:text-orange-700 hover:bg-orange-100 dark:hover:bg-orange-900/30" onClick={() => setShowAllPhaseFour(!showAllPhaseFour)}>
+        <CardHeader className="bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-950/30 dark:to-amber-950/30 border-b border-orange-200/50 dark:border-orange-800/50 p-3 sm:px-6 lg:px-10 mb-4 sm:mb-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
+            <CardTitle className="text-lg sm:text-xl font-semibold bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent">Phase 4 - Organize your Content</CardTitle>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="text-orange-600 hover:text-orange-700 hover:bg-orange-100 dark:hover:bg-orange-900/30 text-sm px-3 sm:px-4 py-2" 
+              onClick={() => setShowAllPhaseFour(!showAllPhaseFour)}
+            >
               <MoreHorizontal className="w-4 h-4 mr-2" />
               {showAllPhaseFour ? 'Show Less' : 'Show More'}
             </Button>
           </div>
         </CardHeader>
-        <div className="w-full p-6 xl:hidden">
+        <div className="w-full p-4 sm:p-6 xl:hidden">
           <InstructionVideo {...getInstructionVideoConfig('phase4')} />
         </div>
-        <CardContent>
-          <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
+        <CardContent className="p-4 sm:p-6">
+          <div className="grid grid-cols-1 xl:grid-cols-5 gap-4 sm:gap-6">
             {/* Left side - Influencer cards (3 width) */}
             <div className="col-span-3">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                 {displayedInfluencerFour.map((influencer) => (
                   <Card key={influencer.id} className="group hover:shadow-lg transition-all duration-300 border-border/50 hover:border-ai-purple-500/20">
-                    <CardContent className="p-6 h-full">
-                      <div className="flex flex-col justify-between h-full space-y-4">
+                    <CardContent className="p-4 sm:p-6 h-full">
+                      <div className="flex flex-col justify-between h-full space-y-3 sm:space-y-4">
                         <div className="relative w-full h-full bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg overflow-hidden">
                           {/* LoraStatusIndicator positioned at top right */}
                           <div className="absolute right-[-15px] top-[-15px] z-10">
@@ -928,22 +946,22 @@ export default function Dashboard() {
 
                         <div>
                           <div className="flex items-center justify-between mb-2">
-                            <h3 className="font-semibold text-lg group-hover:text-ai-purple-500 transition-colors">
+                            <h3 className="font-semibold text-base sm:text-lg group-hover:text-ai-purple-500 transition-colors">
                               {influencer.name_first} {influencer.name_last}
                             </h3>
                           </div>
 
                           <div className="flex flex-col gap-1 mb-3">
-                            <div className="flex text-sm text-muted-foreground flex-col">
+                            <div className="flex text-xs sm:text-sm text-muted-foreground flex-col">
                               {influencer.notes ? (
-                                <span className="text-sm text-muted-foreground">
+                                <span className="text-xs sm:text-sm text-muted-foreground">
                                   {influencer.notes.length > 50 
                                     ? `${influencer.notes.substring(0, 50)}...` 
                                     : influencer.notes
                                   }
                                 </span>
                               ) : (
-                                <span className="text-sm text-muted-foreground">
+                                <span className="text-xs sm:text-sm text-muted-foreground">
                                   {influencer.lifestyle || 'No lifestyle'} • {influencer.origin_residence || 'No residence'}
                                 </span>
                               )}
@@ -955,10 +973,10 @@ export default function Dashboard() {
                               size="sm"
                               variant="outline"
                               onClick={() => handleCreatePPVSet(influencer.id)}
-                              className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+                              className="flex-1 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 text-xs sm:text-sm px-2 sm:px-3 py-2"
                             >
-                              <Plus className="w-4 h-4 mr-2" />
-                              Create PPV Set
+                              <FolderOpen className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                              Organize
                             </Button>
                           </div>
                         </div>
@@ -1161,6 +1179,474 @@ export default function Dashboard() {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Phase 3 Creation Options Modal */}
+      <Dialog open={showPhase3CreationModal} onOpenChange={setShowPhase3CreationModal}>
+        <DialogContent className="max-w-4xl w-[95vw] max-h-[90vh] overflow-y-auto p-0">
+          {/* Header with gradient background */}
+          <div className="bg-gradient-to-br from-purple-600 via-blue-600 to-indigo-700 p-4 sm:p-6 lg:p-8 text-white relative overflow-hidden">
+            {/* Background pattern */}
+            <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent"></div>
+            <div className="absolute top-0 right-0 w-20 sm:w-32 lg:w-40 h-20 sm:h-32 lg:h-40 bg-white/5 rounded-full -translate-y-10 sm:-translate-y-16 lg:-translate-y-20 translate-x-10 sm:translate-x-16 lg:translate-x-20"></div>
+            <div className="absolute bottom-0 left-0 w-16 sm:w-24 lg:w-32 h-16 sm:h-24 lg:h-32 bg-white/5 rounded-full translate-y-8 sm:translate-y-12 lg:translate-y-16 -translate-x-8 sm:-translate-x-12 lg:-translate-x-16"></div>
+
+            <div className="relative z-10 text-center">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-4 sm:mb-6 bg-white/20 rounded-2xl sm:rounded-3xl flex items-center justify-center backdrop-blur-sm border border-white/30 shadow-xl sm:shadow-2xl">
+                <Sparkles className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
+              </div>
+              <DialogTitle className="text-xl sm:text-2xl lg:text-3xl font-bold mb-3 sm:mb-4 bg-gradient-to-r from-white to-purple-100 bg-clip-text text-transparent">
+                Generate Exclusive Content
+              </DialogTitle>
+              <DialogDescription className="text-sm sm:text-base lg:text-lg text-purple-100 leading-relaxed max-w-2xl mx-auto">
+                Choose your preferred content creation method. Each option offers unique capabilities to bring your AI influencer to life.
+              </DialogDescription>
+            </div>
+          </div>
+
+          {/* Content */}
+          <div className="p-4 sm:p-6 lg:p-8">
+            {/* Influencer Info Card */}
+            {(() => {
+              const displayInfluencer = selectedPhase3Influencer;
+
+              if (displayInfluencer) {
+                return (
+                  <Card className="mb-8 bg-gradient-to-br from-purple-50/50 to-blue-50/50 dark:from-purple-950/20 dark:to-blue-950/20 border-purple-200/50 dark:border-purple-800/50 shadow-xl">
+                    <CardContent className="p-6">
+                      <div className="flex flex-col sm:flex-row items-center gap-4">
+                        <div className="relative">
+                          <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden ring-4 ring-white dark:ring-gray-800 shadow-xl">
+                            <img
+                              src={displayInfluencer.image_url}
+                              alt={displayInfluencer.name_first}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                          {displayInfluencer.lorastatus === 2 && (
+                            <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center shadow-lg">
+                              <CheckCircle className="w-4 h-4 text-white" />
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1 text-center sm:text-left">
+                          <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-1">
+                            {displayInfluencer.name_first} {displayInfluencer.name_last}
+                          </h3>
+                          <p className="text-gray-600 dark:text-gray-300 mb-3">
+                            Ready for content creation • {displayInfluencer.influencer_type || 'AI Influencer'}
+                          </p>
+                          <div className="flex flex-wrap gap-2 justify-center sm:justify-start">
+                            {displayInfluencer.lorastatus === 2 ? (
+                              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
+                                <CheckCircle className="w-3 h-3 mr-1" />
+                                AI Consistency Trained
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
+                                <Brain className="w-3 h-3 mr-1" />
+                                Ready for Training
+                              </span>
+                            )}
+                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300">
+                              <Sparkles className="w-3 h-3 mr-1" />
+                              Content Ready
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              }
+              return null;
+            })()}
+
+            {/* Creation Options Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+              {/* Images */}
+              <Card 
+                onClick={() => {
+                  const influencerToUse = selectedPhase3Influencer;
+                  setShowPhase3CreationModal(false);
+                  if (influencerToUse) {
+                    navigate('/create/images', { state: { influencerData: influencerToUse } });
+                  } else {
+                    navigate('/create/images');
+                  }
+                }}
+                className="group cursor-pointer hover:shadow-2xl transition-all duration-300 transform hover:scale-105 border-2 hover:border-purple-300 dark:hover:border-purple-600 bg-gradient-to-br from-white to-purple-50/30 dark:from-slate-800/50 dark:to-purple-900/20"
+              >
+                <CardContent className="p-4 sm:p-6 text-center">
+                  <div className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow duration-300">
+                    <Image className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
+                  </div>
+                  <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+                    Generate Images
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-300 text-xs sm:text-sm leading-relaxed mb-3 sm:mb-4">
+                    Create stunning AI-generated images with your influencer in various scenarios, poses, and styles.
+                  </p>
+                  <div className="flex items-center justify-center gap-2 text-xs text-purple-600 dark:text-purple-400">
+                    <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                    High-quality AI generation
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Videos */}
+              <Card 
+                onClick={() => {
+                  const influencerToUse = selectedPhase3Influencer;
+                  setShowPhase3CreationModal(false);
+                  if (influencerToUse) {
+                    navigate('/create/videos', { state: { influencerData: influencerToUse, autoSelect: 'image' } });
+                  } else {
+                    navigate('/create/videos', { state: { autoSelect: 'image' } });
+                  }
+                }}
+                className="group cursor-pointer hover:shadow-2xl transition-all duration-300 transform hover:scale-105 border-2 hover:border-blue-300 dark:hover:border-blue-600 bg-gradient-to-br from-white to-blue-50/30 dark:from-slate-800/50 dark:to-blue-900/20"
+              >
+                <CardContent className="p-6 text-center">
+                  <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-2xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow duration-300">
+                    <FileVideo className="w-8 h-8 text-white" />
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+                    Create Videos
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed mb-4">
+                    Generate dynamic videos featuring your AI influencer with lip-sync and motion capabilities.
+                  </p>
+                  <div className="flex items-center justify-center gap-2 text-xs text-blue-600 dark:text-blue-400">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                    Advanced video generation
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Edit */}
+              <Card 
+                onClick={() => {
+                  setShowPhase3CreationModal(false);
+                  navigate('/create/edit');
+                }}
+                className="group cursor-pointer hover:shadow-2xl transition-all duration-300 transform hover:scale-105 border-2 hover:border-green-300 dark:hover:border-green-600 bg-gradient-to-br from-white to-green-50/30 dark:from-slate-800/50 dark:to-green-900/20"
+              >
+                <CardContent className="p-6 text-center">
+                  <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-r from-green-500 to-emerald-500 rounded-2xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow duration-300">
+                    <Palette className="w-8 h-8 text-white" />
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+                    Edit & Enhance
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed mb-4">
+                    Edit and enhance existing images with AI-powered tools for professional results.
+                  </p>
+                  <div className="flex items-center justify-center gap-2 text-xs text-green-600 dark:text-green-400">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    Professional editing tools
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Face Swap */}
+              <Card 
+                onClick={() => {
+                  setShowPhase3CreationModal(false);
+                  navigate('/create/faceswap');
+                }}
+                className="group cursor-pointer hover:shadow-2xl transition-all duration-300 transform hover:scale-105 border-2 hover:border-orange-300 dark:hover:border-orange-600 bg-gradient-to-br from-white to-orange-50/30 dark:from-slate-800/50 dark:to-orange-900/20"
+              >
+                <CardContent className="p-6 text-center">
+                  <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-r from-orange-500 to-red-500 rounded-2xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow duration-300">
+                    <RefreshCw className="w-8 h-8 text-white" />
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+                    Face Swap
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed mb-4">
+                    Seamlessly swap faces in images and videos with advanced AI technology.
+                  </p>
+                  <div className="flex items-center justify-center gap-2 text-xs text-orange-600 dark:text-orange-400">
+                    <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                    Advanced face swapping
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Optimizer */}
+              <Card 
+                onClick={() => {
+                  setShowPhase3CreationModal(false);
+                  navigate('/create/optimizer');
+                }}
+                className="group cursor-pointer hover:shadow-2xl transition-all duration-300 transform hover:scale-105 border-2 hover:border-indigo-300 dark:hover:border-indigo-600 bg-gradient-to-br from-white to-indigo-50/30 dark:from-slate-800/50 dark:to-indigo-900/20"
+              >
+                <CardContent className="p-6 text-center">
+                  <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-2xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow duration-300">
+                    <Zap className="w-8 h-8 text-white" />
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+                    Content Optimizer
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed mb-4">
+                    Optimize and upscale your content for maximum quality and performance.
+                  </p>
+                  <div className="flex items-center justify-center gap-2 text-xs text-indigo-600 dark:text-indigo-400">
+                    <div className="w-2 h-2 bg-indigo-500 rounded-full"></div>
+                    Quality optimization
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-6 sm:pt-8 border-t border-gray-200 dark:border-gray-700">
+              <Button
+                variant="outline"
+                onClick={() => setShowPhase3CreationModal(false)}
+                className="flex-1 h-10 sm:h-12 text-sm sm:text-base font-medium border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 px-3 sm:px-4"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={() => {
+                  setShowPhase3CreationModal(false);
+                  // Navigate to images creation as default
+                  const influencerToUse = selectedPhase3Influencer;
+                  if (influencerToUse) {
+                    navigate('/create/images', { state: { influencerData: influencerToUse } });
+                  } else {
+                    navigate('/create/images');
+                  }
+                }}
+                className="flex-1 h-10 sm:h-12 text-sm sm:text-base font-medium bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 shadow-lg hover:shadow-xl transition-all duration-300 px-3 sm:px-4"
+              >
+                <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 mr-2 sm:mr-3" />
+                Start with Images (Default)
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Phase 4 Library Options Modal */}
+      <Dialog open={showPhase4LibraryModal} onOpenChange={setShowPhase4LibraryModal}>
+        <DialogContent className="max-w-4xl w-[95vw] max-h-[90vh] overflow-y-auto p-0">
+          {/* Header with gradient background */}
+          <div className="bg-gradient-to-br from-orange-600 via-amber-600 to-yellow-600 p-4 sm:p-6 lg:p-8 text-white relative overflow-hidden">
+            {/* Background pattern */}
+            <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent"></div>
+            <div className="absolute top-0 right-0 w-20 sm:w-32 lg:w-40 h-20 sm:h-32 lg:h-40 bg-white/5 rounded-full -translate-y-10 sm:-translate-y-16 lg:-translate-y-20 translate-x-10 sm:translate-x-16 lg:translate-x-20"></div>
+            <div className="absolute bottom-0 left-0 w-16 sm:w-24 lg:w-32 h-16 sm:h-24 lg:h-32 bg-white/5 rounded-full translate-y-8 sm:translate-y-12 lg:translate-y-16 -translate-x-8 sm:-translate-x-12 lg:-translate-x-16"></div>
+
+            <div className="relative z-10 text-center">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-4 sm:mb-6 bg-white/20 rounded-2xl sm:rounded-3xl flex items-center justify-center backdrop-blur-sm border border-white/30 shadow-xl sm:shadow-2xl">
+                <FolderOpen className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
+              </div>
+              <DialogTitle className="text-xl sm:text-2xl lg:text-3xl font-bold mb-3 sm:mb-4 bg-gradient-to-r from-white to-orange-100 bg-clip-text text-transparent">
+                Organize Your Content
+              </DialogTitle>
+              <DialogDescription className="text-sm sm:text-base lg:text-lg text-orange-100 leading-relaxed max-w-2xl mx-auto">
+                Choose a library to organize and manage your generated content. Keep your AI influencer's assets well-organized for easy access.
+              </DialogDescription>
+            </div>
+          </div>
+
+          {/* Content */}
+          <div className="p-4 sm:p-6 lg:p-8">
+            {/* Library Options Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
+              {/* Images Library */}
+              <Card
+                onClick={async () => {
+                  setShowPhase4LibraryModal(false);
+                  // Update guide_step to 5
+                  try {
+                    const response = await fetch(`${config.supabase_server_url}/user?uuid=eq.${userData.id}`, {
+                      method: 'PATCH',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer WeInfl3nc3withAI'
+                      },
+                      body: JSON.stringify({
+                        guide_step: 5
+                      })
+                    });
+
+                    if (response.ok) {
+                      dispatch(setUser({ guide_step: 5 }));
+                      toast.success('Progress updated! Moving to Phase 5...');
+                    } else {
+                      toast.error('Failed to update progress');
+                    }
+                  } catch (error) {
+                    console.error('Failed to update guide_step:', error);
+                    toast.error('Failed to update progress');
+                  }
+                  navigate('/library/images');
+                }}
+                className="group cursor-pointer hover:shadow-2xl transition-all duration-300 transform hover:scale-105 border-2 hover:border-orange-300 dark:hover:border-orange-600 bg-gradient-to-br from-white to-orange-50/30 dark:from-slate-800/50 dark:to-orange-900/20"
+              >
+                <CardContent className="p-4 sm:p-6 text-center">
+                  <div className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 bg-gradient-to-r from-orange-500 to-red-500 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow duration-300">
+                    <Image className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
+                  </div>
+                  <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+                    Images Library
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-300 text-xs sm:text-sm leading-relaxed mb-3 sm:mb-4">
+                    Organize and manage all your AI-generated images, edit history, and image presets in one place.
+                  </p>
+                  <div className="flex items-center justify-center gap-2 text-xs text-orange-600 dark:text-orange-400">
+                    <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                    Image management & organization
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Videos Library */}
+              <Card
+                onClick={async () => {
+                  setShowPhase4LibraryModal(false);
+                  // Update guide_step to 5
+                  try {
+                    const response = await fetch(`${config.supabase_server_url}/user?uuid=eq.${userData.id}`, {
+                      method: 'PATCH',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer WeInfl3nc3withAI'
+                      },
+                      body: JSON.stringify({
+                        guide_step: 5
+                      })
+                    });
+
+                    if (response.ok) {
+                      dispatch(setUser({ guide_step: 5 }));
+                      toast.success('Progress updated! Moving to Phase 5...');
+                    } else {
+                      toast.error('Failed to update progress');
+                    }
+                  } catch (error) {
+                    console.error('Failed to update guide_step:', error);
+                    toast.error('Failed to update progress');
+                  }
+                  navigate('/library/videos');
+                }}
+                className="group cursor-pointer hover:shadow-2xl transition-all duration-300 transform hover:scale-105 border-2 hover:border-amber-300 dark:hover:border-amber-600 bg-gradient-to-br from-white to-amber-50/30 dark:from-slate-800/50 dark:to-amber-900/20"
+              >
+                <CardContent className="p-4 sm:p-6 text-center">
+                  <div className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 bg-gradient-to-r from-amber-500 to-yellow-500 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow duration-300">
+                    <FileVideo className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
+                  </div>
+                  <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+                    Videos Library
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-300 text-xs sm:text-sm leading-relaxed mb-3 sm:mb-4">
+                    Manage your video content, lip-sync videos, and video presets with advanced organization tools.
+                  </p>
+                  <div className="flex items-center justify-center gap-2 text-xs text-amber-600 dark:text-amber-400">
+                    <div className="w-2 h-2 bg-amber-500 rounded-full"></div>
+                    Video management & organization
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Audios Library */}
+              <Card
+                onClick={async () => {
+                  setShowPhase4LibraryModal(false);
+                  // Update guide_step to 5
+                  try {
+                    const response = await fetch(`${config.supabase_server_url}/user?uuid=eq.${userData.id}`, {
+                      method: 'PATCH',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer WeInfl3nc3withAI'
+                      },
+                      body: JSON.stringify({
+                        guide_step: 5
+                      })
+                    });
+
+                    if (response.ok) {
+                      dispatch(setUser({ guide_step: 5 }));
+                      toast.success('Progress updated! Moving to Phase 5...');
+                    } else {
+                      toast.error('Failed to update progress');
+                    }
+                  } catch (error) {
+                    console.error('Failed to update guide_step:', error);
+                    toast.error('Failed to update progress');
+                  }
+                  navigate('/library/audios');
+                }}
+                className="group cursor-pointer hover:shadow-2xl transition-all duration-300 transform hover:scale-105 border-2 hover:border-yellow-300 dark:hover:border-yellow-600 bg-gradient-to-br from-white to-yellow-50/30 dark:from-slate-800/50 dark:to-yellow-900/20"
+              >
+                <CardContent className="p-4 sm:p-6 text-center">
+                  <div className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow duration-300">
+                    <Volume2 className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
+                  </div>
+                  <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+                    Audios Library
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-300 text-xs sm:text-sm leading-relaxed mb-3 sm:mb-4">
+                    Organize your audio files, voice samples, and audio presets for lip-sync video creation.
+                  </p>
+                  <div className="flex items-center justify-center gap-2 text-xs text-yellow-600 dark:text-yellow-400">
+                    <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                    Audio management & organization
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-6 sm:pt-8 border-t border-gray-200 dark:border-gray-700">
+              <Button
+                variant="outline"
+                onClick={() => setShowPhase4LibraryModal(false)}
+                className="flex-1 h-10 sm:h-12 text-sm sm:text-base font-medium border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 px-3 sm:px-4"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={async () => {
+                  setShowPhase4LibraryModal(false);
+                  // Update guide_step to 5 and navigate to images library as default
+                  try {
+                    const response = await fetch(`${config.supabase_server_url}/user?uuid=eq.${userData.id}`, {
+                      method: 'PATCH',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer WeInfl3nc3withAI'
+                      },
+                      body: JSON.stringify({
+                        guide_step: 5
+                      })
+                    });
+
+                    if (response.ok) {
+                      dispatch(setUser({ guide_step: 5 }));
+                      toast.success('Progress updated! Moving to Phase 5...');
+                    } else {
+                      toast.error('Failed to update progress');
+                    }
+                  } catch (error) {
+                    console.error('Failed to update guide_step:', error);
+                    toast.error('Failed to update progress');
+                  }
+                  navigate('/library/images');
+                }}
+                className="flex-1 h-10 sm:h-12 text-sm sm:text-base font-medium bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 shadow-lg hover:shadow-xl transition-all duration-300 px-3 sm:px-4"
+              >
+                <FolderOpen className="w-4 h-4 sm:w-5 sm:h-5 mr-2 sm:mr-3" />
+                Go to Images Library (Default)
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
 

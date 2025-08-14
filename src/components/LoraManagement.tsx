@@ -728,7 +728,7 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
       });
 
       if (!copyResponse.ok) {
-        throw new Error('Failed to copy image from vault');
+        throw new Error('Failed to copy image from library');
       }
 
       toast.success('Image copied to AI consistency training folder successfully');
@@ -737,8 +737,8 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
       // Refresh the files list
       fetchLoraFiles();
     } catch (error) {
-      console.error('Error copying image from vault:', error);
-      toast.error('Failed to copy image from vault');
+      console.error('Error copying image from library:', error);
+      toast.error('Failed to copy image from library');
     } finally {
       setIsUploading(false);
     }
@@ -1493,7 +1493,7 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
                         className="flex-1"
                       >
                         <Folder className="w-4 h-4 mr-2" />
-                        From Vault
+                        From Library
                       </Button>
                     </div>
                   </div>
@@ -1795,7 +1795,7 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
               Create Image from AI consistency training
             </DialogTitle>
             <DialogDescription>
-              This will create new images using the selected training image as input. The generated images will be added to your vault.
+              This will create new images using the selected training image as input. The generated images will be added to your library.
             </DialogDescription>
           </DialogHeader>
           
@@ -1816,7 +1816,7 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
             
             <div className="text-sm text-muted-foreground">
               <p>• The selected image will be used as input for image generation</p>
-              <p>• Generated images will be saved to your vault</p>
+              <p>• Generated images will be saved to your library</p>
               <p>• This process may take some time to complete</p>
             </div>
           </div>
@@ -1854,8 +1854,8 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
           open={showVaultSelector}
           onOpenChange={setShowVaultSelector}
           onImageUpload={handleVaultImageSelect}
-          title="Select Image from Vault"
-          description="Browse your vault and select an image to copy to AI consistency training folder. Only completed images are shown."
+          title="Select Image from Library"
+          description="Browse your library and select an image to copy to AI consistency training folder. Only completed images are shown."
         />
       )}
     </div>

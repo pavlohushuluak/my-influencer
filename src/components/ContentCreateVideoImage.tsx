@@ -918,7 +918,7 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
         video_length: parseInt(formData.duration),
         seed: formData.seed ? parseInt(formData.seed) : null,
         influencer_image: modelData?.image_url || '',
-        preset_image: selectedPresetImage.preview_url || `${config.data_url}/cdn-cgi/image/w=400/${userData.id}/${selectedPresetImage.user_filename === "" ? "output" : "vault/" + selectedPresetImage.user_filename}/${selectedPresetImage.system_filename}`
+        preset_image: selectedPresetImage.preview_url || `${config.data_url}/${userData.id}/${selectedPresetImage.user_filename === "" ? "output" : "vault/" + selectedPresetImage.user_filename}/${selectedPresetImage.system_filename}`
       };
 
       const response = await fetch(`${config.supabase_server_url}/video_presets`, {
@@ -2073,7 +2073,7 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
                         <div className="p-3 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg w-12 h-12 mx-auto mb-3 flex items-center justify-center">
                           <FolderOpen className="w-6 h-6 text-white" />
                         </div>
-                        <h3 className="font-semibold mb-2">From Vault</h3>
+                        <h3 className="font-semibold mb-2">From Library</h3>
                         <p className="text-sm text-muted-foreground">
                           Select from your saved images
                         </p>
@@ -2925,7 +2925,7 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
                       <div className="p-3 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg w-12 h-12 mx-auto mb-3 flex items-center justify-center">
                         <FolderOpen className="w-6 h-6 text-white" />
                       </div>
-                      <h3 className="font-semibold mb-2">From Vault</h3>
+                      <h3 className="font-semibold mb-2">From Library</h3>
                       <p className="text-sm text-muted-foreground">
                         Select from your saved images
                       </p>

@@ -1869,14 +1869,14 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
     setSelectedVaultImage(image);
     // You can use the selected image data here
     // For example, you could set it as a reference image or use it in some way
-    toast.success(`Selected image from vault: ${image.system_filename}`);
+    toast.success(`Selected image from library: ${image.system_filename}`);
   };
 
   const handleVaultImageSelectForPreset = (image: any) => {
     setSelectedPresetImage(image);
     setPresetImageSource('vault');
     setShowVaultSelectorForPreset(false);
-    toast.success(`Selected image from vault for preset: ${image.system_filename}`);
+    toast.success(`Selected image from library for preset: ${image.system_filename}`);
   };
 
   // Add new state for preset functionality
@@ -5180,8 +5180,8 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
         open={showVaultSelector}
         onOpenChange={setShowVaultSelector}
         onImageSelect={handleVaultImageSelect}
-        title="Select Image from Vault"
-        description="Browse your vault and select an image to use as reference"
+        title="Select Image from Library"
+        description="Browse your library and select an image to use as reference"
       />
 
       {/* Vault Selector for Presets */}
@@ -5190,7 +5190,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
         onOpenChange={setShowVaultSelectorForPreset}
         onImageSelect={handleVaultImageSelectForPreset}
         title="Select Image for Preset"
-        description="Browse your vault and select an image to represent your preset"
+        description="Browse your library and select an image to represent your preset"
       />
 
       {/* My Presets Modal - REMOVED - Now using PresetsManager component */}
@@ -5478,7 +5478,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
                       <div className="p-3 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg w-12 h-12 mx-auto mb-3 flex items-center justify-center">
                         <FolderOpen className="w-6 h-6 text-white" />
                       </div>
-                      <h3 className="font-semibold mb-2">From Vault</h3>
+                      <h3 className="font-semibold mb-2">From Library</h3>
                       <p className="text-sm text-muted-foreground">
                         Select from your saved images
                       </p>
@@ -5584,7 +5584,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
                 className="flex-1"
               >
                 <FolderOpen className="w-4 h-4 mr-2" />
-                Vault
+                Library
               </Button>
               <Button
                 variant={presetImageSource === 'recent' ? 'default' : 'ghost'}
@@ -5603,7 +5603,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
                 // Vault images would be fetched here
                 <div className="text-center py-8 col-span-full">
                   <FolderOpen className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">Vault images would be displayed here</p>
+                  <p className="text-muted-foreground">Library images would be displayed here</p>
                 </div>
               )}
 

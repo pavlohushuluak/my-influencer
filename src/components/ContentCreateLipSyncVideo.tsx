@@ -2168,7 +2168,7 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
                       <div className="p-3 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg w-12 h-12 mx-auto mb-3 flex items-center justify-center">
                         <FolderOpen className="w-6 h-6 text-white" />
                       </div>
-                      <h3 className="font-semibold mb-2">From Vault</h3>
+                      <h3 className="font-semibold mb-2">From Library</h3>
                       <p className="text-sm text-muted-foreground">
                         Select from your saved images
                       </p>

@@ -50,7 +50,7 @@ export default function Dashboard() {
           icon={Star}
         />
         <StatsCard
-          title="Vault Items"
+          title="Library Items"
           value={vaultItems}
           description="Permanently saved"
           icon={Calendar}

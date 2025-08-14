@@ -122,8 +122,8 @@ export default function LoraVaultSelector({
   open, 
   onOpenChange, 
   onImageUpload, 
-  title = "Select Image from Vault",
-  description = "Browse your vault and select an image to copy to AI consistency training folder"
+  title = "Select Image from Library",
+  description = "Browse your library and select an image to copy to AI consistency training folder"
 }: LoraVaultSelectorProps) {
   const userData = useSelector((state: RootState) => state.user);
   const [searchTerm, setSearchTerm] = useState('');
@@ -572,7 +572,7 @@ export default function LoraVaultSelector({
       });
 
       if (!response.ok) {
-        throw new Error('Failed to fetch vault data');
+        throw new Error('Failed to fetch library data');
       }
 
       const data: GeneratedImageData[] = await response.json();
@@ -636,11 +636,11 @@ export default function LoraVaultSelector({
       }
 
       setGeneratedImages(data);
-      console.log('Fetched vault data:', data);
+      console.log('Fetched library data:', data);
 
     } catch (error) {
-      console.error('Error fetching vault data:', error);
-      toast.error('Failed to fetch vault data', {
+      console.error('Error fetching library data:', error);
+      toast.error('Failed to fetch library data', {
         description: 'Please try again later.',
         duration: 5000
       });

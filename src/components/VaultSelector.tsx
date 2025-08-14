@@ -83,8 +83,8 @@ export default function VaultSelector({
   open, 
   onOpenChange, 
   onImageSelect, 
-  title = "Select Image from Vault",
-  description = "Browse your vault and select an image to use"
+  title = "Select Image from Library",
+  description = "Browse your library and select an image to use"
 }: VaultSelectorProps) {
   const userData = useSelector((state: RootState) => state.user);
   const [searchTerm, setSearchTerm] = useState('');
@@ -215,7 +215,7 @@ export default function VaultSelector({
       });
 
       if (!response.ok) {
-        throw new Error('Failed to fetch vault data');
+        throw new Error('Failed to fetch library data');
       }
 
       const data: GeneratedImageData[] = await response.json();
@@ -279,11 +279,11 @@ export default function VaultSelector({
       }
 
       setGeneratedImages(data);
-      console.log('Fetched vault data:', data);
+      console.log('Fetched library data:', data);
 
     } catch (error) {
-      console.error('Error fetching vault data:', error);
-      toast.error('Failed to fetch vault data', {
+      console.error('Error fetching library data:', error);
+      toast.error('Failed to fetch library data', {
         description: 'Please try again later.',
         duration: 5000
       });
@@ -586,7 +586,7 @@ export default function VaultSelector({
   const goToNextPage = () => handlePageChange(Math.min(totalPages, currentPage + 1));
 
   const getImageUrl = (image: GeneratedImageData) => {
-    return `${config.data_url}/cdn-cgi/image/w=400/${userData.id}/${image.user_filename === "" ? "output" : "vault/" + image.user_filename}/${image.system_filename}`;
+    return `${config.data_url}/${userData.id}/${image.user_filename === "" ? "output" : "vault/" + image.user_filename}/${image.system_filename}`;
   };
 
   return (
@@ -609,7 +609,7 @@ export default function VaultSelector({
             <div className="relative flex-1 max-w-md">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
               <Input
-                placeholder="Search vault by title, notes, or tags..."
+                placeholder="Search library by title, notes, or tags..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10 bg-background/50"

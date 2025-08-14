@@ -233,7 +233,7 @@ export default function ContentUpscaler() {
     setPreviewUrl(imageUrl);
     setSelectedFile(null); // Clear file since we're using vault image
     setShowVaultSelector(false);
-    toast.success('Image selected from vault');
+    toast.success('Image selected from library');
   };
 
   const uploadImageToVault = async (file: File): Promise<string | null> => {
@@ -699,7 +699,7 @@ export default function ContentUpscaler() {
                 Select Image
               </CardTitle>
               <CardDescription className="text-base">
-                Upload an image or select from your vault to enhance
+                Upload an image or select from your library to enhance
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -765,7 +765,7 @@ export default function ContentUpscaler() {
                       onClick={() => setShowVaultSelector(true)}
                     >
                       <Folder className="w-4 h-4 mr-2" />
-                      Browse Vault
+                      Browse Library
                     </Button>
                   </div>
                   <input
@@ -1081,8 +1081,8 @@ export default function ContentUpscaler() {
             open={showVaultSelector}
             onOpenChange={setShowVaultSelector}
             onImageSelect={handleVaultImageSelect}
-            title="Select Image from Vault"
-            description="Browse your vault and select an image to enhance. Only completed images are shown."
+            title="Select Image from Library"
+            description="Browse your library and select an image to enhance. Only completed images are shown."
           />
         )}
 

@@ -368,10 +368,10 @@ export default function ContentEdit() {
       // Fetch the image from vault
       fetchImage(imageData);
 
-      toast.success(`Selected image from vault: ${image.system_filename}`);
+      toast.success(`Selected image from library: ${image.system_filename}`);
     } catch (error) {
-      console.error('Error selecting image from vault:', error);
-      toast.error('Failed to select image from vault. Please try again.');
+      console.error('Error selecting image from library:', error);
+      toast.error('Failed to select image from library. Please try again.');
     }
   };
 
@@ -572,7 +572,7 @@ export default function ContentEdit() {
       }
 
       // Update loading message
-      toast.loading('Uploading to Vault...', {
+      toast.loading('Uploading to Library...', {
         id: loadingToast,
         description: `Saving as "${decodeFilename(finalFilename)}"`
       });
@@ -654,10 +654,10 @@ export default function ContentEdit() {
       }
 
       toast.dismiss(loadingToast);
-      toast.success(`Image uploaded to Vault successfully as "${decodeFilename(finalFilename)}"!`);
+      toast.success(`Image uploaded to library successfully as "${decodeFilename(finalFilename)}"!`);
     } catch (error) {
-      console.error('Error uploading to vault:', error);
-      toast.error('Failed to upload to vault. Please try again.');
+      console.error('Error uploading to library:', error);
+      toast.error('Failed to upload to library. Please try again.');
     } finally {
       setIsUploading(false);
     }
@@ -1102,8 +1102,8 @@ export default function ContentEdit() {
             open={showVaultSelector}
             onOpenChange={setShowVaultSelector}
             onImageSelect={handleVaultImageSelect}
-            title="Select Image from Vault"
-            description="Browse your vault and select an image to edit. Only completed images are shown."
+            title="Select Image from Library"
+            description="Browse your library and select an image to edit. Only completed images are shown."
           />
         )}
 
@@ -1115,9 +1115,9 @@ export default function ContentEdit() {
               <div className="w-16 h-16 md:w-20 md:h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <FileImage className="w-8 h-8 md:w-10 md:h-10 text-blue-600" />
               </div>
-              <h3 className="text-lg md:text-xl font-semibold mb-2">Select from Vault</h3>
+              <h3 className="text-lg md:text-xl font-semibold mb-2">Select from Library</h3>
               <p className="text-sm md:text-base text-muted-foreground mb-4">
-                Choose an existing image from your content vault
+                Choose an existing image from your content library
               </p>
               <Button
                 className="w-full"
@@ -1130,7 +1130,7 @@ export default function ContentEdit() {
                     Loading...
                   </>
                 ) : (
-                  'Browse Vault'
+                  'Browse Library'
                 )}
               </Button>
             </CardContent>
@@ -1388,7 +1388,7 @@ export default function ContentEdit() {
               ) : (
                 <>
                   <Upload className="w-4 h-4 mr-2" />
-                  <span className="hidden sm:inline">Upload to Vault</span>
+                  <span className="hidden sm:inline">Upload to Library</span>
                 </>
               )}
             </Button>
@@ -1532,7 +1532,7 @@ export default function ContentEdit() {
           <DialogHeader>
             <DialogTitle>File Already Exists</DialogTitle>
             <DialogDescription>
-              A file named "{conflictFilename}" already exists in the Vault. What would you like to do?
+              A file named "{conflictFilename}" already exists in the library. What would you like to do?
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">

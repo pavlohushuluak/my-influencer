@@ -204,12 +204,12 @@ export default function FaceSwap() {
       setSourceImageFromVault(image);
       setSourceImage(null);
       setSourceImageUrl(null);
-      toast.success('Source image selected from vault');
+      toast.success('Source image selected from library');
     } else {
       setTargetImageFromVault(image);
       setTargetImage(null);
       setTargetImageUrl(null);
-      toast.success('Target face selected from vault');
+      toast.success('Target face selected from library');
     }
     setShowVaultSelector(false);
   };
@@ -647,7 +647,7 @@ export default function FaceSwap() {
                   className="flex-1 border-purple-200 dark:border-purple-800 hover:bg-purple-50 dark:hover:bg-purple-900/30"
                 >
                   <Folder className="w-4 h-4 mr-2" />
-                  Import from Vault
+                  Import from Library
                 </Button>
               </div>
             </CardContent>
@@ -753,7 +753,7 @@ export default function FaceSwap() {
                   className="flex-1 border-blue-200 dark:border-blue-800 hover:bg-blue-50 dark:hover:bg-blue-900/30"
                 >
                   <Folder className="w-4 h-4 mr-2" />
-                  Import from Vault
+                  Import from Library
                 </Button>
               </div>
             </CardContent>
@@ -916,8 +916,8 @@ export default function FaceSwap() {
         open={showVaultSelector}
         onOpenChange={setShowVaultSelector}
         onImageSelect={handleVaultImageSelect}
-        title={`Select ${vaultSelectorMode === 'source' ? 'Source Image' : 'Target Face'} from Vault`}
-        description={`Choose an image from your vault to use as the ${vaultSelectorMode === 'source' ? 'source image' : 'target face'}`}
+        title={`Select ${vaultSelectorMode === 'source' ? 'Source Image' : 'Target Face'} from Library`}
+        description={`Choose an image from your library to use as the ${vaultSelectorMode === 'source' ? 'source image' : 'target face'}`}
       />
 
       {/* View Image Modal */}

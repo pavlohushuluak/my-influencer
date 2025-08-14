@@ -2998,10 +2998,10 @@ export default function Vault() {
       const refreshPromises = currentFolders.map(folder => fetchFolderFileCount(folder.path));
       await Promise.all(refreshPromises);
       
-      toast.success('Vault refreshed successfully');
+      toast.success('Library refreshed successfully');
     } catch (error) {
-      console.error('Error refreshing vault:', error);
-      toast.error('Failed to refresh vault');
+      console.error('Error refreshing library:', error);
+      toast.error('Failed to refresh library');
     } finally {
       setIsRefreshing(false);
     }
@@ -3431,7 +3431,7 @@ export default function Vault() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to fetch vault data');
+        throw new Error('Failed to fetch library data');
       }
 
       const data: GeneratedImageData[] = await response.json();
@@ -3495,11 +3495,11 @@ export default function Vault() {
       }
 
       setGeneratedImages(data);
-      console.log('Fetched vault data:', data);
+      console.log('Fetched library data:', data);
 
     } catch (error) {
-      console.error('Error fetching vault data:', error);
-      toast.error('Failed to fetch vault data', {
+      console.error('Error fetching library data:', error);
+      toast.error('Failed to fetch library data', {
         description: 'Please try again later.',
         duration: 5000
       });
@@ -3567,7 +3567,7 @@ export default function Vault() {
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
           <Input
-            placeholder="Search vault by title..."
+            placeholder="Search library by title..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10 bg-background/50"
@@ -3639,7 +3639,7 @@ export default function Vault() {
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                   <Input
-                    placeholder="Search vault by title..."
+                    placeholder="Search library by title..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-10"

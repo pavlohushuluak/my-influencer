@@ -289,8 +289,8 @@ export default function ContentEnhance() {
 
       return { imageUrl, imageData };
     } catch (error) {
-      console.error('Error uploading to vault:', error);
-      toast.error('Failed to upload image to vault');
+      console.error('Error uploading to library:', error);
+      toast.error('Failed to upload image to library');
       return null;
     }
   };
@@ -398,7 +398,7 @@ export default function ContentEnhance() {
                 Select Image
               </CardTitle>
               <CardDescription>
-                Choose an image to upscale from your device or vault
+                Choose an image to upscale from your device or library
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -420,7 +420,7 @@ export default function ContentEnhance() {
                     </div>
                     <div className="flex-1">
                       <p className="font-medium text-green-900">
-                        {selectedFile ? selectedFile.name : 'Image from Vault'}
+                        {selectedFile ? selectedFile.name : 'Image from Library'}
                       </p>
                       <p className="text-sm text-green-700">
                         {selectedFile ? `${(selectedFile.size / (1024 * 1024)).toFixed(2)} MB` : 'Ready for upscaling'}
@@ -738,7 +738,7 @@ export default function ContentEnhance() {
                   <Folder className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <p className="font-semibold text-gray-900">Select from Vault</p>
+                  <p className="font-semibold text-gray-900">Select from Library</p>
                   <p className="text-sm text-muted-foreground mt-1">
                     Choose from your existing images
                   </p>
@@ -754,8 +754,8 @@ export default function ContentEnhance() {
         open={showVaultSelector}
         onOpenChange={setShowVaultSelector}
         onImageSelect={handleVaultImageSelect}
-        title="Select Image from Vault"
-        description="Browse your vault and select an image to upscale"
+        title="Select Image from Library"
+        description="Browse your library and select an image to upscale"
       />
     </div>
   );

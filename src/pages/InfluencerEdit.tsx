@@ -4883,7 +4883,7 @@ export default function InfluencerEdit() {
                   <Image className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                   <h3 className="text-lg font-semibold mb-2">No images found</h3>
                   <p className="text-muted-foreground">
-                    You don't have any images in your vault yet. Create some content first!
+                    You don't have any images in your library yet. Create some content first!
                   </p>
                 </div>
               )}

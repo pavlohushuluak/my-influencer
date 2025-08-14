@@ -64,8 +64,8 @@ export default function VideoSelector({
   open, 
   onOpenChange, 
   onVideoSelect, 
-  title = "Select Video from Vault",
-  description = "Browse your video vault and select a video to use"
+  title = "Select Video from Library",
+  description = "Browse your video library and select a video to use"
 }: VideoSelectorProps) {
   const userData = useSelector((state: RootState) => state.user);
   const [videos, setVideos] = useState<VideoData[]>([]);

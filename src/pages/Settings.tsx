@@ -157,8 +157,8 @@ export default function Settings() {
       });
 
     } catch (error) {
-      console.error('Error fetching vault statistics:', error);
-      toast.error('Failed to load vault statistics');
+      console.error('Error fetching library statistics:', error);
+      toast.error('Failed to load library statistics');
     } finally {
       setIsLoadingStats(false);
     }
@@ -310,14 +310,14 @@ export default function Settings() {
               </form>
             </CardContent>
           </Card>
-          {/* Vault Statistics Section */}
+          {/* Library Statistics Section */}
           <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <div className="p-2 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg">
                   <Database className="w-5 h-5 text-white" />
                 </div>
-                Vault Statistics
+                Library Statistics
               </CardTitle>
               <CardDescription>
                 Overview of your content library and storage usage
@@ -327,7 +327,7 @@ export default function Settings() {
               {isLoadingStats ? (
                 <div className="flex items-center justify-center py-8">
                   <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mr-3"></div>
-                  <span className="text-muted-foreground">Loading vault statistics...</span>
+                  <span className="text-muted-foreground">Loading library statistics...</span>
                 </div>
               ) : (
                 <div>

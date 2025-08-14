@@ -14,7 +14,7 @@ import { Influencer } from '@/store/slices/influencersSlice';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { LoraStatusIndicator } from '@/components/Influencers/LoraStatusIndicator';
-import { InfluencerUseModal } from '@/components/Influencers/InfluencerUseModal';
+
 import { CreditConfirmationModal } from '@/components/CreditConfirmationModal';
 import InstructionVideo from '@/components/InstructionVideo';
 import { getInstructionVideoConfig } from '@/config/instructionVideos';
@@ -29,8 +29,6 @@ export default function Dashboard() {
   const [showAllPhaseTwo, setShowAllPhaseTwo] = useState(false);
   const [showAllPhaseThree, setShowAllPhaseThree] = useState(false);
   const [showAllPhaseFour, setShowAllPhaseFour] = useState(false);
-  const [showPlatformModal, setShowPlatformModal] = useState(false);
-  const [selectedInfluencer, setSelectedInfluencer] = useState<string>('');
   const [selectedInfluencerData, setSelectedInfluencerData] = useState<Influencer | null>(null);
   const [showCharacterConsistencyModal, setShowCharacterConsistencyModal] = useState(false);
   const [selectedProfileImage, setSelectedProfileImage] = useState<string | null>(null);
@@ -156,42 +154,9 @@ export default function Dashboard() {
             navigate('/influencers/profiles', { state: { influencerData: influencers.find(inf => inf.id === id) } });
   };
 
-  const handleUseInfluencer = (id: string) => {
-    const selectedInfluencer = influencers.find(inf => inf.id === id);
-    if (selectedInfluencer) {
-      setSelectedInfluencer(id);
-      setSelectedInfluencerData(selectedInfluencer);
-      setShowPlatformModal(true);
-    }
-  };
 
-  const handleCreateImages = () => {
-    const influencer = influencers.find(inf => inf.id === selectedInfluencer);
 
-    if (influencer) {
-              navigate('/create/images', {
-        state: {
-          influencerData: influencer,
-          mode: 'create'
-        }
-      });
-      setShowPlatformModal(false);
-    }
-  };
 
-  const handleCreateVideo = () => {
-    const influencer = influencers.find(inf => inf.id === selectedInfluencer);
-
-    if (influencer) {
-              navigate('/create/videos', {
-        state: {
-          influencerData: influencer,
-          mode: 'create'
-        }
-      });
-      setShowPlatformModal(false);
-    }
-  };
 
   const handleTrainCharacterConsistency = (influencerId: string) => {
     const selectedInfluencer = influencers.find(inf => inf.id === influencerId);
@@ -200,7 +165,6 @@ export default function Dashboard() {
 
       if (loraStatus === 0) {
         // Not trained - open Character Consistency modal directly
-        setSelectedInfluencer(influencerId);
         setSelectedInfluencerData(selectedInfluencer);
         // Get the latest profile picture URL with correct format
         let latestImageNum = selectedInfluencer.image_num - 1;
@@ -223,7 +187,6 @@ export default function Dashboard() {
         });
       } else {
         // Error or other status - treat as not trained
-        setSelectedInfluencer(influencerId);
         setSelectedInfluencerData(selectedInfluencer);
         let latestImageNum = selectedInfluencer.image_num - 1;
         if (latestImageNum === -1) {
@@ -249,17 +212,7 @@ export default function Dashboard() {
     setShowPhase4LibraryModal(true);
   };
 
-  const handleCharacterConsistency = () => {
-    if (selectedInfluencerData) {
-      // Get the latest profile picture URL with correct format
-      const latestImageNum = selectedInfluencerData.image_num - 1;
-      const profileImageUrl = `${config.data_url}/cdn-cgi/image/w=400/${userData.id}/models/${selectedInfluencerData.id}/profilepic/profilepic${latestImageNum}.png`;
 
-      setSelectedProfileImage(profileImageUrl);
-      setShowCharacterConsistencyModal(true);
-      setShowPlatformModal(false);
-    }
-  };
 
   // Function to check gem cost for LoRA training
   const checkLoraGemCost = async () => {
@@ -644,7 +597,7 @@ export default function Dashboard() {
                             </div>
                           </div>
 
-                          <div className="grid gap-2 grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
+                          <div className="flex gap-2">
                         <Button
                           size="sm"
                           variant="outline"
@@ -653,15 +606,6 @@ export default function Dashboard() {
                         >
                           <Settings className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
                           Edit
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleUseInfluencer(influencer.id)}
-                          className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-xs sm:text-sm px-2 sm:px-3 py-2"
-                        >
-                          <Plus className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
-                          Use
                         </Button>
                       </div>
                     </div>
@@ -997,15 +941,7 @@ export default function Dashboard() {
         </CardContent>
       </Card>
 
-      {/* Platform Selection Modal */}
-      <InfluencerUseModal
-        open={showPlatformModal}
-        onOpenChange={setShowPlatformModal}
-        influencer={selectedInfluencerData}
-        onCreateImages={handleCreateImages}
-        onCreateVideo={handleCreateVideo}
-        onCharacterConsistency={handleCharacterConsistency}
-      />
+
 
       {/* Character Consistency Modal */}
       <Dialog

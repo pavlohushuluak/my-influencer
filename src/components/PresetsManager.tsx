@@ -3083,7 +3083,7 @@ export default function PresetsManager({ onClose, onApplyPreset }: {
                           <p className="text-sm font-semibold bg-white dark:bg-gray-800 px-3 py-2 rounded-lg border">{detailedPresetModal.preset.jsonjob.guidance}</p>
                         </div>
                         <div className="space-y-2">
-                          <label className="text-sm font-medium text-muted-foreground">LoRA Strength</label>
+                          <label className="text-sm font-medium text-muted-foreground">AI Consistency Strength</label>
                           <p className="text-sm font-semibold bg-white dark:bg-gray-800 px-3 py-2 rounded-lg border">{detailedPresetModal.preset.jsonjob.lora_strength}</p>
                         </div>
                         <div className="space-y-2">
@@ -3091,7 +3091,7 @@ export default function PresetsManager({ onClose, onApplyPreset }: {
                           <p className="text-sm font-semibold bg-white dark:bg-gray-800 px-3 py-2 rounded-lg border">{detailedPresetModal.preset.jsonjob.nsfw_strength}</p>
                         </div>
                         <div className="space-y-2">
-                          <label className="text-sm font-medium text-muted-foreground">LoRA Enabled</label>
+                          <label className="text-sm font-medium text-muted-foreground">AI Consistency Enabled</label>
                           <p className="text-sm font-semibold bg-white dark:bg-gray-800 px-3 py-2 rounded-lg border">{detailedPresetModal.preset.jsonjob.lora ? 'Yes' : 'No'}</p>
                         </div>
                         <div className="space-y-2">
@@ -3295,7 +3295,7 @@ export default function PresetsManager({ onClose, onApplyPreset }: {
                       </p>
                       <ul className="text-xs text-blue-700 dark:text-blue-300 space-y-1">
                         <li>• Task, format, and quality settings</li>
-                        <li>• Advanced parameters (guidance, LoRA, etc.)</li>
+                        <li>• Advanced parameters (guidance, AI consistency, etc.)</li>
                         <li>• Scene configuration (pose, clothes, framing)</li>
                         <li>• Positive and negative prompts</li>
                       </ul>

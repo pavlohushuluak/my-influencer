@@ -802,7 +802,7 @@ export default function Start() {
                               {displayInfluencer.lorastatus === 2 ? (
                                 <div className="flex items-center justify-center gap-2 text-xs text-green-400">
                                   <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                                  LoRA Trained
+                                  AI Consistency Trained
                                 </div>
                               ) : (
                                 <div className="flex items-center justify-center gap-2 text-xs text-blue-400">
@@ -1220,7 +1220,7 @@ export default function Start() {
                           <div className="flex items-center justify-center gap-1">
                             {influencer.lorastatus === 2 ? (
                               <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
-                                LoRA Trained
+                                AI Consistency Trained
                               </span>
                             ) : (
                               <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
@@ -1382,7 +1382,7 @@ export default function Start() {
                             {displayInfluencer.lorastatus === 2 ? (
                               <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
                                 <CheckCircle className="w-3 h-3 mr-1" />
-                                LoRA Trained
+                                AI Consistency Trained
                               </span>
                             ) : (
                               <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">

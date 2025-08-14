@@ -584,7 +584,7 @@ export default function Lora() {
                 {sortBy === 'newest' && 'Newest'}
                 {sortBy === 'oldest' && 'Oldest'}
                 {sortBy === 'name' && 'Name'}
-                {sortBy === 'lorastatus' && 'LoRA Status'}
+                {sortBy === 'lorastatus' && 'AI Consistency Status'}
                 <ChevronDown className="w-4 h-4 opacity-50" />
               </Button>
             </PopoverTrigger>
@@ -616,7 +616,7 @@ export default function Lora() {
                   className={`flex items-center px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors ${sortBy === 'lorastatus' ? 'bg-accent text-accent-foreground' : ''
                     }`}
                 >
-                  LoRA Status
+                  AI Consistency Status
                 </button>
               </div>
             </PopoverContent>
@@ -654,7 +654,7 @@ export default function Lora() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {/* LoRA Status Filter */}
             <div>
-              <label className="text-sm font-medium mb-2 block">LoRA Status</label>
+              <label className="text-sm font-medium mb-2 block">AI Consistency Status</label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button variant="outline" className="w-full justify-between">

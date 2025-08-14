@@ -490,7 +490,7 @@ export const InfluencerUseModal: React.FC<InfluencerUseModalProps> = ({
                         Training in Progress
                       </h3>
                       <p className="text-sm text-muted-foreground mb-4">
-                        {influencer?.name_first}'s LoRA model is currently being trained for character consistency. 
+                        {influencer?.name_first}'s AI model is currently being trained for character consistency. 
                         This process typically takes 5-15 minutes. Please wait for completion before proceeding.
                       </p>
                     </div>
@@ -510,12 +510,12 @@ export const InfluencerUseModal: React.FC<InfluencerUseModalProps> = ({
                       </h3>
                       <p className="text-sm text-muted-foreground mb-4">
                         {influencer?.name_first} has already completed character consistency training. 
-                        The LoRA model is ready and optimized for high-quality AI generation.
+                        The AI model is ready and optimized for high-quality AI generation.
                       </p>
                     </div>
                     <div className="flex items-center justify-center gap-2 text-xs text-green-600 dark:text-green-400">
                       <CheckCircle className="w-3 h-3" />
-                      <span>LoRA model ready</span>
+                      <span>AI model ready</span>
                     </div>
                   </>
                 )}

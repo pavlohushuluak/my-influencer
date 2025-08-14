@@ -5558,7 +5558,7 @@ export default function InfluencerEdit() {
                   <Brain className="w-8 h-8 text-white" />
                 </div>
                 <DialogTitle className="text-2xl font-bold mb-2 bg-gradient-to-r from-white to-blue-100 bg-clip-text text-transparent">
-                  Generate LoRA Now?
+                  Generate AI Consistency Now?
                 </DialogTitle>
                 <DialogDescription className="text-blue-100 text-base leading-relaxed">
                   Unlock enhanced AI generation capabilities for your influencer
@@ -5581,7 +5581,7 @@ export default function InfluencerEdit() {
                       Enhanced AI Experience
                     </h4>
                     <p className="text-emerald-700 dark:text-emerald-300 leading-relaxed">
-                      LoRA models dramatically improve image generation quality, consistency, and character accuracy for your influencer.
+                      AI consistency models dramatically improve image generation quality, consistency, and character accuracy for your influencer.
                     </p>
                   </div>
                 </div>

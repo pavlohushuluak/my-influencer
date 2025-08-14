@@ -23,9 +23,9 @@ export function LoraStatusIndicator({ status, className, showText = false }: Lor
           bgColor: 'bg-gradient-to-br from-gray-50 to-gray-100',
           borderColor: 'border-gray-200',
           shadowColor: 'shadow-gray-200',
-          text: 'No LoRA',
-          description: 'LoRA model has not been created yet. This influencer is ready for LoRA generation.',
-          detailedDescription: 'The LoRA (Low-Rank Adaptation) model for this influencer has not been generated. This is the initial state for new influencers.',
+          text: 'No AI model',
+          description: 'AI model has not been created yet. This influencer is ready for AI Consistency.',
+          detailedDescription: 'The AI model for this influencer has not been generated. This is the initial state for new influencers.',
           image: '/ccnok.png'
         };
       case 1:
@@ -36,8 +36,8 @@ export function LoraStatusIndicator({ status, className, showText = false }: Lor
           borderColor: 'border-blue-200',
           shadowColor: 'shadow-blue-200',
           text: 'Creating',
-          description: 'LoRA model is currently being generated. Please wait for completion.',
-          detailedDescription: 'The AI is currently training a personalized LoRA model for this influencer. This process typically takes 5-15 minutes depending on complexity.',
+          description: 'AI model is currently being generated. Please wait for completion.',
+          detailedDescription: 'The AI is currently training a personalized AI model for this influencer. This process typically takes 5-15 minutes depending on complexity.',
           image: '/ccnok.png'
         };
       case 2:
@@ -48,8 +48,8 @@ export function LoraStatusIndicator({ status, className, showText = false }: Lor
           borderColor: 'border-green-200',
           shadowColor: 'shadow-green-200',
           text: 'Ready',
-          description: 'LoRA model has been successfully created and is ready for use.',
-          detailedDescription: 'The personalized LoRA model has been successfully generated and optimized. This influencer can now be used for high-quality AI image generation.',
+          description: 'AI model has been successfully created and is ready for use.',
+          detailedDescription: 'The personalized AI model has been successfully generated and optimized. This influencer can now be used for high-quality AI image generation.',
           image: '/ccok.png'
         };
       case 9:
@@ -60,8 +60,8 @@ export function LoraStatusIndicator({ status, className, showText = false }: Lor
           borderColor: 'border-red-200',
           shadowColor: 'shadow-red-200',
           text: 'Error',
-          description: 'LoRA generation failed. Click to retry the generation process.',
-          detailedDescription: 'The LoRA model generation encountered an error during processing. This may be due to insufficient data quality or system issues. Retry recommended.',
+          description: 'AI generation failed. Click to retry the generation process.',
+          detailedDescription: 'The AI model generation encountered an error during processing. This may be due to insufficient data quality or system issues. Retry recommended.',
           image: '/ccnok.png'
         };
       default:
@@ -72,8 +72,8 @@ export function LoraStatusIndicator({ status, className, showText = false }: Lor
           borderColor: 'border-gray-200',
           shadowColor: 'shadow-gray-200',
           text: 'Unknown',
-          description: 'Unknown LoRA status. Please refresh or contact support.',
-          detailedDescription: 'The LoRA status could not be determined. This may indicate a system error or data corruption.',
+          description: 'Unknown AI status. Please refresh or contact support.',
+          detailedDescription: 'The AI status could not be determined. This may indicate a system error or data corruption.',
           image: '/ccnok.png'
         };
     }
@@ -122,7 +122,7 @@ export function LoraStatusIndicator({ status, className, showText = false }: Lor
             {status === 9 && (
               <div className="pt-2 border-t border-gray-100">
                 <p className="text-xs text-red-600 font-medium">
-                  💡 Tip: Try regenerating the LoRA model
+                  💡 Tip: Try regenerating the AI model
                 </p>
               </div>
             )}

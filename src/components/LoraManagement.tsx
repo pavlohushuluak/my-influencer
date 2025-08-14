@@ -301,8 +301,8 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
       }
 
     } catch (error) {
-      console.error('Error fetching LoRA files:', error);
-      toast.error('Failed to load LoRA files');
+      console.error('Error fetching AI consistency training files:', error);
+      toast.error('Failed to load AI consistency training files');
     } finally {
       setIsLoading(false);
     }
@@ -1219,7 +1219,7 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="flex flex-col items-center gap-4">
           <RefreshCcw className="w-8 h-8 animate-spin text-ai-purple-500" />
-          <p className="text-muted-foreground">Loading LoRA files...</p>
+          <p className="text-muted-foreground">Loading AI consistency training files...</p>
         </div>
       </div>
     );

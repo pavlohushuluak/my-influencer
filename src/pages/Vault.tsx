@@ -5330,7 +5330,7 @@ export default function Vault() {
                       <span className="text-gray-600 dark:text-gray-400 font-mono">{detailedImageModal.image.nsfw_strength}</span>
                     </div>
                     <div className="flex justify-between items-center p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
-                      <span className="font-semibold text-gray-700 dark:text-gray-300">LoRA Strength:</span>
+                      <span className="font-semibold text-gray-700 dark:text-gray-300">AI Consistency Strength:</span>
                       <span className="text-gray-600 dark:text-gray-400 font-mono">{detailedImageModal.image.lora_strength}</span>
                     </div>
                     <div className="flex justify-between items-center p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">

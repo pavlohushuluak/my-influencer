@@ -218,14 +218,14 @@ export default function InfluencerLoraTraining() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to fetch LORA versions');
+        throw new Error('Failed to fetch AI consistency versions');
       }
 
       const data = await response.json();
       setLoraVersions(data);
     } catch (error) {
-      console.error('Error fetching LORA versions:', error);
-      toast.error('Failed to load LORA versions');
+      console.error('Error fetching AI consistency versions:', error);
+      toast.error('Failed to load AI consistency versions');
     } finally {
       setIsLoadingVersions(false);
     }
@@ -544,14 +544,14 @@ export default function InfluencerLoraTraining() {
 
   const handleArchiveVersions = async () => {
     if (loraVersions.length === 0) {
-      toast.error('No LORA versions to archive');
+      toast.error('No AI consistency versions to archive');
       return;
     }
 
     setIsArchiving(true);
     try {
       // Archive logic here
-      toast.success('LORA versions archived successfully');
+      toast.success('AI consistency versions archived successfully');
     } catch (error) {
       console.error('Archive error:', error);
       toast.error('Failed to archive versions');
@@ -703,7 +703,7 @@ export default function InfluencerLoraTraining() {
           <div>
             <h1 className="text-2xl font-bold">AI consistency training</h1>
             <p className="text-muted-foreground">
-              {selectedInfluencer.name} • Manage training images and LORA versions
+              {selectedInfluencer.name} • Manage training images and AI consistency versions
             </p>
           </div>
         </div>
@@ -800,7 +800,7 @@ export default function InfluencerLoraTraining() {
           </TabsTrigger>
           <TabsTrigger value="versions" className="flex items-center gap-2">
             <Brain className="w-4 h-4" />
-            LORA Versions
+            AI Consistency Versions
           </TabsTrigger>
         </TabsList>
 
@@ -919,9 +919,9 @@ export default function InfluencerLoraTraining() {
             <Card>
               <CardContent className="p-12 text-center">
                 <Brain className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-                <h3 className="text-lg font-semibold mb-2">No LORA Versions</h3>
+                <h3 className="text-lg font-semibold mb-2">No AI Consistency Versions</h3>
                 <p className="text-muted-foreground">
-                  Start training to create your first LORA version
+                  Start training to create your first AI Consistency version
                 </p>
               </CardContent>
             </Card>

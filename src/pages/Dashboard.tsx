@@ -4,16 +4,18 @@ import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '@/store/store';
 import config from '@/config/config';
 import { setInfluencers, setLoading, setError } from '@/store/slices/influencersSlice';
+import { setUser } from '@/store/slices/userSlice';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Settings, MoreHorizontal, Image, Copy, Upload, X } from 'lucide-react';
+import { Plus, Settings, MoreHorizontal, Image, Copy, Upload, X, Loader2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Influencer } from '@/store/slices/influencersSlice';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { LoraStatusIndicator } from '@/components/Influencers/LoraStatusIndicator';
 import { InfluencerUseModal } from '@/components/Influencers/InfluencerUseModal';
+import { CreditConfirmationModal } from '@/components/CreditConfirmationModal';
 import InstructionVideo from '@/components/InstructionVideo';
 import { getInstructionVideoConfig } from '@/config/instructionVideos';
 
@@ -35,12 +37,23 @@ export default function Dashboard() {
   const [isCopyingImage, setIsCopyingImage] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
+  
+  // Credit checking state for LoRA training
+  const [showGemWarning, setShowGemWarning] = useState(false);
+  const [gemCostData, setGemCostData] = useState<{
+    id: number;
+    item: string;
+    description: string;
+    gems: number;
+  } | null>(null);
+  const [isCheckingGems, setIsCheckingGems] = useState(false);
   const displayedInfluencerOne = showAllPhaseOne ? influencers : influencers.slice(0, 3);
   const displayedInfluencerTwo = showAllPhaseTwo ? influencers : influencers.slice(0, 3);
   const displayedInfluencerThree = showAllPhaseThree ? influencers : influencers.slice(0, 3);
   const displayedInfluencerFour = showAllPhaseFour ? influencers : influencers.slice(0, 3);
 
   const userData = useSelector((state: RootState) => state.user);
+  const userLoading = useSelector((state: RootState) => state.user.loading);
 
   useEffect(() => {
     const checkSubscription = async () => {
@@ -98,6 +111,7 @@ export default function Dashboard() {
 
   // console.log('User Data:', userData);
     const fetchInfluencers = async () => {
+      console.log('fetchInfluencers called with userData.id:', userData.id);
       try {
         dispatch(setLoading(true));
         const response = await fetch(`${config.supabase_server_url}/influencer?user_id=eq.${userData.id}`, {
@@ -111,6 +125,7 @@ export default function Dashboard() {
         }
 
         const data = await response.json();
+        console.log('fetchInfluencers response data:', data);
         dispatch(setInfluencers(data));
       } catch (error) {
         dispatch(setError(error instanceof Error ? error.message : 'An error occurred'));
@@ -120,8 +135,11 @@ export default function Dashboard() {
     };
 
   useEffect(() => {
-    fetchInfluencers();
-  }, [dispatch]);
+    console.log('Dashboard useEffect - userData.id:', userData.id, 'userLoading:', userLoading, 'influencers.length:', influencers.length);
+    if (userData.id && !userLoading) {
+      fetchInfluencers();
+    }
+  }, [dispatch, userData.id, userLoading]);
 
   const handleCreateNew = () => {
             navigate('/influencers/new');
@@ -171,14 +189,44 @@ export default function Dashboard() {
   const handleTrainCharacterConsistency = (influencerId: string) => {
     const selectedInfluencer = influencers.find(inf => inf.id === influencerId);
     if (selectedInfluencer) {
-      setSelectedInfluencer(influencerId);
-      setSelectedInfluencerData(selectedInfluencer);
-      // Get the latest profile picture URL with correct format
-      const latestImageNum = selectedInfluencer.image_num - 1;
-      const profileImageUrl = `${config.data_url}/cdn-cgi/image/w=400/${userData.id}/models/${selectedInfluencer.id}/profilepic/profilepic${latestImageNum}.png`;
+      const loraStatus = selectedInfluencer.lorastatus || 0;
 
-      setSelectedProfileImage(profileImageUrl);
-      setShowCharacterConsistencyModal(true);
+      if (loraStatus === 0) {
+        // Not trained - open Character Consistency modal directly
+        setSelectedInfluencer(influencerId);
+        setSelectedInfluencerData(selectedInfluencer);
+        // Get the latest profile picture URL with correct format
+        let latestImageNum = selectedInfluencer.image_num - 1;
+        if (latestImageNum === -1) {
+          latestImageNum = 0;
+        }
+        const profileImageUrl = `${config.data_url}/cdn-cgi/image/w=400/${userData.id}/models/${selectedInfluencer.id}/profilepic/profilepic${latestImageNum}.png`;
+
+        setSelectedProfileImage(profileImageUrl);
+        setShowCharacterConsistencyModal(true);
+      } else if (loraStatus === 1) {
+        // Training in progress - show warning
+        toast.error('AI consistency training is already in progress', {
+          description: `${selectedInfluencer.name_first}'s training is currently active. Please wait for it to complete.`
+        });
+      } else if (loraStatus === 2) {
+        // Trained - show success message
+        toast.success('AI consistency training completed', {
+          description: `${selectedInfluencer.name_first} has already been trained for AI consistency.`
+        });
+      } else {
+        // Error or other status - treat as not trained
+        setSelectedInfluencer(influencerId);
+        setSelectedInfluencerData(selectedInfluencer);
+        let latestImageNum = selectedInfluencer.image_num - 1;
+        if (latestImageNum === -1) {
+          latestImageNum = 0;
+        }
+        const profileImageUrl = `${config.data_url}/cdn-cgi/image/w=400/${userData.id}/models/${selectedInfluencer.id}/profilepic/profilepic${latestImageNum}.png`;
+
+        setSelectedProfileImage(profileImageUrl);
+        setShowCharacterConsistencyModal(true);
+      }
     }
   };
 
@@ -218,7 +266,76 @@ export default function Dashboard() {
     }
   };
 
+  // Function to check gem cost for LoRA training
+  const checkLoraGemCost = async () => {
+    try {
+      setIsCheckingGems(true);
+      const response = await fetch('https://api.nymia.ai/v1/getgems', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          item: 'lora_images_only'
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch gem cost: ${response.status}`);
+      }
+
+      const gemData = await response.json();
+      return gemData;
+    } catch (error) {
+      console.error('Error checking LoRA gem cost:', error);
+      toast.error('Failed to check training cost. Proceeding without verification.');
+      return null;
+    } finally {
+      setIsCheckingGems(false);
+    }
+  };
+
+  // Function to proceed with LoRA training after gem confirmation
+  const proceedWithLoraTraining = async () => {
+    try {
+      setShowGemWarning(false);
+      console.log('Starting AI consistency training after credit confirmation...');
+      await executeLoraTraining();
+    } catch (error) {
+      console.error('Error in proceedWithLoraTraining:', error);
+      toast.error('Failed to start AI consistency training. Please try again.');
+      setIsCopyingImage(false);
+    }
+  };
+
+  // Main LoRA training function with credit checking
   const handleCopyProfileImage = async () => {
+    if (!selectedInfluencerData) return;
+
+    // Check gem cost before proceeding
+    const gemData = await checkLoraGemCost();
+    if (gemData) {
+      setGemCostData(gemData);
+      
+      // Check if user has enough credits
+      if (userData.credits < gemData.gems) {
+        setShowGemWarning(true);
+        return;
+      } else {
+        // Show confirmation for gem cost
+        setShowGemWarning(true);
+        return;
+      }
+    }
+
+    // If no gem checking needed or failed, show error and don't proceed
+    toast.error('Unable to verify credit cost. Please try again.');
+    return;
+  };
+
+  // Separated LoRA training execution function
+  const executeLoraTraining = async () => {
     if (!selectedInfluencerData) return;
 
     setIsCopyingImage(true);
@@ -264,7 +381,7 @@ export default function Dashboard() {
           })
         });
 
-        toast.success('Image uploaded to AI consistency training folder successfully');
+        toast.success('Image uploaded for AI consistency training successfully');
       } else {
         // Copy existing profile picture to LoRA folder
         const latestImageNum = selectedInfluencerData.image_num - 1;
@@ -298,6 +415,25 @@ export default function Dashboard() {
       // Refresh influencer data to update lorastatus
       await fetchInfluencers();
 
+      // Update guide_step if it's currently 2
+      if (userData.guide_step === 2) {
+        try {
+          const guideStepResponse = await fetch(`${config.supabase_server_url}/user?uuid=eq.${userData.id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer WeInfl3nc3withAI' },
+            body: JSON.stringify({ guide_step: 3 })
+          });
+          if (guideStepResponse.ok) {
+            // Update Redux store
+            dispatch(setUser({ guide_step: 3 }));
+            toast.success('Progress updated! Moving to Phase 3...');
+            navigate('/start');
+          }
+        } catch (error) {
+          console.error('Failed to update guide_step:', error);
+        }
+      }
+
       setShowCharacterConsistencyModal(false);
       // Reset upload state
       if (uploadedImageUrl) {
@@ -307,7 +443,7 @@ export default function Dashboard() {
       setUploadedImageUrl(null);
     } catch (error) {
       console.error('Error uploading/copying image:', error);
-      toast.error('Failed to upload/copy image to AI consistency training folder');
+      toast.error('Failed to upload/copy image for AI consistency training');
     } finally {
       setIsCopyingImage(false);
     }
@@ -378,11 +514,16 @@ export default function Dashboard() {
     setUploadedImageUrl(null);
   };
 
-  if (loading) {
+  if (loading || userLoading) {
     return (
       <div className="p-6">
         <div className="flex items-center justify-center h-[calc(100vh-200px)]">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+          <div className="flex flex-col items-center gap-4">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+            <p className="text-muted-foreground">
+              {userLoading ? 'Loading user data...' : 'Loading influencers...'}
+            </p>
+          </div>
         </div>
       </div>
     );
@@ -393,6 +534,20 @@ export default function Dashboard() {
       <div className="p-6">
         <div className="flex items-center justify-center h-[calc(100vh-200px)]">
           <div className="text-red-500">Error: {error}</div>
+        </div>
+      </div>
+    );
+  }
+
+  // Don't render dashboard content if user data is not available
+  if (!userData.id) {
+    return (
+      <div className="p-6">
+        <div className="flex items-center justify-center h-[calc(100vh-200px)]">
+          <div className="flex flex-col items-center gap-4">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+            <p className="text-muted-foreground">Loading user data...</p>
+          </div>
         </div>
       </div>
     );
@@ -905,9 +1060,9 @@ export default function Dashboard() {
                   </p>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="flex justify-center gap-6">
                   {/* Profile Image Card */}
-                  <Card className="group border-2 border-green-500/20 hover:border-green-500/40 transition-all duration-300 shadow-lg hover:shadow-xl bg-gradient-to-br from-green-50/30 to-emerald-50/30 dark:from-green-950/10 dark:to-emerald-950/10">
+                  <Card className="max-w-md group border-2 border-green-500/20 hover:border-green-500/40 transition-all duration-300 shadow-lg hover:shadow-xl bg-gradient-to-br from-green-50/30 to-emerald-50/30 dark:from-green-950/10 dark:to-emerald-950/10">
                     <CardContent className="p-6">
                       <div className="space-y-4">
                         <div className="relative">
@@ -927,126 +1082,17 @@ export default function Dashboard() {
                             Latest Profile Picture
                           </h4>
                           <p className="text-sm text-gray-600 dark:text-gray-300">
-                            Version {selectedInfluencerData.image_num - 1} • High Quality
+                            Version {selectedInfluencerData.image_num === null || selectedInfluencerData.image_num === undefined || isNaN(selectedInfluencerData.image_num) || selectedInfluencerData.image_num === 0 ? 0 : selectedInfluencerData.image_num - 1} • High Quality
                           </p>
                           <div className="flex items-center justify-center gap-2 text-xs text-green-600 dark:text-green-400">
                             <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                            Ready for AI consistency training
+                                                          Ready for AI Consistency
                           </div>
                         </div>
                       </div>
                     </CardContent>
                   </Card>
 
-                  {/* Upload Card */}
-                  <Card className="group border-2 border-dashed border-gray-300 dark:border-gray-600 hover:border-blue-400 dark:hover:border-blue-500 transition-all duration-300 shadow-lg hover:shadow-xl bg-gradient-to-br from-blue-50/30 to-purple-50/30 dark:from-blue-950/10 dark:to-purple-950/10">
-                    <CardContent className="p-6">
-                      {uploadedImageUrl ? (
-                        // Show uploaded image
-                        <div className="space-y-4">
-                          <div className="relative">
-                            <div className="aspect-square bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/30 dark:to-purple-900/30 rounded-2xl overflow-hidden shadow-lg">
-                              <img
-                                src={uploadedImageUrl}
-                                alt="Uploaded profile picture"
-                                className="w-full h-full object-cover"
-                              />
-                            </div>
-                            <button
-                              onClick={handleRemoveUploadedImage}
-                              className="absolute top-3 right-3 w-8 h-8 bg-red-500 hover:bg-red-600 rounded-full flex items-center justify-center shadow-lg transition-colors"
-                            >
-                              <X className="w-4 h-4 text-white" />
-                            </button>
-                            <div className="absolute top-3 left-3 w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center shadow-lg">
-                              <Upload className="w-4 h-4 text-white" />
-                            </div>
-                          </div>
-                          <div className="text-center space-y-3">
-                            <h4 className="font-semibold text-lg text-gray-900 dark:text-gray-100">
-                              Uploaded Image
-                            </h4>
-                            <p className="text-sm text-gray-600 dark:text-gray-300">
-                              {uploadedFile?.name} • {(uploadedFile?.size / 1024 / 1024).toFixed(2)} MB
-                            </p>
-                            <div className="flex items-center justify-center gap-2 text-xs text-blue-600 dark:text-blue-400 mb-3">
-                              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                              Ready for AI consistency training
-                            </div>
-                          </div>
-                        </div>
-                      ) : (
-                        // Show professional upload interface
-                        <div
-                          className="space-y-4"
-                          onDragOver={handleDragOver}
-                          onDragLeave={handleDragLeave}
-                          onDrop={handleDrop}
-                        >
-                          {/* Drag & Drop Area - Looks like an image */}
-                          <div className="relative group/drag">
-                            <div className="aspect-square bg-gradient-to-br from-blue-100 via-purple-100 to-indigo-100 dark:from-blue-900/20 dark:via-purple-900/20 dark:to-indigo-900/20 rounded-2xl overflow-hidden shadow-lg border-2 border-dashed border-blue-300 dark:border-blue-600 group-hover/drag:border-blue-400 dark:group-hover/drag:border-blue-500 transition-all duration-300">
-                              {/* Background Pattern */}
-                              <div className="absolute inset-0 bg-gradient-to-br from-blue-50/50 to-purple-50/50 dark:from-blue-950/30 dark:to-purple-950/30"></div>
-
-                              {/* Upload Icon and Text */}
-                              <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6">
-                                <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-xl mb-4 group-hover/drag:scale-110 transition-transform duration-300">
-                                  <Upload className="w-8 h-8 text-white" />
-                                </div>
-                                <h4 className="font-semibold text-lg text-gray-900 dark:text-gray-100 mb-2">
-                                  Upload New Image
-                                </h4>
-                                <p className="text-sm text-gray-600 dark:text-gray-300 mb-3 max-w-xs">
-                                  Drag & drop your image here or click to browse
-                                </p>
-                                <div className="flex items-center gap-2 text-xs text-blue-600 dark:text-blue-400">
-                                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                                  PNG, JPG, JPEG up to 10MB
-                                </div>
-                              </div>
-
-                              {/* Hover Overlay */}
-                              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-purple-500/10 opacity-0 group-hover/drag:opacity-100 transition-opacity duration-300 rounded-2xl"></div>
-                            </div>
-
-                            {/* File Input */}
-                            <input
-                              type="file"
-                              accept="image/*"
-                              onChange={handleFileUpload}
-                              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                              id="profile-image-upload"
-                            />
-                          </div>
-
-                          {/* Additional Upload Options */}
-                          <div className="text-center space-y-3">
-                            <div className="flex items-center justify-center gap-4">
-                              <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-                                <div className="w-1.5 h-1.5 bg-gray-400 rounded-full"></div>
-                                High Quality
-                              </div>
-                              <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-                                <div className="w-1.5 h-1.5 bg-gray-400 rounded-full"></div>
-                                Secure Upload
-                              </div>
-                              <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-                                <div className="w-1.5 h-1.5 bg-gray-400 rounded-full"></div>
-                                Instant Processing
-                              </div>
-                            </div>
-
-                            <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-lg p-3 border border-blue-200/50 dark:border-blue-800/50">
-                              <p className="text-xs text-gray-600 dark:text-gray-300">
-                                <span className="font-medium">Tip:</span> Use high-resolution images for better character consistency training results.
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
                 </div>
               </div>
 
@@ -1092,18 +1138,23 @@ export default function Dashboard() {
                 </Button>
                 <Button
                   onClick={handleCopyProfileImage}
-                  disabled={isCopyingImage || (!selectedProfileImage && !uploadedFile)}
+                  disabled={isCopyingImage || isCheckingGems || (!selectedProfileImage && !uploadedFile)}
                   className="flex-1 h-12 text-base font-medium bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {isCopyingImage ? (
+                  {isCheckingGems ? (
+                    <>
+                      <Loader2 className="w-5 h-5 mr-3 animate-spin" />
+                      Checking Cost...
+                    </>
+                  ) : isCopyingImage ? (
                     <>
                       <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-3" />
-                      Setting for AI consistency training...
+                      Setting up AI consistency training...
                     </>
                   ) : (
                     <>
                       <Copy className="w-5 h-5 mr-3" />
-                      {uploadedFile ? 'Upload to AI consistency training Folder' : 'Select Profile Image for AI consistency training'}
+                      {uploadedFile ? 'Upload for AI consistency training' : 'Select Profile Image for AI consistency training'}
                     </>
                   )}
                 </Button>
@@ -1112,6 +1163,20 @@ export default function Dashboard() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Credit Confirmation Modal */}
+      <CreditConfirmationModal
+        isOpen={showGemWarning}
+        onClose={() => setShowGemWarning(false)}
+        onConfirm={proceedWithLoraTraining}
+        gemCostData={gemCostData}
+        userCredits={userData.credits}
+        isProcessing={isCopyingImage}
+        processingText="Setting up AI consistency training..."
+        confirmButtonText="Start AI Consistency Training"
+        title="AI Consistency Training Cost"
+        itemType="training"
+      />
     </div>
   );
 }

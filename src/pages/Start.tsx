@@ -19,12 +19,12 @@ export default function Start() {
   const dispatch = useDispatch();
   const userData = useSelector((state: RootState) => state.user);
   const { influencers } = useSelector((state: RootState) => state.influencers);
-  
+
   // Get latest generated influencer with lorastatus === 0
   const latestGeneratedInfluencerWithLora0 = useMemo(() => {
     const influencersWithLora0 = influencers.filter(inf => inf.lorastatus === 0);
     if (influencersWithLora0.length === 0) return null;
-    
+
     return influencersWithLora0.sort((a, b) => {
       const dateA = new Date(a.created_at).getTime();
       const dateB = new Date(b.created_at).getTime();
@@ -43,18 +43,18 @@ export default function Start() {
   const [showPhase3CreationModal, setShowPhase3CreationModal] = useState(false);
   const [showPhase4LibraryModal, setShowPhase4LibraryModal] = useState(false);
   const [blinkState, setBlinkState] = useState(false);
-  
+
   // Check localStorage for guide_step
   const [localGuideStep, setLocalGuideStep] = useState<number>(() => {
     const stored = localStorage.getItem('guide_step');
     return stored ? parseInt(stored, 10) : currentPhase;
   });
-  
+
   // LoRA Training Modal States
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
   const [isCopyingImage, setIsCopyingImage] = useState(false);
-  
+
   // Phase 2 and Phase 3 selected influencer state
   const [selectedPhase2Influencer, setSelectedPhase2Influencer] = useState<any>(null);
   const [selectedPhase3Influencer, setSelectedPhase3Influencer] = useState<any>(null);
@@ -239,7 +239,9 @@ export default function Start() {
       bgColor: "from-blue-50 to-indigo-50",
       borderColor: "border-blue-200",
       textColor: "text-blue-600",
-      isPending: currentPhase === 2
+      isPending: currentPhase === 2,
+      showProgress: currentPhase === 2,
+      progressMessage: "This step takes about 30–60 minutes. You can keep working on other tasks while we train your AI."
     },
     {
       id: 3,
@@ -275,7 +277,7 @@ export default function Start() {
     if (currentPhase === 0) {
       navigate('/dashboard');
     } else if (currentPhase === 1) {
-              navigate('/influencers/new');
+      navigate('/influencers/new');
     } else if (currentPhase === 2) {
       setShowPhase2Modal(true);
     } else if (currentPhase === 3) {
@@ -363,7 +365,7 @@ export default function Start() {
       // Update the user's guide_step in Redux and localStorage
       dispatch(setUser({ guide_step: localGuideStep }));
       localStorage.setItem('guide_step', localGuideStep.toString());
-      
+
       // Navigate to the appropriate step
       if (localGuideStep === 3) {
         // Show Phase 3 creation modal instead of directly navigating
@@ -625,10 +627,10 @@ export default function Start() {
                       key={phase.id}
                       onClick={() => handlePhaseClick(phase.id)}
                       className={`flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-lg border-2 transition-all duration-300 cursor-pointer hover:scale-105 hover:shadow-lg ${phase.completed
-                          ? 'bg-gradient-to-r from-green-900/20 to-emerald-900/20 border-green-500/30 hover:border-green-400/50'
-                          : phase.isPending
-                            ? `bg-gradient-to-r from-blue-900/20 to-indigo-900/20 border-blue-500/30 hover:border-blue-400/50 ${blinkState ? 'opacity-100' : 'opacity-50'}`
-                            : 'bg-gradient-to-r from-slate-800/50 to-slate-700/50 border-slate-600/30 hover:border-slate-500/50'
+                        ? 'bg-gradient-to-r from-green-900/20 to-emerald-900/20 border-green-500/30 hover:border-green-400/50'
+                        : phase.isPending
+                          ? `bg-gradient-to-r from-blue-900/20 to-indigo-900/20 border-blue-500/30 hover:border-blue-400/50 ${blinkState ? 'opacity-100' : 'opacity-50'}`
+                          : 'bg-gradient-to-r from-slate-800/50 to-slate-700/50 border-slate-600/30 hover:border-slate-500/50'
                         }`}
                     >
                       <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-r ${phase.color} flex items-center justify-center shadow-lg transition-opacity duration-300 ${phase.isPending ? (blinkState ? 'opacity-100' : 'opacity-50') : ''
@@ -643,6 +645,35 @@ export default function Start() {
                         <p className="text-sm text-slate-400 break-words">
                           {phase.description}
                         </p>
+
+                        {/* Progress Indicator for Phase 2 */}
+                        {phase.showProgress && (
+                          <div className="mt-3 space-y-2">
+                            <div className="flex items-center gap-2 text-xs text-blue-400">
+                              <div className="flex items-center gap-1">
+                                <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                                <span>Queued</span>
+                              </div>
+                              <div className="flex-1 h-0.5 bg-slate-600/30 rounded-full">
+                                <div className="h-full bg-blue-500 rounded-full animate-pulse" style={{ width: '33%' }}></div>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <div className="w-2 h-2 bg-slate-500 rounded-full"></div>
+                                <span className="text-slate-500">Training</span>
+                              </div>
+                              <div className="flex-1 h-0.5 bg-slate-600/30 rounded-full">
+                                <div className="h-full bg-slate-500 rounded-full" style={{ width: '0%' }}></div>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <div className="w-2 h-2 bg-slate-500 rounded-full"></div>
+                                <span className="text-slate-500">Done</span>
+                              </div>
+                            </div>
+                            <p className="text-xs text-blue-300 italic">
+                              {phase.progressMessage}
+                            </p>
+                          </div>
+                        )}
 
                       </div>
                     </div>
@@ -665,8 +696,8 @@ export default function Start() {
                       variant="outline"
                       disabled={currentPhase === 2 && !latestGeneratedInfluencerWithLora0}
                       className={`w-full sm:w-auto font-semibold text-base sm:text-lg px-6 sm:px-8 py-3 sm:py-4 rounded-xl shadow-xl transition-all duration-300 transform ${(currentPhase === 2 && !latestGeneratedInfluencerWithLora0)
-                          ? 'bg-gradient-to-r from-slate-600 to-slate-700 text-slate-400 border-slate-500 cursor-not-allowed opacity-50'
-                          : 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white hover:shadow-2xl hover:scale-105 border-green-500'
+                        ? 'bg-gradient-to-r from-slate-600 to-slate-700 text-slate-400 border-slate-500 cursor-not-allowed opacity-50'
+                        : 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white hover:shadow-2xl hover:scale-105 border-green-500'
                         }`}
                     >
                       {currentPhase === 3 ? 'Continue Creating Content' : 'Continue my work'}
@@ -814,7 +845,7 @@ export default function Start() {
                           </div>
                         </CardContent>
                       </Card>
-                      
+
                       {/* Select Another Influencer Button */}
                       <Button
                         onClick={() => setShowInfluencerSelectorModal(true)}
@@ -899,7 +930,7 @@ export default function Start() {
             {/* Influencer Card */}
             {(() => {
               const displayInfluencer = selectedPhase2Influencer || latestGeneratedInfluencerWithLora0;
-              
+
               if (!displayInfluencer) {
                 return (
                   <div className="text-center py-8">
@@ -954,6 +985,13 @@ export default function Start() {
                 </Card>
               );
             })()}
+
+            {/* Progress Indicator */}
+            <div className="bg-gradient-to-br from-blue-50/50 to-indigo-50/50 dark:from-blue-950/20 dark:to-indigo-950/20 border border-blue-200/50 dark:border-blue-800/50 rounded-lg p-4 mb-4">
+              <p className="text-sm text-blue-600 dark:text-blue-400 italic">
+                This step takes about 30–60 minutes. You can keep working on other tasks while we train your AI.
+              </p>
+            </div>
 
             {/* Action Buttons */}
             <div className="flex flex-col gap-3 pt-4">
@@ -1254,7 +1292,7 @@ export default function Start() {
           <div className="p-6">
             {(() => {
               const availableInfluencers = influencers.filter(inf => inf.lorastatus === 0);
-              
+
               if (availableInfluencers.length === 0) {
                 return (
                   <div className="text-center py-12">
@@ -1351,7 +1389,7 @@ export default function Start() {
             {/* Influencer Info Card */}
             {(() => {
               const displayInfluencer = selectedPhase3Influencer || latestTrainedInfluencer;
-              
+
               if (displayInfluencer) {
                 return (
                   <Card className="mb-8 bg-gradient-to-br from-purple-50/50 to-blue-50/50 dark:from-purple-950/20 dark:to-blue-950/20 border-purple-200/50 dark:border-purple-800/50 shadow-xl">
@@ -1407,7 +1445,7 @@ export default function Start() {
             {/* Creation Options Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {/* Images */}
-              <Card 
+              <Card
                 onClick={() => {
                   const influencerToUse = selectedPhase3Influencer || latestTrainedInfluencer;
                   setShowPhase3CreationModal(false);
@@ -1437,7 +1475,7 @@ export default function Start() {
               </Card>
 
               {/* Videos */}
-              <Card 
+              <Card
                 onClick={() => {
                   const influencerToUse = selectedPhase3Influencer || latestTrainedInfluencer;
                   setShowPhase3CreationModal(false);
@@ -1467,7 +1505,7 @@ export default function Start() {
               </Card>
 
               {/* Edit */}
-              <Card 
+              <Card
                 onClick={() => {
                   setShowPhase3CreationModal(false);
                   navigate('/create/edit');
@@ -1492,7 +1530,7 @@ export default function Start() {
               </Card>
 
               {/* Face Swap */}
-              <Card 
+              <Card
                 onClick={() => {
                   setShowPhase3CreationModal(false);
                   navigate('/create/faceswap');
@@ -1517,7 +1555,7 @@ export default function Start() {
               </Card>
 
               {/* Optimizer */}
-              <Card 
+              <Card
                 onClick={() => {
                   setShowPhase3CreationModal(false);
                   navigate('/create/optimizer');
@@ -1563,8 +1601,8 @@ export default function Start() {
               </Button>
             </div>
           </div>
-                 </DialogContent>
-       </Dialog>
+        </DialogContent>
+      </Dialog>
 
       {/* Phase 4 Library Options Modal */}
       <Dialog open={showPhase4LibraryModal} onOpenChange={setShowPhase4LibraryModal}>
@@ -1594,7 +1632,7 @@ export default function Start() {
             {/* Library Options Grid */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {/* Images Library */}
-              <Card 
+              <Card
                 onClick={async () => {
                   setShowPhase4LibraryModal(false);
                   // Update guide_step to 5
@@ -1642,7 +1680,7 @@ export default function Start() {
               </Card>
 
               {/* Videos Library */}
-              <Card 
+              <Card
                 onClick={async () => {
                   setShowPhase4LibraryModal(false);
                   // Update guide_step to 5
@@ -1690,7 +1728,7 @@ export default function Start() {
               </Card>
 
               {/* Audios Library */}
-              <Card 
+              <Card
                 onClick={async () => {
                   setShowPhase4LibraryModal(false);
                   // Update guide_step to 5

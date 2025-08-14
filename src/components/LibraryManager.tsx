@@ -1289,7 +1289,7 @@ export default function LibraryManager({ onClose, onApplyPreset }: {
                           <p className="text-sm font-semibold bg-white dark:bg-gray-800 px-3 py-2 rounded-lg border">{detailedPresetModal.preset.jsonjob.guidance}</p>
                         </div>
                         <div className="space-y-2">
-                          <label className="text-sm font-medium text-muted-foreground">LoRA Strength</label>
+                          <label className="text-sm font-medium text-muted-foreground">AI Consistency Strength</label>
                           <p className="text-sm font-semibold bg-white dark:bg-gray-800 px-3 py-2 rounded-lg border">{detailedPresetModal.preset.jsonjob.lora_strength}</p>
                         </div>
                         <div className="space-y-2">

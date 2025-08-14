@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '@/store/store';
 import { Card, CardContent } from '@/components/ui/card';
@@ -93,6 +93,7 @@ interface Influencer {
 
 export default function Lora() {
   const navigate = useNavigate();
+  const location = useLocation();
   const dispatch = useDispatch();
   const userData = useSelector((state: RootState) => state.user);
   const influencers = useSelector((state: RootState) => state.influencers.influencers);
@@ -158,6 +159,23 @@ export default function Lora() {
   useEffect(() => {
     fetchInfluencers();
   }, [userData.id]);
+
+  // Auto-trigger functionality when navigating from Quick Actions modal
+  useEffect(() => {
+    if (location.state?.influencerData && location.state?.fromQuickActions && influencers.length > 0 && !isLoading) {
+      const influencerData = location.state.influencerData;
+      const targetInfluencer = influencers.find(inf => inf.id === influencerData.id);
+      
+      if (targetInfluencer) {
+        console.log('Auto-triggering AI Consistency for influencer:', targetInfluencer.name_first);
+        // Automatically trigger the manage/train action
+        handleManageLora(targetInfluencer);
+        
+        // Clear the location state to prevent re-triggering
+        navigate(location.pathname, { replace: true });
+      }
+    }
+  }, [location.state, influencers, isLoading]);
 
   const handleManageLora = (influencer: Influencer) => {
     const loraStatus = influencer.lorastatus || 0;

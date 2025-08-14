@@ -193,12 +193,40 @@ export default function InfluencerEdit() {
   const location = useLocation();
   const dispatch = useDispatch();
   const influencers = useSelector((state: RootState) => state.influencers.influencers);
-  const displayedInfluencers = influencers;
   const [isLoading, setIsLoading] = useState(true);
   const [isOptionsLoading, setIsOptionsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [showEditView, setShowEditView] = useState(!!location.state?.influencerData);
+  
+  // Search and filter state
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterStatus, setFilterStatus] = useState('all');
+  const [filterType, setFilterType] = useState('all');
+  
+  // Quick Action Modal state
+  const [showQuickActionModal, setShowQuickActionModal] = useState(false);
+  const [selectedInfluencerForActions, setSelectedInfluencerForActions] = useState<Influencer | null>(null);
+  
+  // Filter influencers based on search and filter criteria
+  const filteredInfluencers = influencers.filter(influencer => {
+    const matchesSearch = searchTerm === '' || 
+      influencer.name_first?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      influencer.name_last?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      influencer.lifestyle?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      influencer.origin_residence?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      influencer.notes?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesStatus = filterStatus === 'all' || 
+      influencer.lorastatus?.toString() === filterStatus;
+    
+    const matchesType = filterType === 'all' || 
+      influencer.influencer_type === filterType;
+    
+    return matchesSearch && matchesStatus && matchesType;
+  });
+  
+  const displayedInfluencers = filteredInfluencers;
 
   const userData = useSelector((state: RootState) => state.user);
   const [subscriptionLevel, setSubscriptionLevel] = useState<'free' | 'starter' | 'professional' | 'enterprise'>('free');
@@ -1165,6 +1193,19 @@ export default function InfluencerEdit() {
     setShowDeleteModal(true);
   };
 
+  // Quick Action Handlers
+  const handleAIConsistency = (influencer: Influencer) => {
+    navigate('/influencers/consistency', { state: { influencerData: influencer, fromQuickActions: true } });
+  };
+
+  const handleBio = (influencer: Influencer) => {
+    navigate('/social/bio', { state: { influencerData: influencer, fromQuickActions: true, autoClickBio: true } });
+  };
+
+  const handleCreateSocialPost = (influencer: Influencer) => {
+    navigate('/create/images', { state: { influencerData: influencer } });
+  };
+
   const confirmDelete = async () => {
     if (!influencerToDelete) return;
 
@@ -1892,33 +1933,77 @@ export default function InfluencerEdit() {
 
   if (!showEditView) {
     return (
-      <div className="p-6 space-y-6 animate-fade-in">
-        <div className="flex items-center justify-between">
+      <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 animate-fade-in">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight bg-ai-gradient bg-clip-text text-transparent">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight bg-ai-gradient bg-clip-text text-transparent">
               Influencers
             </h1>
-            <p className="text-muted-foreground">
+            <p className="text-sm sm:text-base text-muted-foreground">
               Manage your AI influencers and their content
             </p>
           </div>
-          <div className="flex gap-2">
-            <Button onClick={handleUseTemplate} variant="outline">
+          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+            <Button onClick={handleUseTemplate} variant="outline" className="w-full sm:w-auto">
               <Image className="w-4 h-4 mr-2" />
               Use Template
             </Button>
-            <Button onClick={handleCreateNew} className="bg-gradient-to-r from-purple-600 to-blue-600">
+            <Button onClick={handleCreateNew} className="bg-gradient-to-r from-purple-600 to-blue-600 w-full sm:w-auto">
               <Plus className="w-4 h-4 mr-2" />
               Create New
             </Button>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+        {/* Search & Filter Section */}
+        <div className="space-y-4">
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex-1">
+              <Input
+                placeholder="Search influencers by name, lifestyle, or location..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full"
+              />
+            </div>
+            <div className="flex gap-2">
+              <Select value={filterStatus} onValueChange={setFilterStatus}>
+                <SelectTrigger className="w-full sm:w-[180px]">
+                  <SelectValue placeholder="Filter by status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="0">Not Trained</SelectItem>
+                  <SelectItem value="1">Training</SelectItem>
+                  <SelectItem value="2">Trained</SelectItem>
+                  <SelectItem value="9">Error</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={filterType} onValueChange={setFilterType}>
+                <SelectTrigger className="w-full sm:w-[180px]">
+                  <SelectValue placeholder="Filter by type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Types</SelectItem>
+                  <SelectItem value="Lifestyle">Lifestyle</SelectItem>
+                  <SelectItem value="Educational">Educational</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          
+          {/* Results Count */}
+          <div className="text-sm text-muted-foreground">
+            Showing {filteredInfluencers.length} of {influencers.length} influencers
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-6">
           {displayedInfluencers.map((influencer) => (
             <Card key={influencer.id} className="group hover:shadow-lg transition-all duration-300 border-border/50 hover:border-ai-purple-500/20">
-              <CardContent className="p-6 h-full">
-                <div className="flex flex-col justify-between h-full space-y-4">
+              <CardContent className="p-4 sm:p-6 h-full">
+                <div className="flex flex-col justify-between h-full space-y-3 sm:space-y-4">
                   <div className="relative w-full h-full bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg overflow-hidden">
                     {/* LoraStatusIndicator positioned at top right */}
                     <div className="absolute right-[-15px] top-[-15px] z-10">
@@ -1946,47 +2031,51 @@ export default function InfluencerEdit() {
                   <div>
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
-                        <h3 className="font-semibold text-lg group-hover:text-ai-purple-500 transition-colors">
+                        <h3 className="font-semibold text-base sm:text-lg group-hover:text-ai-purple-500 transition-colors">
                           {influencer.name_first} {influencer.name_last}
                         </h3>
                       </div>
                     </div>
 
                     <div className="flex flex-col gap-1 mb-3">
-                      <div className="flex text-sm text-muted-foreground flex-col">
+                      <div className="flex text-xs sm:text-sm text-muted-foreground flex-col">
                         {influencer.notes ? (
-                          <span className="text-sm text-muted-foreground">
+                          <span className="text-xs sm:text-sm text-muted-foreground">
                             {influencer.notes.length > 50
                               ? `${influencer.notes.substring(0, 50)}...`
                               : influencer.notes
                             }
                           </span>
                         ) : (
-                          <span className="text-sm text-muted-foreground">
+                          <span className="text-xs sm:text-sm text-muted-foreground">
                             {influencer.lifestyle || 'No lifestyle'} • {influencer.origin_residence || 'No residence'}
                           </span>
                         )}
                       </div>
                     </div>
 
+                    {/* Quick Action Button */}
                     <div className="flex flex-col gap-2">
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => handleEditInfluencer(influencer.id)}
-                        className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                        onClick={() => {
+                          setSelectedInfluencerForActions(influencer);
+                          setShowQuickActionModal(true);
+                        }}
+                        className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-xs sm:text-sm px-2 sm:px-3 py-2"
                       >
-                        <Settings className="w-4 h-4 mr-2" />
-                        Edit
+                        <MoreHorizontal className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                        Quick Actions
                       </Button>
                       <Button
                         size="sm"
                         variant="outline"
                         onClick={() => handleDeleteInfluencer(influencer)}
-                        className="relative overflow-hidden border-red-200 hover:border-red-300 bg-white hover:bg-red-50 text-red-600 hover:text-red-700 font-medium shadow-sm hover:shadow-md transition-all duration-300 transform hover:scale-[1.02]"
+                        className="relative overflow-hidden border-red-200 hover:border-red-300 bg-white hover:bg-red-50 text-red-600 hover:text-red-700 font-medium shadow-sm hover:shadow-md transition-all duration-300 transform hover:scale-[1.02] text-xs sm:text-sm px-2 sm:px-3 py-2"
                       >
                         <div className="absolute inset-0 bg-gradient-to-r from-red-500/0 via-red-500/5 to-red-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                        <Trash2 className="w-4 h-4 mr-2 transition-transform duration-300 group-hover:scale-110" />
+                        <Trash2 className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 transition-transform duration-300 group-hover:scale-110" />
                         <span className="relative z-10">Delete</span>
                       </Button>
                     </div>
@@ -2057,6 +2146,197 @@ export default function InfluencerEdit() {
                       Delete
                     </>
                   )}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Quick Action Modal */}
+        <Dialog
+          open={showQuickActionModal}
+          onOpenChange={(open) => setShowQuickActionModal(open)}
+        >
+          <DialogContent className="max-w-2xl w-[95vw] max-h-[90vh] overflow-y-auto p-0">
+            {/* Header with gradient background */}
+            <div className="bg-gradient-to-br from-purple-600 via-blue-600 to-indigo-700 p-4 sm:p-6 lg:p-8 text-white relative overflow-hidden">
+              {/* Background pattern */}
+              <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent"></div>
+              <div className="absolute top-0 right-0 w-20 sm:w-32 lg:w-40 h-20 sm:h-32 lg:h-40 bg-white/5 rounded-full -translate-y-10 sm:-translate-y-16 lg:-translate-y-20 translate-x-10 sm:translate-x-16 lg:translate-x-20"></div>
+              <div className="absolute bottom-0 left-0 w-16 sm:w-24 lg:w-32 h-16 sm:h-24 lg:h-32 bg-white/5 rounded-full translate-y-8 sm:translate-y-12 lg:translate-y-16 -translate-x-8 sm:-translate-x-12 lg:-translate-x-16"></div>
+
+              <div className="relative z-10 text-center">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-4 sm:mb-6 bg-white/20 rounded-2xl sm:rounded-3xl flex items-center justify-center backdrop-blur-sm border border-white/30 shadow-xl sm:shadow-2xl">
+                  <MoreHorizontal className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
+                </div>
+                <DialogTitle className="text-xl sm:text-2xl lg:text-3xl font-bold mb-3 sm:mb-4 bg-gradient-to-r from-white to-purple-100 bg-clip-text text-transparent">
+                  Quick Actions
+                </DialogTitle>
+                <DialogDescription className="text-sm sm:text-base lg:text-lg text-purple-100 leading-relaxed max-w-2xl mx-auto">
+                  Choose an action to perform with {selectedInfluencerForActions?.name_first} {selectedInfluencerForActions?.name_last}
+                </DialogDescription>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="p-4 sm:p-6 lg:p-8">
+              {/* Influencer Info Card */}
+              {selectedInfluencerForActions && (
+                <Card className="mb-6 bg-gradient-to-br from-purple-50/50 to-blue-50/50 dark:from-purple-950/20 dark:to-blue-950/20 border-purple-200/50 dark:border-purple-800/50 shadow-xl">
+                  <CardContent className="p-4 sm:p-6">
+                    <div className="flex flex-col sm:flex-row items-center gap-4">
+                      <div className="relative">
+                        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden ring-4 ring-white dark:ring-gray-800 shadow-xl">
+                          <img
+                            src={selectedInfluencerForActions.image_url}
+                            alt={selectedInfluencerForActions.name_first}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center shadow-lg">
+                          <MoreHorizontal className="w-4 h-4 text-white" />
+                        </div>
+                      </div>
+                      <div className="flex-1 text-center sm:text-left">
+                        <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100 mb-1">
+                          {selectedInfluencerForActions.name_first} {selectedInfluencerForActions.name_last}
+                        </h3>
+                        <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">
+                          {selectedInfluencerForActions.lifestyle || 'No lifestyle'} • {selectedInfluencerForActions.origin_residence || 'No residence'}
+                        </p>
+                        <div className="flex flex-wrap gap-2 justify-center sm:justify-start">
+                          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300">
+                            <MoreHorizontal className="w-3 h-3 mr-1" />
+                            Quick Actions Available
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Action Options Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                {/* Edit Profile */}
+                <Card
+                  onClick={() => {
+                    setShowQuickActionModal(false);
+                    if (selectedInfluencerForActions) {
+                      handleEditInfluencer(selectedInfluencerForActions.id);
+                    }
+                  }}
+                  className="group cursor-pointer hover:shadow-2xl transition-all duration-300 transform hover:scale-105 border-2 hover:border-purple-300 dark:hover:border-purple-600 bg-gradient-to-br from-white to-purple-50/30 dark:from-slate-800/50 dark:to-purple-900/20"
+                >
+                  <CardContent className="p-4 sm:p-6 text-center">
+                    <div className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 bg-gradient-to-r from-purple-500 to-blue-500 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow duration-300">
+                      <Settings className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
+                    </div>
+                    <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+                      Edit Profile
+                    </h3>
+                    <p className="text-gray-600 dark:text-gray-300 text-xs sm:text-sm leading-relaxed mb-3 sm:mb-4">
+                      Modify influencer details, appearance, and personality traits
+                    </p>
+                    <div className="flex items-center justify-center gap-2 text-xs text-purple-600 dark:text-purple-400">
+                      <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                      Profile customization
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* AI Consistency */}
+                <Card
+                  onClick={() => {
+                    setShowQuickActionModal(false);
+                    if (selectedInfluencerForActions) {
+                      handleAIConsistency(selectedInfluencerForActions);
+                    }
+                  }}
+                  className="group cursor-pointer hover:shadow-2xl transition-all duration-300 transform hover:scale-105 border-2 hover:border-green-300 dark:hover:border-green-600 bg-gradient-to-br from-white to-green-50/30 dark:from-slate-800/50 dark:to-green-900/20"
+                >
+                  <CardContent className="p-4 sm:p-6 text-center">
+                    <div className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 bg-gradient-to-r from-green-500 to-emerald-500 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow duration-300">
+                      <Brain className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
+                    </div>
+                    <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+                      AI Consistency
+                    </h3>
+                    <p className="text-gray-600 dark:text-gray-300 text-xs sm:text-sm leading-relaxed mb-3 sm:mb-4">
+                      Train AI for better character consistency in generated content
+                    </p>
+                    <div className="flex items-center justify-center gap-2 text-xs text-green-600 dark:text-green-400">
+                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                      AI training
+                    </div>
+                  </CardContent>
+                </Card>
+
+
+
+                {/* Bio */}
+                <Card
+                  onClick={() => {
+                    setShowQuickActionModal(false);
+                    if (selectedInfluencerForActions) {
+                      handleBio(selectedInfluencerForActions);
+                    }
+                  }}
+                  className="group cursor-pointer hover:shadow-2xl transition-all duration-300 transform hover:scale-105 border-2 hover:border-indigo-300 dark:hover:border-indigo-600 bg-gradient-to-br from-white to-indigo-50/30 dark:from-slate-800/50 dark:to-indigo-900/20"
+                >
+                  <CardContent className="p-4 sm:p-6 text-center">
+                    <div className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow duration-300">
+                      <User className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
+                    </div>
+                    <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+                      Bio
+                    </h3>
+                    <p className="text-gray-600 dark:text-gray-300 text-xs sm:text-sm leading-relaxed mb-3 sm:mb-4">
+                      Manage influencer biography and social media profiles
+                    </p>
+                    <div className="flex items-center justify-center gap-2 text-xs text-indigo-600 dark:text-indigo-400">
+                      <div className="w-2 h-2 bg-indigo-500 rounded-full"></div>
+                      Profile management
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Create Social Post */}
+                <Card
+                  onClick={() => {
+                    setShowQuickActionModal(false);
+                    if (selectedInfluencerForActions) {
+                      handleCreateSocialPost(selectedInfluencerForActions);
+                    }
+                  }}
+                  className="group cursor-pointer hover:shadow-2xl transition-all duration-300 transform hover:scale-105 border-2 hover:border-pink-300 dark:hover:border-pink-600 bg-gradient-to-br from-white to-pink-50/30 dark:from-slate-800/50 dark:to-pink-900/20"
+                >
+                  <CardContent className="p-4 sm:p-6 text-center">
+                    <div className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 bg-gradient-to-r from-pink-500 to-rose-500 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow duration-300">
+                      <Plus className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
+                    </div>
+                    <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+                      Create Social Post
+                    </h3>
+                    <p className="text-gray-600 dark:text-gray-300 text-xs sm:text-sm leading-relaxed mb-3 sm:mb-4">
+                      Generate new social media content with this influencer
+                    </p>
+                    <div className="flex items-center justify-center gap-2 text-xs text-pink-600 dark:text-pink-400">
+                      <div className="w-2 h-2 bg-pink-500 rounded-full"></div>
+                      Content creation
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-6 sm:pt-8">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowQuickActionModal(false)}
+                  className="flex-1 h-10 sm:h-12 text-sm sm:text-base font-medium border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 px-3 sm:px-4"
+                >
+                  Cancel
                 </Button>
               </div>
             </div>

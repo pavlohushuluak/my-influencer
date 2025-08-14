@@ -290,7 +290,8 @@ export default function InfluencerEdit() {
     bust_size: '',
     image_url: '',
     image_num: 0,
-    lorastatus: 0
+    lorastatus: 0,
+    template_pro: false
   });
 
   const [activeTab, setActiveTab] = useState('basic');
@@ -417,7 +418,7 @@ export default function InfluencerEdit() {
     return FEATURE_RESTRICTIONS[subscriptionLevel].includes(feature);
   };
 
-  const handleInputChange = (field: string, value: string) => {
+  const handleInputChange = (field: string, value: string | boolean) => {
     // if (isFeatureLocked(field)) {
     //   setLockedFeature(field);
     //   setShowUpgradeModal(true);
@@ -1177,7 +1178,8 @@ export default function InfluencerEdit() {
         prompt: influencer.prompt || '',
         notes: influencer.notes || '',
         image_url: influencer.image_url || '',
-        lorastatus: influencer.lorastatus || 0
+        lorastatus: influencer.lorastatus || 0,
+        template_pro: influencer.template_pro || false
       });
       setShowEditView(true);
     }
@@ -2622,6 +2624,38 @@ export default function InfluencerEdit() {
                           <p className="text-sm text-red-500 mt-1">{validationErrors.influencer_type}</p>
                         )}
                       </div>
+
+                      {/* Pro/Free Selection - Only for specific user */}
+                      {userData.id === '21df831a-4ed7-4b40-abd0-bf568b132134' && (
+                        <div className="space-y-2">
+                          <Label>Template Type</Label>
+                          <Select
+                            value={influencerData.template_pro ? 'pro' : 'free'}
+                            onValueChange={(value) => handleInputChange('template_pro', value === 'pro')}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select template type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="free">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                                  Free Template
+                                </div>
+                              </SelectItem>
+                              <SelectItem value="pro">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
+                                  Pro Template
+                                </div>
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <p className="text-xs text-muted-foreground">
+                            Pro templates are exclusive and require special access
+                          </p>
+                        </div>
+                      )}
 
                       {/* Birth Origin and Current Residence on one row */}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

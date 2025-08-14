@@ -56,6 +56,7 @@ export interface Influencer {
   eye_shape: string;
   lorastatus: number; // 0 = none, 1 = creating, 2 = successful, 9 = needs re-creation
   bio?: any; // jsonb bio field from API
+  template_pro?: boolean; // true for pro templates, false for free templates
 }
 
 interface InfluencersState {

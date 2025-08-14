@@ -53,6 +53,7 @@ export interface TemplateInfluencer {
     image_num: number;
     lorastatus?: number;
     bio?: any; // jsonb bio field from API
+    template_pro?: boolean; // true for pro templates, false for free templates
 }
 
 interface TemplateInfluencerState {

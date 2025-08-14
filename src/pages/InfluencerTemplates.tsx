@@ -51,8 +51,8 @@ export default function InfluencerTemplates() {
         template.lifestyle?.toLowerCase().includes(selectedCategory.toLowerCase()) ||
         template.content_focus?.some(focus => focus.toLowerCase().includes(selectedCategory.toLowerCase()));
 
-      // PRO filter (using visual_only as a proxy for PRO templates)
-      const proMatch = !showProOnly || template.visual_only === true;
+      // PRO filter (using template_pro field for PRO templates)
+      const proMatch = !showProOnly || template.template_pro === true;
 
       return searchMatch && categoryMatch && proMatch;
     });
@@ -378,15 +378,42 @@ export default function InfluencerTemplates() {
                 <CardContent className="p-4 sm:p-6 h-full">
                   <div className="flex flex-col justify-between h-full space-y-3 sm:space-y-4">
                     <div className="relative w-full h-full bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg overflow-hidden">
-                      {/* PRO Badge */}
-                      {template.visual_only && (
-                        <div className="absolute top-2 right-2 z-20">
-                          <Badge className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white border-0 shadow-lg text-xs">
-                            <Crown className="w-3 h-3 mr-1" />
-                            PRO
-                          </Badge>
-                        </div>
-                      )}
+                      {/* Template Type Badge - Left Top */}
+                      <div className="absolute top-2 left-2 z-20">
+                        {template.template_pro ? (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger>
+                                <Badge className="bg-gradient-to-r from-purple-600 via-purple-500 to-indigo-600 text-white border-0 shadow-lg text-xs font-semibold px-2 py-1 backdrop-blur-sm">
+                                  <svg className="w-3 h-3 mr-1" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12 2L15.09 8.26L22 9L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9L8.91 8.26L12 2Z"/>
+                                  </svg>
+                                  PRO
+                                </Badge>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Exclusive PRO template with premium features</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        ) : (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger>
+                                <Badge className="bg-gradient-to-r from-green-500 via-emerald-500 to-teal-600 text-white border-0 shadow-lg text-xs font-semibold px-2 py-1 backdrop-blur-sm">
+                                  <svg className="w-3 h-3 mr-1" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                                  </svg>
+                                  FREE
+                                </Badge>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Free template available to all users</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        )}
+                      </div>
 
                       {/* LoraStatusIndicator positioned at top right */}
                       <div className="absolute right-[-15px] top-[-15px] z-10">
@@ -409,38 +436,6 @@ export default function InfluencerTemplates() {
                           <h3 className="text-lg font-semibold mb-2">No image found</h3>
                         </div>
                       )}
-
-                      {/* Hover Overlay */}
-                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-300 flex items-center justify-center">
-                        <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex gap-2">
-                          <Button 
-                            size="sm" 
-                            className="bg-white/90 text-black hover:bg-white shadow-lg"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handlePreviewTemplate(template);
-                            }}
-                          >
-                            <Eye className="w-4 h-4 mr-2" />
-                            Preview
-                          </Button>
-                          <Button 
-                            size="sm" 
-                            className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-lg"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleUseTemplate(template);
-                            }}
-                            disabled={loadingButtons[template.id]}
-                          >
-                            {loadingButtons[template.id] ? (
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                            ) : (
-                              <Plus className="w-4 h-4" />
-                            )}
-                          </Button>
-                        </div>
-                      </div>
                     </div>
 
                     <div>
@@ -536,24 +531,42 @@ export default function InfluencerTemplates() {
             <CardContent className="p-4 sm:p-6 h-full">
               <div className="flex flex-col justify-between h-full space-y-3 sm:space-y-4">
                 <div className="relative w-full h-full bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg overflow-hidden">
-                  {/* PRO Badge */}
-                  {template.visual_only && (
-                    <div className="absolute top-2 right-2 z-20">
+                  {/* Template Type Badge - Left Top */}
+                  <div className="absolute top-2 left-2 z-20">
+                    {template.template_pro ? (
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger>
-                            <Badge className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white border-0 shadow-lg text-xs">
-                              <Crown className="w-3 h-3 mr-1" />
+                            <Badge className="bg-gradient-to-r from-purple-600 via-purple-500 to-indigo-600 text-white border-0 shadow-lg text-xs font-semibold px-2 py-1 backdrop-blur-sm">
+                              <svg className="w-3 h-3 mr-1" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12 2L15.09 8.26L22 9L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9L8.91 8.26L12 2Z"/>
+                              </svg>
                               PRO
                             </Badge>
                           </TooltipTrigger>
                           <TooltipContent>
-                            <p>Exclusive template, available with PRO credits</p>
+                            <p>Exclusive PRO template with premium features</p>
                           </TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
-                    </div>
-                  )}
+                    ) : (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger>
+                            <Badge className="bg-gradient-to-r from-green-500 via-emerald-500 to-teal-600 text-white border-0 shadow-lg text-xs font-semibold px-2 py-1 backdrop-blur-sm">
+                              <svg className="w-3 h-3 mr-1" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                              </svg>
+                              FREE
+                            </Badge>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Free template available to all users</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    )}
+                  </div>
 
                   {/* LoraStatusIndicator positioned at top right */}
                   <div className="absolute right-[-15px] top-[-15px] z-10">
@@ -576,38 +589,6 @@ export default function InfluencerTemplates() {
                       <h3 className="text-lg font-semibold mb-2">No image found</h3>
                     </div>
                   )}
-
-                  {/* Hover Overlay */}
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-300 flex items-center justify-center">
-                    <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex gap-2">
-                      <Button 
-                        size="sm" 
-                        className="bg-white/90 text-black hover:bg-white shadow-lg"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handlePreviewTemplate(template);
-                        }}
-                      >
-                        <Eye className="w-4 h-4 mr-2" />
-                        Preview
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-lg"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleUseTemplate(template);
-                        }}
-                        disabled={loadingButtons[template.id]}
-                      >
-                        {loadingButtons[template.id] ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <Plus className="w-4 h-4" />
-                        )}
-                      </Button>
-                    </div>
-                  </div>
                 </div>
 
                 <div>
@@ -717,14 +698,24 @@ export default function InfluencerTemplates() {
                     className="w-full h-full object-cover" 
                   />
                 )}
-                {selectedTemplate.visual_only && (
-                  <div className="absolute top-4 right-4">
-                    <Badge className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white border-0 shadow-lg">
-                      <Crown className="w-4 h-4 mr-2" />
+                {/* Template Type Badge - Left Top */}
+                <div className="absolute top-4 left-4">
+                  {selectedTemplate.template_pro ? (
+                    <Badge className="bg-gradient-to-r from-purple-600 via-purple-500 to-indigo-600 text-white border-0 shadow-lg font-semibold px-3 py-2 backdrop-blur-sm">
+                      <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2L15.09 8.26L22 9L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9L8.91 8.26L12 2Z"/>
+                      </svg>
                       PRO Template
                     </Badge>
-                  </div>
-                )}
+                  ) : (
+                    <Badge className="bg-gradient-to-r from-green-500 via-emerald-500 to-teal-600 text-white border-0 shadow-lg font-semibold px-3 py-2 backdrop-blur-sm">
+                      <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                      </svg>
+                      FREE Template
+                    </Badge>
+                  )}
+                </div>
               </div>
 
               {/* Template Details */}

@@ -77,7 +77,7 @@ const SUBSCRIPTION_FEATURES = {
       'All Starter features',
       'Advanced appearance customization',
       'Detailed personality traits',
-      'Style & environment options',
+      'Style & Settings options',
       'Content focus customization'
     ]
   },
@@ -2449,7 +2449,7 @@ export default function InfluencerEdit() {
           <TabsList className={`grid w-full grid-cols-1 h-full md:grid-cols-2 ${influencerData.visual_only === true ? 'lg:grid-cols-3' : 'lg:grid-cols-4'}`}>
             <TabsTrigger value="basic">Basic Info</TabsTrigger>
             <TabsTrigger value="appearance">Appearance</TabsTrigger>
-            <TabsTrigger value="style">Style & Environment</TabsTrigger>
+            <TabsTrigger value="style">Style & Settings</TabsTrigger>
             {
               influencerData.visual_only === false && <TabsTrigger value="personality">Personality</TabsTrigger>
             }
@@ -3376,7 +3376,7 @@ export default function InfluencerEdit() {
             <TabsContent value="style" className="space-y-4">
               <Card>
                 <CardHeader>
-                  <CardTitle>Style & Environment</CardTitle>
+                  <CardTitle>Style & Settings</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

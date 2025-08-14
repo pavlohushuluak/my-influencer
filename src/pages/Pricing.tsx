@@ -45,7 +45,7 @@ const SUBSCRIPTION_FEATURES = {
       'All Starter features',
       'Advanced appearance customization',
       'Detailed personality traits',
-      'Style & environment options',
+      'Style & Settings options',
       'Content focus customization',
       'Unlimited color palettes',
       'Advanced content generation',

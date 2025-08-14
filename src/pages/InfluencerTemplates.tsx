@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Loader2, Plus, Search, Filter, Eye, Star, Crown, MapPin, Users, Sparkles } from 'lucide-react';
+import { Loader2, Plus, Search, Filter, Eye, Star, Crown, MapPin, Users, Sparkles, Image } from 'lucide-react';
 import { RootState } from '@/store/store';
 import { fetchTemplateInfluencers, TemplateInfluencer } from '@/store/slices/templateInfluencerSlice';
 import { useEffect, useState, useMemo } from 'react';
@@ -372,35 +372,156 @@ export default function InfluencerTemplates() {
             <Sparkles className="w-5 h-5 text-yellow-500" />
             <h2 className="text-xl font-semibold">Recommended for You</h2>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
             {recommendedTemplates.map((template) => (
-              <Card key={template.id} className="group hover:shadow-lg transition-all duration-300 cursor-pointer" onClick={() => handlePreviewTemplate(template)}>
-                <CardContent className="p-4">
-                  <div className="relative aspect-[3/4] bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg overflow-hidden mb-3">
-                    {template.image_url && (
-                      <img src={template.image_url} alt={template.id} className="w-full h-full object-cover" />
-                    )}
-                    {template.visual_only && (
-                      <div className="absolute top-2 right-2">
-                        <Badge className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white border-0">
-                          <Crown className="w-3 h-3 mr-1" />
-                          PRO
-                        </Badge>
+              <Card key={template.id} className="group hover:shadow-lg transition-all duration-300 border-border/50 hover:border-ai-purple-500/20">
+                <CardContent className="p-4 sm:p-6 h-full">
+                  <div className="flex flex-col justify-between h-full space-y-3 sm:space-y-4">
+                    <div className="relative w-full h-full bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg overflow-hidden">
+                      {/* PRO Badge */}
+                      {template.visual_only && (
+                        <div className="absolute top-2 right-2 z-20">
+                          <Badge className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white border-0 shadow-lg text-xs">
+                            <Crown className="w-3 h-3 mr-1" />
+                            PRO
+                          </Badge>
+                        </div>
+                      )}
+
+                      {/* LoraStatusIndicator positioned at top right */}
+                      <div className="absolute right-[-15px] top-[-15px] z-10">
+                        <LoraStatusIndicator
+                          status={template.lorastatus || 0}
+                          className="flex-shrink-0"
+                        />
                       </div>
-                    )}
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300 flex items-center justify-center">
-                      <Button size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                        <Eye className="w-4 h-4 mr-2" />
-                        Preview
-                      </Button>
+
+                      {/* Template Image */}
+                      {template.image_url ? (
+                        <img
+                          src={template.image_url}
+                          alt={`${template.name_first} ${template.name_last}`}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="flex flex-col w-full h-full items-center justify-center max-h-48 min-h-40">
+                          <Image className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                          <h3 className="text-lg font-semibold mb-2">No image found</h3>
+                        </div>
+                      )}
+
+                      {/* Hover Overlay */}
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-300 flex items-center justify-center">
+                        <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex gap-2">
+                          <Button 
+                            size="sm" 
+                            className="bg-white/90 text-black hover:bg-white shadow-lg"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handlePreviewTemplate(template);
+                            }}
+                          >
+                            <Eye className="w-4 h-4 mr-2" />
+                            Preview
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-lg"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleUseTemplate(template);
+                            }}
+                            disabled={loadingButtons[template.id]}
+                          >
+                            {loadingButtons[template.id] ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Plus className="w-4 h-4" />
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-semibold text-base sm:text-lg group-hover:text-ai-purple-500 transition-colors">
+                            {template.name_first} {template.name_last}
+                          </h3>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col gap-1 mb-3">
+                        <div className="flex text-xs sm:text-sm text-muted-foreground flex-col">
+                          {template.notes ? (
+                            <span className="text-xs sm:text-sm text-muted-foreground">
+                              {template.notes.length > 50
+                                ? `${template.notes.substring(0, 50)}...`
+                                : template.notes
+                              }
+                            </span>
+                          ) : (
+                            <span className="text-xs sm:text-sm text-muted-foreground">
+                              {template.lifestyle || 'No lifestyle'} • {template.origin_residence || 'No residence'}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Content Focus Badges */}
+                      {template.content_focus && template.content_focus.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mb-3">
+                          {template.content_focus.slice(0, 2).map((focus, index) => (
+                            <Badge key={index} variant="secondary" className="text-xs">
+                              {focus}
+                            </Badge>
+                          ))}
+                          {template.content_focus.length > 2 && (
+                            <Badge variant="secondary" className="text-xs">
+                              +{template.content_focus.length - 2} more
+                            </Badge>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Template Action Buttons */}
+                      <div className="flex flex-col gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handlePreviewTemplate(template);
+                          }}
+                          className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white text-xs sm:text-sm px-2 sm:px-3 py-2"
+                        >
+                          <Eye className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                          Preview
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleUseTemplate(template);
+                          }}
+                          disabled={loadingButtons[template.id]}
+                          className="relative overflow-hidden border-green-200 hover:border-green-300 bg-white hover:bg-green-50 text-green-600 hover:text-green-700 font-medium shadow-sm hover:shadow-md transition-all duration-300 transform hover:scale-[1.02] text-xs sm:text-sm px-2 sm:px-3 py-2"
+                        >
+                          <div className="absolute inset-0 bg-gradient-to-r from-green-500/0 via-green-500/5 to-green-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                          {loadingButtons[template.id] ? (
+                            <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 animate-spin" />
+                          ) : (
+                            <Plus className="w-3 h-3 sm:w-4 sm:h-4 transition-transform duration-300 group-hover:scale-110" />
+                          )}
+                          <span className="relative z-10">
+                            {loadingButtons[template.id] ? 'Creating...' : 'Use Template'}
+                          </span>
+                        </Button>
+                      </div>
                     </div>
                   </div>
-                  <h3 className="font-semibold text-sm mb-1">
-                    {template.name_first} {template.name_last}
-                  </h3>
-                  <p className="text-xs text-muted-foreground">
-                    {template.lifestyle || 'Lifestyle'} • {template.origin_residence || 'Location'}
-                  </p>
                 </CardContent>
               </Card>
             ))}
@@ -409,96 +530,115 @@ export default function InfluencerTemplates() {
       )}
 
       {/* Templates Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-6">
         {filteredAndSortedTemplates.map((template) => (
-          <Card key={template.id} className="group hover:shadow-xl transition-all duration-300 cursor-pointer" onClick={() => handlePreviewTemplate(template)}>
-            <CardContent className="p-4">
-              <div className="relative aspect-[3/4] bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg overflow-hidden mb-4 shadow-lg">
-                {/* PRO Badge */}
-                {template.visual_only && (
-                  <div className="absolute top-3 right-3 z-20">
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger>
-                          <Badge className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white border-0 shadow-lg">
-                            <Crown className="w-3 h-3 mr-1" />
-                            PRO
-                          </Badge>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Exclusive template, available with PRO credits</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </div>
-                )}
-
-                {/* LoraStatusIndicator */}
-                <div className="absolute left-3 top-3 z-10">
-                  <LoraStatusIndicator 
-                    status={template.lorastatus || 0} 
-                    className="flex-shrink-0"
-                  />
-                </div>
-
-                {/* Template Image */}
-                {template.image_url && (
-                  <img src={template.image_url} alt={template.id} className="w-full h-full object-cover" />
-                )}
-
-                {/* Hover Overlay */}
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-300 flex items-center justify-center">
-                  <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex gap-2">
-                    <Button size="sm" className="bg-white/90 text-black hover:bg-white">
-                      <Eye className="w-4 h-4 mr-2" />
-                      Preview
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleUseTemplate(template);
-                      }}
-                      disabled={loadingButtons[template.id]}
-                    >
-                      {loadingButtons[template.id] ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <Plus className="w-4 h-4" />
-                      )}
-                    </Button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Template Info */}
-              <div className="space-y-2">
-                <div className="flex items-start justify-between">
-                  <h3 className="font-semibold text-lg group-hover:text-ai-purple-500 transition-colors">
-                    {template.name_first} {template.name_last}
-                  </h3>
-                </div>
-
-                <div className="space-y-1">
-                  {/* Style/Lifestyle */}
-                  {template.lifestyle && (
-                    <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                      {template.lifestyle}
-                    </p>
-                  )}
-                  
-                  {/* Location */}
-                  {template.origin_residence && (
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <MapPin className="w-3 h-3" />
-                      {template.origin_residence}
+          <Card key={template.id} className="group hover:shadow-lg transition-all duration-300 border-border/50 hover:border-ai-purple-500/20">
+            <CardContent className="p-4 sm:p-6 h-full">
+              <div className="flex flex-col justify-between h-full space-y-3 sm:space-y-4">
+                <div className="relative w-full h-full bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg overflow-hidden">
+                  {/* PRO Badge */}
+                  {template.visual_only && (
+                    <div className="absolute top-2 right-2 z-20">
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger>
+                            <Badge className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white border-0 shadow-lg text-xs">
+                              <Crown className="w-3 h-3 mr-1" />
+                              PRO
+                            </Badge>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Exclusive template, available with PRO credits</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     </div>
                   )}
 
-                  {/* Content Focus */}
+                  {/* LoraStatusIndicator positioned at top right */}
+                  <div className="absolute right-[-15px] top-[-15px] z-10">
+                    <LoraStatusIndicator
+                      status={template.lorastatus || 0}
+                      className="flex-shrink-0"
+                    />
+                  </div>
+
+                  {/* Template Image */}
+                  {template.image_url ? (
+                    <img
+                      src={template.image_url}
+                      alt={`${template.name_first} ${template.name_last}`}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex flex-col w-full h-full items-center justify-center max-h-48 min-h-40">
+                      <Image className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold mb-2">No image found</h3>
+                    </div>
+                  )}
+
+                  {/* Hover Overlay */}
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-300 flex items-center justify-center">
+                    <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex gap-2">
+                      <Button 
+                        size="sm" 
+                        className="bg-white/90 text-black hover:bg-white shadow-lg"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handlePreviewTemplate(template);
+                        }}
+                      >
+                        <Eye className="w-4 h-4 mr-2" />
+                        Preview
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-lg"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleUseTemplate(template);
+                        }}
+                        disabled={loadingButtons[template.id]}
+                      >
+                        {loadingButtons[template.id] ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Plus className="w-4 h-4" />
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-semibold text-base sm:text-lg group-hover:text-ai-purple-500 transition-colors">
+                        {template.name_first} {template.name_last}
+                      </h3>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-1 mb-3">
+                    <div className="flex text-xs sm:text-sm text-muted-foreground flex-col">
+                      {template.notes ? (
+                        <span className="text-xs sm:text-sm text-muted-foreground">
+                          {template.notes.length > 50
+                            ? `${template.notes.substring(0, 50)}...`
+                            : template.notes
+                          }
+                        </span>
+                      ) : (
+                        <span className="text-xs sm:text-sm text-muted-foreground">
+                          {template.lifestyle || 'No lifestyle'} • {template.origin_residence || 'No residence'}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Content Focus Badges */}
                   {template.content_focus && template.content_focus.length > 0 && (
-                    <div className="flex flex-wrap gap-1">
+                    <div className="flex flex-wrap gap-1 mb-3">
                       {template.content_focus.slice(0, 2).map((focus, index) => (
                         <Badge key={index} variant="secondary" className="text-xs">
                           {focus}
@@ -512,12 +652,41 @@ export default function InfluencerTemplates() {
                     </div>
                   )}
 
-                  {/* Notes */}
-                  {template.notes && (
-                    <p className="text-xs text-muted-foreground line-clamp-2">
-                      {template.notes}
-                    </p>
-                  )}
+                  {/* Template Action Buttons */}
+                  <div className="flex flex-col gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handlePreviewTemplate(template);
+                      }}
+                      className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white text-xs sm:text-sm px-2 sm:px-3 py-2"
+                    >
+                      <Eye className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                      Preview
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleUseTemplate(template);
+                      }}
+                      disabled={loadingButtons[template.id]}
+                      className="relative overflow-hidden border-green-200 hover:border-green-300 bg-white hover:bg-green-50 text-green-600 hover:text-green-700 font-medium shadow-sm hover:shadow-md transition-all duration-300 transform hover:scale-[1.02] text-xs sm:text-sm px-2 sm:px-3 py-2"
+                    >
+                      <div className="absolute inset-0 bg-gradient-to-r from-green-500/0 via-green-500/5 to-green-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                      {loadingButtons[template.id] ? (
+                        <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 animate-spin" />
+                      ) : (
+                        <Plus className="w-3 h-3 sm:w-4 sm:h-4 transition-transform duration-300 group-hover:scale-110" />
+                      )}
+                      <span className="relative z-10">
+                        {loadingButtons[template.id] ? 'Creating...' : 'Use Template'}
+                      </span>
+                    </Button>
+                  </div>
                 </div>
               </div>
             </CardContent>

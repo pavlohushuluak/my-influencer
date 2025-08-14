@@ -106,7 +106,7 @@ export default function Settings() {
     status: 'active',
     features: {
       free: ['Basic influencer information', 'Limited appearance customization', 'Basic style options', 'Up to 3 color palettes', 'Basic content generation'],
-      professional: ['All Free features', 'Advanced appearance customization', 'Detailed personality traits', 'Style & environment options', 'Content focus customization', 'Unlimited color palettes', 'Advanced content generation', 'Priority support'],
+      professional: ['All Free features', 'Advanced appearance customization', 'Detailed personality traits', 'Style & Settings options', 'Content focus customization', 'Unlimited color palettes', 'Advanced content generation', 'Priority support'],
       enterprise: ['All Professional features', 'Unlimited customization', 'Priority support', 'Advanced analytics', 'API access', 'Custom integrations', 'Dedicated account manager', 'Team collaboration features']
     }
   };

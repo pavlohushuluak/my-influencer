@@ -3829,7 +3829,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
                                     <CardContent className="p-4">
                                       <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                                         <img
-                                          src={`https://api.nymia.ai/v1/wizard/mappings400/${selectedScene.image}`}
+                                          src={`${config.data_url}/wizard/mappings400/${selectedScene.image}`}
                                           className="absolute inset-0 w-full h-full object-cover rounded-md"
                                           alt={selectedScene.label}
                                         />
@@ -3976,7 +3976,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
                                                 >
                                                   <div className="relative" style={{ paddingBottom: '100%' }}>
                                                     <img
-                                                      src={`https://api.nymia.ai/v1/wizard/mappings400/${scene.image}`}
+                                                      src={`${config.data_url}/wizard/mappings400/${scene.image}`}
                                                       className="absolute inset-0 w-full h-full object-cover"
                                                       alt={scene.label}
                                                     />
@@ -4036,7 +4036,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
                                     <CardContent className="p-4">
                                       <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                                         <img
-                                          src={`https://api.nymia.ai/v1/wizard/mappings400/${selectedPose.image}`}
+                                          src={`${config.data_url}/wizard/mappings400/${selectedPose.image}`}
                                           className="absolute inset-0 w-full h-full object-cover rounded-md"
                                           alt={selectedPose.label}
                                         />
@@ -4174,7 +4174,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
                                                 >
                                                   <div className="relative" style={{ paddingBottom: '100%' }}>
                                                     <img
-                                                      src={`https://api.nymia.ai/v1/wizard/mappings400/${pose.image}`}
+                                                      src={`${config.data_url}/wizard/mappings400/${pose.image}`}
                                                       className="absolute inset-0 w-full h-full object-cover"
                                                       alt={pose.label}
                                                     />
@@ -4864,7 +4864,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
                       <CardContent className="p-4">
                         <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                           <img
-                            src={`https://api.nymia.ai/v1/wizard/mappings400/${selectedScene.image}`}
+                            src={`${config.data_url}/wizard/mappings400/${selectedScene.image}`}
                             className="absolute inset-0 w-full h-full object-cover rounded-md"
                             alt={selectedScene.label}
                           />
@@ -4887,7 +4887,6 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
                           )}
                         </div>
                         <p className="text-sm text-center font-medium mt-2">{selectedScene.label}</p>
-                        <p className="text-xs text-center text-muted-foreground">{selectedScene.description}</p>
                       </CardContent>
                     </Card>
                   ) : (
@@ -4915,7 +4914,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
                       <CardContent className="p-4">
                         <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                           <img
-                            src={`https://api.nymia.ai/v1/wizard/mappings400/${selectedPose.image}`}
+                            src={`${config.data_url}/wizard/mappings400/${selectedPose.image}`}
                             className="absolute inset-0 w-full h-full object-cover rounded-md"
                             alt={selectedPose.label}
                           />
@@ -4938,7 +4937,6 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
                           )}
                         </div>
                         <p className="text-sm text-center font-medium mt-2">{selectedPose.label}</p>
-                        <p className="text-xs text-center text-muted-foreground">{selectedPose.description}</p>
                       </CardContent>
                     </Card>
                   ) : (

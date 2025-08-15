@@ -14,11 +14,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { DialogZoom, DialogContentZoom } from '@/components/ui/zoomdialog';
 import { updateInfluencer, setInfluencers, setLoading, setError, addInfluencer, formatDate, parseDate, Influencer } from '@/store/slices/influencersSlice';
 import { setUser } from '@/store/slices/userSlice';
-import { X, Plus, Save, Crown, Image, Settings, User, ChevronRight, MoreHorizontal, Loader2, ZoomIn, Pencil, Trash2, Brain, Copy, Upload } from 'lucide-react';
+import { X, Plus, Save, Crown, Image, Settings, User, ChevronRight, MoreHorizontal, Loader2, ZoomIn, Pencil, Trash2, Brain, Copy, Upload, Eye, EyeOff, Check } from 'lucide-react';
 import { HexColorPicker } from 'react-colorful';
 import { toast } from 'sonner';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
+import { Switch } from '@/components/ui/switch';
 import { LoraStatusIndicator } from '@/components/Influencers/LoraStatusIndicator';
 import { config } from '@/config/config';
 
@@ -208,6 +209,13 @@ export default function InfluencerEdit() {
   const [showQuickActionModal, setShowQuickActionModal] = useState(false);
   const [selectedInfluencerForActions, setSelectedInfluencerForActions] = useState<Influencer | null>(null);
   
+  // API Key view options state
+  const [showElevenLabsKey, setShowElevenLabsKey] = useState(false);
+  const [showFanvueKey, setShowFanvueKey] = useState(false);
+  const [copiedElevenLabs, setCopiedElevenLabs] = useState(false);
+  const [copiedFanvue, setCopiedFanvue] = useState(false);
+  const [copiedVoiceId, setCopiedVoiceId] = useState(false);
+  
   // Filter influencers based on search and filter criteria
   const filteredInfluencers = influencers.filter(influencer => {
     const matchesSearch = searchTerm === '' || 
@@ -291,7 +299,13 @@ export default function InfluencerEdit() {
     image_url: '',
     image_num: 0,
     lorastatus: 0,
-    template_pro: false
+    template_pro: false,
+    // Integration fields
+    elevenlabs_apikey: '',
+    elevenlabs_voiceid: '',
+    use_fanvue_api: false,
+    fanvue_api_key: '',
+    show_on_dashboard: false
   });
 
   const [activeTab, setActiveTab] = useState('basic');
@@ -1179,7 +1193,13 @@ export default function InfluencerEdit() {
         notes: influencer.notes || '',
         image_url: influencer.image_url || '',
         lorastatus: influencer.lorastatus || 0,
-        template_pro: influencer.template_pro || false
+        template_pro: influencer.template_pro || false,
+        // Integration fields
+        elevenlabs_apikey: influencer.elevenlabs_apikey || '',
+        elevenlabs_voiceid: influencer.elevenlabs_voiceid || '',
+        use_fanvue_api: influencer.use_fanvue_api || false,
+        fanvue_api_key: influencer.fanvue_api_key || '',
+        show_on_dashboard: influencer.show_on_dashboard || false
       });
       setShowEditView(true);
     }
@@ -1206,6 +1226,25 @@ export default function InfluencerEdit() {
 
   const handleCreateSocialPost = (influencer: Influencer) => {
     navigate('/create/images', { state: { influencerData: influencer } });
+  };
+
+  const copyToClipboard = async (text: string, type: 'elevenlabs' | 'fanvue' | 'voiceid') => {
+    try {
+      await navigator.clipboard.writeText(text);
+      if (type === 'elevenlabs') {
+        setCopiedElevenLabs(true);
+        setTimeout(() => setCopiedElevenLabs(false), 2000);
+      } else if (type === 'fanvue') {
+        setCopiedFanvue(true);
+        setTimeout(() => setCopiedFanvue(false), 2000);
+      } else if (type === 'voiceid') {
+        setCopiedVoiceId(true);
+        setTimeout(() => setCopiedVoiceId(false), 2000);
+      }
+      toast.success('Copied to clipboard');
+    } catch (err) {
+      toast.error('Failed to copy to clipboard');
+    }
   };
 
   const confirmDelete = async () => {
@@ -2472,13 +2511,14 @@ export default function InfluencerEdit() {
         </div>
       ) : (
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList className={`grid w-full grid-cols-1 h-full md:grid-cols-2 ${influencerData.visual_only === true ? 'lg:grid-cols-3' : 'lg:grid-cols-4'}`}>
+          <TabsList className={`grid w-full grid-cols-1 h-full md:grid-cols-2 ${influencerData.visual_only === true ? 'lg:grid-cols-4' : 'lg:grid-cols-5'}`}>
             <TabsTrigger value="basic">Basic Info</TabsTrigger>
             <TabsTrigger value="appearance">Appearance</TabsTrigger>
             <TabsTrigger value="style">Style & Settings</TabsTrigger>
             {
               influencerData.visual_only === false && <TabsTrigger value="personality">Personality</TabsTrigger>
             }
+            <TabsTrigger value="integrations">Integrations</TabsTrigger>
           </TabsList>
 
           <ScrollArea>
@@ -4318,6 +4358,227 @@ export default function InfluencerEdit() {
                 </Card>
               </TabsContent>
             }
+
+            {/* Integrations Tab */}
+            <TabsContent value="integrations" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Settings className="w-5 h-5" />
+                    Platform Integrations
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* ElevenLabs Integration */}
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg flex items-center justify-center">
+                        <span className="text-white font-bold text-sm">11</span>
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-lg">ElevenLabs</h3>
+                        <p className="text-sm text-muted-foreground">Bring your own custom voice, Don't be charged for AI Usage when you bring your own API Key</p>
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="elevenlabs_apikey">Bring-your-own API Key</Label>
+                        <div className="relative">
+                          <Input
+                            id="elevenlabs_apikey"
+                            type={showElevenLabsKey ? "text" : "password"}
+                            value={influencerData.elevenlabs_apikey}
+                            onChange={(e) => handleInputChange('elevenlabs_apikey', e.target.value)}
+                            placeholder="Enter your ElevenLabs API key"
+                            className="font-mono text-sm pr-20"
+                          />
+                          <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex items-center gap-1">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setShowElevenLabsKey(!showElevenLabsKey)}
+                              className="h-8 w-8 p-0 hover:bg-gray-100 dark:hover:bg-gray-800"
+                            >
+                              {showElevenLabsKey ? (
+                                <EyeOff className="h-4 w-4 text-gray-500" />
+                              ) : (
+                                <Eye className="h-4 w-4 text-gray-500" />
+                              )}
+                            </Button>
+                            {influencerData.elevenlabs_apikey && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => copyToClipboard(influencerData.elevenlabs_apikey, 'elevenlabs')}
+                                className="h-8 w-8 p-0 hover:bg-gray-100 dark:hover:bg-gray-800"
+                              >
+                                {copiedElevenLabs ? (
+                                  <Check className="h-4 w-4 text-green-500" />
+                                ) : (
+                                  <Copy className="h-4 w-4 text-gray-500" />
+                                )}
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Your API key will be securely stored and used for voice generation
+                        </p>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="elevenlabs_voiceid">Voice ID</Label>
+                        <div className="relative">
+                          <Input
+                            id="elevenlabs_voiceid"
+                            value={influencerData.elevenlabs_voiceid}
+                            onChange={(e) => handleInputChange('elevenlabs_voiceid', e.target.value)}
+                            placeholder="Enter voice ID (e.g., 21m00Tcm4TlvDq8ikWAM)"
+                            className="pr-12"
+                          />
+                          {influencerData.elevenlabs_voiceid && (
+                            <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => copyToClipboard(influencerData.elevenlabs_voiceid, 'voiceid')}
+                                className="h-8 w-8 p-0 hover:bg-gray-100 dark:hover:bg-gray-800"
+                              >
+                                {copiedVoiceId ? (
+                                  <Check className="h-4 w-4 text-green-500" />
+                                ) : (
+                                  <Copy className="h-4 w-4 text-gray-500" />
+                                )}
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Shareable Voice ID from Elevenlabs
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  {/* Fanvue Integration */}
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 bg-gradient-to-r from-pink-600 to-red-600 rounded-lg flex items-center justify-center">
+                        <span className="text-white font-bold text-sm">FV</span>
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-lg">Fanvue</h3>
+                        <p className="text-sm text-muted-foreground">Pull statistics and integrate Chat / DMs</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm hover:shadow-md transition-all duration-200">
+                      <div className="space-y-1">
+                        <Label htmlFor="use_fanvue_api" className="text-sm font-medium">
+                          Connect to Fanvue
+                        </Label>
+                        <p className="text-xs text-muted-foreground">
+                          Shall this Influencer be connected to Fanvue
+                        </p>
+                      </div>
+                      <Switch
+                        id="use_fanvue_api"
+                        checked={influencerData.use_fanvue_api}
+                        onCheckedChange={(checked) => {
+                          if (!checked) {
+                            // When turning off Fanvue, clear API key and set show_on_dashboard to false
+                            setInfluencerData(prev => ({
+                              ...prev,
+                              use_fanvue_api: false,
+                              fanvue_api_key: '',
+                              show_on_dashboard: false
+                            }));
+                          } else {
+                            // When turning on Fanvue, just set use_fanvue_api to true
+                            handleInputChange('use_fanvue_api', true);
+                          }
+                        }}
+                      />
+                    </div>
+
+                    {influencerData.use_fanvue_api && (
+                      <>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="fanvue_api_key">API Key</Label>
+                            <div className="relative">
+                              <Input
+                                id="fanvue_api_key"
+                                type={showFanvueKey ? "text" : "password"}
+                                value={influencerData.fanvue_api_key}
+                                onChange={(e) => handleInputChange('fanvue_api_key', e.target.value)}
+                                placeholder="Enter your Fanvue API key"
+                                className="font-mono text-sm pr-20"
+                              />
+                              <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex items-center gap-1">
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => setShowFanvueKey(!showFanvueKey)}
+                                  className="h-8 w-8 p-0 hover:bg-gray-100 dark:hover:bg-gray-800"
+                                >
+                                  {showFanvueKey ? (
+                                    <EyeOff className="h-4 w-4 text-gray-500" />
+                                  ) : (
+                                    <Eye className="h-4 w-4 text-gray-500" />
+                                  )}
+                                </Button>
+                                {influencerData.fanvue_api_key && (
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => copyToClipboard(influencerData.fanvue_api_key, 'fanvue')}
+                                    className="h-8 w-8 p-0 hover:bg-gray-100 dark:hover:bg-gray-800"
+                                  >
+                                    {copiedFanvue ? (
+                                      <Check className="h-4 w-4 text-green-500" />
+                                    ) : (
+                                      <Copy className="h-4 w-4 text-gray-500" />
+                                    )}
+                                  </Button>
+                                )}
+                              </div>
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              API Key of this Influencer on Fanvue
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm hover:shadow-md transition-all duration-200">
+                          <div className="space-y-1">
+                            <Label htmlFor="show_on_dashboard" className="text-sm font-medium">
+                              Show On Dashboard
+                            </Label>
+                            <p className="text-xs text-muted-foreground">
+                              Shall this Influencer be part of your dashboard
+                            </p>
+                          </div>
+                          <Switch
+                            id="show_on_dashboard"
+                            checked={influencerData.show_on_dashboard}
+                            onCheckedChange={(checked) => handleInputChange('show_on_dashboard', checked)}
+                          />
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
           </ScrollArea>
         </Tabs>
       )

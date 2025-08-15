@@ -506,7 +506,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
   useEffect(() => {
     const fetchPoseOptions = async () => {
       try {
-        const response = await fetch(`${config.backend_url}/promptoptions?fieldtype=pose`, {
+        const response = await fetch(`${config.backend_url}/folderedfieldoptions?fieldtype=pose`, {
           headers: {
             'Authorization': 'Bearer WeInfl3nc3withAI'
           }
@@ -535,7 +535,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
   useEffect(() => {
     const fetchSceneSettingsOptions = async () => {
       try {
-        const response = await fetch(`${config.backend_url}/promptoptions?fieldtype=scene`, {
+        const response = await fetch(`${config.backend_url}/folderedfieldoptions?fieldtype=scene`, {
           headers: {
             'Authorization': 'Bearer WeInfl3nc3withAI'
           }

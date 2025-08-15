@@ -57,6 +57,12 @@ export interface Influencer {
   lorastatus: number; // 0 = none, 1 = creating, 2 = successful, 9 = needs re-creation
   bio?: any; // jsonb bio field from API
   template_pro?: boolean; // true for pro templates, false for free templates
+  // Integration fields
+  elevenlabs_apikey?: string; // Bring your own key
+  elevenlabs_voiceid?: string; // Shareable Voice ID from Elevenlabs
+  use_fanvue_api?: boolean; // Shall this Influencer be connected to Fanvue
+  fanvue_api_key?: string; // API Key of this Influencer on Fanvue
+  show_on_dashboard?: boolean; // Shall this Influencer be part of your dashboard
 }
 
 interface InfluencersState {

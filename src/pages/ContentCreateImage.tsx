@@ -28,7 +28,7 @@ import { DialogZoom, DialogContentZoom } from '@/components/ui/zoomdialog';
 import VaultSelector from '@/components/VaultSelector';
 import PresetsManager from '@/components/PresetsManager';
 import LibraryManager from '@/components/LibraryManager';
-import { Image, Wand2, Settings, Image as ImageIcon, Sparkles, Loader2, Camera, Search, X, Filter, Plus, RotateCcw, Download, Trash2, Calendar, Share, Pencil, Edit3, BookOpen, Save, FolderOpen, Upload, Edit, AlertTriangle, Eye, User, Monitor, ZoomIn, SortAsc, SortDesc, QrCode } from 'lucide-react';
+import { Image, Wand2, Settings, Image as ImageIcon, Sparkles, Loader2, Camera, Search, X, Filter, Plus, RotateCcw, Download, Trash2, Calendar, Share, Pencil, Edit3, BookOpen, Save, FolderOpen, Upload, Edit, AlertTriangle, Eye, User, Monitor, ZoomIn, SortAsc, SortDesc, QrCode, Lock, Home, ChevronRight, Folder, ArrowLeft } from 'lucide-react';
 import QRCode from 'qrcode';
 import HistoryCard from '@/components/HistoryCard';
 import { CreditConfirmationModal } from '@/components/CreditConfirmationModal';
@@ -49,6 +49,36 @@ interface Option {
   label: string;
   image: string;
   description: string;
+}
+
+interface PoseOption {
+  label: string;
+  description: string;
+  image: string;
+  no_framing: boolean;
+  no_scene: boolean;
+  max_lora_strength: number;
+  license: string;
+}
+
+interface PoseCategory {
+  property_category: string;
+  data: PoseOption[];
+}
+
+interface SceneOption {
+  label: string;
+  description: string;
+  image: string;
+  no_framing: boolean;
+  no_scene: boolean;
+  max_lora_strength: number;
+  license: string;
+}
+
+interface SceneCategory {
+  property_category: string;
+  data: SceneOption[];
 }
 
 interface ContentCreateImageProps {
@@ -163,11 +193,17 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
 
   // Pose options and modal state
   const [poseOptions, setPoseOptions] = useState<Option[]>([]);
+  const [poseCategories, setPoseCategories] = useState<PoseCategory[]>([]);
   const [showPoseSelector, setShowPoseSelector] = useState(false);
+  const [selectedPose, setSelectedPose] = useState<PoseOption | null>(null);
+  const [currentPoseCategory, setCurrentPoseCategory] = useState<PoseCategory | null>(null);
 
   // Scene settings options and modal state
   const [sceneSettingsOptions, setSceneSettingsOptions] = useState<Option[]>([]);
+  const [sceneCategories, setSceneCategories] = useState<SceneCategory[]>([]);
   const [showSceneSettingsSelector, setShowSceneSettingsSelector] = useState(false);
+  const [selectedScene, setSelectedScene] = useState<SceneOption | null>(null);
+  const [currentSceneCategory, setCurrentSceneCategory] = useState<SceneCategory | null>(null);
 
   // Format options and modal state
   const [formatOptions, setFormatOptions] = useState<Option[]>([]);
@@ -506,7 +542,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
   useEffect(() => {
     const fetchPoseOptions = async () => {
       try {
-        const response = await fetch(`${config.backend_url}/folderedfieldoptions?fieldtype=pose`, {
+        const response = await fetch('https://api.nymia.ai/v1/folderedfieldoptions?fieldtype=pose', {
           headers: {
             'Authorization': 'Bearer WeInfl3nc3withAI'
           }
@@ -514,12 +550,18 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
         if (response.ok) {
           const data = await response.json();
           if (data && data.fieldoptions && Array.isArray(data.fieldoptions)) {
-            const options = data.fieldoptions.map((item: any) => ({
-              label: item.label,
-              image: item.image,
-              description: item.description
-            }));
-            setPoseOptions(options);
+            // Store the categorized data
+            setPoseCategories(data.fieldoptions);
+            
+            // Also create flat list for backward compatibility
+            const flatOptions = data.fieldoptions.flatMap((category: PoseCategory) =>
+              category.data.map((pose: PoseOption) => ({
+                label: pose.label,
+                image: pose.image,
+                description: pose.description
+              }))
+            );
+            setPoseOptions(flatOptions);
           }
         } else {
           console.error('Failed to fetch pose options:', response.status, response.statusText);
@@ -535,7 +577,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
   useEffect(() => {
     const fetchSceneSettingsOptions = async () => {
       try {
-        const response = await fetch(`${config.backend_url}/folderedfieldoptions?fieldtype=scene`, {
+        const response = await fetch('https://api.nymia.ai/v1/folderedfieldoptions?fieldtype=scene', {
           headers: {
             'Authorization': 'Bearer WeInfl3nc3withAI'
           }
@@ -543,12 +585,18 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
         if (response.ok) {
           const data = await response.json();
           if (data && data.fieldoptions && Array.isArray(data.fieldoptions)) {
-            const options = data.fieldoptions.map((item: any) => ({
-              label: item.label,
-              image: item.image,
-              description: item.description
-            }));
-            setSceneSettingsOptions(options);
+            // Store the categorized data
+            setSceneCategories(data.fieldoptions);
+            
+            // Also create flat list for backward compatibility
+            const flatOptions = data.fieldoptions.flatMap((category: SceneCategory) =>
+              category.data.map((scene: SceneOption) => ({
+                label: scene.label,
+                image: scene.image,
+                description: scene.description
+              }))
+            );
+            setSceneSettingsOptions(flatOptions);
           }
         } else {
           console.error('Failed to fetch scene settings options:', response.status, response.statusText);
@@ -778,6 +826,108 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
       [field]: value
     }));
   };
+
+  const handlePoseSelection = (pose: PoseOption) => {
+    // Check if user has access to this pose
+    if (pose.license !== 'free' && userData.subscription === 'free') {
+      toast.error(`This pose requires a ${pose.license} license. Please upgrade your subscription.`);
+      return;
+    }
+
+    // Show warnings for no_framing and no_scene
+    let warningMessage = '';
+    if (pose.no_framing) {
+      warningMessage += 'Framing will be ignored when using this pose. ';
+    }
+    if (pose.no_scene) {
+      warningMessage += 'Scene will be ignored when using this pose. ';
+    }
+    
+    if (warningMessage) {
+      toast.warning(warningMessage.trim());
+    }
+
+    // Set the pose
+    setSelectedPose(pose);
+    handleSceneSpecChange('pose', pose.label);
+    setShowPoseSelector(false);
+    setCurrentPoseCategory(null); // Reset category when closing
+  };
+
+  const handlePoseModalClose = () => {
+    setShowPoseSelector(false);
+    setCurrentPoseCategory(null); // Reset category when closing
+  };
+
+  const handleSceneSelection = (scene: SceneOption) => {
+    // Check if user has access to this scene
+    if (scene.license !== 'free' && userData.subscription === 'free') {
+      toast.error(`This scene requires a ${scene.license} license. Please upgrade your subscription.`);
+      return;
+    }
+
+    // Show warnings for no_framing and no_scene
+    let warningMessage = '';
+    if (scene.no_framing) {
+      warningMessage += 'Framing will be ignored when using this scene. ';
+    }
+    if (scene.no_scene) {
+      warningMessage += 'Scene will be ignored when using this scene. ';
+    }
+    
+    if (warningMessage) {
+      toast.warning(warningMessage.trim());
+    }
+
+    // Set the scene
+    setSelectedScene(scene);
+    handleSceneSpecChange('scene_setting', scene.label);
+    setShowSceneSettingsSelector(false);
+    setCurrentSceneCategory(null); // Reset category when closing
+  };
+
+  const isSceneAccessible = (scene: SceneOption) => {
+    return scene.license === 'free' || userData.subscription !== 'free';
+  };
+
+  const handleSceneModalClose = () => {
+    setShowSceneSettingsSelector(false);
+    setCurrentSceneCategory(null); // Reset category when closing
+  };
+
+  const isPoseAccessible = (pose: PoseOption) => {
+    return pose.license === 'free' || userData.subscription !== 'free';
+  };
+
+  // Update selectedPose when sceneSpecs.pose changes
+  useEffect(() => {
+    if (sceneSpecs.pose && poseCategories.length > 0) {
+      const foundPose = poseCategories
+        .flatMap(category => category.data)
+        .find(pose => pose.label === sceneSpecs.pose);
+      
+      if (foundPose) {
+        setSelectedPose(foundPose);
+      }
+    } else if (!sceneSpecs.pose) {
+      setSelectedPose(null);
+    }
+  }, [sceneSpecs.pose, poseCategories]);
+
+  // Update selectedScene when sceneSpecs.scene_setting changes
+  useEffect(() => {
+    if (sceneSpecs.scene_setting && sceneCategories.length > 0) {
+      const foundScene = sceneCategories
+        .flatMap(category => category.data)
+        .find(scene => scene.label === sceneSpecs.scene_setting);
+      
+      if (foundScene) {
+        setSelectedScene(foundScene);
+      }
+    } else if (!sceneSpecs.scene_setting) {
+      setSelectedScene(null);
+    }
+  }, [sceneSpecs.scene_setting, sceneCategories]);
 
   const handleModelDescriptionChange = (field: string, value: string) => {
     setModelDescription(prev => ({
@@ -3670,30 +3820,18 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
 
                             <div className="space-y-2">
                               <Label>Scene Setting</Label>
-                              <Select
-                                value={sceneSpecs.scene_setting}
-                                onValueChange={(value) => handleSceneSpecChange('scene_setting', value)}
-                              >
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select scene setting" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {sceneSettingsOptions.map((option) => (
-                                    <SelectItem key={option.label} value={option.label}>{option.label}</SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
                               <div
                                 onClick={() => setShowSceneSettingsSelector(true)}
                                 className="flex items-center justify-center w-full cursor-pointer"
                               >
-                                {sceneSpecs.scene_setting && sceneSettingsOptions.find(option => option.label === sceneSpecs.scene_setting)?.image ? (
+                                {sceneSpecs.scene_setting && selectedScene?.image ? (
                                   <Card className="relative w-full max-w-[250px]">
                                     <CardContent className="p-4">
                                       <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                                         <img
-                                          src={`${config.data_url}/wizard/mappings400/${sceneSettingsOptions.find(option => option.label === sceneSpecs.scene_setting)?.image}`}
+                                          src={`https://api.nymia.ai/v1/wizard/mappings400/${selectedScene.image}`}
                                           className="absolute inset-0 w-full h-full object-cover rounded-md"
+                                          alt={selectedScene.label}
                                         />
                                         <Button
                                           variant="destructive"
@@ -3702,14 +3840,19 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
                                           onClick={(e) => {
                                             e.stopPropagation();
                                             handleSceneSpecChange('scene_setting', '');
+                                            setSelectedScene(null);
                                           }}
                                         >
-                                          <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                          </svg>
+                                          <X className="w-4 h-4 text-white" />
                                         </Button>
+                                        {selectedScene.license !== 'free' && (
+                                          <div className="absolute top-2 right-2 bg-gradient-to-r from-yellow-500 to-orange-500 text-white text-xs px-2 py-1 rounded-full font-semibold shadow-lg">
+                                            {selectedScene.license === 'pro' ? 'PRO' : selectedScene.license === 'enterprise' ? 'ENTERPRISE' : selectedScene.license.toUpperCase()}
+                                          </div>
+                                        )}
                                       </div>
-                                      <p className="text-sm text-center font-medium mt-2">{sceneSettingsOptions.find(option => option.label === sceneSpecs.scene_setting)?.label}</p>
+                                      <p className="text-sm text-center font-medium mt-2">{selectedScene.label}</p>
+                                      <p className="text-xs text-center text-muted-foreground">{selectedScene.description}</p>
                                     </CardContent>
                                   </Card>
                                 ) : (
@@ -3725,41 +3868,177 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
                                 )}
                               </div>
                               {showSceneSettingsSelector && (
-                                <OptionSelector
-                                  options={sceneSettingsOptions}
-                                  onSelect={(label) => handleSceneSpecChange('scene_setting', label)}
-                                  onClose={() => setShowSceneSettingsSelector(false)}
-                                  title="Select Scene Setting"
-                                />
+                                <Dialog open={showSceneSettingsSelector} onOpenChange={handleSceneModalClose}>
+                                  <DialogContent className="max-w-6xl max-h-[80vh] overflow-hidden">
+                                    <DialogHeader>
+                                      <DialogTitle>Select Scene Setting</DialogTitle>
+                                      <DialogDescription>
+                                        Browse scenes by category. Some scenes may require a license.
+                                      </DialogDescription>
+                                    </DialogHeader>
+                                    
+                                    {/* Breadcrumb Navigation */}
+                                    <div className="flex items-center gap-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => setCurrentSceneCategory(null)}
+                                        className="h-8 px-2 text-sm font-medium"
+                                      >
+                                        <Home className="w-4 h-4 mr-1" />
+                                        All Categories
+                                      </Button>
+                                      {currentSceneCategory && (
+                                        <>
+                                          <div className="flex items-center gap-2">
+                                            <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                              {currentSceneCategory.property_category}
+                                            </span>
+                                          </div>
+                                          <div className="ml-auto">
+                                            <Button
+                                              variant="outline"
+                                              size="sm"
+                                              onClick={() => setCurrentSceneCategory(null)}
+                                              className="h-8 px-3 text-sm"
+                                            >
+                                              <ArrowLeft className="w-4 h-4 mr-1" />
+                                              Back
+                                            </Button>
+                                          </div>
+                                        </>
+                                      )}
+                                    </div>
+
+                                    <ScrollArea className="h-[60vh]">
+                                      <div className="p-4">
+                                        {!currentSceneCategory ? (
+                                          // Show category folders
+                                          <div className="space-y-4">
+                                            <div className="flex items-center justify-between">
+                                              <h3 className="text-lg font-semibold">Scene Categories</h3>
+                                              <Badge variant="secondary">{sceneCategories.length} categories</Badge>
+                                            </div>
+                                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3">
+                                              {sceneCategories.map((category) => (
+                                                <div
+                                                  key={category.property_category}
+                                                  className="group cursor-pointer"
+                                                  onDoubleClick={() => setCurrentSceneCategory(category)}
+                                                >
+                                                  <div className="flex flex-col items-center p-3 rounded-lg border-2 border-transparent transition-all duration-200 hover:border-blue-300 hover:bg-blue-50 dark:hover:bg-blue-950/20">
+                                                    <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-teal-600 rounded-lg flex items-center justify-center mb-2 transition-transform duration-200 group-hover:scale-110">
+                                                      <Folder className="w-6 h-6 text-white" />
+                                                    </div>
+                                                    <span className="text-xs font-medium text-center text-gray-700 dark:text-gray-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                                                      {category.property_category}
+                                                    </span>
+                                                    <span className="text-xs text-muted-foreground mt-1">
+                                                      {category.data.length} scenes
+                                                    </span>
+                                                    <span className="text-xs text-muted-foreground">
+                                                      {category.data.filter(scene => scene.license === 'free').length} free
+                                                    </span>
+                                                  </div>
+                                                </div>
+                                              ))}
+                                            </div>
+                                          </div>
+                                        ) : (
+                                          // Show scenes in selected category
+                                          <div className="space-y-4">
+                                            <div className="flex items-center justify-between">
+                                              <div className="flex items-center gap-3">
+                                                <Button
+                                                  variant="ghost"
+                                                  size="sm"
+                                                  onClick={() => setCurrentSceneCategory(null)}
+                                                  className="h-8 px-2"
+                                                >
+                                                  <ArrowLeft className="w-4 h-4 mr-1" />
+                                                  Back
+                                                </Button>
+                                                <h3 className="text-lg font-semibold">Scenes in {currentSceneCategory.property_category}</h3>
+                                              </div>
+                                              <Badge variant="secondary">{currentSceneCategory.data.length} scenes</Badge>
+                                            </div>
+                                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                                              {currentSceneCategory.data.map((scene) => (
+                                                <div
+                                                  key={scene.label}
+                                                  className={`relative group cursor-pointer rounded-lg overflow-hidden border-2 transition-all duration-200 ${
+                                                    isSceneAccessible(scene)
+                                                      ? 'hover:border-blue-500 hover:shadow-lg'
+                                                      : 'opacity-60 cursor-not-allowed'
+                                                  }`}
+                                                  onClick={() => isSceneAccessible(scene) && handleSceneSelection(scene)}
+                                                >
+                                                  <div className="relative" style={{ paddingBottom: '100%' }}>
+                                                    <img
+                                                      src={`https://api.nymia.ai/v1/wizard/mappings400/${scene.image}`}
+                                                      className="absolute inset-0 w-full h-full object-cover"
+                                                      alt={scene.label}
+                                                    />
+                                                    {!isSceneAccessible(scene) && (
+                                                      <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                                                        <Lock className="w-8 h-8 text-white" />
+                                                      </div>
+                                                    )}
+                                                    {scene.license !== 'free' && (
+                                                      <div className="absolute top-2 right-2 bg-gradient-to-r from-yellow-500 to-orange-500 text-white text-xs px-2 py-1 rounded-full font-semibold shadow-lg">
+                                                        {scene.license === 'pro' ? 'PRO' : scene.license === 'enterprise' ? 'ENTERPRISE' : scene.license.toUpperCase()}
+                                                      </div>
+                                                    )}
+                                                  </div>
+                                                  <div className="p-3 bg-white dark:bg-gray-800">
+                                                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                                                      {scene.label}
+                                                    </p>
+                                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">
+                                                      {scene.description}
+                                                    </p>
+                                                    {(scene.no_framing || scene.no_scene) && (
+                                                      <div className="mt-2 space-y-1">
+                                                        {scene.no_framing && (
+                                                          <p className="text-xs text-orange-600 dark:text-orange-400">
+                                                            ⚠️ Framing ignored
+                                                          </p>
+                                                        )}
+                                                        {scene.no_scene && (
+                                                          <p className="text-xs text-orange-600 dark:text-orange-400">
+                                                            ⚠️ Scene ignored
+                                                          </p>
+                                                        )}
+                                                      </div>
+                                                    )}
+                                                  </div>
+                                                </div>
+                                              ))}
+                                            </div>
+                                          </div>
+                                        )}
+                                      </div>
+                                    </ScrollArea>
+                                  </DialogContent>
+                                </Dialog>
                               )}
                             </div>
 
                             <div className="space-y-2">
                               <Label>Pose</Label>
-                              <Select
-                                value={sceneSpecs.pose}
-                                onValueChange={(value) => handleSceneSpecChange('pose', value)}
-                              >
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select pose" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {poseOptions.map((option) => (
-                                    <SelectItem key={option.label} value={option.label}>{option.label}</SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
                               <div
                                 onClick={() => setShowPoseSelector(true)}
                                 className="flex items-center justify-center w-full cursor-pointer"
                               >
-                                {sceneSpecs.pose && poseOptions.find(option => option.label === sceneSpecs.pose)?.image ? (
+                                {sceneSpecs.pose && selectedPose?.image ? (
                                   <Card className="relative w-full max-w-[250px]">
                                     <CardContent className="p-4">
                                       <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                                         <img
-                                          src={`${config.data_url}/wizard/mappings400/${poseOptions.find(option => option.label === sceneSpecs.pose)?.image}`}
+                                          src={`https://api.nymia.ai/v1/wizard/mappings400/${selectedPose.image}`}
                                           className="absolute inset-0 w-full h-full object-cover rounded-md"
+                                          alt={selectedPose.label}
                                         />
                                         <Button
                                           variant="destructive"
@@ -3768,14 +4047,19 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
                                           onClick={(e) => {
                                             e.stopPropagation();
                                             handleSceneSpecChange('pose', '');
+                                            setSelectedPose(null);
                                           }}
                                         >
-                                          <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                          </svg>
+                                          <X className="w-4 h-4 text-white" />
                                         </Button>
+                                        {selectedPose.license !== 'free' && (
+                                          <div className="absolute top-2 right-2 bg-gradient-to-r from-yellow-500 to-orange-500 text-white text-xs px-2 py-1 rounded-full font-semibold shadow-lg">
+                                            {selectedPose.license === 'pro' ? 'PRO' : selectedPose.license === 'enterprise' ? 'ENTERPRISE' : selectedPose.license.toUpperCase()}
+                                          </div>
+                                        )}
                                       </div>
-                                      <p className="text-sm text-center font-medium mt-2">{poseOptions.find(option => option.label === sceneSpecs.pose)?.label}</p>
+                                      <p className="text-sm text-center font-medium mt-2">{selectedPose.label}</p>
+                                      <p className="text-xs text-center text-muted-foreground">{selectedPose.description}</p>
                                     </CardContent>
                                   </Card>
                                 ) : (
@@ -3791,12 +4075,151 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
                                 )}
                               </div>
                               {showPoseSelector && (
-                                <OptionSelector
-                                  options={poseOptions}
-                                  onSelect={(label) => handleSceneSpecChange('pose', label)}
-                                  onClose={() => setShowPoseSelector(false)}
-                                  title="Select Pose Style"
-                                />
+                                <Dialog open={showPoseSelector} onOpenChange={handlePoseModalClose}>
+                                  <DialogContent className="max-w-6xl max-h-[80vh] overflow-hidden">
+                                    <DialogHeader>
+                                      <DialogTitle>Select Pose Style</DialogTitle>
+                                      <DialogDescription>
+                                        Browse poses by category. Some poses may require a license.
+                                      </DialogDescription>
+                                    </DialogHeader>
+                                    
+                                    {/* Breadcrumb Navigation */}
+                                    <div className="flex items-center gap-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => setCurrentPoseCategory(null)}
+                                        className="h-8 px-2 text-sm font-medium"
+                                      >
+                                        <Home className="w-4 h-4 mr-1" />
+                                        All Categories
+                                      </Button>
+                                      {currentPoseCategory && (
+                                        <>
+                                          <div className="flex items-center gap-2">
+                                            <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                              {currentPoseCategory.property_category}
+                                            </span>
+                                          </div>
+                                          <div className="ml-auto">
+                                            <Button
+                                              variant="outline"
+                                              size="sm"
+                                              onClick={() => setCurrentPoseCategory(null)}
+                                              className="h-8 px-3 text-sm"
+                                            >
+                                              <ArrowLeft className="w-4 h-4 mr-1" />
+                                              Back
+                                            </Button>
+                                          </div>
+                                        </>
+                                      )}
+                                    </div>
+
+                                    <ScrollArea className="h-[60vh]">
+                                      <div className="p-4">
+                                        {!currentPoseCategory ? (
+                                          // Show category folders
+                                          <div className="space-y-4">
+                                            <div className="flex items-center justify-between">
+                                              <h3 className="text-lg font-semibold">Pose Categories</h3>
+                                              <Badge variant="secondary">{poseCategories.length} categories</Badge>
+                                            </div>
+                                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3">
+                                              {poseCategories.map((category) => (
+                                                <div
+                                                  key={category.property_category}
+                                                  className="group cursor-pointer"
+                                                  onDoubleClick={() => setCurrentPoseCategory(category)}
+                                                >
+                                                  <div className="flex flex-col items-center p-3 rounded-lg border-2 border-transparent transition-all duration-200 hover:border-blue-300 hover:bg-blue-50 dark:hover:bg-blue-950/20">
+                                                    <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center mb-2 transition-transform duration-200 group-hover:scale-110">
+                                                      <Folder className="w-6 h-6 text-white" />
+                                                    </div>
+                                                    <span className="text-xs font-medium text-center text-gray-700 dark:text-gray-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                                                      {category.property_category}
+                                                    </span>
+                                                    <span className="text-xs text-muted-foreground mt-1">
+                                                      {category.data.length} poses
+                                                    </span>
+                                                    <span className="text-xs text-muted-foreground">
+                                                      {category.data.filter(pose => pose.license === 'free').length} free
+                                                    </span>
+                                                  </div>
+                                                </div>
+                                              ))}
+                                            </div>
+                                          </div>
+                                        ) : (
+                                          // Show poses in selected category
+                                          <div className="space-y-4">
+                                            <div className="flex items-center justify-between">
+                                              <div className="flex items-center gap-3">
+                                                <h3 className="text-lg font-semibold">Poses in {currentPoseCategory.property_category}</h3>
+                                              </div>
+                                              <Badge variant="secondary">{currentPoseCategory.data.length} poses</Badge>
+                                            </div>
+                                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                                              {currentPoseCategory.data.map((pose) => (
+                                                <div
+                                                  key={pose.label}
+                                                  className={`relative group cursor-pointer rounded-lg overflow-hidden border-2 transition-all duration-200 ${
+                                                    isPoseAccessible(pose)
+                                                      ? 'hover:border-blue-500 hover:shadow-lg'
+                                                      : 'opacity-60 cursor-not-allowed'
+                                                  }`}
+                                                  onClick={() => isPoseAccessible(pose) && handlePoseSelection(pose)}
+                                                >
+                                                  <div className="relative" style={{ paddingBottom: '100%' }}>
+                                                    <img
+                                                      src={`https://api.nymia.ai/v1/wizard/mappings400/${pose.image}`}
+                                                      className="absolute inset-0 w-full h-full object-cover"
+                                                      alt={pose.label}
+                                                    />
+                                                    {!isPoseAccessible(pose) && (
+                                                      <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                                                        <Lock className="w-8 h-8 text-white" />
+                                                      </div>
+                                                    )}
+                                                    {pose.license !== 'free' && (
+                                                      <div className="absolute top-2 right-2 bg-gradient-to-r from-yellow-500 to-orange-500 text-white text-xs px-2 py-1 rounded-full font-semibold shadow-lg">
+                                                        {pose.license === 'pro' ? 'PRO' : pose.license === 'enterprise' ? 'ENTERPRISE' : pose.license.toUpperCase()}
+                                                      </div>
+                                                    )}
+                                                  </div>
+                                                  <div className="p-3 bg-white dark:bg-gray-800">
+                                                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                                                      {pose.label}
+                                                    </p>
+                                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">
+                                                      {pose.description}
+                                                    </p>
+                                                    {(pose.no_framing || pose.no_scene) && (
+                                                      <div className="mt-2 space-y-1">
+                                                        {pose.no_framing && (
+                                                          <p className="text-xs text-orange-600 dark:text-orange-400">
+                                                            ⚠️ Framing ignored
+                                                          </p>
+                                                        )}
+                                                        {pose.no_scene && (
+                                                          <p className="text-xs text-orange-600 dark:text-orange-400">
+                                                            ⚠️ Scene ignored
+                                                          </p>
+                                                        )}
+                                                      </div>
+                                                    )}
+                                                  </div>
+                                                </div>
+                                              ))}
+                                            </div>
+                                          </div>
+                                        )}
+                                      </div>
+                                    </ScrollArea>
+                                  </DialogContent>
+                                </Dialog>
                               )}
                             </div>
 
@@ -4432,30 +4855,18 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
 
               <div className="space-y-2">
                 <Label>Scene Setting</Label>
-                <Select
-                  value={sceneSpecs.scene_setting}
-                  onValueChange={(value) => handleSceneSpecChange('scene_setting', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select scene setting" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {sceneSettingsOptions.map((option) => (
-                      <SelectItem key={option.label} value={option.label}>{option.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
                 <div
                   onClick={() => setShowSceneSettingsSelector(true)}
                   className="flex items-center justify-center w-full cursor-pointer"
                 >
-                  {sceneSpecs.scene_setting && sceneSettingsOptions.find(option => option.label === sceneSpecs.scene_setting)?.image ? (
+                  {sceneSpecs.scene_setting && selectedScene?.image ? (
                     <Card className="relative w-full max-w-[200px]">
                       <CardContent className="p-4">
                         <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                           <img
-                            src={`${config.data_url}/wizard/mappings400/${sceneSettingsOptions.find(option => option.label === sceneSpecs.scene_setting)?.image}`}
+                            src={`https://api.nymia.ai/v1/wizard/mappings400/${selectedScene.image}`}
                             className="absolute inset-0 w-full h-full object-cover rounded-md"
+                            alt={selectedScene.label}
                           />
                           <Button
                             variant="destructive"
@@ -4464,14 +4875,19 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
                             onClick={(e) => {
                               e.stopPropagation();
                               handleSceneSpecChange('scene_setting', '');
+                              setSelectedScene(null);
                             }}
                           >
-                            <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
+                            <X className="w-4 h-4 text-white" />
                           </Button>
+                          {selectedScene.license !== 'free' && (
+                            <div className="absolute top-2 right-2 bg-gradient-to-r from-yellow-500 to-orange-500 text-white text-xs px-2 py-1 rounded-full font-semibold shadow-lg">
+                              {selectedScene.license === 'pro' ? 'PRO' : selectedScene.license === 'enterprise' ? 'ENTERPRISE' : selectedScene.license.toUpperCase()}
+                            </div>
+                          )}
                         </div>
-                        <p className="text-sm text-center font-medium mt-2">{sceneSettingsOptions.find(option => option.label === sceneSpecs.scene_setting)?.label}</p>
+                        <p className="text-sm text-center font-medium mt-2">{selectedScene.label}</p>
+                        <p className="text-xs text-center text-muted-foreground">{selectedScene.description}</p>
                       </CardContent>
                     </Card>
                   ) : (
@@ -4486,42 +4902,22 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
                     </Card>
                   )}
                 </div>
-                {showSceneSettingsSelector && (
-                  <OptionSelector
-                    options={sceneSettingsOptions}
-                    onSelect={(label) => handleSceneSpecChange('scene_setting', label)}
-                    onClose={() => setShowSceneSettingsSelector(false)}
-                    title="Select Scene Setting"
-                  />
-                )}
               </div>
 
               <div className="space-y-2">
                 <Label>Pose</Label>
-                <Select
-                  value={sceneSpecs.pose}
-                  onValueChange={(value) => handleSceneSpecChange('pose', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select pose" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {poseOptions.map((option) => (
-                      <SelectItem key={option.label} value={option.label}>{option.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
                 <div
                   onClick={() => setShowPoseSelector(true)}
                   className="flex items-center justify-center w-full cursor-pointer"
                 >
-                  {sceneSpecs.pose && poseOptions.find(option => option.label === sceneSpecs.pose)?.image ? (
+                  {sceneSpecs.pose && selectedPose?.image ? (
                     <Card className="relative w-full max-w-[200px]">
                       <CardContent className="p-4">
                         <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                           <img
-                            src={`${config.data_url}/wizard/mappings400/${poseOptions.find(option => option.label === sceneSpecs.pose)?.image}`}
+                            src={`https://api.nymia.ai/v1/wizard/mappings400/${selectedPose.image}`}
                             className="absolute inset-0 w-full h-full object-cover rounded-md"
+                            alt={selectedPose.label}
                           />
                           <Button
                             variant="destructive"
@@ -4530,14 +4926,19 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
                             onClick={(e) => {
                               e.stopPropagation();
                               handleSceneSpecChange('pose', '');
+                              setSelectedPose(null);
                             }}
                           >
-                            <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
+                            <X className="w-4 h-4 text-white" />
                           </Button>
+                          {selectedPose.license !== 'free' && (
+                            <div className="absolute top-2 right-2 bg-gradient-to-r from-yellow-500 to-orange-500 text-white text-xs px-2 py-1 rounded-full font-semibold shadow-lg">
+                              {selectedPose.license === 'pro' ? 'PRO' : selectedPose.license === 'enterprise' ? 'ENTERPRISE' : selectedPose.license.toUpperCase()}
+                            </div>
+                          )}
                         </div>
-                        <p className="text-sm text-center font-medium mt-2">{poseOptions.find(option => option.label === sceneSpecs.pose)?.label}</p>
+                        <p className="text-sm text-center font-medium mt-2">{selectedPose.label}</p>
+                        <p className="text-xs text-center text-muted-foreground">{selectedPose.description}</p>
                       </CardContent>
                     </Card>
                   ) : (
@@ -4552,14 +4953,6 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
                     </Card>
                   )}
                 </div>
-                {showPoseSelector && (
-                  <OptionSelector
-                    options={poseOptions}
-                    onSelect={(label) => handleSceneSpecChange('pose', label)}
-                    onClose={() => setShowPoseSelector(false)}
-                    title="Select Pose Style"
-                  />
-                )}
               </div>
 
               <div className="space-y-2">

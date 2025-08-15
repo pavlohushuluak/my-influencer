@@ -351,13 +351,13 @@ export default function SocialBio() {
                 <FileText className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
               </div>
               <DialogTitle className="text-xl sm:text-2xl lg:text-3xl font-bold mb-3 sm:mb-4 bg-gradient-to-r from-white to-purple-100 bg-clip-text text-transparent">
-                Bio Management
-              </DialogTitle>
+                  Bio Management
+                </DialogTitle>
               <DialogDescription className="text-sm sm:text-base lg:text-lg text-purple-100 leading-relaxed max-w-2xl mx-auto">
                 Manage influencer bio with AI assistance and professional tools
-              </DialogDescription>
+                </DialogDescription>
+              </div>
             </div>
-          </div>
 
           {/* Content */}
           <div className="p-4 sm:p-6 lg:p-8">
@@ -404,7 +404,7 @@ export default function SocialBio() {
             )}
 
             {/* Loading State */}
-            {bioLoading && (
+          {bioLoading && (
               <Card className="bg-gradient-to-br from-indigo-50/50 to-purple-50/50 dark:from-indigo-950/20 dark:to-purple-950/20 border-indigo-200/50 dark:border-indigo-800/50 shadow-xl">
                 <CardContent className="p-6 sm:p-8 text-center">
                   <div className="w-16 h-16 sm:w-20 sm:h-20 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mx-auto mb-4 sm:mb-6"></div>
@@ -416,86 +416,86 @@ export default function SocialBio() {
                   </p>
                 </CardContent>
               </Card>
-            )}
+          )}
 
             {/* Error State */}
-            {bioError && (
+          {bioError && (
               <Card className="bg-gradient-to-br from-red-50/50 to-pink-50/50 dark:from-red-950/20 dark:to-pink-950/20 border-red-200/50 dark:border-red-800/50 shadow-xl">
                 <CardContent className="p-6 sm:p-8 text-center">
                   <div className="w-16 h-16 sm:w-20 sm:h-20 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6">
                     <AlertTriangle className="w-8 h-8 sm:w-10 sm:h-10 text-red-600 dark:text-red-400" />
-                  </div>
+              </div>
                   <h3 className="text-lg sm:text-xl font-bold text-red-600 dark:text-red-400 mb-2">
                     Generation Error
                   </h3>
                   <p className="text-sm sm:text-base text-muted-foreground mb-4 sm:mb-6">{bioError}</p>
-                  <Button 
-                    onClick={() => setShowBioModal(false)}
+              <Button 
+                onClick={() => setShowBioModal(false)}
                     className="bg-red-600 hover:bg-red-700 text-white px-6 py-2"
-                  >
-                    Close
-                  </Button>
+              >
+                Close
+              </Button>
                 </CardContent>
               </Card>
-            )}
+          )}
 
             {/* Create Bio State */}
-            {bioMode === 'create' && !bioLoading && !bioError && (
+          {bioMode === 'create' && !bioLoading && !bioError && (
               <Card className="bg-gradient-to-br from-indigo-50/50 to-purple-50/50 dark:from-indigo-950/20 dark:to-purple-950/20 border-2 border-indigo-200/50 dark:border-indigo-800/50 shadow-xl">
                 <CardContent className="p-6 sm:p-8">
                   <div className="text-center space-y-4 sm:space-y-6">
                     <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-2xl sm:rounded-3xl flex items-center justify-center mx-auto shadow-xl">
                       <Wand2 className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
-                    </div>
-                    <div>
+                  </div>
+                  <div>
                       <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100 mb-2 sm:mb-3">
-                        No Bio Found
-                      </h3>
+                      No Bio Found
+                    </h3>
                       <p className="text-sm sm:text-base text-muted-foreground mb-4 sm:mb-6 max-w-md mx-auto">
                         Would you like to create a professional bio for {selectedInfluencerData?.name_first} using AI? This will generate platform-specific bios optimized for engagement.
-                      </p>
-                    </div>
-                    <Button 
-                      onClick={handleCreateBio} 
+                    </p>
+                  </div>
+                  <Button 
+                    onClick={handleCreateBio} 
                       className="relative overflow-hidden bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 hover:from-indigo-600 hover:via-purple-600 hover:to-pink-600 text-white shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-[1.02] w-full sm:w-auto px-8 py-3 text-sm sm:text-base font-semibold"
-                    >
+                  >
                       <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                       <Wand2 className="w-4 h-4 sm:w-5 sm:h-5 mr-2 sm:mr-3 transition-transform duration-300 group-hover:scale-110" />
                       <span className="relative z-10">Generate AI Bio</span>
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-            
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+          
             {/* View Bio State */}
-            {bioMode === 'view' && !bioLoading && !bioError && selectedInfluencerData && (
+          {bioMode === 'view' && !bioLoading && !bioError && selectedInfluencerData && (
               <Card className="bg-gradient-to-br from-green-50/50 to-emerald-50/50 dark:from-green-950/20 dark:to-emerald-950/20 border-2 border-green-200/50 dark:border-green-800/50 shadow-xl">
                 <CardContent className="p-6 sm:p-8">
                   <div className="text-center space-y-4 sm:space-y-6">
                     <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-green-500 to-emerald-500 rounded-2xl sm:rounded-3xl flex items-center justify-center mx-auto shadow-xl">
                       <FileText className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
-                    </div>
-                    <div>
+                  </div>
+                  <div>
                       <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100 mb-2 sm:mb-3">
-                        Bio Available
-                      </h3>
+                      Bio Available
+                    </h3>
                       <p className="text-sm sm:text-base text-muted-foreground mb-4 sm:mb-6 max-w-md mx-auto">
                         {selectedInfluencerData.name_first} already has a professional bio ready to view and edit. Access platform-specific content and optimization scores.
-                      </p>
-                    </div>
-                    <Button 
-                      onClick={handleViewBio} 
+                    </p>
+                  </div>
+                  <Button 
+                    onClick={handleViewBio} 
                       className="relative overflow-hidden bg-gradient-to-r from-green-500 via-emerald-500 to-teal-500 hover:from-green-600 hover:via-emerald-600 hover:to-teal-600 text-white shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-[1.02] w-full sm:w-auto px-8 py-3 text-sm sm:text-base font-semibold"
-                    >
+                  >
                       <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                       <FileText className="w-4 h-4 sm:w-5 sm:h-5 mr-2 sm:mr-3 transition-transform duration-300 group-hover:scale-110" />
                       <span className="relative z-10">View & Edit Bio</span>
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
             {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-6 sm:pt-8 border-t border-gray-200 dark:border-gray-700">

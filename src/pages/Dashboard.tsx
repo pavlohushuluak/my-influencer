@@ -142,7 +142,7 @@ export default function Dashboard() {
   useEffect(() => {
     console.log('Dashboard useEffect - userData.id:', userData.id, 'userLoading:', userLoading, 'influencers.length:', influencers.length);
     if (userData.id && !userLoading) {
-      fetchInfluencers();
+    fetchInfluencers();
     }
   }, [dispatch, userData.id, userLoading]);
 
@@ -165,16 +165,16 @@ export default function Dashboard() {
 
       if (loraStatus === 0) {
         // Not trained - open Character Consistency modal directly
-        setSelectedInfluencerData(selectedInfluencer);
-        // Get the latest profile picture URL with correct format
+      setSelectedInfluencerData(selectedInfluencer);
+      // Get the latest profile picture URL with correct format
         let latestImageNum = selectedInfluencer.image_num - 1;
         if (latestImageNum === -1) {
           latestImageNum = 0;
         }
-        const profileImageUrl = `${config.data_url}/cdn-cgi/image/w=400/${userData.id}/models/${selectedInfluencer.id}/profilepic/profilepic${latestImageNum}.png`;
+      const profileImageUrl = `${config.data_url}/cdn-cgi/image/w=400/${userData.id}/models/${selectedInfluencer.id}/profilepic/profilepic${latestImageNum}.png`;
 
-        setSelectedProfileImage(profileImageUrl);
-        setShowCharacterConsistencyModal(true);
+      setSelectedProfileImage(profileImageUrl);
+      setShowCharacterConsistencyModal(true);
       } else if (loraStatus === 1) {
         // Training in progress - show warning
         toast.error('AI consistency training is already in progress', {
@@ -467,7 +467,7 @@ export default function Dashboard() {
       <div className="p-6">
         <div className="flex items-center justify-center h-[calc(100vh-200px)]">
           <div className="flex flex-col items-center gap-4">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
             <p className="text-muted-foreground">
               {userLoading ? 'Loading user data...' : 'Loading influencers...'}
             </p>
@@ -489,7 +489,7 @@ export default function Dashboard() {
 
   // Don't render dashboard content if user data is not available
   if (!userData.id) {
-    return (
+  return (
       <div className="p-6">
         <div className="flex items-center justify-center h-[calc(100vh-200px)]">
           <div className="flex flex-col items-center gap-4">
@@ -573,29 +573,29 @@ export default function Dashboard() {
                       }
                     </div>
 
-                                            <div>
-                          <div className="flex items-center justify-between mb-2">
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
                             <h3 className="font-semibold text-base sm:text-lg group-hover:text-ai-purple-500 transition-colors">
-                              {influencer.name_first} {influencer.name_last}
-                            </h3>
-                          </div>
+                          {influencer.name_first} {influencer.name_last}
+                        </h3>
+                      </div>
 
-                          <div className="flex flex-col gap-1 mb-3">
+                      <div className="flex flex-col gap-1 mb-3">
                             <div className="flex text-xs sm:text-sm text-muted-foreground flex-col">
-                              {influencer.notes ? (
+                          {influencer.notes ? (
                                 <span className="text-xs sm:text-sm text-muted-foreground">
-                                  {influencer.notes.length > 50 
-                                    ? `${influencer.notes.substring(0, 50)}...` 
-                                    : influencer.notes
-                                  }
-                                </span>
-                              ) : (
+                              {influencer.notes.length > 50 
+                                ? `${influencer.notes.substring(0, 50)}...` 
+                                : influencer.notes
+                              }
+                            </span>
+                          ) : (
                                 <span className="text-xs sm:text-sm text-muted-foreground">
-                                  {influencer.lifestyle || 'No lifestyle'} • {influencer.origin_residence || 'No residence'}
-                                </span>
-                              )}
-                            </div>
-                          </div>
+                              {influencer.lifestyle || 'No lifestyle'} • {influencer.origin_residence || 'No residence'}
+                            </span>
+                          )}
+                        </div>
+                      </div>
 
                           <div className="flex gap-2">
                         <Button
@@ -639,8 +639,8 @@ export default function Dashboard() {
             >
                 <MoreHorizontal className="w-4 h-4 mr-2" />
               {showAllPhaseTwo ? 'Show Less' : 'Show More'}
-            </Button>
-          </div>
+              </Button>
+            </div>
         </CardHeader>
         <div className="w-full p-4 sm:p-6 xl:hidden">
           <InstructionVideo {...getInstructionVideoConfig('phase2')} />
@@ -1047,7 +1047,7 @@ export default function Dashboard() {
                     </CardContent>
                   </Card>
 
-                </div>
+                            </div>
               </div>
 
               {/* Information Section */}
@@ -1131,7 +1131,7 @@ export default function Dashboard() {
             <div className="relative z-10 text-center">
               <div className="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-4 sm:mb-6 bg-white/20 rounded-2xl sm:rounded-3xl flex items-center justify-center backdrop-blur-sm border border-white/30 shadow-xl sm:shadow-2xl">
                 <Sparkles className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
-              </div>
+    </div>
               <DialogTitle className="text-xl sm:text-2xl lg:text-3xl font-bold mb-3 sm:mb-4 bg-gradient-to-r from-white to-purple-100 bg-clip-text text-transparent">
                 Generate Exclusive Content
               </DialogTitle>

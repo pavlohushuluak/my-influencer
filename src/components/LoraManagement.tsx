@@ -1264,11 +1264,11 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
                   {sortBy === 'type' && 'Sort by Type'}
                 </span>
                 <span className="sm:hidden">
-                  {sortBy === 'newest' && 'Newest'}
-                  {sortBy === 'oldest' && 'Oldest'}
-                  {sortBy === 'name' && 'Name'}
-                  {sortBy === 'size' && 'Size'}
-                  {sortBy === 'type' && 'Type'}
+                {sortBy === 'newest' && 'Newest'}
+                {sortBy === 'oldest' && 'Oldest'}
+                {sortBy === 'name' && 'Name'}
+                {sortBy === 'size' && 'Size'}
+                {sortBy === 'type' && 'Type'}
                 </span>
                 <ChevronDown className="w-4 h-4 opacity-60 transition-transform duration-200 group-hover:opacity-100" />
               </Button>
@@ -1281,7 +1281,7 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
                     sortBy === 'newest' 
                       ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 border-r-2 border-purple-500' 
                       : ''
-                  }`}
+                    }`}
                 >
                   <Calendar className="w-4 h-4 mr-3 opacity-60" />
                   Newest First
@@ -1292,7 +1292,7 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
                     sortBy === 'oldest' 
                       ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 border-r-2 border-purple-500' 
                       : ''
-                  }`}
+                    }`}
                 >
                   <Calendar className="w-4 h-4 mr-3 opacity-60" />
                   Oldest First
@@ -1303,7 +1303,7 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
                     sortBy === 'name' 
                       ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 border-r-2 border-purple-500' 
                       : ''
-                  }`}
+                    }`}
                 >
                   <FileImage className="w-4 h-4 mr-3 opacity-60" />
                   Sort by Name
@@ -1314,7 +1314,7 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
                     sortBy === 'size' 
                       ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 border-r-2 border-purple-500' 
                       : ''
-                  }`}
+                    }`}
                 >
                   <FileImage className="w-4 h-4 mr-3 opacity-60" />
                   Sort by Size
@@ -1325,7 +1325,7 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
                     sortBy === 'type' 
                       ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 border-r-2 border-purple-500' 
                       : ''
-                  }`}
+                    }`}
                 >
                   <FileImage className="w-4 h-4 mr-3 opacity-60" />
                   Sort by Type
@@ -1405,7 +1405,7 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
               <RotateCcw className="w-5 h-5 sm:w-6 sm:h-6 mr-2 sm:mr-3 transition-transform duration-300 group-hover:rotate-180" />
             )}
             <span className="relative z-10">
-              {isCheckingGems ? 'Checking Cost...' : getTrainingButtonState().text}
+            {isCheckingGems ? 'Checking Cost...' : getTrainingButtonState().text}
             </span>
           </Button>
 

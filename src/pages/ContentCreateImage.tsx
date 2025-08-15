@@ -81,6 +81,21 @@ interface SceneCategory {
   data: SceneOption[];
 }
 
+interface OutfitOption {
+  label: string;
+  description: string;
+  image: string;
+  no_framing: boolean;
+  no_scene: boolean;
+  max_lora_strength: number;
+  license: string;
+}
+
+interface OutfitCategory {
+  property_category: string;
+  data: OutfitOption[];
+}
+
 interface ContentCreateImageProps {
   influencerData?: any;
 }
@@ -181,7 +196,10 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
 
   // Clothes options and modal state
   const [clothesOptions, setClothesOptions] = useState<Option[]>([]);
+  const [outfitCategories, setOutfitCategories] = useState<OutfitCategory[]>([]);
   const [showClothesSelector, setShowClothesSelector] = useState(false);
+  const [selectedOutfit, setSelectedOutfit] = useState<OutfitOption | null>(null);
+  const [currentOutfitCategory, setCurrentOutfitCategory] = useState<OutfitCategory | null>(null);
 
   // Rotation options and modal state
   const [rotationOptions, setRotationOptions] = useState<Option[]>([]);
@@ -455,7 +473,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
   useEffect(() => {
     const fetchClothesOptions = async () => {
       try {
-        const response = await fetch(`${config.backend_url}/promptoptions?fieldtype=outfits`, {
+        const response = await fetch('https://api.nymia.ai/v1/folderedfieldoptions?fieldtype=outfit', {
           headers: {
             'Authorization': 'Bearer WeInfl3nc3withAI'
           }
@@ -463,12 +481,18 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
         if (response.ok) {
           const data = await response.json();
           if (data && data.fieldoptions && Array.isArray(data.fieldoptions)) {
-            const options = data.fieldoptions.map((item: any) => ({
-              label: item.label,
-              image: item.image,
-              description: item.description
-            }));
-            setClothesOptions(options);
+            // Store the categorized data
+            setOutfitCategories(data.fieldoptions);
+            
+            // Also create flat list for backward compatibility
+            const flatOptions = data.fieldoptions.flatMap((category: OutfitCategory) =>
+              category.data.map((outfit: OutfitOption) => ({
+                label: outfit.label,
+                image: outfit.image,
+                description: outfit.description
+              }))
+            );
+            setClothesOptions(flatOptions);
           }
         } else {
           console.error('Failed to fetch clothes options:', response.status, response.statusText);
@@ -895,6 +919,42 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
     setCurrentSceneCategory(null); // Reset category when closing
   };
 
+  const handleOutfitSelection = (outfit: OutfitOption) => {
+    // Check if user has access to this outfit
+    if (outfit.license !== 'free' && userData.subscription === 'free') {
+      toast.error(`This outfit requires a ${outfit.license} license. Please upgrade your subscription.`);
+      return;
+    }
+
+    // Show warnings for no_framing and no_scene
+    let warningMessage = '';
+    if (outfit.no_framing) {
+      warningMessage += 'Framing will be ignored when using this outfit. ';
+    }
+    if (outfit.no_scene) {
+      warningMessage += 'Scene will be ignored when using this outfit. ';
+    }
+    
+    if (warningMessage) {
+      toast.warning(warningMessage.trim());
+    }
+
+    // Set the outfit
+    setSelectedOutfit(outfit);
+    handleSceneSpecChange('clothes', outfit.label);
+    setShowClothesSelector(false);
+    setCurrentOutfitCategory(null); // Reset category when closing
+  };
+
+  const isOutfitAccessible = (outfit: OutfitOption) => {
+    return outfit.license === 'free' || userData.subscription !== 'free';
+  };
+
+  const handleOutfitModalClose = () => {
+    setShowClothesSelector(false);
+    setCurrentOutfitCategory(null); // Reset category when closing
+  };
+
   const isPoseAccessible = (pose: PoseOption) => {
     return pose.license === 'free' || userData.subscription !== 'free';
   };
@@ -928,6 +988,21 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
       setSelectedScene(null);
     }
   }, [sceneSpecs.scene_setting, sceneCategories]);
+
+  // Update selectedOutfit when sceneSpecs.clothes changes
+  useEffect(() => {
+    if (sceneSpecs.clothes && outfitCategories.length > 0) {
+      const foundOutfit = outfitCategories
+        .flatMap(category => category.data)
+        .find(outfit => outfit.label === sceneSpecs.clothes);
+      
+      if (foundOutfit) {
+        setSelectedOutfit(foundOutfit);
+      }
+    } else if (!sceneSpecs.clothes) {
+      setSelectedOutfit(null);
+    }
+  }, [sceneSpecs.clothes, outfitCategories]);
 
   const handleModelDescriptionChange = (field: string, value: string) => {
     setModelDescription(prev => ({
@@ -3848,7 +3923,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
                                         {selectedScene.license !== 'free' && (
                                           <div className="absolute top-2 right-2 bg-gradient-to-r from-yellow-500 to-orange-500 text-white text-xs px-2 py-1 rounded-full font-semibold shadow-lg">
                                             {selectedScene.license === 'pro' ? 'PRO' : selectedScene.license === 'enterprise' ? 'ENTERPRISE' : selectedScene.license.toUpperCase()}
-                                          </div>
+                                      </div>
                                         )}
                                       </div>
                                       <p className="text-sm text-center font-medium mt-2">{selectedScene.label}</p>
@@ -4055,7 +4130,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
                                         {selectedPose.license !== 'free' && (
                                           <div className="absolute top-2 right-2 bg-gradient-to-r from-yellow-500 to-orange-500 text-white text-xs px-2 py-1 rounded-full font-semibold shadow-lg">
                                             {selectedPose.license === 'pro' ? 'PRO' : selectedPose.license === 'enterprise' ? 'ENTERPRISE' : selectedPose.license.toUpperCase()}
-                                          </div>
+                                      </div>
                                         )}
                                       </div>
                                       <p className="text-sm text-center font-medium mt-2">{selectedPose.label}</p>
@@ -4225,30 +4300,18 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
 
                             <div className="space-y-2">
                               <Label>Outfits</Label>
-                              <Select
-                                value={sceneSpecs.clothes}
-                                onValueChange={(value) => handleSceneSpecChange('clothes', value)}
-                              >
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select outfits" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {clothesOptions.map((option) => (
-                                    <SelectItem key={option.label} value={option.label}>{option.label}</SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
                               <div
                                 onClick={() => setShowClothesSelector(true)}
                                 className="flex items-center justify-center w-full cursor-pointer"
                               >
-                                {sceneSpecs.clothes && clothesOptions.find(option => option.label === sceneSpecs.clothes)?.image ? (
+                                {sceneSpecs.clothes && selectedOutfit?.image ? (
                                   <Card className="relative w-full max-w-[250px]">
                                     <CardContent className="p-4">
                                       <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                                         <img
-                                          src={`${config.data_url}/wizard/mappings400/${clothesOptions.find(option => option.label === sceneSpecs.clothes)?.image}`}
+                                          src={`${config.data_url}/wizard/mappings400/${selectedOutfit.image}`}
                                           className="absolute inset-0 w-full h-full object-cover rounded-md"
+                                          alt={selectedOutfit.label}
                                         />
                                         <Button
                                           variant="destructive"
@@ -4257,14 +4320,19 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
                                           onClick={(e) => {
                                             e.stopPropagation();
                                             handleSceneSpecChange('clothes', '');
+                                            setSelectedOutfit(null);
                                           }}
                                         >
-                                          <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                          </svg>
+                                          <X className="w-4 h-4 text-white" />
                                         </Button>
+                                        {selectedOutfit.license !== 'free' && (
+                                          <div className="absolute top-2 right-2 bg-gradient-to-r from-yellow-500 to-orange-500 text-white text-xs px-2 py-1 rounded-full font-semibold shadow-lg">
+                                            {selectedOutfit.license === 'pro' ? 'PRO' : selectedOutfit.license === 'enterprise' ? 'ENTERPRISE' : selectedOutfit.license.toUpperCase()}
+                                          </div>
+                                        )}
                                       </div>
-                                      <p className="text-sm text-center font-medium mt-2">{clothesOptions.find(option => option.label === sceneSpecs.clothes)?.label}</p>
+                                      <p className="text-sm text-center font-medium mt-2">{selectedOutfit.label}</p>
+                                      <p className="text-xs text-center text-muted-foreground">{selectedOutfit.description}</p>
                                     </CardContent>
                                   </Card>
                                 ) : (
@@ -4280,12 +4348,160 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
                                 )}
                               </div>
                               {showClothesSelector && (
-                                <OptionSelector
-                                  options={clothesOptions}
-                                  onSelect={(label) => handleSceneSpecChange('clothes', label)}
-                                  onClose={() => setShowClothesSelector(false)}
-                                  title="Select Outfits Style"
-                                />
+                                <Dialog open={showClothesSelector} onOpenChange={handleOutfitModalClose}>
+                                  <DialogContent className="max-w-6xl max-h-[80vh] overflow-hidden">
+                                    <DialogHeader>
+                                      <DialogTitle>Select Outfit Style</DialogTitle>
+                                      <DialogDescription>
+                                        Browse outfits by category. Some outfits may require a license.
+                                      </DialogDescription>
+                                    </DialogHeader>
+                                    
+                                    {/* Breadcrumb Navigation */}
+                                    <div className="flex items-center gap-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => setCurrentOutfitCategory(null)}
+                                        className="h-8 px-2 text-sm font-medium"
+                                      >
+                                        <Home className="w-4 h-4 mr-1" />
+                                        All Categories
+                                      </Button>
+                                      {currentOutfitCategory && (
+                                        <>
+                                          <div className="flex items-center gap-2">
+                                            <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                              {currentOutfitCategory.property_category}
+                                            </span>
+                                          </div>
+                                          <div className="ml-auto">
+                                            <Button
+                                              variant="outline"
+                                              size="sm"
+                                              onClick={() => setCurrentOutfitCategory(null)}
+                                              className="h-8 px-3 text-sm"
+                                            >
+                                              <ArrowLeft className="w-4 h-4 mr-1" />
+                                              Back
+                                            </Button>
+                                          </div>
+                                        </>
+                                      )}
+                                    </div>
+
+                                    <ScrollArea className="h-[60vh]">
+                                      <div className="p-4">
+                                        {!currentOutfitCategory ? (
+                                          // Show category folders
+                                          <div className="space-y-4">
+                                            <div className="flex items-center justify-between">
+                                              <h3 className="text-lg font-semibold">Outfit Categories</h3>
+                                              <Badge variant="secondary">{outfitCategories.length} categories</Badge>
+                                            </div>
+                                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3">
+                                              {outfitCategories.map((category) => (
+                                                <div
+                                                  key={category.property_category}
+                                                  className="group cursor-pointer"
+                                                  onDoubleClick={() => setCurrentOutfitCategory(category)}
+                                                >
+                                                  <div className="flex flex-col items-center p-3 rounded-lg border-2 border-transparent transition-all duration-200 hover:border-purple-300 hover:bg-purple-50 dark:hover:bg-purple-950/20">
+                                                    <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg flex items-center justify-center mb-2 transition-transform duration-200 group-hover:scale-110">
+                                                      <Folder className="w-6 h-6 text-white" />
+                                                    </div>
+                                                    <span className="text-xs font-medium text-center text-gray-700 dark:text-gray-300 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
+                                                      {category.property_category}
+                                                    </span>
+                                                    <span className="text-xs text-muted-foreground mt-1">
+                                                      {category.data.length} outfits
+                                                    </span>
+                                                    <span className="text-xs text-muted-foreground">
+                                                      {category.data.filter(outfit => outfit.license === 'free').length} free
+                                                    </span>
+                                                  </div>
+                                                </div>
+                                              ))}
+                                            </div>
+                                          </div>
+                                        ) : (
+                                          // Show outfits in selected category
+                                          <div className="space-y-4">
+                                            <div className="flex items-center justify-between">
+                                              <div className="flex items-center gap-3">
+                                                <Button
+                                                  variant="ghost"
+                                                  size="sm"
+                                                  onClick={() => setCurrentOutfitCategory(null)}
+                                                  className="h-8 px-2"
+                                                >
+                                                  <ArrowLeft className="w-4 h-4 mr-1" />
+                                                  Back
+                                                </Button>
+                                                <h3 className="text-lg font-semibold">Outfits in {currentOutfitCategory.property_category}</h3>
+                                              </div>
+                                              <Badge variant="secondary">{currentOutfitCategory.data.length} outfits</Badge>
+                                            </div>
+                                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                                              {currentOutfitCategory.data.map((outfit) => (
+                                                <div
+                                                  key={outfit.label}
+                                                  className={`relative group cursor-pointer rounded-lg overflow-hidden border-2 transition-all duration-200 ${
+                                                    isOutfitAccessible(outfit)
+                                                      ? 'hover:border-purple-500 hover:shadow-lg'
+                                                      : 'opacity-60 cursor-not-allowed'
+                                                  }`}
+                                                  onClick={() => isOutfitAccessible(outfit) && handleOutfitSelection(outfit)}
+                                                >
+                                                  <div className="relative" style={{ paddingBottom: '100%' }}>
+                                                    <img
+                                                      src={`${config.data_url}/wizard/mappings400/${outfit.image}`}
+                                                      className="absolute inset-0 w-full h-full object-cover"
+                                                      alt={outfit.label}
+                                                    />
+                                                    {!isOutfitAccessible(outfit) && (
+                                                      <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                                                        <Lock className="w-8 h-8 text-white" />
+                                                      </div>
+                                                    )}
+                                                    {outfit.license !== 'free' && (
+                                                      <div className="absolute top-2 right-2 bg-gradient-to-r from-yellow-500 to-orange-500 text-white text-xs px-2 py-1 rounded-full font-semibold shadow-lg">
+                                                        {outfit.license === 'pro' ? 'PRO' : outfit.license === 'enterprise' ? 'ENTERPRISE' : outfit.license.toUpperCase()}
+                                                      </div>
+                                                    )}
+                                                  </div>
+                                                  <div className="p-3 bg-white dark:bg-gray-800">
+                                                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                                                      {outfit.label}
+                                                    </p>
+                                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">
+                                                      {outfit.description}
+                                                    </p>
+                                                    {(outfit.no_framing || outfit.no_scene) && (
+                                                      <div className="mt-2 space-y-1">
+                                                        {outfit.no_framing && (
+                                                          <p className="text-xs text-orange-600 dark:text-orange-400">
+                                                            ⚠️ Framing ignored
+                                                          </p>
+                                                        )}
+                                                        {outfit.no_scene && (
+                                                          <p className="text-xs text-orange-600 dark:text-orange-400">
+                                                            ⚠️ Scene ignored
+                                                          </p>
+                                                        )}
+                                                      </div>
+                                                    )}
+                                                  </div>
+                                                </div>
+                                              ))}
+                                            </div>
+                                          </div>
+                                        )}
+                                      </div>
+                                    </ScrollArea>
+                                  </DialogContent>
+                                </Dialog>
                               )}
                             </div>
                           </div>
@@ -4883,7 +5099,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
                           {selectedScene.license !== 'free' && (
                             <div className="absolute top-2 right-2 bg-gradient-to-r from-yellow-500 to-orange-500 text-white text-xs px-2 py-1 rounded-full font-semibold shadow-lg">
                               {selectedScene.license === 'pro' ? 'PRO' : selectedScene.license === 'enterprise' ? 'ENTERPRISE' : selectedScene.license.toUpperCase()}
-                            </div>
+                        </div>
                           )}
                         </div>
                         <p className="text-sm text-center font-medium mt-2">{selectedScene.label}</p>
@@ -4933,7 +5149,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
                           {selectedPose.license !== 'free' && (
                             <div className="absolute top-2 right-2 bg-gradient-to-r from-yellow-500 to-orange-500 text-white text-xs px-2 py-1 rounded-full font-semibold shadow-lg">
                               {selectedPose.license === 'pro' ? 'PRO' : selectedPose.license === 'enterprise' ? 'ENTERPRISE' : selectedPose.license.toUpperCase()}
-                            </div>
+                        </div>
                           )}
                         </div>
                         <p className="text-sm text-center font-medium mt-2">{selectedPose.label}</p>
@@ -4955,30 +5171,18 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
 
               <div className="space-y-2">
                 <Label>Outfits</Label>
-                <Select
-                  value={sceneSpecs.clothes}
-                  onValueChange={(value) => handleSceneSpecChange('clothes', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select outfits" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {clothesOptions.map((option) => (
-                      <SelectItem key={option.label} value={option.label}>{option.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
                 <div
                   onClick={() => setShowClothesSelector(true)}
                   className="flex items-center justify-center w-full cursor-pointer"
                 >
-                  {sceneSpecs.clothes && clothesOptions.find(option => option.label === sceneSpecs.clothes)?.image ? (
+                  {sceneSpecs.clothes && selectedOutfit?.image ? (
                     <Card className="relative w-full max-w-[200px]">
                       <CardContent className="p-4">
                         <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                           <img
-                            src={`${config.data_url}/wizard/mappings400/${clothesOptions.find(option => option.label === sceneSpecs.clothes)?.image}`}
+                            src={`${config.data_url}/wizard/mappings400/${selectedOutfit.image}`}
                             className="absolute inset-0 w-full h-full object-cover rounded-md"
+                            alt={selectedOutfit.label}
                           />
                           <Button
                             variant="destructive"
@@ -4987,14 +5191,18 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
                             onClick={(e) => {
                               e.stopPropagation();
                               handleSceneSpecChange('clothes', '');
+                              setSelectedOutfit(null);
                             }}
                           >
-                            <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
+                            <X className="w-4 h-4 text-white" />
                           </Button>
+                          {selectedOutfit.license !== 'free' && (
+                            <div className="absolute top-2 right-2 bg-gradient-to-r from-yellow-500 to-orange-500 text-white text-xs px-2 py-1 rounded-full font-semibold shadow-lg">
+                              {selectedOutfit.license === 'pro' ? 'PRO' : selectedOutfit.license === 'enterprise' ? 'ENTERPRISE' : selectedOutfit.license.toUpperCase()}
+                            </div>
+                          )}
                         </div>
-                        <p className="text-sm text-center font-medium mt-2">{clothesOptions.find(option => option.label === sceneSpecs.clothes)?.label}</p>
+                        <p className="text-sm text-center font-medium mt-2">{selectedOutfit.label}</p>
                       </CardContent>
                     </Card>
                   ) : (
@@ -5009,14 +5217,6 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
                     </Card>
                   )}
                 </div>
-                {showClothesSelector && (
-                  <OptionSelector
-                    options={clothesOptions}
-                    onSelect={(label) => handleSceneSpecChange('clothes', label)}
-                    onClose={() => setShowClothesSelector(false)}
-                    title="Select Outfits Style"
-                  />
-                )}
               </div>
             </div>
           </CardContent>

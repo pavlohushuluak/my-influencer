@@ -168,7 +168,7 @@ export function CreateInfluencerWizard({ onComplete }: CreateInfluencerWizardPro
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       // Navigate to the influencers list page
-      navigate('/influencers');
+      navigate('/influencers/profiles');
       onComplete();
     } catch (error) {
       console.error('Error creating influencer:', error);

@@ -647,7 +647,7 @@ export function CreateInfluencerSteps({ onComplete }: CreateInfluencerStepsProps
       updated_at: currentTimestamp
     };
 
-            navigate('/influencers/profiles', { state: { influencerData: influencerDataWithDates, create: true } });
+            navigate('/influencers/edit', { state: { influencerData: influencerDataWithDates, create: true } });
     onComplete();
   };
 

@@ -4328,7 +4328,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
                                         {selectedOutfit.license !== 'free' && (
                                           <div className="absolute top-2 right-2 bg-gradient-to-r from-yellow-500 to-orange-500 text-white text-xs px-2 py-1 rounded-full font-semibold shadow-lg">
                                             {selectedOutfit.license === 'pro' ? 'PRO' : selectedOutfit.license === 'enterprise' ? 'ENTERPRISE' : selectedOutfit.license.toUpperCase()}
-                                          </div>
+                                      </div>
                                         )}
                                       </div>
                                       <p className="text-sm text-center font-medium mt-2">{selectedOutfit.label}</p>
@@ -5199,7 +5199,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
                           {selectedOutfit.license !== 'free' && (
                             <div className="absolute top-2 right-2 bg-gradient-to-r from-yellow-500 to-orange-500 text-white text-xs px-2 py-1 rounded-full font-semibold shadow-lg">
                               {selectedOutfit.license === 'pro' ? 'PRO' : selectedOutfit.license === 'enterprise' ? 'ENTERPRISE' : selectedOutfit.license.toUpperCase()}
-                            </div>
+                        </div>
                           )}
                         </div>
                         <p className="text-sm text-center font-medium mt-2">{selectedOutfit.label}</p>

@@ -13,6 +13,7 @@ import Auth from '@/pages/Auth';
 import Account from '@/pages/Account';
 import { CreateInfluencer } from '@/pages/CreateInfluencer';
 import InfluencerTemplates from '@/pages/InfluencerTemplates';
+import InfluencerProfiles from '@/pages/InfluencerProfiles';
 import InfluencerEdit from '@/pages/InfluencerEdit';
 import InfluencerUse from '@/pages/InfluencerUse';
 import InfluencerWizardPage from '@/pages/InfluencerWizardPage';
@@ -92,7 +93,8 @@ const App = () => {
                   <Route path="/account" element={<Account />} />
                   <Route path='/influencers/new' element={<CreateInfluencer />} />
                   <Route path='/influencers/templates' element={<InfluencerTemplates />} />
-                  <Route path='/influencers/profiles' element={<InfluencerEdit />} />
+                  <Route path='/influencers/profiles' element={<InfluencerProfiles />} />
+                  <Route path='/influencers/edit' element={<InfluencerEdit />} />
                   <Route path='/influencers' element={<InfluencerUse />} />
                   <Route path='/influencers/wizard' element={<InfluencerWizardPage />} />
                   <Route path='/influencers/bio' element={<InfluencerBio />} />

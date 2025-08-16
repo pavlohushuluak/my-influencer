@@ -1635,7 +1635,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
           navigate('/start');
         } else {
           // Navigate to influencers page
-          navigate('/influencers', {
+          navigate('/influencers/profiles', {
             state: {
               influencerId: data[0].id,
               fromWizard: true

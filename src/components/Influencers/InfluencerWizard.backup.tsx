@@ -298,7 +298,6 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
   const [hasAutoRendered, setHasAutoRendered] = useState(false);
   const [showStep3Modal, setShowStep3Modal] = useState(false);
   const [showStep4Modal, setShowStep4Modal] = useState(false);
-  const [showFacialTemplateChoiceModal, setShowFacialTemplateChoiceModal] = useState(false);
   const [showPreviewImages, setShowPreviewImages] = useState(false);
   const [selectedPreviewIndex, setSelectedPreviewIndex] = useState<number | null>(null);
   const [showMagnifyModal, setShowMagnifyModal] = useState(false);
@@ -495,9 +494,9 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
     fetchSexOptions();
   }, []);
 
-  // Auto-start preview when reaching step 15 (only once and only if no images exist)
+  // Auto-start preview when reaching step 15 (only once)
   useEffect(() => {
-    if (currentStep === 15 && !isPreviewLoading && !hasAutoRendered && previewHistory.length === 0 && previewImages.length === 0) {
+    if (currentStep === 15 && !isPreviewLoading && !hasAutoRendered) {
       // Small delay to ensure the step content is rendered
       const timer = setTimeout(() => {
         handlePreview();
@@ -507,11 +506,11 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
       return () => clearTimeout(timer);
     }
 
-    // Don't reset the flag when coming back from step 16 to prevent re-rendering
-    if (currentStep < 15) {
+    // Reset the flag when leaving step 15
+    if (currentStep !== 15) {
       setHasAutoRendered(false);
     }
-  }, [currentStep, isPreviewLoading, hasAutoRendered, previewHistory.length, previewImages.length]);
+  }, [currentStep, isPreviewLoading, hasAutoRendered]);
 
   // Fetch facial features options from API
   const fetchFacialFeaturesOptions = async (ethnic?: string) => {
@@ -1244,18 +1243,34 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
   };
 
   // Function to handle final name selection from modal
-  const handleFinalNameSelect = (nameOption: { firstName: string; lastName: string }) => {
-    setInfluencerData(prev => ({
-      ...prev,
-      name_first: nameOption.firstName,
-      name_last: nameOption.lastName
-    }));
+  const handleFinalNameSelect = (fullName: string) => {
+    // Parse the full name to extract first and last name
+    const nameParts = fullName.split(' ');
+    if (nameParts.length >= 2) {
+      const firstName = nameParts[0];
+      const lastName = nameParts.slice(1).join(' '); // Handle multi-word last names
 
-    toast.success(`Name set to ${nameOption.firstName} ${nameOption.lastName}`, {
-      position: 'bottom-center'
-    });
+      setInfluencerData(prev => ({
+        ...prev,
+        name_first: firstName,
+        name_last: lastName
+      }));
 
-    console.log('Name selected:', nameOption);
+      toast.success(`Name set to ${fullName}`, {
+        position: 'bottom-center'
+      });
+    } else {
+      // If it's a single name, treat it as first name
+      setInfluencerData(prev => ({
+        ...prev,
+        name_first: fullName,
+        name_last: ''
+      }));
+
+      toast.success(`Name set to ${fullName}`, {
+        position: 'bottom-center'
+      });
+    }
 
     setShowNameSelectionModal(false);
     setSelectedNameSuggestion(null);
@@ -1326,9 +1341,10 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
 
   const handleNext = () => {
     if (currentStep < steps.length) {
-      // Special handling for step 3 - show facial template choice modal
+      // Special handling for step 3 - show modal instead of proceeding
       if (currentStep === 3) {
-        setShowFacialTemplateChoiceModal(true);
+        // setShowStep3Modal(true);
+        handleStep3ModalOption('templates');
         return;
       }
 
@@ -1440,14 +1456,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
         body: JSON.stringify({ ...influencerData, new: true })
       });
 
-      console.log('Initial response:', response);
-      console.log('Response status:', response.status);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Response error:', errorText);
-        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
-      }
+      console.log(response);
 
       const responseId = await fetch(`${config.supabase_server_url}/influencer?user_id=eq.${userData.id}&new=eq.true`, {
         headers: {
@@ -1456,20 +1465,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
         }
       });
 
-      console.log('ResponseId fetch:', responseId);
-      
-      if (!responseId.ok) {
-        const errorText = await responseId.text();
-        console.error('ResponseId error:', errorText);
-        throw new Error(`Failed to fetch created influencer: ${responseId.status}, ${errorText}`);
-      }
-
       const data = await responseId.json();
-      console.log('Created influencer data:', data);
-
-      if (!data || data.length === 0) {
-        throw new Error('No influencer data returned after creation');
-      }
       const num = data[0].image_num === null || data[0].image_num === undefined || isNaN(data[0].image_num) ? 0 : data[0].image_num;
 
       if (selectedProfilePictureUrl) {
@@ -1659,38 +1655,30 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
           }
         } catch (error) {
           console.error('Error starting image generation:', error);
-          toast.warning('Influencer created but image generation failed. You can generate images later.', {
-            position: 'bottom-center'
-          });
         }
 
-        // Store the newly created influencer ID and flag for auto-jump to Phase 2
-        localStorage.setItem('newly_created_influencer_id', data[0].id.toString());
-        localStorage.setItem('coming_from_wizard', 'true');
-        
-        // Keep guide_step as 1 initially, let Start page handle the jump to Phase 2
-        // This ensures proper phase transition logic
-        window.location.href = '/start';
+        // Check guide_step and navigate accordingly
+        if (userData.guide_step === 1) {
+          // Update guide_step to 2 and navigate to start page
+          dispatch(setUser({ guide_step: 2 }));
+          navigate('/start');
+        } else {
+          // Navigate to influencers page
+          navigate('/influencers/profiles', {
+            state: {
+              influencerId: data[0].id,
+              fromWizard: true
+            }
+          });
+        }
         onComplete();
       } else {
-        console.error('Image generation failed or response not ok');
-        toast.warning('Influencer created but image generation failed. You can generate images later.', {
-          position: 'bottom-center'
-        });
-        // Store the newly created influencer ID and flag for auto-jump to Phase 2
-        localStorage.setItem('newly_created_influencer_id', data[0].id.toString());
-        localStorage.setItem('coming_from_wizard', 'true');
-        
-        // Keep guide_step as 1 initially, let Start page handle the jump to Phase 2
-        window.location.href = '/start';
-        onComplete();
+        throw new Error('Failed to create influencer');
       }
     } catch (error) {
       console.error('Error creating influencer:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      toast.error(`Failed to create influencer: ${errorMessage}`, {
-        position: 'bottom-center',
-        duration: 6000
+      toast.error('Failed to create influencer. Please try again.', {
+        position: 'bottom-center'
       });
     } finally {
       setIsLoading(false);
@@ -1729,7 +1717,15 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
       { imageUrl: '', negativePrompt: '3', isRecommended: false, isLoading: true, taskId: '' }
     ];
     setPreviewImages(initialPreviewImages);
-    // Don't show modal, keep images on the page
+    
+    // Initialize preview history with the same structure
+    const initialPreviewHistory = [
+      { id: 'temp_1', imageUrl: '', negativePrompt: '2', isRecommended: false, taskId: '', created_at: new Date().toISOString() },
+      { id: 'temp_2', imageUrl: '', negativePrompt: '1', isRecommended: true, taskId: '', created_at: new Date().toISOString() },
+      { id: 'temp_3', imageUrl: '', negativePrompt: '3', isRecommended: false, taskId: '', created_at: new Date().toISOString() }
+    ];
+    setPreviewHistory([...initialPreviewHistory, ...previewHistory]);
+    setShowPreviewImages(true);
 
     try {
       const useridResponse = await fetch(`${config.supabase_server_url}/user?uuid=eq.${userData.id}`, {
@@ -2482,10 +2478,6 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                             position: 'bottom-center'
                           });
                         }}
-                        onDoubleClick={() => {
-                          handleOptionSelect('cultural_background', option.label);
-                          setTimeout(() => handleNext(), 100);
-                        }}
                       >
                         <CardContent className="p-6">
                           <div className="space-y-4">
@@ -2495,16 +2487,6 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                                 alt={option.label}
                                 className="w-full h-full object-cover rounded-lg shadow-md group-hover:scale-105 transition-transform duration-300"
                               />
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setMagnifyImageUrl(`${config.data_url}/wizard/mappings400/${option.image}`);
-                                  setShowMagnifyModal(true);
-                                }}
-                                className="absolute top-2 left-2 w-8 h-8 bg-black/70 hover:bg-black/80 rounded-full flex items-center justify-center transition-all opacity-0 group-hover:opacity-100"
-                              >
-                                <ZoomIn className="w-4 h-4 text-white" />
-                              </button>
                               {influencerData.cultural_background === option.label && (
                                 <div className="absolute top-2 right-2 w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center shadow-lg">
                                   <Check className="w-5 h-5 text-white" />
@@ -2670,10 +2652,6 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                             position: 'bottom-center'
                           });
                         }}
-                        onDoubleClick={() => {
-                          handleOptionSelect('hair_length', option.label);
-                          setTimeout(() => handleNext(), 100);
-                        }}
                       >
                         <CardContent className="p-6">
                           <div className="space-y-4">
@@ -2683,16 +2661,6 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                                 alt={option.label}
                                 className="w-full h-full object-cover rounded-lg shadow-md group-hover:scale-105 transition-transform duration-300"
                               />
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setMagnifyImageUrl(`${config.data_url}/wizard/mappings400/${option.image}`);
-                                  setShowMagnifyModal(true);
-                                }}
-                                className="absolute top-2 left-2 w-8 h-8 bg-black/70 hover:bg-black/80 rounded-full flex items-center justify-center transition-all opacity-0 group-hover:opacity-100"
-                              >
-                                <ZoomIn className="w-4 h-4 text-white" />
-                              </button>
                               {influencerData.hair_length === option.label && (
                                 <div className="absolute top-2 right-2 w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center shadow-lg">
                                   <Check className="w-5 h-5 text-white" />
@@ -2858,10 +2826,6 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                             position: 'bottom-center'
                           });
                         }}
-                        onDoubleClick={() => {
-                          handleOptionSelect('hair_style', option.label);
-                          setTimeout(() => handleNext(), 100);
-                        }}
                       >
                         <CardContent className="p-6">
                           <div className="space-y-4">
@@ -2871,16 +2835,6 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                                 alt={option.label}
                                 className="w-full h-full object-cover rounded-lg shadow-md group-hover:scale-105 transition-transform duration-300"
                               />
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setMagnifyImageUrl(`${config.data_url}/wizard/mappings400/${option.image}`);
-                                  setShowMagnifyModal(true);
-                                }}
-                                className="absolute top-2 left-2 w-8 h-8 bg-black/70 hover:bg-black/80 rounded-full flex items-center justify-center transition-all opacity-0 group-hover:opacity-100"
-                              >
-                                <ZoomIn className="w-4 h-4 text-white" />
-                              </button>
                               {influencerData.hair_style === option.label && (
                                 <div className="absolute top-2 right-2 w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center shadow-lg">
                                   <Check className="w-5 h-5 text-white" />
@@ -3046,10 +3000,6 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                             position: 'bottom-center'
                           });
                         }}
-                        onDoubleClick={() => {
-                          handleOptionSelect('hair_color', option.label);
-                          setTimeout(() => handleNext(), 100);
-                        }}
                       >
                         <CardContent className="p-6">
                           <div className="space-y-4">
@@ -3059,16 +3009,6 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                                 alt={option.label}
                                 className="w-full h-full object-cover rounded-lg shadow-md group-hover:scale-105 transition-transform duration-300"
                               />
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setMagnifyImageUrl(`${config.data_url}/wizard/mappings400/${option.image}`);
-                                  setShowMagnifyModal(true);
-                                }}
-                                className="absolute top-2 left-2 w-8 h-8 bg-black/70 hover:bg-black/80 rounded-full flex items-center justify-center transition-all opacity-0 group-hover:opacity-100"
-                              >
-                                <ZoomIn className="w-4 h-4 text-white" />
-                              </button>
                               {influencerData.hair_color === option.label && (
                                 <div className="absolute top-2 right-2 w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center shadow-lg">
                                   <Check className="w-5 h-5 text-white" />
@@ -3234,10 +3174,6 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                             position: 'bottom-center'
                           });
                         }}
-                        onDoubleClick={() => {
-                          handleOptionSelect('face_shape', option.label);
-                          setTimeout(() => handleNext(), 100);
-                        }}
                       >
                         <CardContent className="p-6">
                           <div className="space-y-4">
@@ -3247,16 +3183,6 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                                 alt={option.label}
                                 className="w-full h-full object-cover rounded-lg shadow-md group-hover:scale-105 transition-transform duration-300"
                               />
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setMagnifyImageUrl(`${config.data_url}/wizard/mappings400/${option.image}`);
-                                  setShowMagnifyModal(true);
-                                }}
-                                className="absolute top-2 left-2 w-8 h-8 bg-black/70 hover:bg-black/80 rounded-full flex items-center justify-center transition-all opacity-0 group-hover:opacity-100"
-                              >
-                                <ZoomIn className="w-4 h-4 text-white" />
-                              </button>
                               {influencerData.face_shape === option.label && (
                                 <div className="absolute top-2 right-2 w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center shadow-lg">
                                   <Check className="w-5 h-5 text-white" />
@@ -3422,10 +3348,6 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                             position: 'bottom-center'
                           });
                         }}
-                        onDoubleClick={() => {
-                          handleOptionSelect('eye_color', option.label);
-                          setTimeout(() => handleNext(), 100);
-                        }}
                       >
                         <CardContent className="p-6">
                           <div className="space-y-4">
@@ -3435,16 +3357,6 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                                 alt={option.label}
                                 className="w-full h-full object-cover rounded-lg shadow-md group-hover:scale-105 transition-transform duration-300"
                               />
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setMagnifyImageUrl(`${config.data_url}/wizard/mappings400/${option.image}`);
-                                  setShowMagnifyModal(true);
-                                }}
-                                className="absolute top-2 left-2 w-8 h-8 bg-black/70 hover:bg-black/80 rounded-full flex items-center justify-center transition-all opacity-0 group-hover:opacity-100"
-                              >
-                                <ZoomIn className="w-4 h-4 text-white" />
-                              </button>
                               {influencerData.eye_color === option.label && (
                                 <div className="absolute top-2 right-2 w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center shadow-lg">
                                   <Check className="w-5 h-5 text-white" />
@@ -3610,10 +3522,6 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                             position: 'bottom-center'
                           });
                         }}
-                        onDoubleClick={() => {
-                          handleOptionSelect('skin_tone', option.label);
-                          setTimeout(() => handleNext(), 100);
-                        }}
                       >
                         <CardContent className="p-6">
                           <div className="space-y-4">
@@ -3623,16 +3531,6 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                                 alt={option.label}
                                 className="w-full h-full object-cover rounded-lg shadow-md group-hover:scale-105 transition-transform duration-300"
                               />
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setMagnifyImageUrl(`${config.data_url}/wizard/mappings400/${option.image}`);
-                                  setShowMagnifyModal(true);
-                                }}
-                                className="absolute top-2 left-2 w-8 h-8 bg-black/70 hover:bg-black/80 rounded-full flex items-center justify-center transition-all opacity-0 group-hover:opacity-100"
-                              >
-                                <ZoomIn className="w-4 h-4 text-white" />
-                              </button>
                               {influencerData.skin_tone === option.label && (
                                 <div className="absolute top-2 right-2 w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center shadow-lg">
                                   <Check className="w-5 h-5 text-white" />
@@ -3811,16 +3709,6 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                                 alt={option.label}
                                 className="w-full h-full object-cover rounded-lg shadow-md group-hover:scale-105 transition-transform duration-300"
                               />
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setMagnifyImageUrl(`${config.data_url}/wizard/mappings400/${option.image}`);
-                                  setShowMagnifyModal(true);
-                                }}
-                                className="absolute top-2 left-2 w-8 h-8 bg-black/70 hover:bg-black/80 rounded-full flex items-center justify-center transition-all opacity-0 group-hover:opacity-100"
-                              >
-                                <ZoomIn className="w-4 h-4 text-white" />
-                              </button>
                               {influencerData.body_type === option.label && (
                                 <div className="absolute top-2 right-2 w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center shadow-lg">
                                   <Check className="w-5 h-5 text-white" />
@@ -3964,6 +3852,13 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                           handleOptionSelect('bust_size', option.label);
                           setTimeout(() => handleNext(), 100);
                         }}
+                        onDoubleClick={() => {
+                          handleOptionSelect('bust_size', option.label);
+                          setTimeout(() => handleNext(), 100);
+                        }}
+                            position: 'bottom-center'
+                          });
+                        }}
                       >
                         <CardContent className="p-6">
                           <div className="space-y-4">
@@ -3973,16 +3868,6 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                                 alt={option.label}
                                 className="w-full h-full object-cover rounded-lg shadow-md group-hover:scale-105 transition-transform duration-300"
                               />
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setMagnifyImageUrl(`${config.data_url}/wizard/mappings400/${option.image}`);
-                                  setShowMagnifyModal(true);
-                                }}
-                                className="absolute top-2 left-2 w-8 h-8 bg-black/70 hover:bg-black/80 rounded-full flex items-center justify-center transition-all opacity-0 group-hover:opacity-100"
-                              >
-                                <ZoomIn className="w-4 h-4 text-white" />
-                              </button>
                               {influencerData.bust_size === option.label && (
                                 <div className="absolute top-2 right-2 w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center shadow-lg">
                                   <Check className="w-5 h-5 text-white" />
@@ -4130,20 +4015,74 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
       case 15:
         return (
           <div className="space-y-8">
-            <div className="text-center space-y-3">
-              <h2 className="text-3xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent flex items-center justify-center gap-3">
-                <Settings className="w-8 h-8 text-orange-600" />
-                Preview Your Influencer
-              </h2>
-              <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto text-lg leading-relaxed">
-                Generate preview images and select your favorite profile picture from the history.
-              </p>
+            <div className="text-center space-y-6">
+              <div className="w-20 h-20 mx-auto bg-gradient-to-br from-orange-500 via-red-600 to-pink-600 rounded-full flex items-center justify-center shadow-2xl">
+                <Settings className="w-10 h-10 text-white" />
+              </div>
+              <div className="space-y-3">
+                <h2 className="text-3xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
+                  Preview Your Influencer
+                </h2>
+                <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto text-lg leading-relaxed">
+                  Generate preview images and select your favorite profile picture from the history.
+                </p>
+              </div>
             </div>
 
-
+            {/* Selected Profile Image Display */}
+            {influencerData.image_url && (
+              <div className="max-w-2xl mx-auto">
+                <Card className="border-2 border-green-500 dark:border-green-400 shadow-xl bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20">
+                  <CardContent className="p-8">
+                    <div className="text-center space-y-6">
+                      <div className="space-y-4">
+                        <h3 className="text-xl font-semibold text-green-700 dark:text-green-300">
+                          Selected Profile Image
+                        </h3>
+                        <div className="flex justify-center">
+                          <img
+                            src={influencerData.image_url}
+                            alt="Selected Profile"
+                            className="w-48 h-48 object-cover rounded-full shadow-2xl border-4 border-green-500"
+                          />
+                        </div>
+                        <p className="text-sm text-green-600 dark:text-green-400">
+                          ✅ This image will be used as your influencer's profile picture
+                        </p>
+                        <div className="flex justify-center gap-4">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              if (influencerData.image_url) {
+                                setPreviewImageUrl(influencerData.image_url);
+                                setGeneratedImageData({
+                                  image_id: influencerData.image_url.split('/').pop() || '',
+                                  system_filename: influencerData.image_url.split('/').pop() || ''
+                                });
+                              }
+                            }}
+                            disabled={!influencerData.image_url}
+                          >
+                            View Full Size
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setInfluencerData({ ...influencerData, image_url: '' })}
+                          >
+                            Change Selection
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
 
             {/* Generate New Preview Images */}
-            <div className="max-w-6xl mx-auto">
+            <div className="max-w-2xl mx-auto">
               <Card className="border-2 border-gray-200 dark:border-gray-700 shadow-xl bg-gradient-to-br from-gray-50 to-white dark:from-gray-900 dark:to-gray-800">
                 <CardContent className="p-8">
                   <div className="text-center space-y-6">
@@ -4177,123 +4116,6 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                     <p className="text-sm text-gray-500 dark:text-gray-400">
                       💡 This will create new preview images and add them to your history.
                     </p>
-
-                    {/* New Generated Images Display */}
-                    {previewImages.length > 0 && (
-                      <div className="mt-8">
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                          {previewImages.map((preview, index) => (
-                            <Card key={index} className="group hover:shadow-xl transition-all duration-300 border-border/50 hover:border-blue-500/30 backdrop-blur-sm">
-                              <CardContent className="p-4">
-                                <div className="relative">
-                                  {preview.isRecommended && !preview.isLoading && (
-                                    <Badge className="absolute top-2 left-2 z-10 bg-gradient-to-r from-green-500 to-emerald-500 text-white font-semibold">
-                                      Recommended
-                                    </Badge>
-                                  )}
-                                  {preview.isLoading ? (
-                                    <div className="aspect-square bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center">
-                                      <div className="text-center">
-                                        <Loader2 className="w-12 h-12 animate-spin text-blue-500 mx-auto mb-2" />
-                                        <p className="text-sm text-gray-500 dark:text-gray-400">Generating...</p>
-                                      </div>
-                                    </div>
-                                  ) : preview.imageUrl ? (
-                                    <>
-                                      <img
-                                        src={preview.imageUrl}
-                                        alt={`New Preview ${index + 1}`}
-                                        className="w-full h-full object-cover rounded-lg shadow-lg aspect-square cursor-pointer"
-                                        onClick={() => {
-                                          setInfluencerData({ ...influencerData, image_url: preview.imageUrl });
-                                          setSelectedProfilePictureUrl(preview.imageUrl.split('/').pop() || '');
-                                        }}
-                                      />
-                                      <button
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          setMagnifyImageUrl(preview.imageUrl);
-                                          setShowMagnifyModal(true);
-                                        }}
-                                        className="absolute top-2 right-2 w-8 h-8 bg-black/70 hover:bg-black/80 rounded-full flex items-center justify-center transition-all opacity-0 group-hover:opacity-100"
-                                      >
-                                        <ZoomIn className="w-4 h-4 text-white" />
-                                      </button>
-                                    </>
-                                  ) : (
-                                    <div className="aspect-square bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center">
-                                      <p className="text-sm text-gray-500 dark:text-gray-400">No image</p>
-                                    </div>
-                                  )}
-                                </div>
-                              </CardContent>
-                            </Card>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Selected Profile Image Display in Green Circle */}
-            <div className="max-w-6xl mx-auto">
-              <Card className={cn(
-                "border-2 shadow-xl transition-all duration-300",
-                influencerData.image_url 
-                  ? "border-green-500 dark:border-green-400 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20" 
-                  : "border-gray-200 dark:border-gray-700 bg-gradient-to-br from-gray-50 to-white dark:from-gray-900 dark:to-gray-800"
-              )}>
-                <CardContent className="p-8">
-                  <div className="text-center space-y-6">
-                    <div className="space-y-4">
-                      <h3 className={cn(
-                        "text-xl font-semibold",
-                        influencerData.image_url 
-                          ? "text-green-700 dark:text-green-300" 
-                          : "text-gray-700 dark:text-gray-300"
-                      )}>
-                        {influencerData.image_url ? "Selected Profile Image" : "Profile Picture"}
-                      </h3>
-                      <div className="flex justify-center">
-                        {influencerData.image_url ? (
-                          <div className="relative">
-                            <img
-                              src={influencerData.image_url}
-                              alt="Selected Profile"
-                              className="w-48 h-48 object-cover rounded-full shadow-2xl border-4 border-green-500"
-                            />
-                            <div className="absolute -top-2 -right-2 w-12 h-12 bg-green-500 rounded-full flex items-center justify-center shadow-lg">
-                              <Check className="w-6 h-6 text-white" />
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="w-48 h-48 bg-gray-200 dark:bg-gray-700 rounded-full shadow-2xl border-4 border-gray-300 dark:border-gray-600 flex items-center justify-center">
-                            <User className="w-20 h-20 text-gray-400 dark:text-gray-500" />
-                          </div>
-                        )}
-                      </div>
-                      {influencerData.image_url ? (
-                        <div className="space-y-3">
-                          <p className="text-sm text-green-600 dark:text-green-400">
-                            ✅ This image will be used as your influencer's profile picture
-                          </p>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setInfluencerData({ ...influencerData, image_url: '' })}
-                            className="text-red-600 border-red-300 hover:bg-red-50 hover:border-red-400"
-                          >
-                            Change Selection
-                          </Button>
-                        </div>
-                      ) : (
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                          Click on a preview image above to select your profile picture
-                        </p>
-                      )}
-                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -4327,25 +4149,25 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                                 <img
                                   src={image.imageUrl}
                                   alt={`Preview ${index + 1}`}
-                                  className="w-full h-full object-cover rounded-lg shadow-lg aspect-square cursor-pointer"
-                                  onClick={() => {
-                                    setInfluencerData({ ...influencerData, image_url: image.imageUrl });
-                                    setSelectedProfilePictureUrl(image.imageUrl.split('/').pop() || '');
-                                  }}
+                                  className="w-full h-full object-cover rounded-lg shadow-lg aspect-square"
                                 />
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setMagnifyImageUrl(image.imageUrl);
-                                    setShowMagnifyModal(true);
-                                  }}
-                                  className="absolute top-2 right-2 w-8 h-8 bg-black/70 hover:bg-black/80 rounded-full flex items-center justify-center transition-all opacity-0 group-hover:opacity-100"
-                                >
-                                  <ZoomIn className="w-4 h-4 text-white" />
-                                </button>
                                 <div className="mt-4 text-center">
-                                  <div className="flex flex-col gap-2 mt-2">
+                                  <div className="flex gap-2 mt-2">
                                     <Button
+                                      variant="outline"
+                                      className="flex-1"
+                                      onClick={() => {
+                                        setPreviewImageUrl(image.imageUrl);
+                                        setGeneratedImageData({
+                                          image_id: image.id,
+                                          system_filename: image.id
+                                        });
+                                      }}
+                                    >
+                                      View Full Size
+                                    </Button>
+                                    <Button
+                                      className="flex-1"
                                       onClick={() => handleSelectPreviewHistoryImage(image)}
                                     >
                                       Use as Profile Picture
@@ -4688,69 +4510,65 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
             </DialogDescription>
           </DialogHeader>
 
-          {selectedNameSuggestion && (
-            <div className="space-y-4">
-              {/* Option 1: Firstname Lastname */}
-              <Card
-                className="border-2 border-green-200 dark:border-green-700 hover:border-green-400 dark:hover:border-green-500 cursor-pointer transition-all duration-300"
-                onClick={() => handleFinalNameSelect({ 
-                  firstName: selectedNameSuggestion.first_name, 
-                  lastName: selectedNameSuggestion.last_name 
-                })}
-              >
-                <CardContent className="p-4">
-                  <div className="text-center">
-                    <h4 className="font-bold text-gray-900 dark:text-gray-100 mb-2">
-                      {selectedNameSuggestion.first_name} {selectedNameSuggestion.last_name}
-                    </h4>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      Firstname Lastname
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
+          {selectedNameSuggestion && (() => {
+            const nameOptions = parseNameWithNickname(selectedNameSuggestion.full_name);
+            return (
+              <div className="space-y-4">
+                {/* Full Name with Nickname Option */}
+                <Card
+                  className="border-2 border-green-200 dark:border-green-700 hover:border-green-400 dark:hover:border-green-500 cursor-pointer transition-all duration-300"
+                  onClick={() => handleFinalNameSelect(nameOptions.fullNameWithNickname)}
+                >
+                  <CardContent className="p-4">
+                    <div className="text-center">
+                      <h4 className="font-bold text-gray-900 dark:text-gray-100 mb-2">
+                        {nameOptions.fullNameWithNickname}
+                      </h4>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        Full name with nickname
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
 
-              {/* Option 2: Nickname Lastname */}
-              <Card
-                className="border-2 border-blue-200 dark:border-blue-700 hover:border-blue-400 dark:hover:border-blue-500 cursor-pointer transition-all duration-300"
-                onClick={() => handleFinalNameSelect({ 
-                  firstName: selectedNameSuggestion.nick_name, 
-                  lastName: selectedNameSuggestion.last_name 
-                })}
-              >
-                <CardContent className="p-4">
-                  <div className="text-center">
-                    <h4 className="font-bold text-gray-900 dark:text-gray-100 mb-2">
-                      {selectedNameSuggestion.nick_name} {selectedNameSuggestion.last_name}
-                    </h4>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      Nickname Lastname
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
+                {/* Full Name without Nickname Option */}
+                <Card
+                  className="border-2 border-blue-200 dark:border-blue-700 hover:border-blue-400 dark:hover:border-blue-500 cursor-pointer transition-all duration-300"
+                  onClick={() => handleFinalNameSelect(nameOptions.fullNameWithoutNickname)}
+                >
+                  <CardContent className="p-4">
+                    <div className="text-center">
+                      <h4 className="font-bold text-gray-900 dark:text-gray-100 mb-2">
+                        {nameOptions.fullNameWithoutNickname}
+                      </h4>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        Full name without nickname
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
 
-              {/* Option 3: Firstname + Nickname (in first name field) Lastname */}
-              <Card
-                className="border-2 border-purple-200 dark:border-purple-700 hover:border-purple-400 dark:hover:border-purple-500 cursor-pointer transition-all duration-300"
-                onClick={() => handleFinalNameSelect({ 
-                  firstName: `${selectedNameSuggestion.first_name} ${selectedNameSuggestion.nick_name}`, 
-                  lastName: selectedNameSuggestion.last_name 
-                })}
-              >
-                <CardContent className="p-4">
-                  <div className="text-center">
-                    <h4 className="font-bold text-gray-900 dark:text-gray-100 mb-2">
-                      {selectedNameSuggestion.first_name} {selectedNameSuggestion.nick_name} {selectedNameSuggestion.last_name}
-                    </h4>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      Firstname + Nickname (in first name field) Lastname
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
+                {/* Nickname Only Option (if available) */}
+                {nameOptions.nicknameOnly && (
+                  <Card
+                    className="border-2 border-purple-200 dark:border-purple-700 hover:border-purple-400 dark:hover:border-purple-500 cursor-pointer transition-all duration-300"
+                    onClick={() => handleFinalNameSelect(nameOptions.nicknameOnly)}
+                  >
+                    <CardContent className="p-4">
+                      <div className="text-center">
+                        <h4 className="font-bold text-gray-900 dark:text-gray-100 mb-2">
+                          {nameOptions.nicknameOnly}
+                        </h4>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                          Nickname with last name
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            );
+          })()}
 
           <div className="flex justify-end gap-2 pt-4">
             <Button
@@ -5132,72 +4950,74 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                         <img
                           src={preview.imageUrl}
                           alt={`Preview ${index + 1}`}
-                          className="w-full h-64 object-cover rounded-lg shadow-lg"
+                          className="w-full h-full object-cover rounded-lg shadow-lg"
                           onError={(e) => {
                             const target = e.target as HTMLImageElement;
                             target.style.display = 'none';
                           }}
                         />
-                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="bg-black/70 hover:bg-black/80 text-white border-white/30"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setShowPreviewModal(false);
-                            }}
-                          >
-                            Close
-                          </Button>
-                        </div>
                       </>
                     )}
                   </div>
-                  <div className="mt-4 text-center">
-                    <Button
-                      className="w-full"
-                      disabled={preview.isLoading}
-                      onClick={async () => {
-                        try {
-                          if (!preview.taskId) {
-                            throw new Error('No task ID found for the selected image');
-                          }
+                  {!preview.isLoading && (
+                    <div className="mt-4 text-center">
+                      <div className="flex gap-2 mt-2">
+                        <Button
+                          className="flex-1"
+                          onClick={async () => {
+                                try {
+                                  // Use the taskId from the preview data to get the correct image
+                                  if (!preview.taskId) {
+                                    throw new Error('No task ID found for the selected image');
+                                  }
 
-                          const imageResponse = await fetch(`${config.supabase_server_url}/generated_images?task_id=eq.${preview.taskId}`, {
-                            method: 'GET',
-                            headers: {
-                              'Authorization': 'Bearer WeInfl3nc3withAI'
-                            }
-                          });
+                                  // Find the generated image data using the taskId
+                                  const imageResponse = await fetch(`${config.supabase_server_url}/generated_images?task_id=eq.${preview.taskId}`, {
+                                    method: 'GET',
+                                    headers: {
+                                      'Authorization': 'Bearer WeInfl3nc3withAI'
+                                    }
+                                  });
 
-                          const imageData = await imageResponse.json();
+                                  const imageData = await imageResponse.json();
 
-                          if (imageData.length > 0) {
-                            const generatedImage = imageData[0];
-                            setSelectedProfilePictureUrl(generatedImage.system_filename);
-                            
-                            setInfluencerData(prev => ({
-                              ...prev,
-                              image_url: preview.imageUrl
-                            }));
+                                  if (imageData.length > 0) {
+                                    const generatedImage = imageData[0];
 
-                            setShowPreviewModal(false);
-                            setPreviewImages([]);
+                                    // Save the selected profile picture URL for later use
+                                    setSelectedProfilePictureUrl(generatedImage.system_filename);
 
-                            toast.success('Profile picture selected successfully!');
-                          } else {
-                            throw new Error('Image data not found');
-                          }
-                        } catch (error) {
-                          console.error('Error setting profile picture:', error);
-                          toast.error('Failed to set profile picture');
-                        }
-                      }}
-                    >
-                      Use as Profile Picture
-                    </Button>
-                  </div>
+                                    // Update the influencer data with the new profile picture URL
+                                    const newImageUrl = preview.imageUrl;
+                                    console.log(newImageUrl);
+
+                                    setInfluencerData(prev => ({
+                                      ...prev,
+                                      image_url: newImageUrl
+                                    }));
+
+                                    setShowPreviewModal(false);
+                                    setPreviewImages([]);
+
+                                    toast.success('Profile picture selected successfully!', {
+                                      description: 'The selected image will be used as your influencer\'s profile picture'
+                                    });
+                                  } else {
+                                    throw new Error('Image data not found');
+                                  }
+                                } catch (error) {
+                                  console.error('Error setting profile picture:', error);
+                                  toast.error('Failed to set profile picture');
+                                }
+                              }}
+                            >
+                              Use as Profile Picture
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             ))}
@@ -5238,111 +5058,6 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
               onClick={() => setPreviewImageUrl(null)}
             >
               Close
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Magnify Modal */}
-      <Dialog open={showMagnifyModal} onOpenChange={setShowMagnifyModal}>
-        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <ZoomIn className="w-5 h-5 text-blue-500" />
-              Magnify View
-            </DialogTitle>
-          </DialogHeader>
-          <div className="flex justify-center">
-            {magnifyImageUrl && (
-              <img
-                src={magnifyImageUrl}
-                alt="Magnified View"
-                className="max-w-full max-h-[80vh] object-contain rounded-lg shadow-lg"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  target.style.display = 'none';
-                }}
-              />
-            )}
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setShowMagnifyModal(false)}
-            >
-              Close
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Facial Template Choice Modal */}
-      <Dialog open={showFacialTemplateChoiceModal} onOpenChange={setShowFacialTemplateChoiceModal}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <User className="w-5 h-5 text-purple-500" />
-              Facial Features Customization
-            </DialogTitle>
-            <DialogDescription>
-              Choose how you'd like to customize your influencer's facial features. You can use pre-made templates for quick setup or customize each feature individually.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-6">
-            <Card 
-              className="cursor-pointer border-2 hover:border-purple-500/50 transition-all duration-300 hover:shadow-lg group"
-              onClick={() => {
-                setShowFacialTemplateChoiceModal(false);
-                setCurrentStep(4); // Go to Facial Features Templates
-              }}
-            >
-              <CardContent className="p-6 text-center space-y-4">
-                <div className="w-16 h-16 mx-auto bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <Sparkles className="w-8 h-8 text-purple-600 dark:text-purple-400" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-lg mb-2">Use Facial Templates</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Choose from professionally designed facial feature combinations. Quick and easy setup.
-                  </p>
-                </div>
-                <Badge variant="secondary" className="bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
-                  Recommended
-                </Badge>
-              </CardContent>
-            </Card>
-
-            <Card 
-              className="cursor-pointer border-2 hover:border-blue-500/50 transition-all duration-300 hover:shadow-lg group"
-              onClick={() => {
-                setShowFacialTemplateChoiceModal(false);
-                setCurrentStep(5); // Skip to individual features (step 5)
-              }}
-            >
-              <CardContent className="p-6 text-center space-y-4">
-                <div className="w-16 h-16 mx-auto bg-gradient-to-br from-blue-100 to-cyan-100 dark:from-blue-900/30 dark:to-cyan-900/30 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <Settings className="w-8 h-8 text-blue-600 dark:text-blue-400" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-lg mb-2">Customize Individual Features</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Manually select each facial feature for complete control over your influencer's appearance.
-                  </p>
-                </div>
-                <Badge variant="outline" className="border-blue-200 text-blue-700 dark:border-blue-800 dark:text-blue-300">
-                  Advanced
-                </Badge>
-              </CardContent>
-            </Card>
-          </div>
-
-          <DialogFooter className="flex justify-center">
-            <Button 
-              variant="outline" 
-              onClick={() => setShowFacialTemplateChoiceModal(false)}
-            >
-              Cancel
             </Button>
           </DialogFooter>
         </DialogContent>

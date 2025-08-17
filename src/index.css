@@ -87,11 +87,11 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-ai-purple-500 rounded-full;
+  @apply bg-purple-500 rounded-full;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  @apply bg-ai-purple-600;
+  @apply bg-purple-600;
 }
 
 /* Glass morphism effect */

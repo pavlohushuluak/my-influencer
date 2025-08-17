@@ -144,7 +144,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
     guidance: 3.5,
     negative_prompt: '',
     nsfw_strength: 0,
-    lora_strength: 1.0,
+    lora_strength: 0.8,
     quality: 'Quality',
     engine: 'General',
     usePromptOnly: false,
@@ -1417,7 +1417,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
       guidance: 3.5,
       negative_prompt: '',
       nsfw_strength: 0,
-      lora_strength: 1.0,
+      lora_strength: 0.8,
       quality: 'Quality',
       engine: 'General',
       usePromptOnly: false,
@@ -2312,7 +2312,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
           else if (field === 'guidance') presetData.jsonjob[field] = 3.5;
           else if (field === 'number_of_images') presetData.jsonjob[field] = 1;
           else if (field === 'nsfw_strength') presetData.jsonjob[field] = 0;
-          else if (field === 'lora_strength') presetData.jsonjob[field] = 1.0;
+          else if (field === 'lora_strength') presetData.jsonjob[field] = 0.8;
           else if (field === 'lora') presetData.jsonjob[field] = false;
           else if (field === 'noAI') presetData.jsonjob[field] = true;
           else if (field === 'usePromptOnly') presetData.jsonjob[field] = false;
@@ -4569,7 +4569,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
                       <div className="space-y-6">
                         <Label>AI Consistency Strength</Label>
                         <Slider
-                          value={[formData.lora_strength || 1.0]}
+                          value={[formData.lora_strength || 0.8]}
                           onValueChange={([value]) => handleInputChange('lora_strength', value)}
                           max={1.5}
                           min={-0.5}
@@ -6910,6 +6910,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
                   <Label className="text-sm font-medium text-slate-700 dark:text-slate-300">
                     {statusEditPopup.field === 'numberOfImages' && 'Number of Images'}
                     {statusEditPopup.field === 'guidance' && 'Guidance Scale'}
+                    {statusEditPopup.field === 'lora_strength' && 'AI Strength'}
                     {statusEditPopup.field === 'aiconsistency_strength' && 'AI Consistency Strength'}
                     {statusEditPopup.field === 'nsfw_strength' && 'NSFW Strength'}
                   </Label>
@@ -6934,19 +6935,22 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
                     max={
                       statusEditPopup.field === 'numberOfImages' ? 20 :
                         statusEditPopup.field === 'guidance' ? 8.0 :
-                          statusEditPopup.field === 'aiconsistency_strength' ? 1.5 :
-                            statusEditPopup.field === 'nsfw_strength' ? 1 : 10
+                          statusEditPopup.field === 'lora_strength' ? 1.5 :
+                            statusEditPopup.field === 'aiconsistency_strength' ? 1.5 :
+                              statusEditPopup.field === 'nsfw_strength' ? 1 : 10
                     }
                     min={
                       statusEditPopup.field === 'numberOfImages' ? 1 :
                         statusEditPopup.field === 'guidance' ? 1.0 :
-                          statusEditPopup.field === 'aiconsistency_strength' ? -0.5 :
-                            statusEditPopup.field === 'nsfw_strength' ? -1 : 0
+                          statusEditPopup.field === 'lora_strength' ? -0.5 :
+                            statusEditPopup.field === 'aiconsistency_strength' ? -0.5 :
+                              statusEditPopup.field === 'nsfw_strength' ? -1 : 0
                     }
                     step={
                       statusEditPopup.field === 'guidance' ? 0.1 :
-                        statusEditPopup.field === 'aiconsistency_strength' ? 0.1 :
-                          statusEditPopup.field === 'nsfw_strength' ? 0.1 : 1
+                        statusEditPopup.field === 'lora_strength' ? 0.1 :
+                          statusEditPopup.field === 'aiconsistency_strength' ? 0.1 :
+                            statusEditPopup.field === 'nsfw_strength' ? 0.1 : 1
                     }
                     className="w-full"
                   />
@@ -6962,6 +6966,12 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
                       <>
                         <span className="font-medium">1.0</span>
                         <span className="font-medium">8.0</span>
+                      </>
+                    )}
+                    {statusEditPopup.field === 'lora_strength' && (
+                      <>
+                        <span className="font-medium">Weak (-0.5)</span>
+                        <span className="font-medium">Strong (+1.5)</span>
                       </>
                     )}
                     {statusEditPopup.field === 'aiconsistency_strength' && (

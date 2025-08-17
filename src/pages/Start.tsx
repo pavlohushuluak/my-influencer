@@ -1498,7 +1498,7 @@ export default function Start() {
                     <Button
                       onClick={() => {
                         // Navigate to Image Library
-                        window.location.href = '/vault';
+                        navigate('/library/images');
                       }}
                       variant="outline"
                       className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-semibold text-lg px-6 py-3 rounded-xl shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 border-blue-500"
@@ -1509,7 +1509,7 @@ export default function Start() {
                     <Button
                       onClick={() => {
                         // Navigate to Video Library (placeholder for now)
-                        toast.info("Video Library coming soon!");
+                        navigate('/library/videos');
                       }}
                       variant="outline"
                       className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold text-lg px-6 py-3 rounded-xl shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 border-purple-500"

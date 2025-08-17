@@ -1181,6 +1181,7 @@ export default function Lora() {
         onConfirm={proceedWithLoraTraining}
         gemCostData={gemCostData}
         userCredits={userData.credits}
+        userId={userData.id}
         isProcessing={isCopyingImage}
                       processingText="Setting up AI consistency training..."
               confirmButtonText="Start AI Consistency Training"

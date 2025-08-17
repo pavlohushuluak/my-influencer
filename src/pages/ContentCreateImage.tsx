@@ -7223,6 +7223,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
         onConfirm={proceedWithGeneration}
         gemCostData={gemCostData}
         userCredits={userData.credits}
+        userId={userData.id}
         isProcessing={isGenerating}
         processingText="Generating..."
         numberOfItems={formData.numberOfImages}

@@ -928,6 +928,7 @@ export default function InfluencerUse() {
         onConfirm={proceedWithLoraTraining}
         gemCostData={gemCostData}
         userCredits={userData.credits}
+        userId={userData.id}
         isProcessing={isCopyingImage}
         processingText="Training..."
         title="AI consistency Training Cost"

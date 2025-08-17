@@ -37,8 +37,7 @@ import {
 } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { DialogContentZoom } from '@/components/ui/zoomdialog';
-import { DialogZoom } from '@/components/ui/zoomdialog';
+
 import { CreditConfirmationModal } from '@/components/CreditConfirmationModal';
 import LoraVaultSelector from '@/components/LoraVaultSelector';
 import config from '@/config/config';
@@ -133,7 +132,7 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
   const [sortBy, setSortBy] = useState('newest');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [selectedFile, setSelectedFile] = useState<LoraFile | null>(null);
-  const [showFullSizeModal, setShowFullSizeModal] = useState(false);
+
   const [fullSizeImage, setFullSizeImage] = useState<string | null>(null);
   const [downloadingFiles, setDownloadingFiles] = useState<Set<string>>(new Set());
   const [movingFiles, setMovingFiles] = useState<Set<string>>(new Set());
@@ -176,6 +175,15 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
   const [showCreateImageModal, setShowCreateImageModal] = useState(false);
   const [selectedImageForCreation, setSelectedImageForCreation] = useState<LoraFile | null>(null);
   const [isCreatingImage, setIsCreatingImage] = useState(false);
+  
+  // Credit checking state for create image
+  const [showCreateImageGemWarning, setShowCreateImageGemWarning] = useState(false);
+  const [createImageGemCostData, setCreateImageGemCostData] = useState<{
+    id: number;
+    item: string;
+    description: string;
+    gems: number;
+  } | null>(null);
 
   // Fetch LoRA status from database
   const fetchLoraStatus = useCallback(async () => {
@@ -629,8 +637,8 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
   // View full size image
   const handleViewFullSize = (file: LoraFile) => {
     if (file.type === 'image') {
+      console.log('Opening full size image:', file.url);
       setFullSizeImage(file.url);
-      setShowFullSizeModal(true);
     }
   };
 
@@ -957,6 +965,36 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
     }
   };
 
+  // Function to check gem cost for create image from LoRA training
+  const checkCreateImageGemCost = async () => {
+    try {
+      setIsCheckingGems(true);
+      const response = await fetch('https://api.nymia.ai/v1/getgems', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          item: 'lora_image_regen'
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch gem cost: ${response.status}`);
+      }
+
+      const gemData = await response.json();
+      return gemData;
+    } catch (error) {
+      console.error('Error checking create image gem cost:', error);
+      toast.error('Failed to check create image cost. Please try again.');
+      return null;
+    } finally {
+      setIsCheckingGems(false);
+    }
+  };
+
   // Function to proceed with fast LoRA training after credit confirmation
   const proceedWithFastLoraTraining = async () => {
     try {
@@ -1153,8 +1191,39 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
       return;
     }
 
+    // Store the selected file for later use
     setSelectedImageForCreation(file);
-    setShowCreateImageModal(true);
+
+    // Check gem cost before proceeding
+    const gemData = await checkCreateImageGemCost();
+    if (gemData) {
+      setCreateImageGemCostData(gemData);
+      
+      // Check if user has enough credits
+      if (userData.credits < gemData.gems) {
+        setShowCreateImageGemWarning(true);
+        return;
+      } else {
+        // Show confirmation for gem cost
+        setShowCreateImageGemWarning(true);
+        return;
+      }
+    }
+
+    // If no gem checking needed or failed, show error and don't proceed
+    toast.error('Unable to verify credit cost. Please try again.');
+    return;
+  };
+
+  // Function to proceed with create image after credit confirmation
+  const proceedWithCreateImage = async () => {
+    try {
+      setShowCreateImageGemWarning(false);
+      setShowCreateImageModal(true);
+    } catch (error) {
+      console.error('Error in proceedWithCreateImage:', error);
+      toast.error('Failed to proceed with image creation. Please try again.');
+    }
   };
 
   // Execute create image task
@@ -1559,12 +1628,22 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
                   {/* File Preview */}
                   <div className="relative w-full h-full bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg overflow-hidden">
                     {file.type === 'image' ? (
-                      <img
-                        src={file.url}
-                        alt={file.filename}
-                        className="w-full h-full object-cover cursor-pointer"
-                        onClick={() => handleViewFullSize(file)}
-                      />
+                      <div className="relative w-full h-full group">
+                        <img
+                          src={file.url}
+                          alt={file.filename}
+                          className="w-full h-full object-cover cursor-pointer"
+                          onClick={() => handleViewFullSize(file)}
+                        />
+                        <div 
+                          className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-200 flex items-center justify-center cursor-pointer"
+                          onClick={() => handleViewFullSize(file)}
+                        >
+                          <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-white/90 dark:bg-black/90 rounded-full p-2 shadow-lg">
+                            <ZoomIn className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+                          </div>
+                        </div>
+                      </div>
                     ) : (
                       <div className="flex flex-col w-full h-full items-center justify-center max-h-48 min-h-40">
                         {getFileTypeIcon(file.type)}
@@ -1660,21 +1739,18 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
       )}
 
       {/* Full Size Image Modal */}
-      <Dialog open={showFullSizeModal} onOpenChange={setShowFullSizeModal}>
-        <DialogContent className="max-w-4xl max-h-[90vh] p-0">
-          <DialogZoom>
-            <DialogContentZoom>
-              {fullSizeImage && (
-                <div className="relative w-full h-full">
-                  <img
-                    src={fullSizeImage}
-                    alt="Full size preview"
-                    className="w-full h-full object-contain"
-                  />
-                </div>
-              )}
-            </DialogContentZoom>
-          </DialogZoom>
+      <Dialog open={!!fullSizeImage} onOpenChange={() => setFullSizeImage(null)}>
+        <DialogContent className="p-0 overflow-hidden bg-transparent border-none shadow-none">
+          {fullSizeImage && (
+            <div className="relative w-full h-full flex items-center justify-center">
+              <img
+                src={fullSizeImage}
+                alt="Full size preview"
+                className="max-w-full max-h-[80vh] object-contain rounded-lg shadow-2xl cursor-pointer"
+                onClick={(e) => e.stopPropagation()}
+              />
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 
@@ -1820,6 +1896,7 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
         onConfirm={proceedWithRestartLoraTraining}
         gemCostData={restartGemCostData}
         userCredits={userData.credits}
+        userId={userData.id}
         isProcessing={isStartingTraining}
         processingText="Restarting Training..."
         title="Restart AI consistency Training Cost"
@@ -1833,10 +1910,25 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
         onConfirm={proceedWithFastLoraTraining}
         gemCostData={gemCostData}
         userCredits={userData.credits}
+        userId={userData.id}
         isProcessing={isStartingTraining}
         processingText="Starting Fast Training..."
         title="Fast AI consistency Training Cost"
         confirmButtonText={gemCostData ? `Confirm & Use ${gemCostData.gems} Credits` : 'Confirm'}
+      />
+
+      {/* Create Image Credit Confirmation Modal */}
+      <CreditConfirmationModal
+        isOpen={showCreateImageGemWarning}
+        onClose={() => setShowCreateImageGemWarning(false)}
+        onConfirm={proceedWithCreateImage}
+        gemCostData={createImageGemCostData}
+        userCredits={userData.credits}
+        userId={userData.id}
+        isProcessing={false}
+        processingText=""
+        title="Create Image from AI consistency Training Cost"
+        confirmButtonText={createImageGemCostData ? `Confirm & Use ${createImageGemCostData.gems} Credits` : 'Confirm'}
       />
 
       {/* Create Image Confirmation Modal */}

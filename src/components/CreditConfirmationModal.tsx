@@ -1,8 +1,10 @@
 import { useState } from 'react';
+import { useDispatch } from 'react-redux';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { AlertTriangle, Loader2 } from 'lucide-react';
 import { CreditPurchaseDialog } from '@/components/Payment/CreditPurchaseDialog';
+import { refreshUserCredits } from '@/utils/creditUtils';
 
 interface GemCostData {
   id: number;
@@ -18,6 +20,7 @@ interface CreditConfirmationModalProps {
   onConfirm: () => void;
   gemCostData: GemCostData | null;
   userCredits: number;
+  userId: string;
   isProcessing?: boolean;
   processingText?: string;
   confirmButtonText?: string;
@@ -32,6 +35,7 @@ export function CreditConfirmationModal({
   onConfirm,
   gemCostData,
   userCredits,
+  userId,
   isProcessing = false,
   processingText = 'Processing...',
   confirmButtonText,
@@ -39,6 +43,7 @@ export function CreditConfirmationModal({
   numberOfItems = 1,
   itemType = 'item'
 }: CreditConfirmationModalProps) {
+  const dispatch = useDispatch();
   const [showCreditPurchase, setShowCreditPurchase] = useState(false);
 
   if (!gemCostData) return null;
@@ -50,6 +55,21 @@ export function CreditConfirmationModal({
   const handleInsufficientCredits = () => {
     onClose();
     setShowCreditPurchase(true);
+  };
+
+  const handleConfirmWithRefresh = async () => {
+    try {
+      // Call the original onConfirm function
+      await onConfirm();
+      
+      // Refresh credits after successful payment
+      // Use a timeout to ensure the payment has been processed
+      setTimeout(async () => {
+        await refreshUserCredits(userId, dispatch);
+      }, 1000);
+    } catch (error) {
+      console.error('Error in confirmation:', error);
+    }
   };
 
   return (
@@ -136,7 +156,7 @@ export function CreditConfirmationModal({
               </Button>
             ) : (
               <Button
-                onClick={onConfirm}
+                onClick={handleConfirmWithRefresh}
                 className="flex-1 bg-gradient-to-r from-purple-600 to-blue-600"
                 disabled={isProcessing}
               >

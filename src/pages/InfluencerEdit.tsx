@@ -168,6 +168,7 @@ const EnhancedLivePreview = ({
   previewImage,
   onOpenAIPersonality,
   onOpenIntegrations,
+  onOpenWardrobe,
 }: {
   influencerData: any;
   isGenerating: boolean;
@@ -176,6 +177,7 @@ const EnhancedLivePreview = ({
   previewImage: string | null;
   onOpenAIPersonality: () => void;
   onOpenIntegrations: () => void;
+  onOpenWardrobe: () => void;
 }) => (
   <div className="sticky top-6 space-y-6">
     {/* Main Preview Card */}
@@ -289,7 +291,7 @@ const EnhancedLivePreview = ({
         <Button
           variant="outline"
           className="w-full justify-start"
-          onClick={() => toast.info("Wardrobe feature coming soon!")}
+          onClick={onOpenWardrobe}
         >
           <Palette className="w-4 h-4 mr-2" />
           Wardrobe
@@ -1123,6 +1125,7 @@ export default function InfluencerEditRedesign() {
   // Modal States
   const [showAIPersonalityModal, setShowAIPersonalityModal] = useState(false);
   const [showIntegrationsModal, setShowIntegrationsModal] = useState(false);
+  const [showWardrobeModal, setShowWardrobeModal] = useState(false);
 
   // Accordion States
   const [expandedSections, setExpandedSections] = useState({
@@ -1278,6 +1281,15 @@ export default function InfluencerEditRedesign() {
   const [personaOptions, setPersonaOptions] = useState<Option[]>([]);
   const [speechOptions, setSpeechOptions] = useState<Option[]>([]);
   const [backgroundOptions, setBackgroundOptions] = useState<Option[]>([]);
+  
+  // Wardrobe/Clothing Style Options
+  const [clothingEverydayOptions, setClothingEverydayOptions] = useState<Option[]>([]);
+  const [clothingOccasionalOptions, setClothingOccasionalOptions] = useState<Option[]>([]);
+  const [clothingHomewearOptions, setClothingHomewearOptions] = useState<Option[]>([]);
+  const [clothingSportsOptions, setClothingSportsOptions] = useState<Option[]>([]);
+  const [clothingSexyOptions, setClothingSexyOptions] = useState<Option[]>([]);
+  const [homeEnvironmentOptions, setHomeEnvironmentOptions] = useState<Option[]>([]);
+  const [colorPaletteOptions, setColorPaletteOptions] = useState<Option[]>([]);
 
   // Additional selector states
   const [showHumorSelector, setShowHumorSelector] = useState(false);
@@ -1286,6 +1298,14 @@ export default function InfluencerEditRedesign() {
   const [showJobAreaSelector, setShowJobAreaSelector] = useState(false);
   const [showCoreValuesSelector, setShowCoreValuesSelector] = useState(false);
   const [showContentFocusAreasSelector, setShowContentFocusAreasSelector] = useState(false);
+  
+  // Wardrobe selector states
+  const [showEverydayStyleSelector, setShowEverydayStyleSelector] = useState(false);
+  const [showOccasionalStyleSelector, setShowOccasionalStyleSelector] = useState(false);
+  const [showHomeStyleSelector, setShowHomeStyleSelector] = useState(false);
+  const [showSportsStyleSelector, setShowSportsStyleSelector] = useState(false);
+  const [showSexyStyleSelector, setShowSexyStyleSelector] = useState(false);
+  const [showHomeEnvironmentSelector, setShowHomeEnvironmentSelector] = useState(false);
   const [showPersonaSelector, setShowPersonaSelector] = useState(false);
   const [showSpeechSelector, setShowSpeechSelector] = useState(false);
 
@@ -1477,6 +1497,14 @@ export default function InfluencerEditRedesign() {
           cvalues: setCoreValuesOptions,
           persona: setPersonaOptions,
           speech: setSpeechOptions,
+          // Wardrobe/Clothing Style endpoints
+          clothing_everyday: setClothingEverydayOptions,
+          clothing_occasional: setClothingOccasionalOptions,
+          clothing_homewear: setClothingHomewearOptions,
+          clothing_sports: setClothingSportsOptions,
+          clothing_sexy: setClothingSexyOptions,
+          home_environment: setHomeEnvironmentOptions,
+          colorpalette: setColorPaletteOptions,
         };
 
         const promises = Object.entries(endpoints).map(
@@ -1992,6 +2020,51 @@ export default function InfluencerEditRedesign() {
       ...prev,
       [field]: (prev[field as keyof typeof influencerData] as string[]).filter(t => t !== tag)
     }));
+  };
+
+  // Helper function to render option cards with descriptions (for wardrobe modal)
+  const renderOptionCard = (option: Option | undefined, placeholder: string = "Select option", showDescription: boolean = false, item: string = '', handleInputChange: (field: string, value: string) => void, refreshData: string = '') => {
+    if (!option?.image) {
+      return (
+        <Card className="relative w-full border max-w-[250px]">
+          <CardContent className="p-4">
+            <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
+              {placeholder}
+            </div>
+          </CardContent>
+        </Card>
+      );
+    }
+
+    return (
+      <Card className="relative w-full max-w-[250px]">
+        <CardContent className="p-4">
+          <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
+            <img
+              src={`${config.data_url}/wizard/mappings400/${option.image}`}
+              className="absolute inset-0 w-full h-full object-cover rounded-md"
+            />
+            <Button
+              variant="destructive"
+              size="sm"
+              className="absolute bottom-2 right-2 w-8 h-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleInputChange(item, refreshData);
+              }}
+            >
+              <Trash2 className="w-4 h-4 text-white" />
+            </Button>
+          </div>
+          <p className="text-sm text-center font-medium mt-2">{option.label}</p>
+          {showDescription && option.description && (
+            <p className="text-xs text-center text-muted-foreground mt-1 line-clamp-2">
+              {option.description}
+            </p>
+          )}
+        </CardContent>
+      </Card>
+    );
   };
 
   const handleOnlySave = async () => {
@@ -3120,6 +3193,7 @@ export default function InfluencerEditRedesign() {
               previewImage={previewImage}
               onOpenAIPersonality={() => setShowAIPersonalityModal(true)}
               onOpenIntegrations={() => setShowIntegrationsModal(true)}
+              onOpenWardrobe={() => setShowWardrobeModal(true)}
             />
 
             {/* Mode Toggle - Small and discrete under Live Preview */}
@@ -3591,6 +3665,379 @@ export default function InfluencerEditRedesign() {
             </div>
           </DialogContent>
         </Dialog>
+      )}
+
+      {/* Wardrobe Modal */}
+      {showWardrobeModal && (
+        <Dialog open={showWardrobeModal} onOpenChange={setShowWardrobeModal}>
+          <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Palette className="w-5 h-5" />
+                Wardrobe & Style Settings
+              </DialogTitle>
+              <DialogDescription>
+                Customize your influencer's clothing styles and color preferences
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-6">
+              {/* Clothing Styles Grid */}
+              <div className="space-y-6">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Clothing Styles</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {/* Everyday Style */}
+                  <div className="space-y-3">
+                    <Label>Everyday Style</Label>
+                    <div className="space-y-2">
+                      <Select
+                        value={influencerData.clothing_style_everyday}
+                        onValueChange={(value) => handleInputChange('clothing_style_everyday', value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select everyday style" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {clothingEverydayOptions.map((option, index) => (
+                            <SelectItem key={index} value={option.label}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <OptionCard
+                        option={getOptionByLabel(clothingEverydayOptions, influencerData.clothing_style_everyday)}
+                        onSelect={() => setShowEverydayStyleSelector(true)}
+                        onImageClick={() => setShowEverydayStyleSelector(true)}
+                        onClear={() => clearField('clothing_style_everyday')}
+                        placeholder="Select everyday style"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Occasional Style */}
+                  <div className="space-y-3">
+                    <Label>Occasional Style</Label>
+                    <div className="space-y-2">
+                      <Select
+                        value={influencerData.clothing_style_occasional}
+                        onValueChange={(value) => handleInputChange('clothing_style_occasional', value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select occasional style" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {clothingOccasionalOptions.map((option, index) => (
+                            <SelectItem key={index} value={option.label}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <OptionCard
+                        option={getOptionByLabel(clothingOccasionalOptions, influencerData.clothing_style_occasional)}
+                        onSelect={() => setShowOccasionalStyleSelector(true)}
+                        onImageClick={() => setShowOccasionalStyleSelector(true)}
+                        onClear={() => clearField('clothing_style_occasional')}
+                        placeholder="Select occasional style"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Home Style */}
+                  <div className="space-y-3">
+                    <Label>Home Style</Label>
+                    <div className="space-y-2">
+                      <Select
+                        value={influencerData.clothing_style_home}
+                        onValueChange={(value) => handleInputChange('clothing_style_home', value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select home style" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {clothingHomewearOptions.map((option, index) => (
+                            <SelectItem key={index} value={option.label}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <OptionCard
+                        option={getOptionByLabel(clothingHomewearOptions, influencerData.clothing_style_home)}
+                        onSelect={() => setShowHomeStyleSelector(true)}
+                        onImageClick={() => setShowHomeStyleSelector(true)}
+                        onClear={() => clearField('clothing_style_home')}
+                        placeholder="Select home style"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Sports Style */}
+                  <div className="space-y-3">
+                    <Label>Sports Style</Label>
+                    <div className="space-y-2">
+                      <Select
+                        value={influencerData.clothing_style_sports}
+                        onValueChange={(value) => handleInputChange('clothing_style_sports', value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select sports style" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {clothingSportsOptions.map((option, index) => (
+                            <SelectItem key={index} value={option.label}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <OptionCard
+                        option={getOptionByLabel(clothingSportsOptions, influencerData.clothing_style_sports)}
+                        onSelect={() => setShowSportsStyleSelector(true)}
+                        onImageClick={() => setShowSportsStyleSelector(true)}
+                        onClear={() => clearField('clothing_style_sports')}
+                        placeholder="Select sports style"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Sexy Dresses Style */}
+                  <div className="space-y-3">
+                    <Label>Sexy Dresses Style</Label>
+                    <div className="space-y-2">
+                      <Select
+                        value={influencerData.clothing_style_sexy_dress}
+                        onValueChange={(value) => handleInputChange('clothing_style_sexy_dress', value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select sexy dress style" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {clothingSexyOptions.map((option, index) => (
+                            <SelectItem key={index} value={option.label}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <OptionCard
+                        option={getOptionByLabel(clothingSexyOptions, influencerData.clothing_style_sexy_dress)}
+                        onSelect={() => setShowSexyStyleSelector(true)}
+                        onImageClick={() => setShowSexyStyleSelector(true)}
+                        onClear={() => clearField('clothing_style_sexy_dress')}
+                        placeholder="Select sexy dress style"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Home Environment */}
+                  <div className="space-y-3">
+                    <Label>Home Environment</Label>
+                    <div className="space-y-2">
+                      <Select
+                        value={influencerData.home_environment}
+                        onValueChange={(value) => handleInputChange('home_environment', value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select home environment" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {homeEnvironmentOptions.map((option, index) => (
+                            <SelectItem key={index} value={option.label}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <OptionCard
+                        option={getOptionByLabel(homeEnvironmentOptions, influencerData.home_environment)}
+                        onSelect={() => setShowHomeEnvironmentSelector(true)}
+                        onImageClick={() => setShowHomeEnvironmentSelector(true)}
+                        onClear={() => clearField('home_environment')}
+                        placeholder="Select home environment"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Color Palette Section */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Color Palette</h3>
+                  <Badge variant="secondary" className="text-xs">
+                    Max 3 colors
+                  </Badge>
+                </div>
+                
+                <div className="space-y-4">
+                  <div className="flex flex-wrap gap-2">
+                    {influencerData.color_palette.map((palette, index) => (
+                      <Badge
+                        key={index}
+                        variant="secondary"
+                        className="flex items-center gap-1 px-3 py-1"
+                      >
+                        {palette}
+                        <button
+                          onClick={() => handleRemoveTag('color_palette', palette)}
+                          className="ml-1 hover:text-destructive"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                  
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {colorPaletteOptions.map((option, index) => (
+                      <Card
+                        key={index}
+                        className={`cursor-pointer hover:shadow-lg transition-all duration-300 ${
+                          influencerData.color_palette.includes(option.label)
+                            ? 'ring-2 ring-purple-500'
+                            : 'opacity-50 hover:opacity-100'
+                        }`}
+                        onClick={() => {
+                          if (influencerData.color_palette.includes(option.label)) {
+                            handleRemoveTag('color_palette', option.label);
+                          } else {
+                            if (influencerData.color_palette.length < 3) {
+                              handleAddTag('color_palette', option.label);
+                            } else {
+                              toast.error('Maximum Selection Reached', {
+                                description: 'You can only select up to 3 color palettes',
+                                duration: 3000,
+                              });
+                            }
+                          }
+                        }}
+                      >
+                        <CardContent className="p-4">
+                          <div className="relative w-full group" style={{ paddingBottom: '100%' }}>
+                            <img
+                              src={`${config.data_url}/wizard/mappings400/${option.image}`}
+                              alt={option.label}
+                              className="absolute inset-0 w-full h-full object-cover rounded-md"
+                            />
+                            <div
+                              className="absolute right-2 top-2 bg-black/50 rounded-full w-8 h-8 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setPreviewImage(`${config.data_url}/wizard/mappings800/${option.image}`);
+                              }}
+                            >
+                              <ZoomIn className="w-5 h-5 text-white" />
+                            </div>
+                          </div>
+                          <p className="text-sm text-center font-medium mt-2">{option.label}</p>
+                          {option.description && (
+                            <p className="text-xs text-center text-muted-foreground mt-1 line-clamp-2">
+                              {option.description}
+                            </p>
+                          )}
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-3 pt-6 border-t border-gray-200 dark:border-gray-700">
+              <Button
+                variant="outline"
+                onClick={() => setShowWardrobeModal(false)}
+                className="flex-1"
+              >
+                Close
+              </Button>
+              <Button
+                onClick={() => {
+                  setShowWardrobeModal(false);
+                  toast.success('Wardrobe settings updated successfully!');
+                }}
+                className="flex-1 bg-gradient-to-r from-purple-600 to-blue-600"
+              >
+                Save Changes
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Image Preview Dialog for Color Palette */}
+      {previewImage && (
+        <DialogZoom open={true} onOpenChange={() => setPreviewImage(null)}>
+          <DialogContentZoom className="max-w-[90vw] max-h-[90vh] p-0 overflow-hidden">
+            <div className="relative h-full">
+              <img
+                src={previewImage}
+                alt="Preview"
+                className="h-full object-contain"
+              />
+            </div>
+          </DialogContentZoom>
+        </DialogZoom>
+      )}
+
+      {/* Wardrobe Style Selectors */}
+      {showEverydayStyleSelector && (
+        <OptionSelector
+          options={clothingEverydayOptions}
+          onSelect={(label) => handleInputChange('clothing_style_everyday', label)}
+          onClose={() => setShowEverydayStyleSelector(false)}
+          title="Select Everyday Style"
+        />
+      )}
+
+      {showOccasionalStyleSelector && (
+        <OptionSelector
+          options={clothingOccasionalOptions}
+          onSelect={(label) => handleInputChange('clothing_style_occasional', label)}
+          onClose={() => setShowOccasionalStyleSelector(false)}
+          title="Select Occasional Style"
+        />
+      )}
+
+      {showHomeStyleSelector && (
+        <OptionSelector
+          options={clothingHomewearOptions}
+          onSelect={(label) => handleInputChange('clothing_style_home', label)}
+          onClose={() => setShowHomeStyleSelector(false)}
+          title="Select Home Style"
+        />
+      )}
+
+      {showSportsStyleSelector && (
+        <OptionSelector
+          options={clothingSportsOptions}
+          onSelect={(label) => handleInputChange('clothing_style_sports', label)}
+          onClose={() => setShowSportsStyleSelector(false)}
+          title="Select Sports Style"
+        />
+      )}
+
+      {showSexyStyleSelector && (
+        <OptionSelector
+          options={clothingSexyOptions}
+          onSelect={(label) => handleInputChange('clothing_style_sexy_dress', label)}
+          onClose={() => setShowSexyStyleSelector(false)}
+          title="Select Sexy Dress Style"
+        />
+      )}
+
+      {showHomeEnvironmentSelector && (
+        <OptionSelector
+          options={homeEnvironmentOptions}
+          onSelect={(label) => handleInputChange('home_environment', label)}
+          onClose={() => setShowHomeEnvironmentSelector(false)}
+          title="Select Home Environment"
+        />
       )}
     </div>
   );

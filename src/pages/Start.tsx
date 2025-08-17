@@ -1148,7 +1148,7 @@ export default function Start() {
                 <div className="absolute top-4 left-6 right-6 h-0.5 bg-slate-600/30">
                   <div 
                     className="h-full bg-gradient-to-r from-purple-500 to-green-500 transition-all duration-1000 ease-out rounded-full"
-                    style={{ width: `${((currentPhase - 1) / 3) * 100}%` }}
+                    style={{ width: currentPhase <= 4? `${((currentPhase - 1) / 3) * 100}%` : `104%` }}
                   />
                 </div>
 

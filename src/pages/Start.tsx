@@ -1094,16 +1094,6 @@ export default function Start() {
         </motion.div>
       )}
 
-      {/* Background Image */}
-      <div className="absolute inset-0 z-0">
-        <img
-          src="/consistency.png"
-          alt="AI Workflow Background"
-          className="w-full h-full object-cover opacity-25"
-        />
-        <div className="absolute inset-0" />
-      </div>
-
       <div className="relative z-10 max-w-7xl mx-auto px-6 py-16">
         <motion.div
           initial={{ opacity: 0, y: 30 }}

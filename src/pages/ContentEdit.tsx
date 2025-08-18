@@ -475,9 +475,12 @@ export default function ContentEdit() {
       return;
     }
     
+    // Remove spaces and replace with underscores
+    const processedName = synthesisImageName.trim().replace(/\s+/g, '_');
+    
     const imageData = {
       id: pendingSynthesisImage.tempId || `synthesis-${Date.now()}`,
-      name: synthesisImageName.trim(),
+      name: processedName,
       url: pendingSynthesisImage.url,
       source: pendingSynthesisImage.source
     };
@@ -519,6 +522,8 @@ export default function ContentEdit() {
         reference_tags: referenceTags,
         reference_images: synthesisImages.map(img => img.url)
       };
+
+      console.log(payload);
 
       const response = await fetch(`${config.backend_url}/genai4`, {
         method: 'POST',
@@ -3195,7 +3200,7 @@ export default function ContentEdit() {
                     className="w-full"
                   />
                   <p className="text-xs text-slate-600 dark:text-slate-400">
-                    Use a descriptive name that you can reference in your synthesis prompt
+                    Use a descriptive name that you can reference in your synthesis prompt. Spaces will be automatically replaced with underscores.
                   </p>
                 </div>
                 

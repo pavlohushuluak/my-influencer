@@ -1,7 +1,6 @@
-
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '@/store/store';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,11 +16,33 @@ import {
   Sun,
   Moon,
   Droplet,
-  X
+  X,
+  Wand2,
+  Brush,
+  Type,
+  Settings,
+  Play,
+  Layers,
+  Eye,
+  EyeOff,
+  Search,
+  Filter,
+  Plus,
+  User
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Slider } from '@/components/ui/slider';
+import { Input } from '@/components/ui/input';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandItem, CommandList } from '@/components/ui/command';
 import VaultSelector from '@/components/VaultSelector';
+import { LoraStatusIndicator } from '@/components/Influencers/LoraStatusIndicator';
+import { useDebounce } from '@/hooks/useDebounce';
+import { setInfluencers, setLoading, setError } from '@/store/slices/influencersSlice';
+import { Influencer } from '@/store/slices/influencersSlice';
 
 // Pintura imports
 import '@pqina/pintura/pintura.css';
@@ -31,7 +52,6 @@ import xSvg from '@/assets/social/x.svg';
 import tiktokSvg from '@/assets/social/tiktok.svg';
 import facebookSvg from '@/assets/social/facebook.svg';
 import instagramSvg from '@/assets/social/instagram.svg';
-import { Input } from '@/components/ui/input';
 import { config } from '@/config/config';
 
 interface ImageData {
@@ -69,6 +89,7 @@ export default function ContentEdit() {
   const navigate = useNavigate();
   const userData = useSelector((state: RootState) => state.user);
   const editorRef = useRef(null);
+  const dispatch = useDispatch();
 
   // State management
   const [selectedImage, setSelectedImage] = useState<ImageData | null>(null);
@@ -91,7 +112,306 @@ export default function ContentEdit() {
   // Vault selector state
   const [showVaultSelector, setShowVaultSelector] = useState(false);
 
+  // New state for edit mode selection
+  const [editMode, setEditMode] = useState<'selection' | 'image-edit' | 'ai-image-edit'>('selection');
+
+  // AI Image Edit state
+  const [aiEditImage, setAiEditImage] = useState<string | null>(null);
+  const [maskImage, setMaskImage] = useState<string | null>(null);
+  const [textPrompt, setTextPrompt] = useState('');
+  const [showPresetSelector, setShowPresetSelector] = useState(false);
+  const [isProcessingAiEdit, setIsProcessingAiEdit] = useState(false);
+  const [showMaskEditor, setShowMaskEditor] = useState(false);
+  const [brushSize, setBrushSize] = useState(20);
+  const [isErasing, setIsErasing] = useState(false);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const maskCanvasRef = useRef<HTMLCanvasElement>(null);
+
+  // Search fields for influencer filtering
+  const SEARCH_FIELDS = [
+    { id: 'all', label: 'All Fields' },
+    { id: 'name', label: 'Name' },
+    { id: 'age_lifestyle', label: 'Age/Lifestyle' },
+    { id: 'influencer_type', label: 'Type' }
+  ];
+
+  // Influencer selector state
+  const influencers = useSelector((state: RootState) => state.influencers.influencers);
+  const influencersLoading = useSelector((state: RootState) => state.influencers.loading);
+  const [showInfluencerSelector, setShowInfluencerSelector] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedSearchField, setSelectedSearchField] = useState(SEARCH_FIELDS[0]);
+  const [openFilter, setOpenFilter] = useState(false);
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
+
+  // Fetch influencers on component mount
+  useEffect(() => {
+    const fetchInfluencers = async () => {
+      try {
+        dispatch(setLoading(true));
+        const response = await fetch(`${config.supabase_server_url}/influencer?user_id=eq.${userData.id}`, {
+          headers: {
+            'Authorization': 'Bearer WeInfl3nc3withAI'
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch influencers');
+        }
+
+        const data = await response.json();
+        dispatch(setInfluencers(data));
+      } catch (error) {
+        dispatch(setError(error instanceof Error ? error.message : 'An error occurred'));
+      } finally {
+        dispatch(setLoading(false));
+      }
+    };
+
+    if (userData.id) {
+      fetchInfluencers();
+    }
+  }, [userData.id, dispatch]);
+
+  // AI Image Edit presets
+  const AI_EDIT_PRESETS = [
+    {
+      name: 'Remove Background',
+      description: 'Remove the background from the selected area',
+      prompt: 'Remove background, transparent background'
+    },
+    {
+      name: 'Change Hair Color',
+      description: 'Change the hair color in the selected area',
+      prompt: 'Change hair color to blonde, natural looking'
+    },
+    {
+      name: 'Add Glasses',
+      description: 'Add stylish glasses to the person',
+      prompt: 'Add stylish black rimmed glasses, realistic'
+    },
+    {
+      name: 'Change Eye Color',
+      description: 'Change the eye color in the selected area',
+      prompt: 'Change eye color to blue, natural looking'
+    },
+    {
+      name: 'Add Jewelry',
+      description: 'Add elegant jewelry to the person',
+      prompt: 'Add elegant gold necklace, realistic jewelry'
+    },
+    {
+      name: 'Change Clothing',
+      description: 'Change the clothing in the selected area',
+      prompt: 'Change to red dress, elegant and stylish'
+    },
+    {
+      name: 'Add Makeup',
+      description: 'Add natural makeup to the face',
+      prompt: 'Add natural makeup, subtle and elegant'
+    },
+    {
+      name: 'Remove Blemishes',
+      description: 'Remove skin blemishes and imperfections',
+      prompt: 'Remove blemishes, clear skin, natural looking'
+    }
+  ];
+
+  // AI Image Edit helper functions
+  const handleAiImageSelect = (image: any) => {
+    try {
+      const imageData: ImageData = {
+        id: image.id,
+        system_filename: image.system_filename,
+        user_filename: image.user_filename,
+        file_path: image.file_path,
+        user_notes: image.user_notes || '',
+        user_tags: image.user_tags || [],
+        rating: image.rating || 0,
+        favorite: image.favorite || false,
+        created_at: image.created_at,
+        file_size_bytes: image.file_size_bytes,
+        image_format: image.image_format,
+        file_type: image.file_type
+      };
+
+      setSelectedImage(imageData);
+      setShowVaultSelector(false);
+
+      // Load image for AI editing
+      fetchImageForAiEdit(imageData);
+      toast.success(`Selected image for AI editing: ${image.system_filename}`);
+    } catch (error) {
+      console.error('Error selecting image for AI editing:', error);
+      toast.error('Failed to select image for AI editing. Please try again.');
+    }
+  };
+
+  const fetchImageForAiEdit = async (imageData: ImageData) => {
+    try {
+      setIsLoadingImage(true);
+      const loadingToast = toast.loading('Loading image for AI editing...');
+
+      // Determine the correct file path based on the image data
+      const isInfluencerImage = imageData.file_path?.includes('models/') || imageData.id?.startsWith('influencer-');
+      const filename = isInfluencerImage ? imageData.file_path : 'output/' + imageData.system_filename;
+
+      const response = await fetch(`${config.backend_url}/downloadfile`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          user: userData.id,
+          filename: filename
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to download image');
+      }
+
+      const blob = await response.blob();
+      const imageUrl = URL.createObjectURL(blob);
+      setAiEditImage(imageUrl);
+
+      // Initialize mask canvas
+      setTimeout(() => {
+        initializeMaskCanvas(imageUrl);
+      }, 100);
+
+      toast.dismiss(loadingToast);
+      toast.success('Image loaded for AI editing!');
+    } catch (error) {
+      console.error('Error loading image for AI editing:', error);
+      toast.error('Failed to load image for AI editing. Please try again.');
+
+      // Fallback to CDN URL
+      const isInfluencerImage = imageData.file_path?.includes('models/') || imageData.id?.startsWith('influencer-');
+      const fallbackUrl = isInfluencerImage
+        ? `${config.data_url}/cdn-cgi/image/w=1200/${imageData.file_path}`
+        : `${config.data_url}/cdn-cgi/image/w=1200/${userData.id}/output/${imageData.system_filename}`;
+
+      setAiEditImage(fallbackUrl);
+      setTimeout(() => {
+        initializeMaskCanvas(fallbackUrl);
+      }, 100);
+    } finally {
+      setIsLoadingImage(false);
+    }
+  };
+
+  const initializeMaskCanvas = (imageUrl: string) => {
+    const canvas = maskCanvasRef.current;
+    if (!canvas) return;
+
+    const img = document.createElement('img');
+    img.onload = () => {
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.fillStyle = 'rgba(0, 0, 0, 0)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
+    };
+    img.src = imageUrl;
+  };
+
+  const handleMaskDrawing = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    const canvas = maskCanvasRef.current;
+    if (!canvas) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const ctx = canvas.getContext('2d');
+
+    if (ctx) {
+      ctx.globalCompositeOperation = isErasing ? 'destination-out' : 'source-over';
+      ctx.fillStyle = isErasing ? 'rgba(0, 0, 0, 1)' : 'rgba(255, 255, 255, 0.8)';
+      ctx.beginPath();
+      ctx.arc(x, y, brushSize / 2, 0, 2 * Math.PI);
+      ctx.fill();
+    }
+  };
+
+  const clearMask = () => {
+    const canvas = maskCanvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+  };
+
+  const applyPreset = (preset: any) => {
+    setTextPrompt(preset.prompt);
+    setShowPresetSelector(false);
+    toast.success(`Applied preset: ${preset.name}`);
+  };
+
+  const processAiEdit = async () => {
+    if (!aiEditImage || !textPrompt.trim()) {
+      toast.error('Please select an image and enter a text prompt');
+      return;
+    }
+
+    setIsProcessingAiEdit(true);
+    const loadingToast = toast.loading('Processing AI image edit...');
+
+    try {
+      // Get mask data
+      const canvas = maskCanvasRef.current;
+      if (!canvas) {
+        throw new Error('Mask canvas not available');
+      }
+
+      const maskDataUrl = canvas.toDataURL('image/png');
+
+      // Create form data for AI processing
+      const formData = new FormData();
+      formData.append('image', await fetch(aiEditImage).then(r => r.blob()));
+      formData.append('mask', await fetch(maskDataUrl).then(r => r.blob()));
+      formData.append('prompt', textPrompt);
+      formData.append('user', userData.id);
+
+      // Send to AI processing endpoint
+      const response = await fetch(`${config.backend_url}/ai-image-edit`, {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: formData
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to process AI edit');
+      }
+
+      const result = await response.json();
+
+      // Handle the result (this would depend on your backend implementation)
+      toast.dismiss(loadingToast);
+      toast.success('AI image edit completed!');
+
+      // You would typically navigate to a results page or show the edited image
+      console.log('AI edit result:', result);
+
+    } catch (error) {
+      console.error('Error processing AI edit:', error);
+      toast.dismiss(loadingToast);
+      toast.error('Failed to process AI edit. Please try again.');
+    } finally {
+      setIsProcessingAiEdit(false);
+    }
+  };
+
   console.log('ContentEdit: showVaultSelector', showVaultSelector);
+  console.log('ContentEdit: showInfluencerSelector', showInfluencerSelector);
+  console.log('ContentEdit: influencers count', influencers.length);
 
   // Theme options
   const THEME_MODES = [
@@ -294,6 +614,10 @@ export default function ContentEdit() {
         duration: Infinity
       });
 
+      // Determine the correct file path based on the image data
+      const isInfluencerImage = imageData.file_path?.includes('models/') || imageData.id?.startsWith('influencer-');
+      const filename = isInfluencerImage ? imageData.file_path : 'output/' + imageData.system_filename;
+
       // Download the image file
       const response = await fetch(`${config.backend_url}/downloadfile`, {
         method: 'POST',
@@ -303,7 +627,7 @@ export default function ContentEdit() {
         },
         body: JSON.stringify({
           user: userData.id,
-          filename: 'output/' + imageData.system_filename
+          filename: filename
         })
       });
 
@@ -332,7 +656,11 @@ export default function ContentEdit() {
       toast.error('Failed to download image. Please try again.');
 
       // Fallback to CDN URL if download fails
-      const fallbackUrl = `${config.data_url}/cdn-cgi/image/w=1200/${userData.id}/output/${imageData.system_filename}`;
+      const isInfluencerImage = imageData.file_path?.includes('models/') || imageData.id?.startsWith('influencer-');
+      const fallbackUrl = isInfluencerImage
+        ? `${config.data_url}/cdn-cgi/image/w=1200/${imageData.file_path}`
+        : `${config.data_url}/cdn-cgi/image/w=1200/${userData.id}/output/${imageData.system_filename}`;
+
       setImageSrc(fallbackUrl);
       setHasImage(true);
       addToHistory('Original image loaded (fallback)', fallbackUrl);
@@ -976,18 +1304,30 @@ export default function ContentEdit() {
           file_type: file.type
         };
 
-        setSelectedImage(uploadedImage);
-        setImageSrc(result);
-        setHasImage(true);
-        setShowImageSelection(false);
-        addToHistory('Image uploaded', result);
-        toast.success('Image uploaded successfully');
+        if (editMode === 'ai-image-edit') {
+          // For AI Image Edit mode
+          setSelectedImage(uploadedImage);
+          setAiEditImage(result);
+          setTimeout(() => {
+            initializeMaskCanvas(result);
+          }, 100);
+          toast.success('Image uploaded for AI editing');
+        } else {
+          // For regular Image Edit mode
+          setSelectedImage(uploadedImage);
+          setImageSrc(result);
+          setHasImage(true);
+          setShowImageSelection(false);
+          addToHistory('Image uploaded', result);
+          toast.success('Image uploaded successfully');
+        }
+
         // Clear the file input so the same file can be uploaded again
         if (fileInputRef.current) fileInputRef.current.value = '';
       };
       reader.readAsDataURL(file);
     }
-  }, [addToHistory]);
+  }, [addToHistory, editMode]);
 
   const triggerFileUpload = useCallback(() => {
     fileInputRef.current?.click();
@@ -1022,26 +1362,43 @@ export default function ContentEdit() {
             file_type: file.type
           };
 
-          setSelectedImage(uploadedImage);
-          setImageSrc(result);
-          setHasImage(true);
-          setShowImageSelection(false);
-          addToHistory('Image uploaded via drag & drop', result);
-          toast.success('Image uploaded successfully');
+          if (editMode === 'ai-image-edit') {
+            // For AI Image Edit mode
+            setSelectedImage(uploadedImage);
+            setAiEditImage(result);
+            setTimeout(() => {
+              initializeMaskCanvas(result);
+            }, 100);
+            toast.success('Image uploaded for AI editing');
+          } else {
+            // For regular Image Edit mode
+            setSelectedImage(uploadedImage);
+            setImageSrc(result);
+            setHasImage(true);
+            setShowImageSelection(false);
+            addToHistory('Image uploaded via drag & drop', result);
+            toast.success('Image uploaded successfully');
+          }
         };
         reader.readAsDataURL(file);
       } else {
         toast.error('Please upload an image file');
       }
     }
-  }, [addToHistory]);
+  }, [addToHistory, editMode]);
 
 
 
   const handleUploadNew = useCallback(() => {
-    setShowImageSelection(false);
-    // Show the upload area instead of immediately triggering file input
-  }, []);
+    if (editMode === 'ai-image-edit') {
+      // For AI Image Edit, we need to handle upload differently
+      // For now, just trigger file input
+      fileInputRef.current?.click();
+    } else {
+      setShowImageSelection(false);
+      // Show the upload area instead of immediately triggering file input
+    }
+  }, [editMode]);
 
   const handleBackToSelection = useCallback(() => {
     // Cleanup current blob URLs before clearing state
@@ -1051,16 +1408,22 @@ export default function ContentEdit() {
     if (editedImageUrl && editedImageUrl.startsWith('blob:')) {
       URL.revokeObjectURL(editedImageUrl);
     }
+    if (aiEditImage && aiEditImage.startsWith('blob:')) {
+      URL.revokeObjectURL(aiEditImage);
+    }
 
     setShowImageSelection(true);
     setSelectedImage(null); // Clear selected image
     setImageSrc(null);
     setEditedImageUrl(null);
+    setAiEditImage(null);
+    setMaskImage(null);
+    setTextPrompt('');
     setHasImage(false);
     setHistory([]);
     setHistoryIndex(-1);
-            navigate('/create/edit'); // Navigate back to the selection screen
-  }, [navigate]);
+    setEditMode('selection');
+  }, [navigate, imageSrc, editedImageUrl, aiEditImage]);
 
   const [socialStickerUrls, setSocialStickerUrls] = useState<string[]>([]);
 
@@ -1082,7 +1445,93 @@ export default function ContentEdit() {
     })();
   }, []);
 
-  if (!selectedImage && showImageSelection) {
+  // Filtered influencers for search
+  const filteredInfluencers = influencers.filter(influencer => {
+    if (!debouncedSearchTerm) return true;
+
+    const searchLower = debouncedSearchTerm.toLowerCase();
+
+    switch (selectedSearchField.id) {
+      case 'name':
+        return `${influencer.name_first} ${influencer.name_last}`.toLowerCase().includes(searchLower);
+      case 'age_lifestyle':
+        return (influencer.age || '').toLowerCase().includes(searchLower) ||
+          (influencer.lifestyle || '').toLowerCase().includes(searchLower);
+      case 'influencer_type':
+        return (influencer.influencer_type || '').toLowerCase().includes(searchLower);
+      default:
+        return (
+          `${influencer.name_first} ${influencer.name_last}`.toLowerCase().includes(searchLower) ||
+          (influencer.age || '').toLowerCase().includes(searchLower) ||
+          (influencer.lifestyle || '').toLowerCase().includes(searchLower) ||
+          (influencer.influencer_type || '').toLowerCase().includes(searchLower)
+        );
+    }
+  });
+
+  console.log('ContentEdit: filteredInfluencers count', filteredInfluencers.length);
+
+  // Influencer selection functions
+  const handleInfluencerSelect = (influencer: Influencer) => {
+    try {
+      console.log('Selected influencer:', influencer);
+
+      // Get the latest profile picture URL
+      let latestImageNum = influencer.image_num - 1;
+      if (latestImageNum === -1) {
+        latestImageNum = 0;
+      }
+
+      const profileImageUrl = `${config.data_url}/${userData.id}/models/${influencer.id}/profilepic/profilepic${latestImageNum}.png`;
+      console.log('Profile image URL:', profileImageUrl);
+
+      // Create image data object for the influencer's profile image
+      const influencerImageData: ImageData = {
+        id: `influencer-${influencer.id}`,
+        system_filename: `profilepic${latestImageNum}.png`,
+        user_filename: `${influencer.name_first} ${influencer.name_last}`,
+        file_path: `models/${influencer.id}/profilepic/profilepic${latestImageNum}.png`,
+        user_notes: `Profile image of ${influencer.name_first} ${influencer.name_last}`,
+        user_tags: ['influencer', 'profile'],
+        rating: 5,
+        favorite: true,
+        created_at: new Date().toISOString(),
+        file_size_bytes: 0,
+        image_format: 'png',
+        file_type: 'image/png'
+      };
+
+      setSelectedImage(influencerImageData);
+      setShowInfluencerSelector(false);
+
+      if (editMode === 'ai-image-edit') {
+        // For AI Image Edit mode
+        setAiEditImage(profileImageUrl);
+        setTimeout(() => {
+          initializeMaskCanvas(profileImageUrl);
+        }, 100);
+        toast.success(`Selected ${influencer.name_first} ${influencer.name_last} for AI editing`);
+      } else {
+        // For regular Image Edit mode - fetch the image properly
+        setShowImageSelection(false);
+        fetchImage(influencerImageData);
+        toast.success(`Selected ${influencer.name_first} ${influencer.name_last} for editing`);
+      }
+    } catch (error) {
+      console.error('Error selecting influencer:', error);
+      toast.error('Failed to select influencer. Please try again.');
+    }
+  };
+
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value);
+  };
+
+  const handleSearchClear = () => {
+    setSearchTerm('');
+  };
+
+  if (!selectedImage && showImageSelection && editMode === 'selection') {
     return (
       <div className="p-4 md:p-6 space-y-4 md:space-y-6">
         {/* Header */}
@@ -1092,10 +1541,75 @@ export default function ContentEdit() {
               Edit Content
             </h1>
             <p className="text-sm md:text-base text-muted-foreground">
-              Choose how you want to get started
+              Choose your editing method
             </p>
           </div>
         </div>
+
+        {/* Edit Method Selection */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 max-w-4xl mx-auto">
+          {/* Image Edit Card */}
+          <Card className="hover:shadow-lg transition-all duration-300 cursor-pointer" onClick={() => setEditMode('image-edit')}>
+            <CardContent className="p-6 md:p-8 text-center">
+              <div className="w-16 h-16 md:w-20 md:h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Image className="w-8 h-8 md:w-10 md:h-10 text-blue-600" />
+              </div>
+              <h3 className="text-lg md:text-xl font-semibold mb-2">Image Edit</h3>
+              <p className="text-sm md:text-base text-muted-foreground mb-4">
+                Professional image editing with advanced tools and filters
+              </p>
+              <Button className="w-full">
+                Start Editing
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* AI Image Edit Card */}
+          <Card className="hover:shadow-lg transition-all duration-300 cursor-pointer" onClick={() => setEditMode('ai-image-edit')}>
+            <CardContent className="p-6 md:p-8 text-center">
+              <div className="w-16 h-16 md:w-20 md:h-20 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Wand2 className="w-8 h-8 md:w-10 md:h-10 text-purple-600" />
+              </div>
+              <h3 className="text-lg md:text-xl font-semibold mb-2">AI Image Edit</h3>
+              <p className="text-sm md:text-base text-muted-foreground mb-4">
+                AI-powered editing with mask selection and text prompts
+              </p>
+              <Button className="w-full">
+                Start AI Editing
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  // Image Edit mode - shows original selection cards
+  if (!selectedImage && showImageSelection && editMode === 'image-edit') {
+    return (
+      <div className="p-4 md:p-6 space-y-4 md:space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 md:gap-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setEditMode('selection')}
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              <span className="hidden sm:inline">Back to Selection</span>
+            </Button>
+            <div>
+              <h1 className="text-2xl md:text-3xl font-bold tracking-tight bg-ai-gradient bg-clip-text text-transparent">
+                Image Edit
+              </h1>
+              <p className="text-sm md:text-base text-muted-foreground">
+                Choose how you want to get started
+              </p>
+            </div>
+          </div>
+        </div>
+
         {/* Vault Selector Modal */}
         {showVaultSelector && (
           <VaultSelector
@@ -1107,8 +1621,164 @@ export default function ContentEdit() {
           />
         )}
 
+        {/* Influencer Selector Modal - Shared between Image Edit and AI Image Edit modes */}
+        <Dialog open={showInfluencerSelector} onOpenChange={setShowInfluencerSelector}>
+          <DialogContent className="max-w-6xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <User className="w-5 h-5 text-purple-500" />
+                Select Influencer
+              </DialogTitle>
+              <DialogDescription>
+                Choose an influencer's profile image to use for editing
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              {/* Search Section */}
+              <div className="flex gap-4">
+                <div className="relative flex-1">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                    <Input
+                      type="text"
+                      placeholder="Search influencers..."
+                      value={searchTerm}
+                      onChange={(e) => handleSearchChange(e.target.value)}
+                      className="pl-10 pr-10"
+                    />
+                    {searchTerm && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
+                        onClick={handleSearchClear}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
+                <Popover open={openFilter} onOpenChange={setOpenFilter}>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="gap-2">
+                      <Filter className="h-4 w-4" />
+                      {selectedSearchField.label}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[200px] p-0">
+                    <Command>
+                      <CommandList>
+                        {SEARCH_FIELDS.map((field) => (
+                          <CommandItem
+                            key={field.id}
+                            onSelect={() => {
+                              setSelectedSearchField(field);
+                              setOpenFilter(false);
+                            }}
+                          >
+                            {field.label}
+                          </CommandItem>
+                        ))}
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              {/* Influencers Grid */}
+              {influencersLoading ? (
+                <div className="text-center py-8">
+                  <div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                  <p className="text-muted-foreground">Loading influencers...</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                  {filteredInfluencers.map((influencer) => (
+                    <Card key={influencer.id} className="group hover:shadow-lg transition-all duration-300 border-border/50 hover:border-purple-500/20">
+                      <CardContent className="p-6 h-full">
+                        <div className="flex flex-col justify-between h-full space-y-4">
+                          <div className="relative w-full h-full bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg overflow-hidden">
+                            {/* LoraStatusIndicator positioned at top right */}
+                            <div className="absolute right-[-15px] top-[-15px] z-10">
+                              <LoraStatusIndicator
+                                status={influencer.lorastatus || 0}
+                                className="flex-shrink-0"
+                              />
+                            </div>
+                            {influencer.image_url ? (
+                              <img
+                                src={influencer.image_url}
+                                alt={`${influencer.name_first} ${influencer.name_last}`}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="flex flex-col w-full h-full items-center justify-center max-h-48 min-h-40">
+                                <Image className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                                <h3 className="text-lg font-semibold mb-2">No image found</h3>
+                              </div>
+                            )}
+                          </div>
+
+                          <div>
+                            <div className="flex items-center justify-between mb-2">
+                              <h3 className="font-semibold text-lg group-hover:text-purple-500 transition-colors">
+                                {influencer.name_first} {influencer.name_last}
+                              </h3>
+                            </div>
+
+                            <div className="flex flex-col gap-1 mb-3">
+                              <div className="flex text-sm text-muted-foreground flex-col">
+                                {influencer.notes ? (
+                                  <span className="font-medium mr-2">Notes:</span>
+                                ) : (
+                                  <span className="font-medium mr-2">Details:</span>
+                                )}
+                                {influencer.notes ? (
+                                  <span className="text-sm text-muted-foreground">
+                                    {influencer.notes.length > 50
+                                      ? `${influencer.notes.substring(0, 50)}...`
+                                      : influencer.notes
+                                    }
+                                  </span>
+                                ) : (
+                                  <span className="text-sm text-muted-foreground">
+                                    {influencer.lifestyle || 'No lifestyle'} • {influencer.origin_residence || 'No residence'}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleInfluencerSelect(influencer)}
+                              className="flex-1 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white border-0 w-full"
+                            >
+                              <Plus className="w-4 h-4 mr-2" />
+                              Use for Editing
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+
+              {!influencersLoading && filteredInfluencers.length === 0 && (
+                <div className="text-center py-8 text-muted-foreground">
+                  <User className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                  <p>No influencers found.</p>
+                  <p className="text-sm">Try adjusting your search criteria.</p>
+                </div>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+
         {/* Image Selection */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 max-w-4xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 max-w-6xl mx-auto">
           {/* Select from Vault */}
           <Card className="hover:shadow-lg transition-all duration-300">
             <CardContent className="p-6 md:p-8 text-center">
@@ -1131,6 +1801,36 @@ export default function ContentEdit() {
                   </>
                 ) : (
                   'Browse Library'
+                )}
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Select from Influencers */}
+          <Card className="hover:shadow-lg transition-all duration-300">
+            <CardContent className="p-6 md:p-8 text-center">
+              <div className="w-16 h-16 md:w-20 md:h-20 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <User className="w-8 h-8 md:w-10 md:h-10 text-purple-600" />
+              </div>
+              <h3 className="text-lg md:text-xl font-semibold mb-2">Select from Influencers</h3>
+              <p className="text-sm md:text-base text-muted-foreground mb-4">
+                Choose an influencer's profile image to edit
+              </p>
+              <Button
+                className="w-full"
+                onClick={() => setShowInfluencerSelector(true)}
+                disabled={influencersLoading}
+              >
+                {influencersLoading ? (
+                  <>
+                    <div className="w-4 h-4 mr-2 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                    Loading...
+                  </>
+                ) : (
+                  <>
+                    <User className="w-4 h-4 mr-2" />
+                    Browse Influencers
+                  </>
                 )}
               </Button>
             </CardContent>
@@ -1208,6 +1908,494 @@ export default function ContentEdit() {
             </div>
           </CardContent>
         </Card>
+      </div>
+    );
+  }
+
+  // AI Image Edit mode
+  if (editMode === 'ai-image-edit' && !aiEditImage) {
+    return (
+      <div className="p-4 md:p-6 space-y-4 md:space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 md:gap-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setEditMode('selection')}
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              <span className="hidden sm:inline">Back to Selection</span>
+            </Button>
+            <div>
+              <h1 className="text-2xl md:text-3xl font-bold tracking-tight bg-ai-gradient bg-clip-text text-transparent">
+                AI Image Edit
+              </h1>
+              <p className="text-sm md:text-base text-muted-foreground">
+                Select an image to edit with AI
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Hidden file input for AI Image Edit */}
+        <input
+          type="file"
+          ref={fileInputRef}
+          onChange={handleFileUpload}
+          accept="image/*"
+          className="hidden"
+        />
+
+        {/* Vault Selector Modal */}
+        {showVaultSelector && (
+          <VaultSelector
+            open={showVaultSelector}
+            onOpenChange={setShowVaultSelector}
+            onImageSelect={handleAiImageSelect}
+            title="Select Image for AI Editing"
+            description="Browse your library and select an image to edit with AI. Only completed images are shown."
+          />
+        )}
+
+        {/* Influencer Selector Modal - Shared between Image Edit and AI Image Edit modes */}
+        <Dialog open={showInfluencerSelector} onOpenChange={setShowInfluencerSelector}>
+          <DialogContent className="max-w-6xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <User className="w-5 h-5 text-purple-500" />
+                Select Influencer
+              </DialogTitle>
+              <DialogDescription>
+                Choose an influencer's profile image to use for editing
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              {/* Search Section */}
+              <div className="flex gap-4">
+                <div className="relative flex-1">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                    <Input
+                      type="text"
+                      placeholder="Search influencers..."
+                      value={searchTerm}
+                      onChange={(e) => handleSearchChange(e.target.value)}
+                      className="pl-10 pr-10"
+                    />
+                    {searchTerm && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
+                        onClick={handleSearchClear}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
+                <Popover open={openFilter} onOpenChange={setOpenFilter}>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="gap-2">
+                      <Filter className="h-4 w-4" />
+                      {selectedSearchField.label}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[200px] p-0">
+                    <Command>
+                      <CommandList>
+                        {SEARCH_FIELDS.map((field) => (
+                          <CommandItem
+                            key={field.id}
+                            onSelect={() => {
+                              setSelectedSearchField(field);
+                              setOpenFilter(false);
+                            }}
+                          >
+                            {field.label}
+                          </CommandItem>
+                        ))}
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              {/* Influencers Grid */}
+              {influencersLoading ? (
+                <div className="text-center py-8">
+                  <div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                  <p className="text-muted-foreground">Loading influencers...</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                  {filteredInfluencers.map((influencer) => (
+                    <Card key={influencer.id} className="group hover:shadow-lg transition-all duration-300 border-border/50 hover:border-purple-500/20">
+                      <CardContent className="p-6 h-full">
+                        <div className="flex flex-col justify-between h-full space-y-4">
+                          <div className="relative w-full h-full bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg overflow-hidden">
+                            {/* LoraStatusIndicator positioned at top right */}
+                            <div className="absolute right-[-15px] top-[-15px] z-10">
+                              <LoraStatusIndicator
+                                status={influencer.lorastatus || 0}
+                                className="flex-shrink-0"
+                              />
+                            </div>
+                            {influencer.image_url ? (
+                              <img
+                                src={influencer.image_url}
+                                alt={`${influencer.name_first} ${influencer.name_last}`}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="flex flex-col w-full h-full items-center justify-center max-h-48 min-h-40">
+                                <Image className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                                <h3 className="text-lg font-semibold mb-2">No image found</h3>
+                              </div>
+                            )}
+                          </div>
+
+                          <div>
+                            <div className="flex items-center justify-between mb-2">
+                              <h3 className="font-semibold text-lg group-hover:text-purple-500 transition-colors">
+                                {influencer.name_first} {influencer.name_last}
+                              </h3>
+                            </div>
+
+                            <div className="flex flex-col gap-1 mb-3">
+                              <div className="flex text-sm text-muted-foreground flex-col">
+                                {influencer.notes ? (
+                                  <span className="font-medium mr-2">Notes:</span>
+                                ) : (
+                                  <span className="font-medium mr-2">Details:</span>
+                                )}
+                                {influencer.notes ? (
+                                  <span className="text-sm text-muted-foreground">
+                                    {influencer.notes.length > 50
+                                      ? `${influencer.notes.substring(0, 50)}...`
+                                      : influencer.notes
+                                    }
+                                  </span>
+                                ) : (
+                                  <span className="text-sm text-muted-foreground">
+                                    {influencer.lifestyle || 'No lifestyle'} • {influencer.origin_residence || 'No residence'}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleInfluencerSelect(influencer)}
+                              className="flex-1 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white border-0 w-full"
+                            >
+                              <Plus className="w-4 h-4 mr-2" />
+                              Use for Editing
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+
+              {!influencersLoading && filteredInfluencers.length === 0 && (
+                <div className="text-center py-8 text-muted-foreground">
+                  <User className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                  <p>No influencers found.</p>
+                  <p className="text-sm">Try adjusting your search criteria.</p>
+                </div>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* AI Image Selection */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 max-w-6xl mx-auto">
+          {/* Select from Vault */}
+          <Card className="hover:shadow-lg transition-all duration-300">
+            <CardContent className="p-6 md:p-8 text-center">
+              <div className="w-16 h-16 md:w-20 md:h-20 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <FileImage className="w-8 h-8 md:w-10 md:h-10 text-purple-600" />
+              </div>
+              <h3 className="text-lg md:text-xl font-semibold mb-2">Select from Library</h3>
+              <p className="text-sm md:text-base text-muted-foreground mb-4">
+                Choose an existing image from your content library
+              </p>
+              <Button
+                className="w-full"
+                onClick={() => setShowVaultSelector(true)}
+                disabled={isLoadingImage}
+              >
+                {isLoadingImage ? (
+                  <>
+                    <div className="w-4 h-4 mr-2 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                    Loading...
+                  </>
+                ) : (
+                  'Browse Library'
+                )}
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Select from Influencers */}
+          <Card className="hover:shadow-lg transition-all duration-300">
+            <CardContent className="p-6 md:p-8 text-center">
+              <div className="w-16 h-16 md:w-20 md:h-20 bg-pink-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <User className="w-8 h-8 md:w-10 md:h-10 text-pink-600" />
+              </div>
+              <h3 className="text-lg md:text-xl font-semibold mb-2">Select from Influencers</h3>
+              <p className="text-sm md:text-base text-muted-foreground mb-4">
+                Choose an influencer's profile image for AI editing
+              </p>
+              <Button
+                className="w-full"
+                onClick={() => setShowInfluencerSelector(true)}
+                disabled={influencersLoading}
+              >
+                {influencersLoading ? (
+                  <>
+                    <div className="w-4 h-4 mr-2 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                    Loading...
+                  </>
+                ) : (
+                  <>
+                    <User className="w-4 h-4 mr-2" />
+                    Browse Influencers
+                  </>
+                )}
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Upload New Image */}
+          <Card className="cursor-pointer hover:shadow-lg transition-all duration-300" onClick={handleUploadNew}>
+            <CardContent className="p-6 md:p-8 text-center">
+              <div className="w-16 h-16 md:w-20 md:h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Upload className="w-8 h-8 md:w-10 md:h-10 text-green-600" />
+              </div>
+              <h3 className="text-lg md:text-xl font-semibold mb-2">Upload New Image</h3>
+              <p className="text-sm md:text-base text-muted-foreground mb-4">
+                Upload a new image from your device
+              </p>
+              <Button className="w-full">
+                Upload Image
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  // AI Image Edit Interface
+  if (editMode === 'ai-image-edit' && aiEditImage) {
+    return (
+      <div className="p-4 md:p-6 space-y-4 md:space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 md:gap-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setEditMode('ai-image-edit');
+                setAiEditImage(null);
+                setMaskImage(null);
+                setTextPrompt('');
+              }}
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              <span className="hidden sm:inline">Back to Selection</span>
+            </Button>
+            <div>
+              <h1 className="text-2xl md:text-3xl font-bold tracking-tight bg-ai-gradient bg-clip-text text-transparent">
+                AI Image Edit
+              </h1>
+              <p className="text-sm md:text-base text-muted-foreground">
+                {selectedImage ? `Editing: ${decodeFilename(selectedImage.system_filename)}` : 'AI-powered image editing'}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left Panel - Image and Mask */}
+          <div className="lg:col-span-2 space-y-4">
+            {/* Image Display */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Image className="w-5 h-5" />
+                  Image & Mask Editor
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="relative w-full h-[500px] bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden">
+                  {aiEditImage && (
+                    <>
+                      {/* Background Image */}
+                      <img
+                        src={aiEditImage}
+                        alt="Edit image"
+                        className="absolute inset-0 w-full h-full object-contain"
+                      />
+                      {/* Mask Canvas */}
+                      <canvas
+                        ref={maskCanvasRef}
+                        className="absolute inset-0 w-full h-full cursor-crosshair"
+                        onMouseDown={handleMaskDrawing}
+                        onMouseMove={handleMaskDrawing}
+                        style={{ touchAction: 'none' }}
+                      />
+                    </>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Mask Controls */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Brush className="w-5 h-5" />
+                  Mask Controls
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center gap-4">
+                  <Button
+                    variant={!isErasing ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setIsErasing(false)}
+                    className="flex items-center gap-2"
+                  >
+                    <Brush className="w-4 h-4" />
+                    Draw
+                  </Button>
+                  <Button
+                    variant={isErasing ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setIsErasing(true)}
+                    className="flex items-center gap-2"
+                  >
+                    <EyeOff className="w-4 h-4" />
+                    Erase
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={clearMask}
+                    className="flex items-center gap-2"
+                  >
+                    <X className="w-4 h-4" />
+                    Clear Mask
+                  </Button>
+                </div>
+                <div className="space-y-2">
+                  <Label>Brush Size: {brushSize}px</Label>
+                  <Slider
+                    value={[brushSize]}
+                    onValueChange={([value]) => setBrushSize(value)}
+                    min={5}
+                    max={50}
+                    step={1}
+                    className="w-full"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Right Panel - Controls */}
+          <div className="space-y-4">
+            {/* Text Prompt */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Type className="w-5 h-5" />
+                  Text Prompt
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Describe the changes you want to make:</Label>
+                  <Textarea
+                    value={textPrompt}
+                    onChange={(e) => setTextPrompt(e.target.value)}
+                    placeholder="e.g., Change hair color to blonde, Add glasses, Remove background..."
+                    className="min-h-[100px]"
+                  />
+                </div>
+                <Button
+                  variant="outline"
+                  onClick={() => setShowPresetSelector(true)}
+                  className="w-full"
+                >
+                  <Settings className="w-4 h-4 mr-2" />
+                  Choose Preset
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Process Button */}
+            <Card>
+              <CardContent className="pt-6">
+                <Button
+                  onClick={processAiEdit}
+                  disabled={!textPrompt.trim() || isProcessingAiEdit}
+                  className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                >
+                  {isProcessingAiEdit ? (
+                    <>
+                      <div className="w-4 h-4 mr-2 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <Wand2 className="w-4 h-4 mr-2" />
+                      Process AI Edit
+                    </>
+                  )}
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        {/* Preset Selector Modal */}
+        <Dialog open={showPresetSelector} onOpenChange={setShowPresetSelector}>
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Choose AI Edit Preset</DialogTitle>
+              <DialogDescription>
+                Select a preset to automatically fill the text prompt with common editing tasks.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {AI_EDIT_PRESETS.map((preset, index) => (
+                <Card
+                  key={index}
+                  className="cursor-pointer hover:shadow-md transition-all duration-200"
+                  onClick={() => applyPreset(preset)}
+                >
+                  <CardContent className="p-4">
+                    <h3 className="font-semibold text-sm mb-2">{preset.name}</h3>
+                    <p className="text-xs text-muted-foreground mb-3">{preset.description}</p>
+                    <p className="text-xs bg-gray-100 dark:bg-gray-800 p-2 rounded font-mono">
+                      {preset.prompt}
+                    </p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     );
   }
@@ -1525,6 +2713,17 @@ export default function ContentEdit() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Vault Selector Modal */}
+      {showVaultSelector && (
+        <VaultSelector
+          open={showVaultSelector}
+          onOpenChange={setShowVaultSelector}
+          onImageSelect={editMode === 'ai-image-edit' ? handleAiImageSelect : handleVaultImageSelect}
+          title={editMode === 'ai-image-edit' ? "Select Image for AI Editing" : "Select Image from Library"}
+          description={editMode === 'ai-image-edit' ? "Browse your library and select an image to edit with AI. Only completed images are shown." : "Browse your library and select an image to edit. Only completed images are shown."}
+        />
+      )}
 
       {/* Overwrite Confirmation Dialog */}
       <Dialog open={showOverwriteDialog} onOpenChange={setShowOverwriteDialog}>

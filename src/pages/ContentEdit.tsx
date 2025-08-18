@@ -123,7 +123,10 @@ export default function ContentEdit() {
   const [isProcessingAiEdit, setIsProcessingAiEdit] = useState(false);
   const [showMaskEditor, setShowMaskEditor] = useState(false);
   const [brushSize, setBrushSize] = useState(20);
-  const [isErasing, setIsErasing] = useState(false);
+  const [isErasing, setIsErasing] = useState<boolean>(false); // false = draw mode by default
+  const [maskColor, setMaskColor] = useState('#ffffff'); // Default white mask
+  const [maskOpacity, setMaskOpacity] = useState(50); // Default 50% opacity
+  const [isDrawing, setIsDrawing] = useState(false); // Track if user is currently drawing
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const maskCanvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -275,6 +278,7 @@ export default function ContentEdit() {
       const blob = await response.blob();
       const imageUrl = URL.createObjectURL(blob);
       setAiEditImage(imageUrl);
+      setIsErasing(false); // Reset to draw mode
 
       // Initialize mask canvas
       setTimeout(() => {
@@ -294,6 +298,7 @@ export default function ContentEdit() {
         : `${config.data_url}/cdn-cgi/image/w=1200/${userData.id}/output/${imageData.system_filename}`;
 
       setAiEditImage(fallbackUrl);
+      setIsErasing(false); // Reset to draw mode
       setTimeout(() => {
         initializeMaskCanvas(fallbackUrl);
       }, 100);
@@ -319,22 +324,63 @@ export default function ContentEdit() {
     img.src = imageUrl;
   };
 
+  const handleRightClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    e.preventDefault(); // Prevent default context menu
+    
+    // Toggle between draw and erase modes on right click
+    setIsErasing(!isErasing);
+    toast.success(isErasing ? 'Draw mode activated' : 'Erase mode activated');
+  };
+
   const handleMaskDrawing = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    // Only draw on left mouse button (button 0)
+    if (e.button !== 0) return;
+
     const canvas = maskCanvasRef.current;
     if (!canvas) return;
 
     const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    
+    // Calculate the scale factors between canvas display size and actual canvas size
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    
+    // Convert mouse coordinates to canvas coordinates
+    const x = (e.clientX - rect.left) * scaleX;
+    const y = (e.clientY - rect.top) * scaleY;
+    
     const ctx = canvas.getContext('2d');
-
     if (ctx) {
-      ctx.globalCompositeOperation = isErasing ? 'destination-out' : 'source-over';
-      ctx.fillStyle = isErasing ? 'rgba(0, 0, 0, 1)' : 'rgba(255, 255, 255, 0.8)';
-      ctx.beginPath();
-      ctx.arc(x, y, brushSize / 2, 0, 2 * Math.PI);
-      ctx.fill();
+      // Set drawing mode based on event type
+      if (e.type === 'mousedown') {
+        setIsDrawing(true);
+      }
+      
+      // Only draw if we're in drawing mode
+      if (isDrawing || e.type === 'mousedown') {
+        ctx.globalCompositeOperation = isErasing ? 'destination-out' : 'source-over';
+        
+        if (isErasing) {
+          ctx.fillStyle = 'rgba(0, 0, 0, 1)';
+        } else {
+          // Convert hex color to RGB and apply user-defined opacity (max 50%)
+          const hex = maskColor.replace('#', '');
+          const r = parseInt(hex.substr(0, 2), 16);
+          const g = parseInt(hex.substr(2, 2), 16);
+          const b = parseInt(hex.substr(4, 2), 16);
+          const opacity = Math.min(maskOpacity / 100, 0.5); // Cap at 50%
+          ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${opacity})`;
+        }
+        
+        ctx.beginPath();
+        ctx.arc(x, y, brushSize / 2, 0, 2 * Math.PI);
+        ctx.fill();
+      }
     }
+  };
+
+  const handleMaskDrawingEnd = () => {
+    setIsDrawing(false);
   };
 
   const clearMask = () => {
@@ -1308,6 +1354,7 @@ export default function ContentEdit() {
           // For AI Image Edit mode
           setSelectedImage(uploadedImage);
           setAiEditImage(result);
+          setIsErasing(false); // Reset to draw mode
           setTimeout(() => {
             initializeMaskCanvas(result);
           }, 100);
@@ -1363,13 +1410,14 @@ export default function ContentEdit() {
           };
 
           if (editMode === 'ai-image-edit') {
-            // For AI Image Edit mode
-            setSelectedImage(uploadedImage);
-            setAiEditImage(result);
-            setTimeout(() => {
-              initializeMaskCanvas(result);
-            }, 100);
-            toast.success('Image uploaded for AI editing');
+                      // For AI Image Edit mode
+          setSelectedImage(uploadedImage);
+          setAiEditImage(result);
+          setIsErasing(false); // Reset to draw mode
+          setTimeout(() => {
+            initializeMaskCanvas(result);
+          }, 100);
+          toast.success('Image uploaded for AI editing');
           } else {
             // For regular Image Edit mode
             setSelectedImage(uploadedImage);
@@ -1507,6 +1555,7 @@ export default function ContentEdit() {
       if (editMode === 'ai-image-edit') {
         // For AI Image Edit mode
         setAiEditImage(profileImageUrl);
+        setIsErasing(false); // Reset to draw mode
         setTimeout(() => {
           initializeMaskCanvas(profileImageUrl);
         }, 100);
@@ -2251,8 +2300,22 @@ export default function ContentEdit() {
                         className="absolute inset-0 w-full h-full cursor-crosshair"
                         onMouseDown={handleMaskDrawing}
                         onMouseMove={handleMaskDrawing}
+                        onMouseUp={handleMaskDrawingEnd}
+                        onMouseLeave={handleMaskDrawingEnd}
+                        onContextMenu={handleRightClick}
                         style={{ touchAction: 'none' }}
                       />
+                      {/* Brush Size Indicator */}
+                      <div className="absolute bottom-4 right-4 bg-black/70 text-white px-3 py-1 rounded-full text-sm flex items-center gap-2">
+                        <div 
+                          className="w-3 h-3 rounded-full border border-white"
+                          style={{ 
+                            backgroundColor: isErasing ? '#000000' : maskColor,
+                            opacity: isErasing ? 1 : maskOpacity / 100
+                          }}
+                        />
+                        {isErasing ? 'Erase' : 'Draw'}: {brushSize}px ({maskOpacity}%)
+                      </div>
                     </>
                   )}
                 </div>
@@ -2270,7 +2333,7 @@ export default function ContentEdit() {
               <CardContent className="space-y-4">
                 <div className="flex items-center gap-4">
                   <Button
-                    variant={!isErasing ? "default" : "outline"}
+                    variant={isErasing === false ? "default" : "outline"}
                     size="sm"
                     onClick={() => setIsErasing(false)}
                     className="flex items-center gap-2"
@@ -2279,7 +2342,7 @@ export default function ContentEdit() {
                     Draw
                   </Button>
                   <Button
-                    variant={isErasing ? "default" : "outline"}
+                    variant={isErasing === true ? "default" : "outline"}
                     size="sm"
                     onClick={() => setIsErasing(true)}
                     className="flex items-center gap-2"
@@ -2297,6 +2360,9 @@ export default function ContentEdit() {
                     Clear Mask
                   </Button>
                 </div>
+                <div className="text-sm text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/20 p-2 rounded-md">
+                  ✅ {isErasing ? 'Erase mode' : 'Draw mode'} active - Click and drag to draw continuously, Right-click to switch modes
+                </div>
                 <div className="space-y-2">
                   <Label>Brush Size: {brushSize}px</Label>
                   <Slider
@@ -2307,6 +2373,54 @@ export default function ContentEdit() {
                     step={1}
                     className="w-full"
                   />
+                </div>
+                
+                {/* Mask Color Selection */}
+                <div className="space-y-2">
+                  <Label>Mask Color</Label>
+                  <div className="flex items-center gap-3">
+                    <div className="flex gap-2">
+                      {['#ffffff', '#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff', '#ff8800', '#8800ff', '#00ff88'].map((color) => (
+                        <button
+                          key={color}
+                          onClick={() => setMaskColor(color)}
+                          className={`w-8 h-8 rounded-full border-2 transition-all ${
+                            maskColor === color 
+                              ? 'border-gray-800 scale-110 shadow-lg' 
+                              : 'border-gray-300 hover:scale-105'
+                          }`}
+                          style={{ backgroundColor: color }}
+                          title={`Select ${color}`}
+                        />
+                      ))}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-muted-foreground">Custom:</span>
+                      <input
+                        type="color"
+                        value={maskColor}
+                        onChange={(e) => setMaskColor(e.target.value)}
+                        className="w-8 h-8 rounded border border-gray-300 cursor-pointer"
+                        title="Custom color"
+                      />
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Mask Opacity Control */}
+                <div className="space-y-2">
+                  <Label>Mask Opacity: {maskOpacity}% (Max: 50%)</Label>
+                  <Slider
+                    value={[maskOpacity]}
+                    onValueChange={([value]) => setMaskOpacity(Math.min(value, 50))}
+                    min={10}
+                    max={50}
+                    step={5}
+                    className="w-full"
+                  />
+                  <div className="text-xs text-muted-foreground">
+                    Maximum opacity is 50% for better visibility of the underlying image
+                  </div>
                 </div>
               </CardContent>
             </Card>

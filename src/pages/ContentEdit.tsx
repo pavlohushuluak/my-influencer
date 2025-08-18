@@ -122,7 +122,7 @@ export default function ContentEdit() {
   const [showPresetSelector, setShowPresetSelector] = useState(false);
   const [isProcessingAiEdit, setIsProcessingAiEdit] = useState(false);
   const [showMaskEditor, setShowMaskEditor] = useState(false);
-  const [brushSize, setBrushSize] = useState(20);
+  const [brushSize, setBrushSize] = useState(40);
   const [isErasing, setIsErasing] = useState<boolean>(false); // false = draw mode by default
   const [maskColor, setMaskColor] = useState('#ffffff'); // Default white mask
   const [maskOpacity, setMaskOpacity] = useState(50); // Default 50% opacity
@@ -1361,12 +1361,12 @@ export default function ContentEdit() {
           toast.success('Image uploaded for AI editing');
         } else {
           // For regular Image Edit mode
-          setSelectedImage(uploadedImage);
-          setImageSrc(result);
-          setHasImage(true);
-          setShowImageSelection(false);
-          addToHistory('Image uploaded', result);
-          toast.success('Image uploaded successfully');
+        setSelectedImage(uploadedImage);
+        setImageSrc(result);
+        setHasImage(true);
+        setShowImageSelection(false);
+        addToHistory('Image uploaded', result);
+        toast.success('Image uploaded successfully');
         }
 
         // Clear the file input so the same file can be uploaded again
@@ -1420,12 +1420,12 @@ export default function ContentEdit() {
           toast.success('Image uploaded for AI editing');
           } else {
             // For regular Image Edit mode
-            setSelectedImage(uploadedImage);
-            setImageSrc(result);
-            setHasImage(true);
-            setShowImageSelection(false);
-            addToHistory('Image uploaded via drag & drop', result);
-            toast.success('Image uploaded successfully');
+          setSelectedImage(uploadedImage);
+          setImageSrc(result);
+          setHasImage(true);
+          setShowImageSelection(false);
+          addToHistory('Image uploaded via drag & drop', result);
+          toast.success('Image uploaded successfully');
           }
         };
         reader.readAsDataURL(file);
@@ -1443,8 +1443,8 @@ export default function ContentEdit() {
       // For now, just trigger file input
       fileInputRef.current?.click();
     } else {
-      setShowImageSelection(false);
-      // Show the upload area instead of immediately triggering file input
+    setShowImageSelection(false);
+    // Show the upload area instead of immediately triggering file input
     }
   }, [editMode]);
 
@@ -1508,7 +1508,7 @@ export default function ContentEdit() {
       case 'influencer_type':
         return (influencer.influencer_type || '').toLowerCase().includes(searchLower);
       default:
-        return (
+    return (
           `${influencer.name_first} ${influencer.name_last}`.toLowerCase().includes(searchLower) ||
           (influencer.age || '').toLowerCase().includes(searchLower) ||
           (influencer.lifestyle || '').toLowerCase().includes(searchLower) ||
@@ -1582,52 +1582,92 @@ export default function ContentEdit() {
 
   if (!selectedImage && showImageSelection && editMode === 'selection') {
     return (
-      <div className="p-4 md:p-6 space-y-4 md:space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-bold tracking-tight bg-ai-gradient bg-clip-text text-transparent">
-              Edit Content
+      <div>
+        <div className="p-6 md:p-8 space-y-8">
+          {/* Enhanced Header */}
+          <div className="text-center space-y-4">
+            <div className="inline-flex items-center justify-center w-16 h-16 md:w-20 md:h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl shadow-lg mb-4">
+              <Image className="w-8 h-8 md:w-10 md:h-10 text-white" />
+            </div>
+            <h1 className="text-3xl md:text-4xl font-bold tracking-tight bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">
+              Content Editor
             </h1>
-            <p className="text-sm md:text-base text-muted-foreground">
-              Choose your editing method
+            <p className="text-lg md:text-xl text-slate-600 dark:text-slate-300 max-w-2xl mx-auto">
+              Choose your preferred editing method to transform your images with professional tools
             </p>
           </div>
-        </div>
 
-        {/* Edit Method Selection */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 max-w-4xl mx-auto">
-          {/* Image Edit Card */}
-          <Card className="hover:shadow-lg transition-all duration-300 cursor-pointer" onClick={() => setEditMode('image-edit')}>
-            <CardContent className="p-6 md:p-8 text-center">
-              <div className="w-16 h-16 md:w-20 md:h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Image className="w-8 h-8 md:w-10 md:h-10 text-blue-600" />
-              </div>
-              <h3 className="text-lg md:text-xl font-semibold mb-2">Image Edit</h3>
-              <p className="text-sm md:text-base text-muted-foreground mb-4">
-                Professional image editing with advanced tools and filters
-              </p>
-              <Button className="w-full">
-                Start Editing
-              </Button>
-            </CardContent>
-          </Card>
+          {/* Enhanced Edit Method Selection */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 max-w-5xl mx-auto">
+            {/* Image Edit Card */}
+            <Card className="group hover:shadow-2xl transition-all duration-500 cursor-pointer border-0 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm" onClick={() => setEditMode('image-edit')}>
+              <CardContent className="p-8 md:p-10 text-center relative overflow-hidden">
+                {/* Background gradient */}
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-blue-900/20 dark:to-indigo-900/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                
+                <div className="relative z-10">
+                  <div className="w-20 h-20 md:w-24 md:h-24 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg group-hover:scale-110 transition-transform duration-300">
+                    <Image className="w-10 h-10 md:w-12 md:h-12 text-white" />
+                  </div>
+                  <h3 className="text-xl md:text-2xl font-bold mb-4 text-slate-800 dark:text-slate-100">Professional Editor</h3>
+                  <p className="text-base md:text-lg text-slate-600 dark:text-slate-300 mb-6 leading-relaxed">
+                    Advanced image editing with professional tools, filters, and precise controls
+                  </p>
+                  <Button className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold py-3 text-lg shadow-lg hover:shadow-xl transition-all duration-300">
+                    Start Professional Editing
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
 
-          {/* AI Image Edit Card */}
-          <Card className="hover:shadow-lg transition-all duration-300 cursor-pointer" onClick={() => setEditMode('ai-image-edit')}>
-            <CardContent className="p-6 md:p-8 text-center">
-              <div className="w-16 h-16 md:w-20 md:h-20 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Wand2 className="w-8 h-8 md:w-10 md:h-10 text-purple-600" />
+            {/* AI Image Edit Card */}
+            <Card className="group hover:shadow-2xl transition-all duration-500 cursor-pointer border-0 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm" onClick={() => setEditMode('ai-image-edit')}>
+              <CardContent className="p-8 md:p-10 text-center relative overflow-hidden">
+                {/* Background gradient */}
+                <div className="absolute inset-0 bg-gradient-to-br from-purple-50 to-pink-100 dark:from-purple-900/20 dark:to-pink-900/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                
+                <div className="relative z-10">
+                  <div className="w-20 h-20 md:w-24 md:h-24 bg-gradient-to-br from-purple-500 to-pink-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg group-hover:scale-110 transition-transform duration-300">
+                    <Wand2 className="w-10 h-10 md:w-12 md:h-12 text-white" />
+                  </div>
+                  <h3 className="text-xl md:text-2xl font-bold mb-4 text-slate-800 dark:text-slate-100">AI-Powered Editor</h3>
+                  <p className="text-base md:text-lg text-slate-600 dark:text-slate-300 mb-6 leading-relaxed">
+                    Revolutionary AI editing with mask selection and intelligent text prompts
+                  </p>
+                  <Button className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold py-3 text-lg shadow-lg hover:shadow-xl transition-all duration-300">
+                    Start AI Editing
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Feature highlights */}
+          <div className="max-w-4xl mx-auto mt-12">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="text-center space-y-3">
+                <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center mx-auto">
+                  <Brush className="w-6 h-6 text-blue-600" />
+                </div>
+                <h4 className="font-semibold text-slate-800 dark:text-slate-100">Professional Tools</h4>
+                <p className="text-sm text-slate-600 dark:text-slate-400">Advanced editing capabilities</p>
               </div>
-              <h3 className="text-lg md:text-xl font-semibold mb-2">AI Image Edit</h3>
-              <p className="text-sm md:text-base text-muted-foreground mb-4">
-                AI-powered editing with mask selection and text prompts
-              </p>
-              <Button className="w-full">
-                Start AI Editing
-              </Button>
-            </CardContent>
-          </Card>
+              <div className="text-center space-y-3">
+                <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-xl flex items-center justify-center mx-auto">
+                  <Wand2 className="w-6 h-6 text-purple-600" />
+                </div>
+                <h4 className="font-semibold text-slate-800 dark:text-slate-100">AI Intelligence</h4>
+                <p className="text-sm text-slate-600 dark:text-slate-400">Smart editing with AI</p>
+              </div>
+              <div className="text-center space-y-3">
+                <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-xl flex items-center justify-center mx-auto">
+                  <Download className="w-6 h-6 text-green-600" />
+                </div>
+                <h4 className="font-semibold text-slate-800 dark:text-slate-100">Easy Export</h4>
+                <p className="text-sm text-slate-600 dark:text-slate-400">Save and share instantly</p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -1636,28 +1676,30 @@ export default function ContentEdit() {
   // Image Edit mode - shows original selection cards
   if (!selectedImage && showImageSelection && editMode === 'image-edit') {
     return (
-      <div className="p-4 md:p-6 space-y-4 md:space-y-6">
-        {/* Header */}
+      <div>
+        <div className="p-6 md:p-8 space-y-8">
+          {/* Enhanced Header */}
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 md:gap-4">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setEditMode('selection')}
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              <span className="hidden sm:inline">Back to Selection</span>
-            </Button>
-            <div>
-              <h1 className="text-2xl md:text-3xl font-bold tracking-tight bg-ai-gradient bg-clip-text text-transparent">
-                Image Edit
-              </h1>
-              <p className="text-sm md:text-base text-muted-foreground">
-                Choose how you want to get started
-              </p>
-            </div>
+            <div className="flex items-center gap-4 md:gap-6">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setEditMode('selection')}
+                className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-slate-200 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-800 shadow-sm"
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                <span className="hidden sm:inline">Back to Selection</span>
+              </Button>
+          <div>
+                <h1 className="text-3xl md:text-4xl font-bold tracking-tight bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">
+                  Professional Editor
+            </h1>
+                <p className="text-lg md:text-xl text-slate-600 dark:text-slate-300">
+                  Choose your preferred method to get started
+            </p>
           </div>
         </div>
+          </div>
 
         {/* Vault Selector Modal */}
         {showVaultSelector && (
@@ -1826,20 +1868,22 @@ export default function ContentEdit() {
           </DialogContent>
         </Dialog>
 
-        {/* Image Selection */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 max-w-6xl mx-auto">
+        {/* Enhanced Image Selection */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 max-w-6xl mx-auto">
           {/* Select from Vault */}
-          <Card className="hover:shadow-lg transition-all duration-300">
-            <CardContent className="p-6 md:p-8 text-center">
-              <div className="w-16 h-16 md:w-20 md:h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <FileImage className="w-8 h-8 md:w-10 md:h-10 text-blue-600" />
+          <Card className="group hover:shadow-2xl transition-all duration-500 border-0 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
+            <CardContent className="p-8 md:p-10 text-center relative overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-blue-900/20 dark:to-indigo-900/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              <div className="relative z-10">
+                <div className="w-20 h-20 md:w-24 md:h-24 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg group-hover:scale-110 transition-transform duration-300">
+                  <FileImage className="w-10 h-10 md:w-12 md:h-12 text-white" />
               </div>
-              <h3 className="text-lg md:text-xl font-semibold mb-2">Select from Library</h3>
-              <p className="text-sm md:text-base text-muted-foreground mb-4">
+                <h3 className="text-xl md:text-2xl font-bold mb-4 text-slate-800 dark:text-slate-100">Select from Library</h3>
+                <p className="text-base md:text-lg text-slate-600 dark:text-slate-300 mb-6 leading-relaxed">
                 Choose an existing image from your content library
               </p>
               <Button
-                className="w-full"
+                  className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold py-3 text-lg shadow-lg hover:shadow-xl transition-all duration-300"
                 onClick={() => setShowVaultSelector(true)}
                 disabled={isLoadingImage}
               >
@@ -1852,54 +1896,62 @@ export default function ContentEdit() {
                   'Browse Library'
                 )}
               </Button>
+              </div>
             </CardContent>
           </Card>
 
           {/* Select from Influencers */}
-          <Card className="hover:shadow-lg transition-all duration-300">
-            <CardContent className="p-6 md:p-8 text-center">
-              <div className="w-16 h-16 md:w-20 md:h-20 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <User className="w-8 h-8 md:w-10 md:h-10 text-purple-600" />
+          <Card className="group hover:shadow-2xl transition-all duration-500 border-0 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
+            <CardContent className="p-8 md:p-10 text-center relative overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-br from-purple-50 to-pink-100 dark:from-purple-900/20 dark:to-pink-900/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              <div className="relative z-10">
+                <div className="w-20 h-20 md:w-24 md:h-24 bg-gradient-to-br from-purple-500 to-pink-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg group-hover:scale-110 transition-transform duration-300">
+                  <User className="w-10 h-10 md:w-12 md:h-12 text-white" />
+                </div>
+                <h3 className="text-xl md:text-2xl font-bold mb-4 text-slate-800 dark:text-slate-100">Select from Influencers</h3>
+                <p className="text-base md:text-lg text-slate-600 dark:text-slate-300 mb-6 leading-relaxed">
+                  Choose an influencer's profile image to edit
+                </p>
+                <Button
+                  className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold py-3 text-lg shadow-lg hover:shadow-xl transition-all duration-300"
+                  onClick={() => setShowInfluencerSelector(true)}
+                  disabled={influencersLoading}
+                >
+                  {influencersLoading ? (
+                    <>
+                      <div className="w-4 h-4 mr-2 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                      Loading...
+                    </>
+                  ) : (
+                    <>
+                      <User className="w-4 h-4 mr-2" />
+                      Browse Influencers
+                    </>
+                  )}
+                </Button>
               </div>
-              <h3 className="text-lg md:text-xl font-semibold mb-2">Select from Influencers</h3>
-              <p className="text-sm md:text-base text-muted-foreground mb-4">
-                Choose an influencer's profile image to edit
-              </p>
-              <Button
-                className="w-full"
-                onClick={() => setShowInfluencerSelector(true)}
-                disabled={influencersLoading}
-              >
-                {influencersLoading ? (
-                  <>
-                    <div className="w-4 h-4 mr-2 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-                    Loading...
-                  </>
-                ) : (
-                  <>
-                    <User className="w-4 h-4 mr-2" />
-                    Browse Influencers
-                  </>
-                )}
-              </Button>
             </CardContent>
           </Card>
 
           {/* Upload New Image */}
-          <Card className="cursor-pointer hover:shadow-lg transition-all duration-300" onClick={handleUploadNew}>
-            <CardContent className="p-6 md:p-8 text-center">
-              <div className="w-16 h-16 md:w-20 md:h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Upload className="w-8 h-8 md:w-10 md:h-10 text-green-600" />
+          <Card className="group hover:shadow-2xl transition-all duration-500 cursor-pointer border-0 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm" onClick={handleUploadNew}>
+            <CardContent className="p-8 md:p-10 text-center relative overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-br from-green-50 to-emerald-100 dark:from-green-900/20 dark:to-emerald-900/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              <div className="relative z-10">
+                <div className="w-20 h-20 md:w-24 md:h-24 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg group-hover:scale-110 transition-transform duration-300">
+                  <Upload className="w-10 h-10 md:w-12 md:h-12 text-white" />
               </div>
-              <h3 className="text-lg md:text-xl font-semibold mb-2">Upload New Image</h3>
-              <p className="text-sm md:text-base text-muted-foreground mb-4">
+                <h3 className="text-xl md:text-2xl font-bold mb-4 text-slate-800 dark:text-slate-100">Upload New Image</h3>
+                <p className="text-base md:text-lg text-slate-600 dark:text-slate-300 mb-6 leading-relaxed">
                 Upload a new image from your device
               </p>
-              <Button className="w-full">
+                <Button className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-semibold py-3 text-lg shadow-lg hover:shadow-xl transition-all duration-300">
                 Upload Image
               </Button>
+              </div>
             </CardContent>
           </Card>
+        </div>
         </div>
       </div>
     );
@@ -1964,53 +2016,55 @@ export default function ContentEdit() {
   // AI Image Edit mode
   if (editMode === 'ai-image-edit' && !aiEditImage) {
     return (
-      <div className="p-4 md:p-6 space-y-4 md:space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 md:gap-4">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setEditMode('selection')}
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              <span className="hidden sm:inline">Back to Selection</span>
-            </Button>
-            <div>
-              <h1 className="text-2xl md:text-3xl font-bold tracking-tight bg-ai-gradient bg-clip-text text-transparent">
-                AI Image Edit
-              </h1>
-              <p className="text-sm md:text-base text-muted-foreground">
-                Select an image to edit with AI
-              </p>
+      <div>
+        <div className="p-6 md:p-8 space-y-8">
+          {/* Enhanced Header */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4 md:gap-6">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleBackToSelection}
+                className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-slate-200 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-800 shadow-sm"
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                <span className="hidden sm:inline">Back to Selection</span>
+              </Button>
+              <div>
+                <h1 className="text-3xl md:text-4xl font-bold tracking-tight bg-gradient-to-r from-purple-600 via-pink-600 to-indigo-600 bg-clip-text text-transparent">
+                  AI-Powered Editor
+                </h1>
+                <p className="text-lg md:text-xl text-slate-600 dark:text-slate-300">
+                  Select an image to edit with revolutionary AI technology
+                </p>
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Hidden file input for AI Image Edit */}
-        <input
-          type="file"
-          ref={fileInputRef}
-          onChange={handleFileUpload}
-          accept="image/*"
-          className="hidden"
-        />
-
-        {/* Vault Selector Modal */}
-        {showVaultSelector && (
-          <VaultSelector
-            open={showVaultSelector}
-            onOpenChange={setShowVaultSelector}
-            onImageSelect={handleAiImageSelect}
-            title="Select Image for AI Editing"
-            description="Browse your library and select an image to edit with AI. Only completed images are shown."
+          {/* Hidden file input for AI Image Edit */}
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileUpload}
+            accept="image/*"
+            className="hidden"
           />
-        )}
 
-        {/* Influencer Selector Modal - Shared between Image Edit and AI Image Edit modes */}
-        <Dialog open={showInfluencerSelector} onOpenChange={setShowInfluencerSelector}>
-          <DialogContent className="max-w-6xl max-h-[80vh] overflow-y-auto">
-            <DialogHeader>
+          {/* Vault Selector Modal */}
+          {showVaultSelector && (
+            <VaultSelector
+              open={showVaultSelector}
+              onOpenChange={setShowVaultSelector}
+              onImageSelect={handleAiImageSelect}
+              title="Select Image for AI Editing"
+              description="Browse your library and select an image to edit with AI. Only completed images are shown."
+            />
+          )}
+
+          {/* Influencer Selector Modal - Shared between Image Edit and AI Image Edit modes */}
+          <Dialog open={showInfluencerSelector} onOpenChange={setShowInfluencerSelector}>
+            <DialogContent className="max-w-6xl max-h-[80vh] overflow-y-auto">
+              <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <User className="w-5 h-5 text-purple-500" />
                 Select Influencer
@@ -2238,6 +2292,7 @@ export default function ContentEdit() {
             </CardContent>
           </Card>
         </div>
+        </div>
       </div>
     );
   }
@@ -2245,47 +2300,149 @@ export default function ContentEdit() {
   // AI Image Edit Interface
   if (editMode === 'ai-image-edit' && aiEditImage) {
     return (
-      <div className="p-4 md:p-6 space-y-4 md:space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 md:gap-4">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                setEditMode('ai-image-edit');
-                setAiEditImage(null);
-                setMaskImage(null);
-                setTextPrompt('');
-              }}
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              <span className="hidden sm:inline">Back to Selection</span>
-            </Button>
-            <div>
-              <h1 className="text-2xl md:text-3xl font-bold tracking-tight bg-ai-gradient bg-clip-text text-transparent">
-                AI Image Edit
-              </h1>
-              <p className="text-sm md:text-base text-muted-foreground">
-                {selectedImage ? `Editing: ${decodeFilename(selectedImage.system_filename)}` : 'AI-powered image editing'}
-              </p>
+      <div>
+        <div className="p-6 md:p-8 space-y-8">
+          {/* Enhanced Header */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4 md:gap-6">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleBackToSelection}
+                className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-slate-200 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-800 shadow-sm"
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                <span className="hidden sm:inline">Back to Selection</span>
+              </Button>
+              <div>
+                <h1 className="text-3xl md:text-4xl font-bold tracking-tight bg-gradient-to-r from-purple-600 via-pink-600 to-indigo-600 bg-clip-text text-transparent">
+                  AI-Powered Editor
+                </h1>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Compact Mask Controls at Top */}
+          <div className="lg:col-span-3">
+            <Card className="border-0 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm shadow-xl">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between gap-4">
+                  {/* Mode Controls */}
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant={isErasing === false ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setIsErasing(false)}
+                      className={`flex items-center gap-2 text-sm ${
+                        isErasing === false 
+                          ? 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg' 
+                          : 'bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-slate-200 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-800'
+                      }`}
+                    >
+                      <Brush className="w-3 h-3" />
+                      Draw
+                    </Button>
+                    <Button
+                      variant={isErasing === true ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setIsErasing(true)}
+                      className={`flex items-center gap-2 text-sm ${
+                        isErasing === true 
+                          ? 'bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white shadow-lg' 
+                          : 'bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-slate-200 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-800'
+                      }`}
+                    >
+                      <EyeOff className="w-3 h-3" />
+                      Erase
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={clearMask}
+                      className="flex items-center gap-2 text-sm bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-slate-200 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-800"
+                    >
+                      <X className="w-3 h-3" />
+                      Clear
+                    </Button>
+                  </div>
+
+                  {/* Brush Size */}
+                  <div className="flex items-center gap-3">
+                    <Label className="text-sm whitespace-nowrap">Brush: {brushSize}px</Label>
+                    <Slider
+                      value={[brushSize]}
+                      onValueChange={([value]) => setBrushSize(value)}
+                      min={5}
+                      max={100}
+                      step={1}
+                      className="w-32"
+                    />
+                  </div>
+
+                  {/* Mask Color */}
+                  <div className="flex items-center gap-2">
+                    <Label className="text-sm">Color:</Label>
+                    <div className="flex gap-1">
+                      {['#ffffff', '#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff', '#ff8800', '#8800ff', '#00ff88'].map((color) => (
+                        <button
+                          key={color}
+                          onClick={() => setMaskColor(color)}
+                          className={`w-6 h-6 rounded-full border transition-all ${
+                            maskColor === color 
+                              ? 'border-gray-800 scale-110 shadow-lg' 
+                              : 'border-gray-300 hover:scale-105'
+                          }`}
+                          style={{ backgroundColor: color }}
+                          title={`Select ${color}`}
+                        />
+                      ))}
+                    </div>
+                    <input
+                      type="color"
+                      value={maskColor}
+                      onChange={(e) => setMaskColor(e.target.value)}
+                      className="w-6 h-6 rounded border border-gray-300 cursor-pointer"
+                      title="Custom color"
+                    />
+                  </div>
+
+                  {/* Opacity */}
+                  <div className="flex items-center gap-2">
+                    <Label className="text-sm">Opacity: {maskOpacity}%</Label>
+                    <Slider
+                      value={[maskOpacity]}
+                      onValueChange={([value]) => setMaskOpacity(Math.min(value, 50))}
+                      min={10}
+                      max={50}
+                      step={5}
+                      className="w-24"
+                    />
+                  </div>
+
+                  {/* Status */}
+                  <div className="text-xs text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/20 px-2 py-1 rounded">
+                    {isErasing ? 'Erase' : 'Draw'} mode
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
           {/* Left Panel - Image and Mask */}
-          <div className="lg:col-span-2 space-y-4">
-            {/* Image Display */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Image className="w-5 h-5" />
+          <div className="lg:col-span-2 space-y-6">
+            {/* Enhanced Image Display */}
+            <Card className="border-0 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm shadow-xl">
+              <CardHeader className="pb-6">
+                <CardTitle className="text-xl font-bold text-slate-800 dark:text-slate-100 flex items-center gap-3">
+                  <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                    <Image className="w-5 h-5 text-white" />
+                  </div>
                   Image & Mask Editor
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="relative w-full h-[500px] bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden">
+              <CardContent className="p-6">
+                <div className="relative w-full h-[500px] bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 rounded-2xl overflow-hidden border-2 border-slate-200 dark:border-slate-700">
                   {aiEditImage && (
                     <>
                       {/* Background Image */}
@@ -2305,138 +2462,37 @@ export default function ContentEdit() {
                         onContextMenu={handleRightClick}
                         style={{ touchAction: 'none' }}
                       />
-                      {/* Brush Size Indicator */}
-                      <div className="absolute bottom-4 right-4 bg-black/70 text-white px-3 py-1 rounded-full text-sm flex items-center gap-2">
+                      {/* Enhanced Brush Size Indicator */}
+                      <div className="absolute bottom-6 right-6 bg-gradient-to-r from-slate-900/90 to-slate-800/90 backdrop-blur-sm text-white px-4 py-2 rounded-full text-sm flex items-center gap-3 shadow-xl border border-white/20">
                         <div 
-                          className="w-3 h-3 rounded-full border border-white"
+                          className="w-4 h-4 rounded-full border-2 border-white shadow-lg"
                           style={{ 
                             backgroundColor: isErasing ? '#000000' : maskColor,
                             opacity: isErasing ? 1 : maskOpacity / 100
                           }}
                         />
-                        {isErasing ? 'Erase' : 'Draw'}: {brushSize}px ({maskOpacity}%)
+                        <span className="font-semibold">{isErasing ? 'Erase' : 'Draw'}: {brushSize}px ({maskOpacity}%)</span>
                       </div>
                     </>
                   )}
                 </div>
               </CardContent>
             </Card>
-
-            {/* Mask Controls */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Brush className="w-5 h-5" />
-                  Mask Controls
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center gap-4">
-                  <Button
-                    variant={isErasing === false ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setIsErasing(false)}
-                    className="flex items-center gap-2"
-                  >
-                    <Brush className="w-4 h-4" />
-                    Draw
-                  </Button>
-                  <Button
-                    variant={isErasing === true ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setIsErasing(true)}
-                    className="flex items-center gap-2"
-                  >
-                    <EyeOff className="w-4 h-4" />
-                    Erase
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={clearMask}
-                    className="flex items-center gap-2"
-                  >
-                    <X className="w-4 h-4" />
-                    Clear Mask
-                  </Button>
-                </div>
-                <div className="text-sm text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/20 p-2 rounded-md">
-                  ✅ {isErasing ? 'Erase mode' : 'Draw mode'} active - Click and drag to draw continuously, Right-click to switch modes
-                </div>
-                <div className="space-y-2">
-                  <Label>Brush Size: {brushSize}px</Label>
-                  <Slider
-                    value={[brushSize]}
-                    onValueChange={([value]) => setBrushSize(value)}
-                    min={5}
-                    max={50}
-                    step={1}
-                    className="w-full"
-                  />
-                </div>
-                
-                {/* Mask Color Selection */}
-                <div className="space-y-2">
-                  <Label>Mask Color</Label>
-                  <div className="flex items-center gap-3">
-                    <div className="flex gap-2">
-                      {['#ffffff', '#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff', '#ff8800', '#8800ff', '#00ff88'].map((color) => (
-                        <button
-                          key={color}
-                          onClick={() => setMaskColor(color)}
-                          className={`w-8 h-8 rounded-full border-2 transition-all ${
-                            maskColor === color 
-                              ? 'border-gray-800 scale-110 shadow-lg' 
-                              : 'border-gray-300 hover:scale-105'
-                          }`}
-                          style={{ backgroundColor: color }}
-                          title={`Select ${color}`}
-                        />
-                      ))}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-muted-foreground">Custom:</span>
-                      <input
-                        type="color"
-                        value={maskColor}
-                        onChange={(e) => setMaskColor(e.target.value)}
-                        className="w-8 h-8 rounded border border-gray-300 cursor-pointer"
-                        title="Custom color"
-                      />
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Mask Opacity Control */}
-                <div className="space-y-2">
-                  <Label>Mask Opacity: {maskOpacity}% (Max: 50%)</Label>
-                  <Slider
-                    value={[maskOpacity]}
-                    onValueChange={([value]) => setMaskOpacity(Math.min(value, 50))}
-                    min={10}
-                    max={50}
-                    step={5}
-                    className="w-full"
-                  />
-                  <div className="text-xs text-muted-foreground">
-                    Maximum opacity is 50% for better visibility of the underlying image
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
           </div>
 
           {/* Right Panel - Controls */}
-          <div className="space-y-4">
-            {/* Text Prompt */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Type className="w-5 h-5" />
+          <div className="space-y-6">
+            {/* Enhanced Text Prompt */}
+            <Card className="border-0 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm shadow-xl">
+              <CardHeader className="pb-6">
+                <CardTitle className="text-xl font-bold text-slate-800 dark:text-slate-100 flex items-center gap-3">
+                  <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center">
+                    <Type className="w-5 h-5 text-white" />
+                  </div>
                   Text Prompt
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="p-6 space-y-6">
                 <div className="space-y-2">
                   <Label>Describe the changes you want to make:</Label>
                   <Textarea
@@ -2457,22 +2513,22 @@ export default function ContentEdit() {
               </CardContent>
             </Card>
 
-            {/* Process Button */}
-            <Card>
-              <CardContent className="pt-6">
+            {/* Enhanced Process Button */}
+            <Card className="border-0 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm shadow-xl">
+              <CardContent className="p-6">
                 <Button
                   onClick={processAiEdit}
                   disabled={!textPrompt.trim() || isProcessingAiEdit}
-                  className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                  className="w-full bg-gradient-to-r from-purple-600 via-pink-600 to-indigo-600 hover:from-purple-700 hover:via-pink-700 hover:to-indigo-700 text-white font-bold py-4 text-lg shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105"
                 >
                   {isProcessingAiEdit ? (
                     <>
-                      <div className="w-4 h-4 mr-2 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-                      Processing...
+                      <div className="w-5 h-5 mr-3 animate-spin rounded-full border-3 border-white border-t-transparent"></div>
+                      Processing AI Edit...
                     </>
                   ) : (
                     <>
-                      <Wand2 className="w-4 h-4 mr-2" />
+                      <Wand2 className="w-5 h-5 mr-3" />
                       Process AI Edit
                     </>
                   )}
@@ -2482,60 +2538,67 @@ export default function ContentEdit() {
           </div>
         </div>
 
-        {/* Preset Selector Modal */}
+        {/* Enhanced Preset Selector Modal */}
         <Dialog open={showPresetSelector} onOpenChange={setShowPresetSelector}>
-          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Choose AI Edit Preset</DialogTitle>
-              <DialogDescription>
+          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto border-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm shadow-2xl">
+            <DialogHeader className="pb-6">
+              <DialogTitle className="text-2xl font-bold text-slate-800 dark:text-slate-100 flex items-center gap-3">
+                <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg flex items-center justify-center">
+                  <Wand2 className="w-5 h-5 text-white" />
+                </div>
+                Choose AI Edit Preset
+              </DialogTitle>
+              <DialogDescription className="text-lg text-slate-600 dark:text-slate-300">
                 Select a preset to automatically fill the text prompt with common editing tasks.
               </DialogDescription>
             </DialogHeader>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {AI_EDIT_PRESETS.map((preset, index) => (
                 <Card
                   key={index}
-                  className="cursor-pointer hover:shadow-md transition-all duration-200"
+                  className="cursor-pointer hover:shadow-xl transition-all duration-300 border-0 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm group"
                   onClick={() => applyPreset(preset)}
                 >
-                  <CardContent className="p-4">
-                    <h3 className="font-semibold text-sm mb-2">{preset.name}</h3>
-                    <p className="text-xs text-muted-foreground mb-3">{preset.description}</p>
-                    <p className="text-xs bg-gray-100 dark:bg-gray-800 p-2 rounded font-mono">
-                      {preset.prompt}
-                    </p>
+                  <CardContent className="p-6">
+                    <h3 className="font-bold text-lg mb-3 text-slate-800 dark:text-slate-100 group-hover:text-purple-600 transition-colors">{preset.name}</h3>
+                    <p className="text-sm text-slate-600 dark:text-slate-300 mb-4 leading-relaxed">{preset.description}</p>
+                    <div className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-700 p-4 rounded-xl border border-slate-200 dark:border-slate-600">
+                      <p className="text-sm font-mono text-slate-700 dark:text-slate-300">
+                        {preset.prompt}
+                      </p>
+                    </div>
                   </CardContent>
                 </Card>
               ))}
             </div>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="p-4 md:p-6 space-y-4 md:space-y-6">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-center gap-2 md:gap-4">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleBackToSelection}
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            <span className="hidden sm:inline">Back to Selection</span>
-          </Button>
-          <div>
-            <h1 className="text-2xl md:text-3xl font-bold tracking-tight bg-ai-gradient bg-clip-text text-transparent">
-              Edit Content
-            </h1>
-            <p className="text-sm md:text-base text-muted-foreground">
-              {selectedImage ? `Editing: ${decodeFilename(selectedImage.system_filename)}` : 'Upload an image to edit'}
-            </p>
+    <div>
+      <div className="p-6 md:p-8 space-y-8">
+        {/* Enhanced Header */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="flex items-center gap-4 md:gap-6">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleBackToSelection}
+              className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-slate-200 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-800 shadow-sm"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              <span className="hidden sm:inline">Back to Selection</span>
+            </Button>
+            <div>
+              <h1 className="text-3xl md:text-4xl font-bold tracking-tight bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">
+                Professional Editor
+              </h1>
+            </div>
           </div>
-        </div>
 
         <div className="flex items-center justify-between px-4 py-2 z-20">
           <div className="flex items-center gap-2">
@@ -2680,7 +2743,7 @@ export default function ContentEdit() {
             <Button
               onClick={handleUploadToVaultClick}
               disabled={!selectedImage || !editedImageUrl || isUploading}
-              className="bg-blue-600 hover:bg-blue-700"
+              className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300"
             >
               {isUploading ? (
                 <>
@@ -2698,7 +2761,7 @@ export default function ContentEdit() {
               onClick={handleDownloadEdited}
               disabled={!selectedImage || !editedImageUrl}
               variant="outline"
-              className="flex items-center gap-2"
+              className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-slate-200 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-800 shadow-sm font-semibold transition-all duration-300"
             >
               <Download className="w-4 h-4 mr-2" />
               <span className="hidden sm:inline">Download</span>
@@ -2707,13 +2770,18 @@ export default function ContentEdit() {
         </div>
       </div> {/* End of header div */}
 
-      {/* Main Editor */}
+      {/* Enhanced Main Editor */}
       <div className="w-full">
-        <Card>
-          <CardHeader>
-            <CardTitle>Professional Image Editor</CardTitle>
+        <Card className="border-0 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm shadow-xl">
+          <CardHeader className="pb-6">
+            <CardTitle className="text-2xl font-bold text-slate-800 dark:text-slate-100 flex items-center gap-3">
+              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                <Image className="w-5 h-5 text-white" />
+              </div>
+              Professional Image Editor
+            </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-6">
             {/* Hidden file input */}
             <input
               type="file"
@@ -2725,61 +2793,71 @@ export default function ContentEdit() {
 
             {!hasImage ? (
               <div
-                className="border-2 border-dashed border-gray-300 rounded-lg h-[400px] md:h-[600px] bg-muted flex flex-col items-center justify-center hover:border-gray-400 transition-colors cursor-pointer"
+                className="border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-2xl h-[400px] md:h-[600px] bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900 flex flex-col items-center justify-center hover:border-slate-400 dark:hover:border-slate-500 transition-all duration-300 cursor-pointer group"
                 onClick={triggerFileUpload}
                 onDragOver={handleDragOver}
                 onDrop={handleDrop}
               >
-                <Image className="w-12 h-12 md:w-16 md:h-16 text-gray-400 mb-4" />
-                <h3 className="text-base md:text-lg font-medium text-gray-900 mb-2 text-center">Upload an image to edit</h3>
-                <p className="text-sm md:text-base text-gray-500 mb-4 text-center px-4">Drag and drop an image here, or click to browse</p>
+                <div className="w-20 h-20 md:w-24 md:h-24 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mb-6 shadow-lg group-hover:scale-110 transition-transform duration-300">
+                  <Image className="w-10 h-10 md:w-12 md:h-12 text-white" />
+                </div>
+                <h3 className="text-xl md:text-2xl font-bold text-slate-800 dark:text-slate-100 mb-3 text-center">Upload an image to edit</h3>
+                <p className="text-base md:text-lg text-slate-600 dark:text-slate-300 mb-6 text-center px-8 leading-relaxed">Drag and drop an image here, or click to browse your files</p>
+                <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
+                  <Upload className="w-4 h-4" />
+                  <span>Click to upload or drag & drop</span>
+                </div>
               </div>
             ) : isLoadingImage ? (
-              <div className="border rounded-lg bg-muted flex flex-col items-center justify-center" style={{ height: editorHeight }}>
-                <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mb-4" />
-                <p className="text-sm md:text-base text-gray-500 text-center px-4">Preparing image for editing</p>
+              <div className="border-2 border-slate-200 dark:border-slate-700 rounded-2xl bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900 flex flex-col items-center justify-center" style={{ height: editorHeight }}>
+                <div className="w-12 h-12 border-3 border-blue-500 border-t-transparent rounded-full animate-spin mb-6" />
+                <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-2">Preparing Image</h3>
+                <p className="text-base text-slate-600 dark:text-slate-300 text-center px-8">Loading and optimizing your image for professional editing</p>
               </div>
             ) : (
               <div
-                className={`border rounded-lg bg-muted relative transition-all duration-200 ${isResizing ? 'ring-2 ring-blue-500 ring-opacity-50 shadow-lg' : ''
+                className={`border-2 border-slate-200 dark:border-slate-700 rounded-2xl bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900 relative transition-all duration-300 ${isResizing ? 'ring-4 ring-blue-500/30 shadow-2xl' : 'shadow-lg hover:shadow-xl'
                   }`}
                 style={{ width: editorWidth, height: editorHeight }}
                 ref={editorContainerRef}
               >
-                {/* Resize indicator */}
+                {/* Enhanced Resize indicator */}
                 {isResizing && (
-                  <div className="absolute top-2 right-2 bg-blue-600 text-white text-xs px-2 py-1 rounded z-10">
-                    {editorWidth} × {editorHeight}
+                  <div className="absolute top-4 right-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white text-sm px-4 py-2 rounded-full z-10 shadow-lg backdrop-blur-sm">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
+                      <span className="font-semibold">{editorWidth} × {editorHeight}</span>
+                    </div>
                   </div>
                 )}
 
-                {/* Resize handles - Only right, bottom, and right-bottom corner */}
+                {/* Enhanced Resize handles - Only right, bottom, and right-bottom corner */}
                 <div
-                  className="absolute right-0 top-1/2 transform -translate-y-1/2 w-1 h-16 cursor-ew-resize bg-gradient-to-b from-blue-400/60 to-blue-600/60 hover:from-blue-400/80 hover:to-blue-600/80 transition-all duration-200 rounded-l z-10 group"
+                  className="absolute right-0 top-1/2 transform -translate-y-1/2 w-2 h-20 cursor-ew-resize bg-gradient-to-b from-blue-500/80 to-purple-600/80 hover:from-blue-500 hover:to-purple-600 transition-all duration-300 rounded-l-full z-10 group shadow-lg"
                   onMouseDown={(e) => handleResizeStart(e, 'e')}
                   data-resize-direction="e"
                   title="Resize width"
                 >
-                  <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-1 h-8 bg-white/80 rounded opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-1 h-12 bg-white/90 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                 </div>
 
                 <div
-                  className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-16 h-1 cursor-ns-resize bg-gradient-to-r from-blue-400/60 to-blue-600/60 hover:from-blue-400/80 hover:to-blue-600/80 transition-all duration-200 rounded-t z-10 group"
+                  className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-20 h-2 cursor-ns-resize bg-gradient-to-r from-blue-500/80 to-purple-600/80 hover:from-blue-500 hover:to-purple-600 transition-all duration-300 rounded-t-full z-10 group shadow-lg"
                   onMouseDown={(e) => handleResizeStart(e, 's')}
                   data-resize-direction="s"
                   title="Resize height"
                 >
-                  <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 h-1 w-8 bg-white/80 rounded opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 h-1 w-12 bg-white/90 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                 </div>
 
                 <div
-                  className="absolute bottom-0 right-0 w-6 h-6 cursor-nw-resize bg-gradient-to-br from-blue-500/70 to-blue-700/70 hover:from-blue-500/90 hover:to-blue-700/90 transition-all duration-200 rounded-tl z-10 group shadow-lg"
+                  className="absolute bottom-0 right-0 w-8 h-8 cursor-nw-resize bg-gradient-to-br from-blue-500/90 to-purple-600/90 hover:from-blue-500 hover:to-purple-600 transition-all duration-300 rounded-tl-2xl z-10 group shadow-xl"
                   onMouseDown={(e) => handleResizeStart(e, 'se')}
                   data-resize-direction="se"
                   title="Resize both width and height"
                 >
-                  <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-3 h-3 bg-white/90 rounded-sm opacity-0 group-hover:opacity-100 transition-opacity" />
-                  <div className="absolute bottom-1 right-1 w-2 h-2 border-2 border-white/60 rounded-full" />
+                  <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-4 h-4 bg-white/95 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                  <div className="absolute bottom-1 right-1 w-3 h-3 border-2 border-white/80 rounded-full" />
                 </div>
 
                 <PinturaEditor
@@ -2916,6 +2994,7 @@ export default function ContentEdit() {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
-  );
-}
+        </div>
+      </div>
+    );
+  }

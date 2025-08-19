@@ -146,7 +146,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
     nsfw_strength: 0,
     lora_strength: 0.8,
     quality: 'Quality',
-    engine: 'General',
+    engine: 'Nymia General',
     usePromptOnly: false,
     regenerated_from: ''
   });
@@ -326,6 +326,8 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
     switch (engine) {
       case 'Nymia General':
         return 'nymia_image';
+      case 'General':
+        return 'ppv_engine_v1';
       case 'PPV':
         return 'ppv_engine_v1';
       case 'WAN 2.2 Image':
@@ -1419,7 +1421,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
       nsfw_strength: 0,
       lora_strength: 0.8,
       quality: 'Quality',
-      engine: 'General',
+      engine: 'Nymia General',
       usePromptOnly: false,
       regenerated_from: ''
     });

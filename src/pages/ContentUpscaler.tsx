@@ -1134,6 +1134,7 @@ export default function ContentUpscaler() {
           onConfirm={proceedWithImageProcessing}
           gemCostData={gemCostData}
           userCredits={userData.credits}
+          userId={userData.id}
           isProcessing={isProcessing}
           processingText="Processing..."
           title="Content Optimization Cost"

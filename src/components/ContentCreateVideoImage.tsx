@@ -3037,6 +3037,7 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
         onConfirm={proceedWithVideoGeneration}
         gemCostData={gemCostData}
         userCredits={userData.credits}
+        userId={userData.id}
         isProcessing={isGenerating}
         processingText="Generating Video..."
         title="Video Generation Cost"

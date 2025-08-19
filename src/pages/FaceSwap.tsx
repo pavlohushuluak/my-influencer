@@ -527,25 +527,22 @@ export default function FaceSwap() {
   };
 
   return (
-    <div className="p-4 sm:p-6 space-y-6">
-      {/* Header */}
-      <div className="text-center space-y-4">
-        <div className="flex items-center justify-center gap-3">
-          <div className="p-3 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl shadow-lg">
+    <div>
+      <div className="container mx-auto px-4 py-8 max-w-7xl">
+        {/* Hero Section */}
+        <div className="text-center mb-12">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-600 rounded-2xl mb-6 shadow-lg">
             <Users className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-indigo-600 bg-clip-text text-transparent">
+          <h1 className="text-5xl font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-indigo-600 bg-clip-text text-transparent mb-4">
             Face Swap Studio
           </h1>
+          <p className="text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+            Seamlessly swap faces between images with our advanced AI technology. Upload your source image and target face to create stunning results.
+          </p>
         </div>
-        <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto px-4">
-          Seamlessly swap faces between images with our advanced AI technology. Upload your source image and target face to create stunning results.
-        </p>
-      </div>
 
-      {/* Main Content */}
-      <div className="max-w-6xl mx-auto">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           
           {/* Source Image Upload */}
           <Card className="group hover:shadow-xl transition-all duration-300 border-2 border-dashed border-purple-200 dark:border-purple-800 bg-gradient-to-br from-purple-50/30 to-pink-50/30 dark:from-purple-950/20 dark:to-pink-950/20">
@@ -986,6 +983,7 @@ export default function FaceSwap() {
         }}
         gemCostData={gemCostData}
         userCredits={userData.credits}
+        userId={userData.id}
         isProcessing={isCheckingCredits}
         processingText="Checking credit cost..."
         confirmButtonText="Create Face Swap"

@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { useSelector } from 'react-redux';
-import type { RootState } from '@/store';
+import type { RootState } from '@/store/store';
 import { toast } from 'sonner';
 
 export function CreateInfluencer() {

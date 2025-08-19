@@ -67,6 +67,7 @@ interface ImageData {
   file_size_bytes: number;
   image_format: string;
   file_type: string;
+  originalUrl?: string;
 }
 
 interface EditHistory {
@@ -280,6 +281,19 @@ export default function ContentEdit() {
 
       setSelectedImage(imageData);
       setShowVaultSelector(false);
+
+      // Store the original URL for API calls (same as Image Synthesis)
+      const isInfluencerImage = imageData.file_path?.includes('models/') || imageData.id?.startsWith('influencer-');
+      const originalUrl = isInfluencerImage
+        ? `${config.data_url}/cdn-cgi/image/w=1200/${imageData.file_path}`
+        : `${config.data_url}/cdn-cgi/image/w=1200/${userData.id}/output/${imageData.system_filename}`;
+      
+      // Store the original URL in the selectedImage for later use
+      const imageDataWithUrl: ImageData = {
+        ...imageData,
+        originalUrl: originalUrl
+      };
+      setSelectedImage(imageDataWithUrl);
 
       // Load image for AI editing
       fetchImageForAiEdit(imageData);
@@ -525,7 +539,15 @@ export default function ContentEdit() {
 
       console.log(payload);
 
-      const response = await fetch(`${config.backend_url}/genai4`, {
+      const useridResponse = await fetch(`${config.supabase_server_url}/user?uuid=eq.${userData.id}`, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        }
+      });
+      const useridData = await useridResponse.json();
+
+      const response = await fetch(`${config.backend_url}/createtask?userid=${useridData[0].userid}&type=createimage`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -570,20 +592,49 @@ export default function ContentEdit() {
 
       const maskDataUrl = canvas.toDataURL('image/png');
 
-      // Create form data for AI processing
-      const formData = new FormData();
-      formData.append('image', await fetch(aiEditImage).then(r => r.blob()));
-      formData.append('mask', await fetch(maskDataUrl).then(r => r.blob()));
-      formData.append('prompt', textPrompt);
-      formData.append('user', userData.id);
+      // Create payload for AI processing
+      let payload: any;
+      
+      if (selectedImage?.originalUrl) {
+        // For library/influencer images, send URL directly
+        payload = {
+          image_url: selectedImage.originalUrl,
+          mask_data_url: maskDataUrl,
+          prompt: textPrompt,
+          user: userData.id
+        };
+      } else {
+        // For uploaded images, send file as blob
+        const formData = new FormData();
+        formData.append('image', await fetch(aiEditImage).then(r => r.blob()));
+        formData.append('mask', await fetch(maskDataUrl).then(r => r.blob()));
+        formData.append('prompt', textPrompt);
+        formData.append('user', userData.id);
+        payload = formData;
+      }
+
+      const useridResponse = await fetch(`${config.supabase_server_url}/user?uuid=eq.${userData.id}`, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        }
+      });
+      const useridData = await useridResponse.json();
 
       // Send to AI processing endpoint
-      const response = await fetch(`${config.backend_url}/ai-image-edit`, {
+      const headers: any = {
+        'Authorization': 'Bearer WeInfl3nc3withAI'
+      };
+      
+      // Set appropriate content type based on payload type
+      if (selectedImage?.originalUrl) {
+        headers['Content-Type'] = 'application/json';
+      }
+      
+      const response = await fetch(`${config.backend_url}/createtask?userid=${useridData[0].userid}&type=createimage`, {
         method: 'POST',
-        headers: {
-          'Authorization': 'Bearer WeInfl3nc3withAI'
-        },
-        body: formData
+        headers: headers,
+        body: selectedImage?.originalUrl ? JSON.stringify(payload) : payload
       });
 
       if (!response.ok) {
@@ -1515,7 +1566,8 @@ export default function ContentEdit() {
           created_at: new Date().toISOString(),
           file_size_bytes: file.size,
           image_format: file.type.split('/')[1] || 'jpeg',
-          file_type: file.type
+          file_type: file.type,
+          originalUrl: result // Store the data URL as original URL for uploaded files
         };
 
                     if (editMode === 'ai-image-edit') {
@@ -1588,7 +1640,8 @@ export default function ContentEdit() {
             created_at: new Date().toISOString(),
             file_size_bytes: file.size,
             image_format: file.type.split('/')[1] || 'jpeg',
-            file_type: file.type
+            file_type: file.type,
+            originalUrl: result // Store the data URL as original URL for uploaded files
           };
 
                       if (editMode === 'ai-image-edit') {
@@ -1737,7 +1790,8 @@ export default function ContentEdit() {
         created_at: new Date().toISOString(),
         file_size_bytes: 0,
         image_format: 'png',
-        file_type: 'image/png'
+        file_type: 'image/png',
+        originalUrl: profileImageUrl
       };
 
       setSelectedImage(influencerImageData);

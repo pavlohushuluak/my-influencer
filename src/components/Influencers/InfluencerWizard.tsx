@@ -73,6 +73,9 @@ interface Option {
   label: string;
   image: string;
   description?: string;
+  ethnics_stereotype?: string;
+  sex?: string;
+  license?: string;
 }
 
 interface SexOption {
@@ -111,6 +114,9 @@ interface FacialTemplateDetail {
 interface NameSuggestion {
   rank: number;
   full_name: string;
+  first_name: string;
+  last_name: string;
+  nick_name: string;
   social_handle: string;
   reasoning: string;
   cultural_authenticity: number;
@@ -303,9 +309,46 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
   const [selectedPreviewIndex, setSelectedPreviewIndex] = useState<number | null>(null);
   const [showMagnifyModal, setShowMagnifyModal] = useState(false);
   const [magnifyImageUrl, setMagnifyImageUrl] = useState<string | null>(null);
+  const [isTouchDevice, setIsTouchDevice] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(20);
   const userData = useSelector((state: RootState) => state.user);
+
+  // Credit checking states
+  const [isCheckingCredits, setIsCheckingCredits] = useState(false);
+  const [showCreditWarning, setShowCreditWarning] = useState(false);
+  const [creditCostData, setCreditCostData] = useState<any>(null);
+
+  // Check credit cost for influencer wizard generation
+  const checkCreditCost = async (itemType: string) => {
+    try {
+      setIsCheckingCredits(true);
+      const response = await fetch('https://api.nymia.ai/v1/getgems', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          user_id: userData.id,
+          item: itemType
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to check credit cost');
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error checking credit cost:', error);
+      toast.error('Failed to check credit cost. Please try again.');
+      return null;
+    } finally {
+      setIsCheckingCredits(false);
+    }
+  };
 
   const [influencerData, setInfluencerData] = useState<InfluencerData>({
     user_id: userData.id,
@@ -413,6 +456,11 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
 
   // console.log(influencerData);
 
+  // Detect touch device
+  useEffect(() => {
+    setIsTouchDevice('ontouchstart' in window || navigator.maxTouchPoints > 0);
+  }, []);
+
   // Show toast when entering a step with existing value
   useEffect(() => {
     // Remove the automatic page reset - let users stay on their current page
@@ -496,11 +544,12 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
   }, []);
 
   // Auto-start preview when reaching step 15 (only once and only if no images exist)
+  // Auto-start preview when reaching step 15 (only once and only if no images exist)
   useEffect(() => {
     if (currentStep === 15 && !isPreviewLoading && !hasAutoRendered && previewHistory.length === 0 && previewImages.length === 0) {
       // Small delay to ensure the step content is rendered
       const timer = setTimeout(() => {
-        handlePreview();
+        executePreview(); // Direct call to executePreview to bypass credit check
         setHasAutoRendered(true);
       }, 500);
 
@@ -518,8 +567,17 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
     try {
       setIsLoadingFacialFeatures(true);
 
-      // Fetch templates from ethnic-specific API
-      const templatesResponse = await fetch(`${config.supabase_server_url}/facial_templates_global?ethnics_stereotype=eq.${ethnic}`, {
+      // Build query parameters for ethnic and sex filtering
+      const queryParams = new URLSearchParams();
+      if (ethnic) {
+        queryParams.append('ethnics_stereotype', `eq.${ethnic}`);
+      }
+      if (influencerData.sex) {
+        queryParams.append('sex', `eq.${influencerData.sex.toLowerCase()}`);
+      }
+
+      // Fetch templates from ethnic-specific API with sex filtering
+      const templatesResponse = await fetch(`${config.supabase_server_url}/facial_templates_global?${queryParams.toString()}`, {
         headers: {
           'Authorization': 'Bearer WeInfl3nc3withAI'
         }
@@ -564,7 +622,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
 
   useEffect(() => {
     fetchFacialFeaturesOptions(ethnic || undefined);
-  }, [ethnic]);
+  }, [ethnic, influencerData.sex]);
 
   // Fetch age options from API
   useEffect(() => {
@@ -991,10 +1049,18 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
         if (response.ok) {
           const responseData = await response.json();
           if (responseData && responseData.fieldoptions && Array.isArray(responseData.fieldoptions)) {
-            setBodyTypeOptions(responseData.fieldoptions.map((item: any) => ({
+            // Filter based on selected sex from Step 1
+            const filteredOptions = responseData.fieldoptions.filter((item: any) => {
+              return !item.sex || item.sex === influencerData.sex;
+            });
+            
+            setBodyTypeOptions(filteredOptions.map((item: any) => ({
               label: item.label,
               image: item.image,
-              description: item.description
+              description: item.description,
+              ethnics_stereotype: item.ethnics_stereotype,
+              sex: item.sex,
+              license: item.license
             })));
           }
         }
@@ -1006,7 +1072,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
     };
 
     fetchBodyTypeOptions();
-  }, []);
+  }, [influencerData.sex]);
 
   // Fetch bust size options from API
   useEffect(() => {
@@ -1294,10 +1360,11 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
     };
   };
 
-  // Pagination helper functions
-  const totalPages = itemsPerPage === -1 ? 1 : Math.ceil(facialFeaturesOptions.length / itemsPerPage);
-  const startIndex = itemsPerPage === -1 ? 0 : (currentPage - 1) * itemsPerPage;
-  const endIndex = itemsPerPage === -1 ? facialFeaturesOptions.length : startIndex + itemsPerPage;
+  // Pagination helper functions - use 16 items per page for step 4 (facial features), otherwise use itemsPerPage
+  const effectiveItemsPerPage = currentStep === 4 ? 16 : itemsPerPage;
+  const totalPages = effectiveItemsPerPage === -1 ? 1 : Math.ceil(facialFeaturesOptions.length / effectiveItemsPerPage);
+  const startIndex = effectiveItemsPerPage === -1 ? 0 : (currentPage - 1) * effectiveItemsPerPage;
+  const endIndex = effectiveItemsPerPage === -1 ? facialFeaturesOptions.length : startIndex + effectiveItemsPerPage;
   const currentItems = facialFeaturesOptions.slice(startIndex, endIndex);
 
   const handlePageChange = (page: number) => {
@@ -1426,6 +1493,12 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
   };
 
   const handleSubmit = async () => {
+    // Directly execute the submission without credit check
+    executeSubmit();
+  };
+
+  // Execute submit after credit confirmation
+  const executeSubmit = async () => {
     setIsLoading(true);
     console.log(profileImageId);
 
@@ -1449,6 +1522,9 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
         throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
       }
 
+      // Add a small delay to ensure the database has been updated
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
       const responseId = await fetch(`${config.supabase_server_url}/influencer?user_id=eq.${userData.id}&new=eq.true`, {
         headers: {
           'Content-Type': 'application/json',
@@ -1457,6 +1533,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
       });
 
       console.log('ResponseId fetch:', responseId);
+      console.log('Fetch URL:', `${config.supabase_server_url}/influencer?user_id=eq.${userData.id}&new=eq.true`);
       
       if (!responseId.ok) {
         const errorText = await responseId.text();
@@ -1464,11 +1541,33 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
         throw new Error(`Failed to fetch created influencer: ${responseId.status}, ${errorText}`);
       }
 
-      const data = await responseId.json();
+      let data = await responseId.json();
       console.log('Created influencer data:', data);
+      console.log('Data length:', data.length);
+      console.log('User ID used:', userData.id);
 
       if (!data || data.length === 0) {
-        throw new Error('No influencer data returned after creation');
+        // Try to fetch without the new=true filter as fallback
+        const fallbackResponse = await fetch(`${config.supabase_server_url}/influencer?user_id=eq.${userData.id}&order=created_at.desc&limit=1`, {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer WeInfl3nc3withAI'
+          }
+        });
+        
+        if (fallbackResponse.ok) {
+          const fallbackData = await fallbackResponse.json();
+          console.log('Fallback data:', fallbackData);
+          if (fallbackData && fallbackData.length > 0) {
+            // Use the most recent influencer
+            data = fallbackData;
+            console.log('Using fallback data:', data);
+          }
+        }
+        
+        if (!data || data.length === 0) {
+          throw new Error('No influencer data returned after creation - check database and user_id');
+        }
       }
       const num = data[0].image_num === null || data[0].image_num === undefined || isNaN(data[0].image_num) ? 0 : data[0].image_num;
 
@@ -1720,6 +1819,33 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
 
   const handlePreview = async () => {
     if (!validateFields()) { return; }
+    
+    // Check credit cost first
+    const creditData = await checkCreditCost('nymia_image');
+    if (!creditData) return;
+
+    // Calculate total required credits for 3 preview images
+    const totalRequiredCredits = creditData.gems * 3;
+    
+    setCreditCostData({
+      ...creditData,
+      gems: totalRequiredCredits,
+      originalGemsPerImage: creditData.gems
+    });
+
+    // Check if user has enough credits
+    if (userData.credits < totalRequiredCredits) {
+      setShowCreditWarning(true);
+      return;
+    } else {
+      // Show confirmation for credit cost
+      setShowCreditWarning(true);
+      return;
+    }
+  };
+
+  // Execute preview generation after credit confirmation
+  const executePreview = async () => {
     setIsPreviewLoading(true);
 
     // Initialize preview images with loading states
@@ -1939,14 +2065,14 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                         <div className="space-y-4">
                           <div className="relative">
                             <img
-                              src={`${config.data_url}/wizard/mappings400/${option.image}`}
+                              src={`${config.data_url}/wizard/mappings250/${option.image}`}
                               alt={option.label}
                               className="w-full h-full object-cover rounded-lg shadow-md group-hover:scale-105 transition-transform duration-300"
                             />
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                setMagnifyImageUrl(`${config.data_url}/wizard/mappings400/${option.image}`);
+                                setMagnifyImageUrl(`${config.data_url}/wizard/mappings800/${option.image}`);
                                 setShowMagnifyModal(true);
                               }}
                               className="absolute top-2 left-2 w-8 h-8 bg-black/70 hover:bg-black/80 rounded-full flex items-center justify-center transition-all opacity-0 group-hover:opacity-100"
@@ -2030,14 +2156,14 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                           <div className="space-y-4">
                             <div className="relative">
                               <img
-                                src={`${config.data_url}/wizard/mappings400/${option.image}`}
+                                src={`${config.data_url}/wizard/mappings250/${option.image}`}
                                 alt={option.label}
                                 className="w-full h-full object-cover rounded-lg shadow-md group-hover:scale-105 transition-transform duration-300"
                               />
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  setMagnifyImageUrl(`${config.data_url}/wizard/mappings400/${option.image}`);
+                                  setMagnifyImageUrl(`${config.data_url}/wizard/mappings800/${option.image}`);
                                   setShowMagnifyModal(true);
                                 }}
                                 className="absolute top-2 left-2 w-8 h-8 bg-black/70 hover:bg-black/80 rounded-full flex items-center justify-center transition-all opacity-0 group-hover:opacity-100"
@@ -2197,14 +2323,14 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                           <div className="space-y-4">
                             <div className="relative">
                               <img
-                                src={`${config.data_url}/wizard/mappings400/${option.image}`}
+                                src={`${config.data_url}/wizard/mappings250/${option.image}`}
                                 alt={option.label}
                                 className="w-full h-full object-cover rounded-lg shadow-md group-hover:scale-105 transition-transform duration-300"
                               />
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  setMagnifyImageUrl(`${config.data_url}/wizard/mappings400/${option.image}`);
+                                  setMagnifyImageUrl(`${config.data_url}/wizard/mappings800/${option.image}`);
                                   setShowMagnifyModal(true);
                                 }}
                                 className="absolute top-2 left-2 w-8 h-8 bg-black/70 hover:bg-black/80 rounded-full flex items-center justify-center transition-all opacity-0 group-hover:opacity-100"
@@ -2268,22 +2394,10 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                 </div>
               ) : (
                 <div className="space-y-6">
-                  {/* Items per page control */}
-                  <div className="flex justify-between items-center">
-                    {/* Items per page selector */}
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-gray-600 dark:text-gray-400">Show:</span>
-                      <select
-                        value={itemsPerPage}
-                        onChange={(e) => handleItemsPerPageChange(Number(e.target.value))}
-                        className="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      >
-                        <option value={4}>4</option>
-                        <option value={8}>8</option>
-                        <option value={12}>12</option>
-                        <option value={-1}>All</option>
-                      </select>
-                      <span className="text-sm text-gray-600 dark:text-gray-400">per page</span>
+                  {/* Show items count without dropdown selector */}
+                  <div className="flex justify-end items-center">
+                    <div className="text-sm text-gray-600 dark:text-gray-400">
+                      Showing 16 templates per page
                     </div>
                   </div>
 
@@ -2313,10 +2427,20 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                             <div className="space-y-4">
                               <div className="relative">
                                 <img
-                                  src={`${config.data_url}/wizard/mappings400/${option.image}`}
+                                  src={`${config.data_url}/wizard/mappings250/${option.image}`}
                                   alt={option.label}
                                   className="w-full h-full object-cover rounded-lg shadow-md group-hover:scale-105 transition-transform duration-300"
                                 />
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setMagnifyImageUrl(`${config.data_url}/wizard/mappings800/${option.image}`);
+                                    setShowMagnifyModal(true);
+                                  }}
+                                  className="absolute top-2 left-2 w-8 h-8 bg-black/70 hover:bg-black/80 rounded-full flex items-center justify-center transition-all opacity-0 group-hover:opacity-100"
+                                >
+                                  <ZoomIn className="w-4 h-4 text-white" />
+                                </button>
                                 {influencerData.facial_features === option.label ? (
                                   <div className="absolute top-2 right-2 w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center shadow-lg">
                                     <Check className="w-5 h-5 text-white" />
@@ -2679,14 +2803,14 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                           <div className="space-y-4">
                             <div className="relative">
                               <img
-                                src={`${config.data_url}/wizard/mappings400/${option.image}`}
+                                src={`${config.data_url}/wizard/mappings250/${option.image}`}
                                 alt={option.label}
                                 className="w-full h-full object-cover rounded-lg shadow-md group-hover:scale-105 transition-transform duration-300"
                               />
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  setMagnifyImageUrl(`${config.data_url}/wizard/mappings400/${option.image}`);
+                                  setMagnifyImageUrl(`${config.data_url}/wizard/mappings800/${option.image}`);
                                   setShowMagnifyModal(true);
                                 }}
                                 className="absolute top-2 left-2 w-8 h-8 bg-black/70 hover:bg-black/80 rounded-full flex items-center justify-center transition-all opacity-0 group-hover:opacity-100"
@@ -2867,14 +2991,14 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                           <div className="space-y-4">
                             <div className="relative">
                               <img
-                                src={`${config.data_url}/wizard/mappings400/${option.image}`}
+                                src={`${config.data_url}/wizard/mappings250/${option.image}`}
                                 alt={option.label}
                                 className="w-full h-full object-cover rounded-lg shadow-md group-hover:scale-105 transition-transform duration-300"
                               />
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  setMagnifyImageUrl(`${config.data_url}/wizard/mappings400/${option.image}`);
+                                  setMagnifyImageUrl(`${config.data_url}/wizard/mappings800/${option.image}`);
                                   setShowMagnifyModal(true);
                                 }}
                                 className="absolute top-2 left-2 w-8 h-8 bg-black/70 hover:bg-black/80 rounded-full flex items-center justify-center transition-all opacity-0 group-hover:opacity-100"
@@ -3055,14 +3179,14 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
                           <div className="space-y-4">
                             <div className="relative">
                               <img
-                                src={`${config.data_url}/wizard/mappings400/${option.image}`}
+                                src={`${config.data_url}/wizard/mappings250/${option.image}`}
                                 alt={option.label}
                                 className="w-full h-full object-cover rounded-lg shadow-md group-hover:scale-105 transition-transform duration-300"
                               />
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  setMagnifyImageUrl(`${config.data_url}/wizard/mappings400/${option.image}`);
+                                  setMagnifyImageUrl(`${config.data_url}/wizard/mappings800/${option.image}`);
                                   setShowMagnifyModal(true);
                                 }}
                                 className="absolute top-2 left-2 w-8 h-8 bg-black/70 hover:bg-black/80 rounded-full flex items-center justify-center transition-all opacity-0 group-hover:opacity-100"
@@ -5068,32 +5192,37 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
           <div className="flex justify-center gap-4 p-4">
             <Button
               variant="outline"
-              onClick={() => setShowMagnifyModal(false)}
+              onClick={() => {
+                setShowMagnifyModal(false);
+                setMagnifyImageUrl(null);
+              }}
               className="px-6"
             >
               Close
             </Button>
-            <Button
-              onClick={() => {
-                if (magnifyImageUrl) {
-                  const index = previewImages.findIndex(p => p.imageUrl === magnifyImageUrl);
-                  if (index !== -1) {
-                    setSelectedPreviewIndex(index);
-                    setPreviewImageUrl(magnifyImageUrl);
-                    setGeneratedImageData({
-                      image_id: magnifyImageUrl.split('/').pop() || '',
-                      system_filename: magnifyImageUrl.split('/').pop() || ''
-                    });
-                    setShowMagnifyModal(false);
-                    setShowPreviewImages(false);
-                    setCurrentStep(16);
+            {currentStep !== 4 && (
+              <Button
+                onClick={() => {
+                  if (magnifyImageUrl) {
+                    const index = previewImages.findIndex(p => p.imageUrl === magnifyImageUrl);
+                    if (index !== -1) {
+                      setSelectedPreviewIndex(index);
+                      setPreviewImageUrl(magnifyImageUrl);
+                      setGeneratedImageData({
+                        image_id: magnifyImageUrl.split('/').pop() || '',
+                        system_filename: magnifyImageUrl.split('/').pop() || ''
+                      });
+                      setShowMagnifyModal(false);
+                      setShowPreviewImages(false);
+                      setCurrentStep(16);
+                    }
                   }
-                }
-              }}
-              className="px-6 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
-            >
-              Use This Image
-            </Button>
+                }}
+                className="px-6 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+              >
+                Use This Image
+              </Button>
+            )}
           </div>
         </DialogContent>
       </Dialog>
@@ -5344,6 +5473,71 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
             >
               Cancel
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Credit Warning Modal */}
+      <Dialog open={showCreditWarning} onOpenChange={setShowCreditWarning}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Credit Cost Confirmation</DialogTitle>
+            <DialogDescription>
+              {userData.credits >= (creditCostData?.gems || 0) ? (
+                <>
+                  This action will cost <strong>{creditCostData?.gems} credits</strong>.
+                  You currently have <strong>{userData.credits} credits</strong>.
+                  {creditCostData?.originalGemsPerImage && (
+                    <div className="mt-2 text-sm text-gray-600">
+                      ({creditCostData.originalGemsPerImage} credits per image)
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  Insufficient credits! This action requires <strong>{creditCostData?.gems} credits</strong>,
+                  but you only have <strong>{userData.credits} credits</strong>.
+                  Please purchase more credits to continue.
+                </>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setShowCreditWarning(false)}>
+              Cancel
+            </Button>
+            {userData.credits >= (creditCostData?.gems || 0) ? (
+              <>
+                {currentStep === 14 ? (
+                  <Button 
+                    onClick={() => {
+                      setShowCreditWarning(false);
+                      executeSubmit();
+                    }}
+                  >
+                    Confirm & Create Influencer
+                  </Button>
+                ) : (
+                  <Button 
+                    onClick={() => {
+                      setShowCreditWarning(false);
+                      executePreview();
+                    }}
+                  >
+                    Confirm & Generate Preview
+                  </Button>
+                )}
+              </>
+            ) : (
+              <Button 
+                onClick={() => {
+                  setShowCreditWarning(false);
+                  toast.info('Please purchase credits to continue');
+                }}
+              >
+                Buy Credits
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>

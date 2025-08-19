@@ -63,6 +63,10 @@ export interface Influencer {
   use_fanvue_api?: boolean; // Shall this Influencer be connected to Fanvue
   fanvue_api_key?: string; // API Key of this Influencer on Fanvue
   show_on_dashboard?: boolean; // Shall this Influencer be part of your dashboard
+  // Example Pictures
+  example_pic1?: string; // Filename for example picture 1
+  example_pic2?: string; // Filename for example picture 2
+  example_pic3?: string; // Filename for example picture 3
 }
 
 interface InfluencersState {

@@ -326,9 +326,9 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
     switch (engine) {
       case 'Nymia General':
         return 'nymia_image';
-      case 'General':
-        return 'ppv_engine_v1';
       case 'PPV':
+        return 'ppv_engine_v1';
+      case 'General':
         return 'ppv_engine_v1';
       case 'WAN 2.2 Image':
         return 'wan_2_2_image';
@@ -1344,14 +1344,35 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
     title: string
   }) => {
     const [localPreview, setLocalPreview] = useState<string | null>(null);
+    const [isTouchDevice, setIsTouchDevice] = useState(false);
+
+    useEffect(() => {
+      // Detect touch device
+      setIsTouchDevice('ontouchstart' in window || navigator.maxTouchPoints > 0);
+    }, []);
+
     const handleImageClick = (e: React.MouseEvent, imageUrl: string) => {
       e.stopPropagation();
       setLocalPreview(imageUrl);
     };
+
+    const handleImageHover = (imageUrl: string) => {
+      if (!isTouchDevice) {
+        setLocalPreview(imageUrl);
+      }
+    };
+
+    const handleMouseLeave = () => {
+      if (!isTouchDevice) {
+        setLocalPreview(null);
+      }
+    };
+
     const handleSelect = (label: string) => {
       onSelect(label);
       onClose();
     };
+
     return (
       <>
         <Dialog open={true} onOpenChange={onClose}>
@@ -1367,23 +1388,45 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
                   onClick={() => handleSelect(option.label)}
                 >
                   <CardContent className="p-4">
-                    <div className="relative w-full group" style={{ paddingBottom: '100%' }}>
+                    <div 
+                      className="relative w-full group" 
+                      style={{ paddingBottom: '100%' }}
+                      onMouseEnter={() => handleImageHover(`${config.data_url}/wizard/mappings800/${option.image}`)}
+                      onMouseLeave={handleMouseLeave}
+                    >
                       <img
-                        src={`${config.data_url}/wizard/mappings400/${option.image}`}
+                        src={`${config.data_url}/wizard/mappings250/${option.image}`}
                         alt={option.label}
-                        className="absolute inset-0 w-full h-full object-cover rounded-md"
+                        className="absolute inset-0 w-full h-full object-cover rounded-md transition-transform duration-200 hover:scale-105"
+                        data-testid={`img-option-${option.label.toLowerCase()}`}
                       />
-                      <div
-                        className="absolute right-2 top-2 bg-black/50 rounded-full w-8 h-8 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
-                        onClick={(e) => handleImageClick(e, `${config.data_url}/wizard/mappings800/${option.image}`)}
-                      >
-                        <ZoomIn className="w-5 h-5 text-white" />
-                      </div>
+                      {/* Touch device magnifier overlay */}
+                      {isTouchDevice && (
+                        <div
+                          className="absolute right-2 top-2 bg-black/70 rounded-full w-10 h-10 flex items-center justify-center cursor-zoom-in backdrop-blur-sm"
+                          onClick={(e) => handleImageClick(e, `${config.data_url}/wizard/mappings800/${option.image}`)}
+                          data-testid={`button-zoom-${option.label.toLowerCase()}`}
+                        >
+                          <ZoomIn className="w-5 h-5 text-white" />
+                        </div>
+                      )}
+                      {/* Desktop hover magnifier */}
+                      {!isTouchDevice && (
+                        <div
+                          className="absolute right-2 top-2 bg-black/50 rounded-full w-8 h-8 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
+                          onClick={(e) => handleImageClick(e, `${config.data_url}/wizard/mappings800/${option.image}`)}
+                          data-testid={`button-zoom-hover-${option.label.toLowerCase()}`}
+                        >
+                          <ZoomIn className="w-4 h-4 text-white" />
+                        </div>
+                      )}
                     </div>
                     <div className="mt-3 space-y-1">
-                      <p className="text-sm font-medium text-center">{option.label}</p>
+                      <p className="text-sm font-medium text-center" data-testid={`text-label-${option.label.toLowerCase()}`}>
+                        {option.label}
+                      </p>
                       {option.description && (
-                        <p className="text-xs text-muted-foreground text-center leading-tight">
+                        <p className="text-xs text-muted-foreground text-center leading-tight" data-testid={`text-description-${option.label.toLowerCase()}`}>
                           {option.description}
                         </p>
                       )}
@@ -1396,8 +1439,22 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
         </Dialog>
         {localPreview && (
           <Dialog open={true} onOpenChange={() => setLocalPreview(null)}>
-            <DialogContent className="max-w-2xl">
-              <img src={localPreview} alt="Preview" className="w-full h-auto rounded-lg" />
+            <DialogContent className="max-w-4xl max-h-[90vh] p-2">
+              <div className="relative">
+                <img 
+                  src={localPreview} 
+                  alt="Vergrößerte Ansicht" 
+                  className="w-full h-auto rounded-lg max-h-[85vh] object-contain"
+                  data-testid="img-zoomed-preview"
+                />
+                <button
+                  onClick={() => setLocalPreview(null)}
+                  className="absolute top-2 right-2 bg-black/70 hover:bg-black/90 text-white rounded-full p-2 transition-colors"
+                  data-testid="button-close-zoom"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
             </DialogContent>
           </Dialog>
         )}
@@ -3453,8 +3510,8 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
                               <CardContent className="p-4">
                                 <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                                   <img
-                                    src={`${config.data_url}/wizard/mappings400/${safeFormatOptions.find(option => option.label === formData.format)?.image}`}
-                                    className="absolute inset-0 w-full h-full object-cover rounded-md"
+                                    src={`${config.data_url}/wizard/mappings250/${safeFormatOptions.find(option => option.label === formData.format)?.image}`}
+                                    className="absolute inset-0 w-full h-full object-cover rounded-md transition-transform duration-200 hover:scale-105"
                                   />
                                   <Button
                                     variant="destructive"
@@ -3787,8 +3844,8 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
                                     <CardContent className="p-4">
                                       <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
                                         <img
-                                          src={`${config.data_url}/wizard/mappings400/${rotationOptions.find(option => option.label === sceneSpecs.rotation)?.image}`}
-                                          className="absolute inset-0 w-full h-full object-cover rounded-md"
+                                          src={`${config.data_url}/wizard/mappings250/${rotationOptions.find(option => option.label === sceneSpecs.rotation)?.image}`}
+                                          className="absolute inset-0 w-full h-full object-cover rounded-md transition-transform duration-200 hover:scale-105"
                                         />
                                         <Button
                                           variant="destructive"

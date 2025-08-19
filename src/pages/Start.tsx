@@ -85,6 +85,8 @@ export default function Start() {
   const [showPhase3CreationModal, setShowPhase3CreationModal] = useState(false);
   const [showPhase4LibraryModal, setShowPhase4LibraryModal] = useState(false);
   const [showCharacterConsistencyModal, setShowCharacterConsistencyModal] = useState(false);
+  const [showTrainingOptionsModal, setShowTrainingOptionsModal] = useState(false);
+  const [selectedTrainingType, setSelectedTrainingType] = useState<'basic' | 'plus' | null>(null);
   const [showImagePreviewModal, setShowImagePreviewModal] = useState(false);
   const [showPhase2InfluencerSelector, setShowPhase2InfluencerSelector] = useState(false);
   const [showActiveInfluencerSelector, setShowActiveInfluencerSelector] = useState(false);
@@ -187,8 +189,11 @@ export default function Start() {
   };
 
   // Cost checking function for LoRA training
-  const checkGemCost = async () => {
+  const checkGemCost = async (trainingType: 'basic' | 'plus') => {
     try {
+      // Determine the product type based on training selection
+      const productType = trainingType === 'basic' ? 'nymia_lora' : 'nymia_lora_plus';
+      
       // Try to fetch pricing from API
       const response = await fetch(`${config.backend_url}/pricing`, {
         method: 'POST',
@@ -197,29 +202,33 @@ export default function Start() {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          type: "nymia_lora"
+          type: productType
         })
       });
 
-      let gemCost = 50; // Default cost for LoRA training
+      let gemCost = trainingType === 'basic' ? 50 : 100; // Default costs
+      let productName = trainingType === 'basic' ? 'Basic Character Consistency Training' : 'Character Consistency Training Plus';
+      let description = trainingType === 'basic' 
+        ? 'Creates 10 images to Lock the Look. Good for creating normal, consistent Influencer images.'
+        : 'Creates 25 images to Lock the Look with more training steps. Good for professional grade Influencer images.';
       
       if (response.ok) {
         const costData = await response.json();
-        // API returns { gems: 55 }, convert to our format
+        // API returns { gems: X }, convert to our format
         const formattedCostData = {
-          gem_cost: costData.gems || 50,
-          product_name: "AI Consistency Training",
-          description: "Character consistency training for your AI influencer"
+          gem_cost: costData.gems || gemCost,
+          product_name: productName,
+          description: description
         };
         setGemCostData(formattedCostData);
-        gemCost = costData.gems || 50;
+        gemCost = costData.gems || gemCost;
       } else {
         // API endpoint not available, use default cost
         console.log('Pricing API not available, using default cost');
         const defaultCostData = {
-          gem_cost: 50,
-          product_name: "AI Consistency Training",
-          description: "Character consistency training for your AI influencer"
+          gem_cost: gemCost,
+          product_name: productName,
+          description: description
         };
         setGemCostData(defaultCostData);
       }
@@ -244,16 +253,22 @@ export default function Start() {
     } catch (error) {
       console.error('Error checking gem cost:', error);
       // Fallback to default cost even on network error
+      let gemCost = trainingType === 'basic' ? 50 : 100;
+      let productName = trainingType === 'basic' ? 'Basic Character Consistency Training' : 'Character Consistency Training Plus';
+      let description = trainingType === 'basic' 
+        ? 'Creates 10 images to Lock the Look. Good for creating normal, consistent Influencer images.'
+        : 'Creates 25 images to Lock the Look with more training steps. Good for professional grade Influencer images.';
+        
       const defaultCostData = {
-        gem_cost: 50,
-        product_name: "AI Consistency Training",
-        description: "Character consistency training for your AI influencer"
+        gem_cost: gemCost,
+        product_name: productName,
+        description: description
       };
       setGemCostData(defaultCostData);
       
       const currentCredits = userData.credits || 0;
-      if (currentCredits < 50) {
-        toast.error(`Insufficient credits! You need 50 gems but only have ${currentCredits} gems.`, {
+      if (currentCredits < gemCost) {
+        toast.error(`Insufficient credits! You need ${gemCost} gems but only have ${currentCredits} gems.`, {
           description: "Please purchase more gems to continue with AI consistency training."
         });
         return false;
@@ -265,15 +280,21 @@ export default function Start() {
   };
 
   // Handle training start with cost check
-  const handleStartTraining = async () => {
-    const canProceed = await checkGemCost();
+  const handleStartTraining = async (trainingType: 'basic' | 'plus') => {
+    setSelectedTrainingType(trainingType);
+    const canProceed = await checkGemCost(trainingType);
     if (canProceed) {
-      startTraining();
+      startTraining(trainingType);
     }
   };
 
+  // Handle opening training options modal
+  const handleOpenTrainingOptions = () => {
+    setShowTrainingOptionsModal(true);
+  };
+
   // Start training function
-  const startTraining = async () => {
+  const startTraining = async (trainingType: 'basic' | 'plus') => {
     if (!selectedPhase2Influencer) {
       toast.error("No influencer selected for training");
       return;
@@ -286,11 +307,11 @@ export default function Start() {
     if (currentCredits < gemCost) {
       toast.error(`Insufficient credits! You need ${gemCost} gems but only have ${currentCredits} gems.`);
       setShowCostWarningModal(false);
-      setShowCharacterConsistencyModal(false);
+      setShowTrainingOptionsModal(false);
       return;
     }
 
-    setShowCharacterConsistencyModal(false);
+    setShowTrainingOptionsModal(false);
     setShowCostWarningModal(false);
     
     try {
@@ -306,9 +327,12 @@ export default function Start() {
 
       const useridData = await useridResponse.json();
 
+      // Determine task type based on training selection
+      const taskType = trainingType === 'basic' ? 'createlora' : 'createloraplus';
+
       // Start LoRA training for the selected influencer
       await fetch(
-        `${config.backend_url}/createtask?userid=${useridData[0].userid}&type=createlora`,
+        `${config.backend_url}/createtask?userid=${useridData[0].userid}&type=${taskType}`,
         {
           method: "POST",
           headers: {
@@ -316,7 +340,7 @@ export default function Start() {
             Authorization: "Bearer WeInfl3nc3withAI",
           },
           body: JSON.stringify({
-            task: "createlora",
+            task: taskType,
             fromsingleimage: true,
             modelid: selectedPhase2Influencer.id,
             inputimage: `/models/${selectedPhase2Influencer.id}/profilepic/profilepic${selectedPhase2Influencer.image_num - 1}.png`,
@@ -324,8 +348,11 @@ export default function Start() {
         },
       );
 
-      toast.success("AI Consistency Training Started!", {
-        description: `Training has begun for ${selectedPhase2Influencer.name_first}. This will take about 30 minutes.`
+      const trainingName = trainingType === 'basic' ? 'Basic AI Consistency Training' : 'AI Consistency Training Plus';
+      const imageCount = trainingType === 'basic' ? '10' : '25';
+      
+      toast.success(`${trainingName} Started!`, {
+        description: `Training has begun for ${selectedPhase2Influencer.name_first}. Creating ${imageCount} images. This will take about 30 minutes.`
       });
 
       // Update influencer lorastatus to 1 (processing) and start polling
@@ -537,60 +564,100 @@ export default function Start() {
     }
   }, [influencers]);
 
-  const phases = [
-    {
-      id: 1,
-      phase: "Phase 1",
-      title: "Create Influencer",
-      description: "Set name, visuals, and backstory with guided prompts.",
-      time: "Avg. setup: ~10 minutes.",
-      icon: User,
-      imageSrc: "/phase1.png",
-      completed: currentPhase > 1,
-      isPending: currentPhase === 1,
-    },
-    {
-      id: 2,
-      phase: "Phase 2",
-      title: "Lock the Look",
-      description: "We handle training automatically — no settings, no jargon.",
-      time: "Runs ~30 minutes in the background.",
-      icon: Brain,
-      imageSrc: "/phase2.png",
-      completed: currentPhase > 2 && selectedPhase2Influencer?.lorastatus === 2,
-      isPending: currentPhase === 2 && (!selectedPhase2Influencer || selectedPhase2Influencer.lorastatus !== 1),
-      isProcessing: currentPhase === 2 && selectedPhase2Influencer?.lorastatus === 1,
-      showProgress: currentPhase === 2 && selectedPhase2Influencer?.lorastatus === 1,
-      progressMessage:
-        "This step takes about 30–60 minutes. You can keep working on other tasks while we train your AI.",
-    },
-    {
-      id: 3,
-      phase: "Phase 3",
-      title: "Create Content",
-      description:
-        "Produce images, videos, audio and LipSync videos using curated templates or by using your own prompts.",
-      time: "Ready‑to‑post packs for Instagram & Fanvue.",
-      icon: ImageIcon,
-      imageSrc: "/phase3.png",
-      completed: currentPhase > 3,
-      isPending: currentPhase === 3,
-      disabled: !selectedPhase2Influencer || selectedPhase2Influencer.lorastatus !== 2,
-    },
-    {
-      id: 4,
-      phase: "Phase 4",
-      title: "Publish",
-      description:
-        "Sort by series, prepare Fanvue PPV sets, export IG carousels, and queue ideas.",
-      time: "Downloads available on paid plans.",
-      icon: FolderOpen,
-      imageSrc: "/phase4.png",
-      completed: currentPhase > 4,
-      isPending: currentPhase === 4,
-      disabled: !selectedPhase2Influencer || selectedPhase2Influencer.lorastatus !== 2,
-    },
-  ];
+  // Smart phase logic based on actual user progress
+  const getPhaseLogic = () => {
+    const hasInfluencer = influencers.length > 0;
+    const hasTrainedInfluencer = selectedPhase2Influencer?.lorastatus === 2;
+    const isTrainingInProgress = selectedPhase2Influencer?.lorastatus === 1;
+    const hasUntrainedInfluencer = selectedPhase2Influencer?.lorastatus === 0;
+    
+    return [
+      {
+        id: 1,
+        phase: "Phase 1",
+        title: "Create Influencer",
+        description: "Set name, visuals, and backstory with guided prompts.",
+        time: "Avg. setup: ~10 minutes.",
+        icon: User,
+        imageSrc: "/phase1.png",
+        completed: hasInfluencer,
+        isPending: !hasInfluencer && currentPhase === 1,
+      },
+      {
+        id: 2,
+        phase: "Phase 2",
+        title: "Lock the Look",
+        description: "We handle training automatically — no settings, no jargon.",
+        time: "Runs ~30 minutes in the background.",
+        icon: Brain,
+        imageSrc: "/phase2.png",
+        completed: hasTrainedInfluencer,
+        // Phase 2 is pending if: user has untrained influencer OR is explicitly in phase 2
+        isPending: (hasUntrainedInfluencer && currentPhase >= 2 && !isTrainingInProgress && !hasTrainedInfluencer) || 
+                  (currentPhase === 2 && !isTrainingInProgress && !hasTrainedInfluencer),
+        isProcessing: isTrainingInProgress,
+        showProgress: isTrainingInProgress,
+        progressMessage: "This step takes about 30–60 minutes. You can keep working on other tasks while we train your AI.",
+      },
+      {
+        id: 3,
+        phase: "Phase 3",
+        title: "Create Content",
+        description: "Produce images, videos, audio and LipSync videos using curated templates or by using your own prompts.",
+        time: "Ready‑to‑post packs for Instagram & Fanvue.",
+        icon: ImageIcon,
+        imageSrc: "/phase3.png",
+        completed: currentPhase > 3 && hasTrainedInfluencer,
+        // Phase 3 is only pending if user is explicitly in phase 3 AND has trained influencer
+        isPending: currentPhase === 3 && hasTrainedInfluencer,
+        disabled: !hasTrainedInfluencer,
+      },
+      {
+        id: 4,
+        phase: "Phase 4",
+        title: "Publish",
+        description: "Sort by series, prepare Fanvue PPV sets, export IG carousels, and queue ideas.",
+        time: "Downloads available on paid plans.",
+        icon: FolderOpen,
+        imageSrc: "/phase4.png",
+        completed: currentPhase > 4 && hasTrainedInfluencer,
+        // Phase 4 is only pending if user is explicitly in phase 4 AND has trained influencer
+        isPending: currentPhase === 4 && hasTrainedInfluencer,
+        disabled: !hasTrainedInfluencer,
+      },
+    ];
+  };
+  
+  const phases = getPhaseLogic();
+
+  // Auto-correct phase logic when user is in wrong phase
+  useEffect(() => {
+    const hasTrainedInfluencer = selectedPhase2Influencer?.lorastatus === 2;
+    const hasUntrainedInfluencer = selectedPhase2Influencer?.lorastatus === 0;
+    const isTrainingInProgress = selectedPhase2Influencer?.lorastatus === 1;
+    
+    // If user is in Phase 3 or 4 but doesn't have trained influencer, move back to Phase 2
+    if ((currentPhase === 3 || currentPhase === 4) && !hasTrainedInfluencer && (hasUntrainedInfluencer || isTrainingInProgress)) {
+      console.log('Auto-correcting phase: User in Phase', currentPhase, 'but needs trained influencer');
+      
+      // Update to Phase 2 without showing toast (silent correction)
+      dispatch(setUser({ guide_step: 2 }));
+      localStorage.setItem("guide_step", "2");
+      
+      // Update backend silently
+      if (userData.id) {
+        fetch(`${config.supabase_server_url}/user?uuid=eq.${userData.id}`, {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: "Bearer WeInfl3nc3withAI",
+            Prefer: "return=representation",
+          },
+          body: JSON.stringify({ guide_step: 2 }),
+        }).catch(error => console.error("Error updating user phase:", error));
+      }
+    }
+  }, [currentPhase, selectedPhase2Influencer?.lorastatus, userData.id, dispatch]);
 
   // Use Redux selectors for getting latest influencers
   const latestTrainedInfluencer = useSelector(selectLatestTrainedInfluencer);
@@ -1466,8 +1533,8 @@ export default function Start() {
                       onClick={() => {
                         // Handle AI consistency training start
                         if (selectedPhase2Influencer) {
-                          // Use the currently selected influencer
-                          setShowCharacterConsistencyModal(true);
+                          // Use the currently selected influencer - open training options modal
+                          setShowTrainingOptionsModal(true);
                         } else {
                           toast.error("Please select an influencer first");
                         }
@@ -2897,7 +2964,7 @@ export default function Start() {
                   Cancel
                 </Button>
                 <Button
-                  onClick={handleStartTraining}
+                  onClick={handleOpenTrainingOptions}
                   className="flex-1 h-12 text-base font-medium bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 shadow-lg hover:shadow-xl transition-all duration-300"
                 >
                   <Brain className="w-5 h-5 mr-3" />
@@ -2906,6 +2973,114 @@ export default function Start() {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Training Options Modal */}
+      <Dialog
+        open={showTrainingOptionsModal}
+        onOpenChange={(open) => setShowTrainingOptionsModal(open)}
+      >
+        <DialogContent className="max-w-3xl w-[95vw] max-h-[90vh] overflow-y-auto p-0">
+          <DialogHeader className="px-6 py-6 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 border-b border-blue-200/50 dark:border-blue-800/50">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-500 flex items-center justify-center shadow-lg">
+                <Brain className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                  Choose Training Type
+                </DialogTitle>
+                <DialogDescription className="text-base text-gray-600 dark:text-gray-300 mt-1">
+                  Select the AI consistency training option that best fits your needs
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+
+          <div className="p-6 space-y-6">
+            {/* Basic Training Option */}
+            <Card className="cursor-pointer hover:shadow-lg transition-all duration-300 border-2 border-gray-200 hover:border-blue-300 dark:border-gray-700 dark:hover:border-blue-600">
+              <CardContent className="p-6">
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-r from-green-500 to-emerald-500 flex items-center justify-center flex-shrink-0 shadow-lg">
+                    <Brain className="w-6 h-6 text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+                      Basic Character Consistency Training
+                    </h3>
+                    <p className="text-gray-600 dark:text-gray-300 mb-4 leading-relaxed">
+                      This will automatically create 10 images to Lock the Look and perform a normal training process. Good for creating normal, consistent Influencer images.
+                    </p>
+                    <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-4">
+                      <span className="inline-flex items-center px-2 py-1 rounded-full bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 text-xs font-medium">
+                        10 Images
+                      </span>
+                      <span className="inline-flex items-center px-2 py-1 rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 text-xs font-medium">
+                        ~30 minutes
+                      </span>
+                    </div>
+                    <Button
+                      onClick={() => handleStartTraining('basic')}
+                      className="w-full h-12 text-base font-medium bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 shadow-lg hover:shadow-xl transition-all duration-300"
+                    >
+                      <Brain className="w-5 h-5 mr-3" />
+                      Start Basic Training
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Plus Training Option */}
+            <Card className="cursor-pointer hover:shadow-lg transition-all duration-300 border-2 border-gray-200 hover:border-purple-300 dark:border-gray-700 dark:hover:border-purple-600">
+              <CardContent className="p-6">
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center flex-shrink-0 shadow-lg">
+                    <Brain className="w-6 h-6 text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+                      Character Consistency Training Plus
+                    </h3>
+                    <p className="text-gray-600 dark:text-gray-300 mb-4 leading-relaxed">
+                      This will automatically create 25 images to Lock the Look and will execute an enhanced training process with more steps. This is good for creating professional grade, consistent Influencer images.
+                    </p>
+                    <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-4">
+                      <span className="inline-flex items-center px-2 py-1 rounded-full bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300 text-xs font-medium">
+                        25 Images
+                      </span>
+                      <span className="inline-flex items-center px-2 py-1 rounded-full bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300 text-xs font-medium">
+                        Professional Grade
+                      </span>
+                      <span className="inline-flex items-center px-2 py-1 rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 text-xs font-medium">
+                        ~45 minutes
+                      </span>
+                    </div>
+                    <Button
+                      onClick={() => handleStartTraining('plus')}
+                      className="w-full h-12 text-base font-medium bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 shadow-lg hover:shadow-xl transition-all duration-300"
+                    >
+                      <Brain className="w-5 h-5 mr-3" />
+                      Start Plus Training
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Cancel Button */}
+            <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+              <Button
+                variant="outline"
+                onClick={() => setShowTrainingOptionsModal(false)}
+                className="w-full h-12 text-base font-medium border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
 
@@ -3172,7 +3347,7 @@ export default function Start() {
                 Cancel
               </Button>
               <Button
-                onClick={startTraining}
+                onClick={() => selectedTrainingType && startTraining(selectedTrainingType)}
                 disabled={!gemCostData || (userData.credits || 0) < (gemCostData?.gem_cost || 50)}
                 className="flex-1 h-12 text-base font-medium bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
               >

@@ -95,7 +95,7 @@ export default function VaultSelector({
   const [totalItems, setTotalItems] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(12);
+  const [itemsPerPage, setItemsPerPage] = useState(16);
   
   // Filter state
   const [selectedFilters, setSelectedFilters] = useState<{
@@ -575,10 +575,7 @@ export default function VaultSelector({
     setCurrentPage(page);
   };
 
-  const handleItemsPerPageChange = (newItemsPerPage: number) => {
-    setItemsPerPage(newItemsPerPage);
-    setCurrentPage(1);
-  };
+
 
   const goToFirstPage = () => handlePageChange(1);
   const goToLastPage = () => handlePageChange(totalPages);
@@ -959,26 +956,9 @@ export default function VaultSelector({
           {/* Pagination Controls */}
           {totalItems > 0 && (
             <div className="flex flex-col sm:flex-row justify-between items-center gap-4 py-6 border-t border-gray-200 dark:border-gray-700 mt-4">
-              {/* Items per page selector */}
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-600 dark:text-gray-400">Show:</span>
-                <Select value={itemsPerPage.toString()} onValueChange={(value) => handleItemsPerPageChange(parseInt(value))}>
-                  <SelectTrigger className="w-20 h-8">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="12">12</SelectItem>
-                    <SelectItem value="24">24</SelectItem>
-                    <SelectItem value="48">48</SelectItem>
-                    <SelectItem value="96">96</SelectItem>
-                  </SelectContent>
-                </Select>
-                <span className="text-sm text-gray-600 dark:text-gray-400">per page</span>
-              </div>
-
               {/* Page info */}
               <div className="text-sm text-gray-600 dark:text-gray-400">
-                Showing {startIndex + 1}-{Math.min(endIndex, totalItems)} of {totalItems} items
+                Showing {startIndex + 1}-{Math.min(endIndex, totalItems)} of {totalItems} items (16 per page)
               </div>
 
               {/* Pagination buttons */}

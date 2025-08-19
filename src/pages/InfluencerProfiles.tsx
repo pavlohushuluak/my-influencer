@@ -15,6 +15,7 @@ import { DialogZoom, DialogContentZoom } from '@/components/ui/zoomdialog';
 import { updateInfluencer, setInfluencers, setLoading, setError, addInfluencer, formatDate, parseDate, Influencer } from '@/store/slices/influencersSlice';
 import { setUser } from '@/store/slices/userSlice';
 import { X, Plus, Save, Crown, Image, Settings, User, ChevronRight, MoreHorizontal, Loader2, ZoomIn, Pencil, Trash2, Brain, Copy, Upload, Eye, EyeOff, Check } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { HexColorPicker } from 'react-colorful';
 import { toast } from 'sonner';
 import { Textarea } from '@/components/ui/textarea';
@@ -208,6 +209,14 @@ export default function InfluencerProfiles() {
   // Quick Action Modal state
   const [showQuickActionModal, setShowQuickActionModal] = useState(false);
   const [selectedInfluencerForActions, setSelectedInfluencerForActions] = useState<Influencer | null>(null);
+  
+  // Example Pictures Modal state
+  const [showExamplePicturesModal, setShowExamplePicturesModal] = useState(false);
+  const [selectedInfluencerForExamples, setSelectedInfluencerForExamples] = useState<Influencer | null>(null);
+  const [examplePreviewUrls, setExamplePreviewUrls] = useState<string[]>(['', '', '']);
+  const [exampleFiles, setExampleFiles] = useState<(File | null)[]>([null, null, null]);
+  const [showExampleImageSelector, setShowExampleImageSelector] = useState<number | null>(null);
+  const [isGeneratingExample, setIsGeneratingExample] = useState<boolean[]>([false, false, false]);
   
   // API Key view options state
   const [showElevenLabsKey, setShowElevenLabsKey] = useState(false);
@@ -427,6 +436,8 @@ export default function InfluencerProfiles() {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
   const [isCopyingImage, setIsCopyingImage] = useState(false);
+
+
 
   const isFeatureLocked = (feature: string) => {
     return FEATURE_RESTRICTIONS[subscriptionLevel].includes(feature);
@@ -1166,6 +1177,163 @@ export default function InfluencerProfiles() {
     navigate('/influencers/consistency', { state: { influencerData: influencer, fromQuickActions: true } });
   };
 
+  // Example Pictures Handlers
+  const handleGenerateExample = async (index: number) => {
+    if (!selectedInfluencerForExamples) return;
+    
+    const newGeneratingState = [...isGeneratingExample];
+    newGeneratingState[index] = true;
+    setIsGeneratingExample(newGeneratingState);
+
+    try {
+      // Generate image using the influencer's prompt
+      const payload = {
+        prompt: selectedInfluencerForExamples.prompt || 'beautiful woman portrait',
+        guidance: 7,
+        steps: 28,
+        nsfw_strength: 0.4,
+        lora_strength: 0.8,
+        user_filename: `example/${index + 1}`,
+        image_count: 1,
+        aspect_ratio: '1:1'
+      };
+
+      const useridResponse = await fetch(`${config.supabase_server_url}/user?uuid=eq.${userData.id}`, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        }
+      });
+      const useridData = await useridResponse.json();
+
+      const response = await fetch(`${config.backend_url}/createtask?userid=${useridData[0].userid}&type=createimage`, {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer WeInfl3nc3withAI',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate image');
+      }
+
+      const data = await response.json();
+      
+      // Poll for completion
+      setTimeout(async () => {
+        try {
+          const imagesResponse = await fetch(`${config.supabase_server_url}/generated_images?task_id=eq.${data.task_id}`, {
+            headers: {
+              'Authorization': 'Bearer WeInfl3nc3withAI'
+            }
+          });
+
+          const imagesData = await imagesResponse.json();
+          if (imagesData.length > 0) {
+            const completedImage = imagesData[0];
+            const imageUrl = `${config.data_url}/cdn-cgi/image/w=400/${userData.id}/vault/example/${index + 1}/${completedImage.system_filename}`;
+            
+            const newUrls = [...examplePreviewUrls];
+            newUrls[index] = imageUrl;
+            setExamplePreviewUrls(newUrls);
+            
+            toast.success(`Example picture ${index + 1} generated successfully`);
+          }
+        } catch (error) {
+          console.error('Error fetching generated image:', error);
+          toast.error(`Failed to generate example picture ${index + 1}`);
+        } finally {
+          const newGeneratingState = [...isGeneratingExample];
+          newGeneratingState[index] = false;
+          setIsGeneratingExample(newGeneratingState);
+        }
+      }, 5000);
+
+    } catch (error) {
+      console.error('Error generating example:', error);
+      toast.error(`Failed to generate example picture ${index + 1}`);
+      const newGeneratingState = [...isGeneratingExample];
+      newGeneratingState[index] = false;
+      setIsGeneratingExample(newGeneratingState);
+    }
+  };
+
+  const handleSaveExamplePictures = async () => {
+    if (!selectedInfluencerForExamples) return;
+
+    try {
+      // Copy uploaded files to the appropriate directories
+      for (let i = 0; i < 3; i++) {
+        if (exampleFiles[i]) {
+          const file = exampleFiles[i];
+          const extension = file!.name.split('.').pop();
+          
+          // Create FormData for file upload
+          const formData = new FormData();
+          formData.append('file', file!);
+          formData.append('destination', `models/${selectedInfluencerForExamples.id}/example/${i + 1}/example${i + 1}.${extension}`);
+          formData.append('user', userData.id);
+
+          await fetch(`${config.backend_url}/uploadfile`, {
+            method: 'POST',
+            headers: {
+              'Authorization': 'Bearer WeInfl3nc3withAI'
+            },
+            body: formData
+          });
+        }
+      }
+
+      // Update influencer record with example picture filenames
+      const updateData: any = {};
+      
+      for (let i = 0; i < 3; i++) {
+        if (examplePreviewUrls[i]) {
+          if (exampleFiles[i]) {
+            // Uploaded file
+            const extension = exampleFiles[i]!.name.split('.').pop();
+            updateData[`example_pic${i + 1}`] = `example${i + 1}.${extension}`;
+          } else {
+            // Selected from library or generated
+            const filename = examplePreviewUrls[i].split('/').pop();
+            updateData[`example_pic${i + 1}`] = filename;
+          }
+        }
+      }
+
+      if (Object.keys(updateData).length > 0) {
+        await fetch(`${config.supabase_server_url}/influencer?id=eq.${selectedInfluencerForExamples.id}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer WeInfl3nc3withAI'
+          },
+          body: JSON.stringify(updateData)
+        });
+      }
+
+      // Update Redux store
+      const updatedInfluencer = {
+        ...selectedInfluencerForExamples,
+        ...updateData
+      };
+      dispatch(updateInfluencer(updatedInfluencer));
+
+      setShowExamplePicturesModal(false);
+      setExamplePreviewUrls([]);
+      setExampleFiles([null, null, null]);
+      setSelectedInfluencerForExamples(null);
+      
+      toast.success('Example pictures saved successfully');
+
+    } catch (error) {
+      console.error('Error saving example pictures:', error);
+      toast.error('Failed to save example pictures');
+    }
+  };
+
   const handleBio = (influencer: Influencer) => {
     navigate('/social/bio', { state: { influencerData: influencer, fromQuickActions: true, autoClickBio: true } });
   };
@@ -1425,7 +1593,10 @@ export default function InfluencerProfiles() {
               {options.map((option, index) => (
                 <Card
                   key={index}
-                  className="cursor-pointer hover:shadow-lg transition-all duration-300"
+                  className={cn(
+                    "cursor-pointer transition-all duration-300 hover:shadow-xl border-2 transform hover:scale-105",
+                    "border-gray-200 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-600"
+                  )}
                   onClick={() => handleSelect(option.label)}
                 >
                   <CardContent className="p-4">
@@ -1522,14 +1693,22 @@ export default function InfluencerProfiles() {
               {options.map((option, index) => (
                 <Card
                   key={index}
-                  className={`cursor-pointer hover:shadow-lg transition-all duration-300 ${localSelected.includes(option.label)
-                    ? 'ring-2 ring-ai-purple-500'
-                    : 'opacity-50 hover:opacity-100'
-                    }`}
+                  className={cn(
+                    "cursor-pointer transition-all duration-300 hover:shadow-xl border-2 transform hover:scale-105",
+                    localSelected.includes(option.label)
+                      ? "border-purple-500 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/20 dark:to-pink-950/20 shadow-xl scale-105"
+                      : "border-gray-200 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-600 opacity-70 hover:opacity-100"
+                  )}
                   onClick={() => handleSelect(option.label)}
                 >
                   <CardContent className="p-4">
                     <div className="relative w-full group" style={{ paddingBottom: '100%' }}>
+                      {/* Selection check icon */}
+                      {localSelected.includes(option.label) && (
+                        <div className="absolute left-2 top-2 z-20 bg-purple-500 rounded-full w-6 h-6 flex items-center justify-center">
+                          <Check className="w-4 h-4 text-white" />
+                        </div>
+                      )}
                       <img
                         src={`${config.data_url}/wizard/mappings400/${option.image}`}
                         alt={option.label}
@@ -1587,6 +1766,8 @@ export default function InfluencerProfiles() {
       toast.success('Eye color updated');
     }
   };
+
+
 
   // Color Picker Component
   const ColorPickerModal = ({
@@ -2007,14 +2188,27 @@ export default function InfluencerProfiles() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-6">
           {displayedInfluencers.map((influencer) => (
-            <Card key={influencer.id} className="group hover:shadow-lg transition-all duration-300 border-border/50 hover:border-ai-purple-500/20">
+            <Card 
+              key={influencer.id} 
+              className={cn(
+                "group cursor-pointer transition-all duration-300 hover:shadow-xl border-2 transform hover:scale-105",
+                userData.active_influencer_id === influencer.id?.toString()
+                  ? "border-purple-500 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/20 dark:to-pink-950/20 shadow-xl scale-105"
+                  : "border-gray-200 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-600"
+              )}
+              onDoubleClick={() => handleEditInfluencer(influencer.id)}
+              title="Double-click to edit influencer"
+            >
               <CardContent className="p-4 sm:p-6 h-full">
                 <div className="flex flex-col justify-between h-full space-y-3 sm:space-y-4">
-                  <div 
-                    className="relative w-full h-full bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg overflow-hidden cursor-pointer group/image"
-                    onDoubleClick={() => handleEditInfluencer(influencer.id)}
-                    title="Double-click to edit influencer"
-                  >
+                  <div className="relative w-full h-full bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg overflow-hidden">
+                    {/* Selection check icon for active influencer */}
+                    {userData.active_influencer_id === influencer.id?.toString() && (
+                      <div className="absolute left-2 top-2 z-20 bg-purple-500 rounded-full w-6 h-6 flex items-center justify-center">
+                        <Check className="w-4 h-4 text-white" />
+                      </div>
+                    )}
+                    
                     {/* LoraStatusIndicator positioned at top right */}
                     <div className="absolute right-[-15px] top-[-15px] z-10">
                       <LoraStatusIndicator
@@ -2228,7 +2422,7 @@ export default function InfluencerProfiles() {
               )}
 
               {/* Action Options Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                 {/* Edit Profile */}
                 <Card
                   onClick={() => {
@@ -2252,6 +2446,35 @@ export default function InfluencerProfiles() {
                     <div className="flex items-center justify-center gap-2 text-xs text-purple-600 dark:text-purple-400">
                       <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
                       Profile customization
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Example Pictures */}
+                <Card
+                  onClick={() => {
+                    setShowQuickActionModal(false);
+                    if (selectedInfluencerForActions) {
+                      setSelectedInfluencerForExamples(selectedInfluencerForActions);
+                      setShowExamplePicturesModal(true);
+                    }
+                  }}
+                  className="group cursor-pointer hover:shadow-2xl transition-all duration-300 transform hover:scale-105 border-2 hover:border-orange-300 dark:hover:border-orange-600 bg-gradient-to-br from-white to-orange-50/30 dark:from-slate-800/50 dark:to-orange-900/20"
+                  data-testid="card-example-pictures"
+                >
+                  <CardContent className="p-4 sm:p-6 text-center">
+                    <div className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 bg-gradient-to-r from-orange-500 to-yellow-500 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow duration-300">
+                      <Image className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
+                    </div>
+                    <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+                      Example Pictures
+                    </h3>
+                    <p className="text-gray-600 dark:text-gray-300 text-xs sm:text-sm leading-relaxed mb-3 sm:mb-4">
+                      Upload, select, or generate example pictures for reference
+                    </p>
+                    <div className="flex items-center justify-center gap-2 text-xs text-orange-600 dark:text-orange-400">
+                      <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                      Picture management
                     </div>
                   </CardContent>
                 </Card>
@@ -2282,8 +2505,6 @@ export default function InfluencerProfiles() {
                     </div>
                   </CardContent>
                 </Card>
-
-
 
                 {/* Bio */}
                 <Card
@@ -2350,6 +2571,245 @@ export default function InfluencerProfiles() {
                   Cancel
                 </Button>
               </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Example Pictures Modal */}
+        <Dialog
+          open={showExamplePicturesModal}
+          onOpenChange={(open) => setShowExamplePicturesModal(open)}
+        >
+          <DialogContent className="max-w-4xl w-[95vw] max-h-[90vh] overflow-y-auto p-0">
+            {/* Header with gradient background */}
+            <div className="bg-gradient-to-br from-orange-600 via-yellow-600 to-orange-700 p-4 sm:p-6 lg:p-8 text-white relative overflow-hidden">
+              {/* Background pattern */}
+              <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent"></div>
+              <div className="absolute top-0 right-0 w-20 sm:w-32 lg:w-40 h-20 sm:h-32 lg:h-40 bg-white/5 rounded-full -translate-y-10 sm:-translate-y-16 lg:-translate-y-20 translate-x-10 sm:translate-x-16 lg:translate-x-20"></div>
+              <div className="absolute bottom-0 left-0 w-16 sm:w-24 lg:w-32 h-16 sm:h-24 lg:h-32 bg-white/5 rounded-full translate-y-8 sm:translate-y-12 lg:translate-y-16 -translate-x-8 sm:-translate-x-12 lg:-translate-x-16"></div>
+
+              <div className="relative z-10 text-center">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-4 sm:mb-6 bg-white/20 rounded-2xl sm:rounded-3xl flex items-center justify-center backdrop-blur-sm border border-white/30 shadow-xl sm:shadow-2xl">
+                  <Image className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
+                </div>
+                <DialogTitle className="text-xl sm:text-2xl lg:text-3xl font-bold mb-3 sm:mb-4 bg-gradient-to-r from-white to-orange-100 bg-clip-text text-transparent">
+                  Example Pictures
+                </DialogTitle>
+                <DialogDescription className="text-sm sm:text-base lg:text-lg text-orange-100 leading-relaxed max-w-2xl mx-auto">
+                  Upload, select from library, or generate three example pictures for {selectedInfluencerForExamples?.name_first} {selectedInfluencerForExamples?.name_last}
+                </DialogDescription>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="p-4 sm:p-6 lg:p-8">
+              {/* Three Image Slots */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {[0, 1, 2].map((index) => (
+                  <Card key={index} className="shadow-xl border-2 border-gray-200 dark:border-gray-700 bg-gradient-to-br from-white to-gray-50/50 dark:from-slate-800/50 dark:to-slate-900/20">
+                    <CardContent className="p-6">
+                      <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4 text-center">
+                        Example Picture {index + 1}
+                      </h3>
+                      
+                      {/* Image Preview Area */}
+                      <div className="relative mb-4">
+                        {examplePreviewUrls[index] ? (
+                          <div className="relative group">
+                            <img
+                              src={examplePreviewUrls[index]}
+                              alt={`Example ${index + 1}`}
+                              className="w-full h-48 object-cover rounded-xl border-2 border-dashed border-gray-300 shadow-lg"
+                              data-testid={`img-example-${index + 1}`}
+                            />
+                            <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all duration-300 rounded-xl flex items-center justify-center">
+                              <Button
+                                variant="secondary"
+                                size="sm"
+                                className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-white/90 hover:bg-white dark:bg-slate-800/90 dark:hover:bg-slate-700 dark:text-white"
+                                onClick={() => {
+                                  if (examplePreviewUrls[index] && examplePreviewUrls[index].startsWith('blob:')) {
+                                    URL.revokeObjectURL(examplePreviewUrls[index]);
+                                  }
+                                  const newUrls = [...examplePreviewUrls];
+                                  newUrls[index] = '';
+                                  setExamplePreviewUrls(newUrls);
+                                  const newFiles = [...exampleFiles];
+                                  newFiles[index] = null;
+                                  setExampleFiles(newFiles);
+                                }}
+                                data-testid={`button-remove-example-${index + 1}`}
+                              >
+                                <Trash2 className="w-4 h-4 mr-2" />
+                                Remove
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="w-full h-48 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl flex items-center justify-center bg-gray-50 dark:bg-gray-800/50">
+                            <div className="text-center">
+                              <Image className="w-12 h-12 mx-auto mb-2 text-gray-400" />
+                              <p className="text-sm text-gray-500 dark:text-gray-400">
+                                No image selected
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="space-y-3">
+                        {/* Upload Button */}
+                        <Button
+                          onClick={() => {
+                            const input = document.createElement('input');
+                            input.type = 'file';
+                            input.accept = 'image/*';
+                            input.onchange = (e) => {
+                              const file = (e.target as HTMLInputElement).files?.[0];
+                              if (file) {
+                                const newFiles = [...exampleFiles];
+                                newFiles[index] = file;
+                                setExampleFiles(newFiles);
+                                
+                                const url = URL.createObjectURL(file);
+                                const newUrls = [...examplePreviewUrls];
+                                newUrls[index] = url;
+                                setExamplePreviewUrls(newUrls);
+                              }
+                            };
+                            input.click();
+                          }}
+                          variant="outline"
+                          className="w-full justify-start"
+                          data-testid={`button-upload-example-${index + 1}`}
+                        >
+                          <Upload className="w-4 h-4 mr-2" />
+                          Upload Image
+                        </Button>
+
+                        {/* Select from Library Button */}
+                        <Button
+                          onClick={() => {
+                            setShowExampleImageSelector(index);
+                            fetchVaultImages();
+                          }}
+                          variant="outline"
+                          className="w-full justify-start"
+                          data-testid={`button-select-example-${index + 1}`}
+                        >
+                          <Eye className="w-4 h-4 mr-2" />
+                          Select from Library
+                        </Button>
+
+                        {/* Generate Button */}
+                        <Button
+                          onClick={() => handleGenerateExample(index)}
+                          variant="outline"
+                          className="w-full justify-start"
+                          disabled={isGeneratingExample[index]}
+                          data-testid={`button-generate-example-${index + 1}`}
+                        >
+                          {isGeneratingExample[index] ? (
+                            <>
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              Generating...
+                            </>
+                          ) : (
+                            <>
+                              <Brain className="w-4 h-4 mr-2" />
+                              Generate with AI
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              {/* Save Button */}
+              <div className="flex justify-end gap-4 mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowExamplePicturesModal(false)}
+                  data-testid="button-cancel-examples"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleSaveExamplePictures}
+                  className="bg-gradient-to-r from-orange-600 to-yellow-600 hover:from-orange-700 hover:to-yellow-700"
+                  data-testid="button-save-examples"
+                >
+                  <Save className="w-4 h-4 mr-2" />
+                  Save Example Pictures
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Image Selector Modal for Examples */}
+        <Dialog
+          open={showExampleImageSelector !== null}
+          onOpenChange={(open) => !open && setShowExampleImageSelector(null)}
+        >
+          <DialogContent className="max-w-4xl w-[95vw] h-[80vh] p-0">
+            <DialogHeader className="p-6 pb-4 border-b border-gray-200 dark:border-gray-700">
+              <DialogTitle className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                Select Image from Library - Example Picture {showExampleImageSelector !== null ? showExampleImageSelector + 1 : ''}
+              </DialogTitle>
+              <DialogDescription className="text-gray-600 dark:text-gray-300">
+                Choose an image from your library for example picture {showExampleImageSelector !== null ? showExampleImageSelector + 1 : ''}
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="flex-1 overflow-hidden p-6">
+              {loadingVaultImages ? (
+                <div className="flex items-center justify-center h-full">
+                  <div className="text-center">
+                    <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-blue-600" />
+                    <p className="text-gray-600 dark:text-gray-300">Loading library images...</p>
+                  </div>
+                </div>
+              ) : (
+                <ScrollArea className="h-full">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {detailedImages.map((image, imageIndex) => (
+                      <div
+                        key={imageIndex}
+                        className="relative group cursor-pointer"
+                        onClick={() => {
+                          if (showExampleImageSelector !== null) {
+                            const imageUrl = `${config.data_url}/${userData.id}/vault/Inbox/${image.system_filename}`;
+                            const newUrls = [...examplePreviewUrls];
+                            newUrls[showExampleImageSelector] = imageUrl;
+                            setExamplePreviewUrls(newUrls);
+                            setShowExampleImageSelector(null);
+                            toast.success(`Example picture ${showExampleImageSelector + 1} selected`);
+                          }
+                        }}
+                        data-testid={`img-library-${imageIndex}`}
+                      >
+                        <div className="aspect-square rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800">
+                          <img
+                            src={`${config.data_url}/${userData.id}/vault/Inbox/${image.system_filename}`}
+                            alt={`Library image ${imageIndex}`}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            loading="lazy"
+                          />
+                        </div>
+                        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-all duration-300 rounded-lg flex items-center justify-center">
+                          <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-white/90 dark:bg-slate-800/90 rounded-full p-2">
+                            <Check className="w-5 h-5 text-green-600 dark:text-green-400" />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              )}
             </div>
           </DialogContent>
         </Dialog>

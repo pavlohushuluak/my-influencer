@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "@/store/store";
@@ -66,6 +66,8 @@ import {
   Trash2,
   Pencil,
   Upload,
+  Folder,
+  Wand2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { config } from "@/config/config";
@@ -73,6 +75,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { DialogZoom, DialogContentZoom } from "@/components/ui/zoomdialog";
 import { HexColorPicker } from 'react-colorful';
+import VaultSelector from '@/components/VaultSelector';
 import { LoraStatusIndicator } from '@/components/Influencers/LoraStatusIndicator';
 
 interface Option {
@@ -169,6 +172,7 @@ const EnhancedLivePreview = ({
   onOpenAIPersonality,
   onOpenIntegrations,
   onOpenWardrobe,
+  onOpenExamplePictures,
 }: {
   influencerData: any;
   isGenerating: boolean;
@@ -178,6 +182,7 @@ const EnhancedLivePreview = ({
   onOpenAIPersonality: () => void;
   onOpenIntegrations: () => void;
   onOpenWardrobe: () => void;
+  onOpenExamplePictures: () => void;
 }) => (
   <div className="sticky top-6 space-y-6">
     {/* Main Preview Card */}
@@ -287,6 +292,14 @@ const EnhancedLivePreview = ({
         >
           <Settings className="w-4 h-4 mr-2" />
           Integrations
+        </Button>
+        <Button
+          variant="outline"
+          className="w-full justify-start"
+          onClick={onOpenExamplePictures}
+        >
+          <Image className="w-4 h-4 mr-2" />
+          Example Pictures
         </Button>
         <Button
           variant="outline"
@@ -422,29 +435,17 @@ const OptionCard = ({
             src={`${config.data_url}/wizard/mappings400/${option.image}`}
             alt={option.label}
             className="absolute inset-0 w-full h-full object-cover rounded-md transition-transform duration-200 group-hover:scale-105"
-            onClick={onSelect}
+            onClick={onImageClick}
           />
-          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
-            <div className="flex gap-2">
-              <div
-                className="bg-black/50 rounded-full w-8 h-8 flex items-center justify-center cursor-zoom-in"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onImageClick();
-                }}
-              >
-                <ZoomIn className="w-5 h-5 text-white" />
-              </div>
-              <div
-                className="bg-red-500/80 rounded-full w-8 h-8 flex items-center justify-center cursor-pointer"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onClear();
-                }}
-              >
-                <Trash2 className="w-4 h-4 text-white" />
-              </div>
-            </div>
+          {/* Trash icon positioned at bottom right */}
+          <div
+            className="absolute bottom-2 right-2 bg-red-500/80 hover:bg-red-600 rounded-full w-8 h-8 flex items-center justify-center cursor-pointer opacity-0 group-hover:opacity-100 transition-all duration-300 z-10"
+            onClick={(e) => {
+              e.stopPropagation();
+              onClear();
+            }}
+          >
+            <Trash2 className="w-4 h-4 text-white" />
           </div>
         </div>
         <p className="text-sm text-center font-medium mt-2">{option.label}</p>
@@ -487,12 +488,6 @@ const OptionSelector = ({
   onClose: () => void;
   title: string;
 }) => {
-  const [previewImage, setPreviewImage] = useState<string | null>(null);
-
-  const handleImageClick = (e: React.MouseEvent, imageUrl: string) => {
-    e.stopPropagation();
-    setPreviewImage(imageUrl);
-  };
 
   return (
     <>
@@ -521,17 +516,6 @@ const OptionSelector = ({
                       alt={option.label}
                       className="absolute inset-0 w-full h-full object-cover rounded-md"
                     />
-                    <div
-                      className="absolute right-2 top-2 bg-black/50 rounded-full w-8 h-8 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
-                      onClick={(e) =>
-                        handleImageClick(
-                          e,
-                          `${config.data_url}/wizard/mappings800/${option.image}`,
-                        )
-                      }
-                    >
-                      <ZoomIn className="w-5 h-5 text-white" />
-                    </div>
                   </div>
                   <p className="text-sm text-center font-medium mt-2">
                     {option.label}
@@ -547,12 +531,6 @@ const OptionSelector = ({
           </div>
         </DialogContent>
       </Dialog>
-      {previewImage && (
-        <ImagePreviewDialog
-          imageUrl={previewImage}
-          onClose={() => setPreviewImage(null)}
-        />
-      )}
     </>
   );
 };
@@ -1126,6 +1104,18 @@ export default function InfluencerEditRedesign() {
   const [showAIPersonalityModal, setShowAIPersonalityModal] = useState(false);
   const [showIntegrationsModal, setShowIntegrationsModal] = useState(false);
   const [showWardrobeModal, setShowWardrobeModal] = useState(false);
+  const [showExamplePicturesModal, setShowExamplePicturesModal] = useState(false);
+  const [showVaultSelector, setShowVaultSelector] = useState(false);
+  const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
+  const [isGeneratingExamples, setIsGeneratingExamples] = useState(false);
+  const [isGeneratingIndividual, setIsGeneratingIndividual] = useState<{[key: number]: boolean}>({});
+  const [isCheckingCredits, setIsCheckingCredits] = useState(false);
+  const [isCheckingIndividualCredits, setIsCheckingIndividualCredits] = useState<{[key: number]: boolean}>({});
+  const [showCreditWarning, setShowCreditWarning] = useState(false);
+  const [showIndividualCreditWarning, setShowIndividualCreditWarning] = useState<{[key: number]: boolean}>({});
+  const [creditCostData, setCreditCostData] = useState<any>(null);
+  const [individualCreditCostData, setIndividualCreditCostData] = useState<{[key: number]: any}>({});
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Accordion States
   const [expandedSections, setExpandedSections] = useState({
@@ -2020,6 +2010,490 @@ export default function InfluencerEditRedesign() {
       ...prev,
       [field]: (prev[field as keyof typeof influencerData] as string[]).filter(t => t !== tag)
     }));
+  };
+
+  // Example Pictures Upload Functions
+  const handleFileUpload = useCallback((file: File, index: number) => {
+    if (file && file.type.startsWith('image/')) {
+      const url = URL.createObjectURL(file);
+      handleInputChange(`example_pic${index + 1}`, url);
+      toast.success(`Example picture ${index + 1} uploaded successfully`);
+    } else {
+      toast.error('Please upload an image file');
+    }
+  }, []);
+
+  const uploadImageToVault = async (file: File): Promise<string | null> => {
+    if (!userData.id) {
+      toast.error('User not authenticated');
+      return null;
+    }
+
+    try {
+      // Generate a unique filename
+      const timestamp = Date.now();
+      const fileExtension = file.name.split('.').pop() || 'jpg';
+      const filename = `example_${timestamp}.${fileExtension}`;
+
+      // Upload file using the correct API
+      const uploadResponse = await fetch(`${config.backend_url}/uploadfile?user=${userData.id}&filename=example/${filename}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: file
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error('Failed to upload image');
+      }
+
+      // Return the uploaded image URL
+      const imageUrl = `${config.data_url}/${userData.id}/example/${filename}`;
+      return imageUrl;
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      toast.error('Failed to upload image');
+      return null;
+    }
+  };
+
+  // Check credit cost for example images
+  const checkCreditCost = async (itemType: string) => {
+    try {
+      setIsCheckingCredits(true);
+      const response = await fetch('https://api.nymia.ai/v1/getgems', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          item: itemType
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch credit cost: ${response.status}`);
+      }
+
+      const creditData = await response.json();
+      return creditData;
+    } catch (error) {
+      console.error('Error checking credit cost:', error);
+      toast.error('Failed to check credit cost. Please try again.');
+      return null;
+    } finally {
+      setIsCheckingCredits(false);
+    }
+  };
+
+  // Handle generate button click with credit check
+  const handleGenerateExamples = async () => {
+    if (!influencerData || !userData.id) return;
+
+    // Check credit cost first
+    const creditData = await checkCreditCost('nymia_image');
+    if (!creditData) return;
+
+    // Calculate total required credits for 3 images
+    const totalRequiredCredits = creditData.gems * 3;
+    
+    setCreditCostData({
+      ...creditData,
+      gems: totalRequiredCredits,
+      originalGemsPerImage: creditData.gems
+    });
+
+    // Check if user has enough credits
+    if (userData.credits < totalRequiredCredits) {
+      setShowCreditWarning(true);
+      return;
+    } else {
+      // Show confirmation for credit cost
+      setShowCreditWarning(true);
+      return;
+    }
+  };
+
+  // Handle individual generate button click with credit check
+  const handleGenerateIndividualExample = async (imageIndex: number) => {
+    if (!influencerData || !userData.id) return;
+
+    // Check credit cost first
+    setIsCheckingIndividualCredits(prev => ({ ...prev, [imageIndex]: true }));
+    const creditData = await checkCreditCost('nymia_image');
+    setIsCheckingIndividualCredits(prev => ({ ...prev, [imageIndex]: false }));
+    
+    if (!creditData) return;
+
+    // Store credit data for this specific image
+    setIndividualCreditCostData(prev => ({ ...prev, [imageIndex]: creditData }));
+
+    // Check if user has enough credits
+    if (userData.credits < creditData.gems) {
+      setShowIndividualCreditWarning(prev => ({ ...prev, [imageIndex]: true }));
+      return;
+    } else {
+      // Show confirmation for credit cost
+      setShowIndividualCreditWarning(prev => ({ ...prev, [imageIndex]: true }));
+      return;
+    }
+  };
+
+  // Save influencer data to database
+  const saveInfluencerData = async () => {
+    if (!influencerData?.id || !userData.id) return;
+
+    try {
+      const response = await fetch(
+        `${config.supabase_server_url}/influencer?id=eq.${influencerData.id}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer WeInfl3nc3withAI",
+          },
+          body: JSON.stringify({
+            example_pic1: influencerData.example_pic1,
+            example_pic2: influencerData.example_pic2,
+            example_pic3: influencerData.example_pic3,
+          }),
+        },
+      );
+
+      if (!response.ok) {
+        console.error('Failed to save example images to database');
+      }
+    } catch (error) {
+      console.error('Error saving example images:', error);
+    }
+  };
+
+  // Generate single example image
+  const generateSingleExampleImage = async (imageIndex: number) => {
+    if (!influencerData || !userData.id) return;
+    
+    setIsGeneratingIndividual(prev => ({ ...prev, [imageIndex]: true }));
+
+    try {
+      // Get user ID from database
+      const useridResponse = await fetch(`${config.supabase_server_url}/user?uuid=eq.${userData.id}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        }
+      });
+      const useridData = await useridResponse.json();
+
+      if (!useridData || useridData.length === 0) {
+        throw new Error('User not found');
+      }
+
+      // Create request data similar to the content generation
+      const requestData = {
+        task: "generate_example", 
+        number_of_images: 1,
+        quality: 'Quality',
+        nsfw_strength: -1,
+        lora: "",
+        noAI: false,
+        prompt: "",
+        lora_strength: 0,
+        seed: -1,
+        guidance: 7,
+        negative_prompt: imageIndex.toString(), // Use image index as identifier
+        model: {
+          id: influencerData.id,
+          influencer_type: influencerData.influencer_type,
+          sex: influencerData.sex,
+          cultural_background: influencerData.cultural_background,
+          hair_length: influencerData.hair_length,
+          hair_color: influencerData.hair_color,
+          hair_style: influencerData.hair_style,
+          eye_color: influencerData.eye_color,
+          lip_style: influencerData.lip_style,
+          nose_style: influencerData.nose_style,
+          face_shape: influencerData.face_shape,
+          facial_features: influencerData.facial_features,
+          skin_tone: influencerData.skin_tone,
+          bust: influencerData.bust_size,
+          body_type: influencerData.body_type,
+          color_palette: influencerData.color_palette || [],
+          clothing_style_everyday: influencerData.clothing_style_everyday,
+          eyebrow_style: influencerData.eyebrow_style,
+          makeup_style: "Default",
+          name_first: influencerData.name_first,
+          name_last: influencerData.name_last,
+          visual_only: influencerData.visual_only,
+          age: influencerData.age,
+          lifestyle: influencerData.lifestyle
+        },
+        scene: {
+          framing: "",
+          rotation: "",
+          lighting_preset: "",
+          scene_setting: "",
+          pose: "",
+          clothes: ""
+        }
+      };
+
+      const response = await fetch(`${config.backend_url}/createtask?userid=${useridData[0].userid}&type=createimage`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify(requestData)
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log(`Generated example image ${imageIndex} task:`, result);
+
+      if (result.id) {
+        // Start polling for the image
+        const pollForImage = async () => {
+          try {
+            const imagesResponse = await fetch(`${config.supabase_server_url}/generated_images?task_id=eq.${result.id}`, {
+              headers: {
+                'Authorization': 'Bearer WeInfl3nc3withAI'
+              }
+            });
+            const imagesData = await imagesResponse.json();
+
+            if (imagesData.length > 0) {
+              if (imagesData[0].generation_status === 'completed' && imagesData[0].file_path) {
+                const completedImage = imagesData[0];
+                const imageUrl = `${config.data_url}/cdn-cgi/image/w=800/${completedImage.file_path}`;
+                
+                console.log(`Generated image ${imageIndex}:`, imageUrl);
+                
+                // Update the specific example image using the field name pattern
+                const fieldName = `example_pic${imageIndex}`;
+                handleInputChange(fieldName, imageUrl);
+                
+                // Save to database
+                await saveInfluencerData();
+
+                toast.success(`Example image ${imageIndex} generated successfully!`);
+                setIsGeneratingIndividual(prev => ({ ...prev, [imageIndex]: false }));
+                return;
+              } else if (imagesData[0].generation_status === 'failed') {
+                console.error(`Image ${imageIndex} generation failed`);
+                toast.error(`Failed to generate example image ${imageIndex}`);
+                setIsGeneratingIndividual(prev => ({ ...prev, [imageIndex]: false }));
+                return;
+              } else {
+                console.log(`Image ${imageIndex} not ready yet. Status:`, imagesData[0]?.generation_status);
+              }
+            }
+
+            // Continue polling if not completed
+            setTimeout(pollForImage, 2000);
+          } catch (error) {
+            console.error(`Error polling for image ${imageIndex}:`, error);
+            toast.error(`Failed to fetch generated image ${imageIndex}`);
+            setIsGeneratingIndividual(prev => ({ ...prev, [imageIndex]: false }));
+          }
+        };
+
+        pollForImage();
+      } else {
+        throw new Error('No task ID received');
+      }
+    } catch (error) {
+      console.error(`Error generating example image ${imageIndex}:`, error);
+      toast.error(`Failed to generate example image ${imageIndex}`);
+      setIsGeneratingIndividual(prev => ({ ...prev, [imageIndex]: false }));
+    }
+  };
+
+  // Generate example images using API (called after credit confirmation)
+  const generateExampleImages = async () => {
+    if (!influencerData || !userData.id) return;
+    
+    setIsGeneratingExamples(true);
+
+    try {
+      // Get user ID
+      const useridResponse = await fetch(`${config.supabase_server_url}/user?uuid=eq.${userData.id}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        }
+      });
+      const useridData = await useridResponse.json();
+
+      // Create base request data
+      const baseRequestData = {
+        task: "generate_example", // Changed from generate_preview
+        number_of_images: 1,
+        quality: 'Quality',
+        nsfw_strength: -1,
+        lora: "",
+        noAI: false,
+        prompt: "",
+        lora_strength: 0,
+        seed: -1,
+        guidance: 7,
+        model: {
+          id: influencerData.id,
+          influencer_type: influencerData.influencer_type,
+          sex: influencerData.sex,
+          cultural_background: influencerData.cultural_background,
+          hair_length: influencerData.hair_length,
+          hair_color: influencerData.hair_color,
+          hair_style: influencerData.hair_style,
+          eye_color: influencerData.eye_color,
+          lip_style: influencerData.lip_style,
+          nose_style: influencerData.nose_style,
+          face_shape: influencerData.face_shape,
+          facial_features: influencerData.facial_features,
+          skin_tone: influencerData.skin_tone,
+          bust: influencerData.bust_size,
+          body_type: influencerData.body_type,
+          color_palette: influencerData.color_palette || [],
+          clothing_style_everyday: influencerData.clothing_style_everyday,
+          eyebrow_style: influencerData.eyebrow_style,
+          makeup_style: "Default",
+          name_first: influencerData.name_first,
+          name_last: influencerData.name_last,
+          visual_only: influencerData.visual_only,
+          age: influencerData.age,
+          lifestyle: influencerData.lifestyle
+        },
+        scene: {
+          framing: "",
+          rotation: "",
+          lighting_preset: "",
+          scene_setting: "",
+          pose: "",
+          clothes: ""
+        }
+      };
+
+      // Send 3 requests for the example images
+      const requests = [
+        { negative_prompt: "1", order: 0 },
+        { negative_prompt: "2", order: 1 },
+        { negative_prompt: "3", order: 2 }
+      ];
+
+      const taskPromises = requests.map(async (request) => {
+        const requestData = { ...baseRequestData, negative_prompt: request.negative_prompt };
+        const response = await fetch(`${config.backend_url}/createtask?userid=${useridData[0].userid}&type=createimage`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer WeInfl3nc3withAI'
+          },
+          body: JSON.stringify(requestData)
+        });
+
+        const result = await response.json();
+        return { taskId: result.id, order: request.order };
+      });
+
+      const taskResults = await Promise.all(taskPromises);
+
+      // Poll for images
+      const pollForImages = async () => {
+        try {
+          let allCompleted = true;
+          let completedCount = 0;
+
+          for (const taskResult of taskResults) {
+            const imagesResponse = await fetch(`${config.supabase_server_url}/generated_images?task_id=eq.${taskResult.taskId}`, {
+              headers: {
+                'Authorization': 'Bearer WeInfl3nc3withAI'
+              }
+            });
+            const imagesData = await imagesResponse.json();
+
+            if (imagesData.length > 0) {
+              if (imagesData[0].generation_status === 'completed' && imagesData[0].file_path) {
+                const completedImage = imagesData[0];
+                const imageUrl = `${config.data_url}/cdn-cgi/image/w=800/${completedImage.file_path}`;
+                
+                console.log(`Generated image ${taskResult.order + 1}:`, imageUrl);
+                
+                // Update the corresponding example picture
+                const fieldName = `example_pic${taskResult.order + 1}`;
+                handleInputChange(fieldName, imageUrl);
+                completedCount++;
+                
+                console.log(`Updated ${fieldName} with URL:`, imageUrl);
+              } else if (imagesData[0].generation_status === 'failed') {
+                console.error(`Image ${taskResult.order + 1} generation failed`);
+                completedCount++; // Count as processed even if failed
+              } else {
+                allCompleted = false;
+                console.log(`Image ${taskResult.order + 1} not ready yet. Status:`, imagesData[0]?.generation_status);
+              }
+            } else {
+              allCompleted = false;
+              console.log(`No image data found for task ${taskResult.taskId}`);
+            }
+          }
+
+          if (allCompleted || completedCount === taskResults.length) {
+            // Save to database
+            await saveInfluencerData();
+            
+            setIsGeneratingExamples(false);
+            if (completedCount === taskResults.length) {
+              toast.success(`Generated ${completedCount} example images successfully!`);
+            } else {
+              toast.warning(`Generated ${completedCount} out of ${taskResults.length} example images`);
+            }
+            return;
+          }
+
+          // Continue polling if not all completed
+          setTimeout(pollForImages, 2000);
+        } catch (error) {
+          console.error('Error polling for images:', error);
+          toast.error('Failed to fetch generated images');
+          setIsGeneratingExamples(false);
+        }
+      };
+
+      pollForImages();
+    } catch (error) {
+      console.error('Generate example error:', error);
+      toast.error('Failed to generate example images');
+      setIsGeneratingExamples(false);
+    }
+  };
+
+  const handleFileInput = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file && selectedImageIndex !== null) {
+      handleFileUpload(file, selectedImageIndex);
+      // Clear the file input so the same file can be uploaded again
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const triggerFileUpload = useCallback((index: number) => {
+    setSelectedImageIndex(index);
+    fileInputRef.current?.click();
+  }, []);
+
+  const handleVaultImageSelect = (image: any) => {
+    if (selectedImageIndex !== null) {
+      // Use the same URL construction logic as VaultSelector
+      const imageUrl = `${config.data_url}/${userData.id}/${image.user_filename === "" ? "output" : "vault/" + image.user_filename}/${image.system_filename}`;
+      handleInputChange(`example_pic${selectedImageIndex + 1}`, imageUrl);
+      setShowVaultSelector(false);
+      setSelectedImageIndex(null);
+      toast.success(`Example picture ${selectedImageIndex + 1} selected from library`);
+    }
   };
 
   // Helper function to render option cards with descriptions (for wardrobe modal)
@@ -3193,6 +3667,7 @@ export default function InfluencerEditRedesign() {
               previewImage={previewImage}
               onOpenAIPersonality={() => setShowAIPersonalityModal(true)}
               onOpenIntegrations={() => setShowIntegrationsModal(true)}
+              onOpenExamplePictures={() => setShowExamplePicturesModal(true)}
               onOpenWardrobe={() => setShowWardrobeModal(true)}
             />
 
@@ -3384,6 +3859,326 @@ export default function InfluencerEditRedesign() {
         influencerData={influencerData}
         onUpdate={handleInputChange}
       />
+
+      {/* Example Pictures Modal */}
+      {showExamplePicturesModal && (
+        <Dialog open={showExamplePicturesModal} onOpenChange={setShowExamplePicturesModal}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Image className="w-5 h-5" />
+                Example Pictures
+              </DialogTitle>
+              <DialogDescription>
+                Upload, select, or generate three example pictures for your influencer
+              </DialogDescription>
+            </DialogHeader>
+            
+            {/* Generate Button for all example images */}
+            <div className="mb-6">
+              <Button
+                onClick={handleGenerateExamples}
+                disabled={isGeneratingExamples || isCheckingCredits}
+                className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-medium py-3"
+              >
+                {isCheckingCredits ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Checking Credits...
+                  </>
+                ) : isGeneratingExamples ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Generating Example Images...
+                  </>
+                ) : (
+                  <>
+                    <Wand2 className="w-4 h-4 mr-2" />
+                    Generate All Example Images
+                  </>
+                )}
+              </Button>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-2 text-center">
+                Generate three example images based on your influencer's appearance settings
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {[0, 1, 2].map((index) => (
+                <div key={index} className="space-y-3">
+                  <h4 className="font-medium text-center">Example Picture {index + 1}</h4>
+                  
+                  {/* Image Preview */}
+                  <div className="aspect-[3/4] bg-gray-100 dark:bg-gray-800 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 overflow-hidden relative">
+                    {(influencerData as any)[`example_pic${index + 1}`] ? (
+                      <img
+                        src={(influencerData as any)[`example_pic${index + 1}`]}
+                        alt={`Example ${index + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-gray-500">
+                        <Image className="w-12 h-12" />
+                      </div>
+                    )}
+                    
+                    {/* Loading overlay for individual image generation */}
+                    {isGeneratingIndividual[index + 1] && (
+                      <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                        <div className="text-center text-white">
+                          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-2" />
+                          <div className="text-sm font-medium">Generating...</div>
+                          <div className="text-xs opacity-80">Example {index + 1}</div>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Loading overlay for all images generation */}
+                    {isGeneratingExamples && (
+                      <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                        <div className="text-center text-white">
+                          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-2" />
+                          <div className="text-sm font-medium">Generating...</div>
+                          <div className="text-xs opacity-80">All Examples</div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Action Buttons */}
+                  <div className="space-y-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full"
+                      onClick={() => triggerFileUpload(index)}
+                    >
+                      <Upload className="w-4 h-4 mr-2" />
+                      Upload
+                    </Button>
+                    
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full"
+                      onClick={() => {
+                        setSelectedImageIndex(index);
+                        setShowVaultSelector(true);
+                      }}
+                    >
+                      <Folder className="w-4 h-4 mr-2" />
+                      Browse Library
+                    </Button>
+                    
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full"
+                      onClick={() => handleGenerateIndividualExample(index + 1)}
+                      disabled={isGeneratingIndividual[index + 1] || isCheckingIndividualCredits[index + 1]}
+                    >
+                      {isCheckingIndividualCredits[index + 1] ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Checking...
+                        </>
+                      ) : isGeneratingIndividual[index + 1] ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Generating...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="w-4 h-4 mr-2" />
+                          Generate
+                        </>
+                      )}
+                    </Button>
+                    
+                    {(influencerData as any)[`example_pic${index + 1}`] && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full text-red-600 hover:text-red-700"
+                        onClick={() => {
+                          handleInputChange(`example_pic${index + 1}`, '');
+                          toast.success(`Example Picture ${index + 1} removed`);
+                        }}
+                      >
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Remove
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+            
+            <div className="flex justify-end gap-3 pt-4 border-t">
+              <Button variant="outline" onClick={() => setShowExamplePicturesModal(false)}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={() => {
+                  setShowExamplePicturesModal(false);
+                  toast.success('Example pictures updated');
+                }}
+              >
+                Save Changes
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Hidden File Input for Example Pictures */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleFileInput}
+        style={{ display: 'none' }}
+      />
+
+      {/* Vault Selector Modal for Example Pictures */}
+      {showVaultSelector && (
+        <VaultSelector
+          open={showVaultSelector}
+          onOpenChange={setShowVaultSelector}
+          onImageSelect={handleVaultImageSelect}
+          title="Select Image from Library"
+          description="Browse your library and select an image for the example picture."
+        />
+      )}
+
+      {/* Credit Warning Modal for Example Pictures Generation (All 3) */}
+      {showCreditWarning && creditCostData && (
+        <Dialog open={showCreditWarning} onOpenChange={setShowCreditWarning}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Generate Example Images</DialogTitle>
+              <DialogDescription>
+                This will generate 3 example images for your influencer
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4">
+              <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <span className="font-medium">Total Cost:</span>
+                  <span className="text-xl font-bold text-blue-600 dark:text-blue-400">
+                    {creditCostData.gems} Credits
+                  </span>
+                </div>
+                <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                  {creditCostData.originalGemsPerImage} credits per image × 3 images
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between text-sm">
+                <span>Your Current Balance:</span>
+                <span className={userData.credits >= creditCostData.gems ? 'text-green-600' : 'text-red-600'}>
+                  {userData.credits} Credits
+                </span>
+              </div>
+
+              {userData.credits < creditCostData.gems && (
+                <div className="bg-red-50 dark:bg-red-950/20 p-4 rounded-lg">
+                  <p className="text-red-700 dark:text-red-300 text-sm">
+                    Insufficient credits. You need {creditCostData.gems - userData.credits} more credits.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-3 pt-4">
+              <Button variant="outline" onClick={() => setShowCreditWarning(false)}>
+                Cancel
+              </Button>
+              {userData.credits >= creditCostData.gems && (
+                <Button
+                  onClick={() => {
+                    setShowCreditWarning(false);
+                    generateExampleImages();
+                  }}
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  Generate Images
+                </Button>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Individual Credit Warning Modals for Single Example Pictures */}
+      {[1, 2, 3].map((imageIndex) => (
+        showIndividualCreditWarning[imageIndex] && individualCreditCostData[imageIndex] && (
+          <Dialog 
+            key={imageIndex}
+            open={showIndividualCreditWarning[imageIndex]} 
+            onOpenChange={(open) => setShowIndividualCreditWarning(prev => ({ ...prev, [imageIndex]: open }))}
+          >
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>Generate Example Image {imageIndex}</DialogTitle>
+                <DialogDescription>
+                  This will generate example image {imageIndex} for your influencer
+                </DialogDescription>
+              </DialogHeader>
+              
+              <div className="space-y-4">
+                <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium">Cost:</span>
+                    <span className="text-xl font-bold text-blue-600 dark:text-blue-400">
+                      {individualCreditCostData[imageIndex].gems} Credits
+                    </span>
+                  </div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                    For 1 example image
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between text-sm">
+                  <span>Your Current Balance:</span>
+                  <span className={userData.credits >= individualCreditCostData[imageIndex].gems ? 'text-green-600' : 'text-red-600'}>
+                    {userData.credits} Credits
+                  </span>
+                </div>
+
+                {userData.credits < individualCreditCostData[imageIndex].gems && (
+                  <div className="bg-red-50 dark:bg-red-950/20 p-4 rounded-lg">
+                    <p className="text-red-700 dark:text-red-300 text-sm">
+                      Insufficient credits. You need {individualCreditCostData[imageIndex].gems - userData.credits} more credits.
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setShowIndividualCreditWarning(prev => ({ ...prev, [imageIndex]: false }))}
+                >
+                  Cancel
+                </Button>
+                {userData.credits >= individualCreditCostData[imageIndex].gems && (
+                  <Button
+                    onClick={() => {
+                      setShowIndividualCreditWarning(prev => ({ ...prev, [imageIndex]: false }));
+                      generateSingleExampleImage(imageIndex);
+                    }}
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                  >
+                    Generate Image
+                  </Button>
+                )}
+              </div>
+            </DialogContent>
+          </Dialog>
+        )
+      ))}
 
       {/* Preview Modal */}
       {showPreviewModal && (

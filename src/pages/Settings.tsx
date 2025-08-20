@@ -552,27 +552,27 @@ export default function Settings() {
               <CardDescription className="text-sm">Update your personal information and how others see you on the platform</CardDescription>
             </CardHeader>
             <CardContent>
-                             <form onSubmit={handleProfileUpdate} className="space-y-4">
-                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                   <div className="space-y-2">
-                     <Label htmlFor="firstName">First Name</Label>
-                     <Input
-                       id="firstName"
-                       value={user.firstName}
-                       onChange={(e) => dispatch(setUser({ firstName: e.target.value }))}
-                       placeholder="Enter your first name"
-                     />
-                   </div>
-                   <div className="space-y-2">
-                     <Label htmlFor="lastName">Last Name</Label>
-                     <Input
-                       id="lastName"
-                       value={user.lastName}
-                       onChange={(e) => dispatch(setUser({ lastName: e.target.value }))}
-                       placeholder="Enter your last name"
-                     />
-                   </div>
-                 </div>
+              <form onSubmit={handleProfileUpdate} className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="firstName">First Name</Label>
+                    <Input
+                      id="firstName"
+                      value={user.firstName}
+                      onChange={(e) => dispatch(setUser({ firstName: e.target.value }))}
+                      placeholder="Enter your first name"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="lastName">Last Name</Label>
+                    <Input
+                      id="lastName"
+                      value={user.lastName}
+                      onChange={(e) => dispatch(setUser({ lastName: e.target.value }))}
+                      placeholder="Enter your last name"
+                    />
+                  </div>
+                </div>
                 <div className="space-y-2">
                   <Label htmlFor="nickname">Nickname</Label>
                   <Input
@@ -617,74 +617,74 @@ export default function Settings() {
                   <span className="text-sm sm:text-base text-muted-foreground">Loading library statistics...</span>
                 </div>
               ) : (
-                                 <div>
-                                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-                   {/* Total Images */}
-                   <div className="bg-white/80 dark:bg-gray-800/80 rounded-lg p-3 sm:p-4 border border-blue-200/50 dark:border-blue-800/50">
-                     <div className="flex items-center gap-2 sm:gap-3">
-                       <div className="p-1.5 sm:p-2 bg-blue-100 dark:bg-blue-900/50 rounded-lg">
-                         <Image className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400" />
-                       </div>
-                       <div>
-                         <p className="text-xl sm:text-2xl font-bold text-blue-600 dark:text-blue-400">
-                           {vaultStats.totalImages.toLocaleString()}
-                         </p>
-                         <p className="text-xs sm:text-sm text-muted-foreground">Images</p>
-                       </div>
-                     </div>
-                   </div>
+                <div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                    {/* Total Images */}
+                    <div className="bg-white/80 dark:bg-gray-800/80 rounded-lg p-3 sm:p-4 border border-blue-200/50 dark:border-blue-800/50">
+                      <div className="flex items-center gap-2 sm:gap-3">
+                        <div className="p-1.5 sm:p-2 bg-blue-100 dark:bg-blue-900/50 rounded-lg">
+                          <Image className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400" />
+                        </div>
+                        <div>
+                          <p className="text-xl sm:text-2xl font-bold text-blue-600 dark:text-blue-400">
+                            {vaultStats.totalImages.toLocaleString()}
+                          </p>
+                          <p className="text-xs sm:text-sm text-muted-foreground">Images</p>
+                        </div>
+                      </div>
+                    </div>
 
-                   {/* Total Videos */}
-                   <div className="bg-white/80 dark:bg-gray-800/80 rounded-lg p-3 sm:p-4 border border-purple-200/50 dark:border-purple-800/50">
-                     <div className="flex items-center gap-2 sm:gap-3">
-                       <div className="p-1.5 sm:p-2 bg-purple-100 dark:bg-purple-900/50 rounded-lg">
-                         <Video className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 dark:text-purple-400" />
-                       </div>
-                       <div>
-                         <p className="text-xl sm:text-2xl font-bold text-purple-600 dark:text-purple-400">
-                           {vaultStats.totalVideos.toLocaleString()}
-                         </p>
-                         <p className="text-xs sm:text-sm text-muted-foreground">Videos</p>
-                       </div>
-                     </div>
-                   </div>
+                    {/* Total Videos */}
+                    <div className="bg-white/80 dark:bg-gray-800/80 rounded-lg p-3 sm:p-4 border border-purple-200/50 dark:border-purple-800/50">
+                      <div className="flex items-center gap-2 sm:gap-3">
+                        <div className="p-1.5 sm:p-2 bg-purple-100 dark:bg-purple-900/50 rounded-lg">
+                          <Video className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 dark:text-purple-400" />
+                        </div>
+                        <div>
+                          <p className="text-xl sm:text-2xl font-bold text-purple-600 dark:text-purple-400">
+                            {vaultStats.totalVideos.toLocaleString()}
+                          </p>
+                          <p className="text-xs sm:text-sm text-muted-foreground">Videos</p>
+                        </div>
+                      </div>
+                    </div>
 
-                   {/* Total Items */}
-                   <div className="bg-white/80 dark:bg-gray-800/80 rounded-lg p-3 sm:p-4 border border-green-200/50 dark:border-green-800/50 sm:col-span-2 lg:col-span-1">
-                     <div className="flex items-center gap-2 sm:gap-3">
-                       <div className="p-1.5 sm:p-2 bg-green-100 dark:bg-green-900/50 rounded-lg">
-                         <Folder className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 dark:text-green-400" />
-                       </div>
-                       <div>
-                         <p className="text-xl sm:text-2xl font-bold text-green-600 dark:text-green-400">
-                           {vaultStats.totalItems.toLocaleString()}
-                         </p>
-                         <p className="text-xs sm:text-sm text-muted-foreground">Total Items</p>
-                       </div>
-                     </div>
-                   </div>
-                 </div>
+                    {/* Total Items */}
+                    <div className="bg-white/80 dark:bg-gray-800/80 rounded-lg p-3 sm:p-4 border border-green-200/50 dark:border-green-800/50 sm:col-span-2 lg:col-span-1">
+                      <div className="flex items-center gap-2 sm:gap-3">
+                        <div className="p-1.5 sm:p-2 bg-green-100 dark:bg-green-900/50 rounded-lg">
+                          <Folder className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 dark:text-green-400" />
+                        </div>
+                        <div>
+                          <p className="text-xl sm:text-2xl font-bold text-green-600 dark:text-green-400">
+                            {vaultStats.totalItems.toLocaleString()}
+                          </p>
+                          <p className="text-xs sm:text-sm text-muted-foreground">Total Items</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
 
-                                     <div className="mt-4 sm:mt-6 pt-4 border-t border-blue-200/50 dark:border-blue-800/50">
-                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
-                       <div className="flex items-center gap-2">
-                         <Calendar className="w-4 h-4 text-muted-foreground" />
-                         <span className="text-xs sm:text-sm text-muted-foreground">
-                           Last updated: {vaultStats.lastUpdated}
-                         </span>
-                       </div>
-                       <Button
-                         variant="outline"
-                         size="sm"
-                         onClick={fetchVaultStats}
-                         disabled={isLoadingStats}
-                         className="w-full sm:w-auto"
-                       >
-                         <Database className="w-4 h-4 mr-2" />
-                         Refresh Stats
-                       </Button>
-                     </div>
-                   </div>
+                  <div className="mt-4 sm:mt-6 pt-4 border-t border-blue-200/50 dark:border-blue-800/50">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-4 h-4 text-muted-foreground" />
+                        <span className="text-xs sm:text-sm text-muted-foreground">
+                          Last updated: {vaultStats.lastUpdated}
+                        </span>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={fetchVaultStats}
+                        disabled={isLoadingStats}
+                        className="w-full sm:w-auto"
+                      >
+                        <Database className="w-4 h-4 mr-2" />
+                        Refresh Stats
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               )}
             </CardContent>
@@ -733,18 +733,18 @@ export default function Settings() {
               <CardTitle className="text-lg sm:text-xl">Credits & Usage</CardTitle>
               <CardDescription className="text-sm">Manage your credits and view usage statistics</CardDescription>
             </CardHeader>
-                         <CardContent className="space-y-4">
-               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 sm:p-4 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-lg gap-4 sm:gap-0">
-                 <div>
-                   <p className="text-xs sm:text-sm font-medium text-muted-foreground">Available Credits</p>
-                   <p className="text-xl sm:text-2xl font-bold text-blue-600 dark:text-blue-400">{user.credits}</p>
-                 </div>
-                 <Button onClick={() => setShowCreditPurchase(true)} className="w-full sm:w-auto">
-                   <Star className="w-4 h-4 mr-2" />
-                   Purchase Credits
-                 </Button>
-               </div>
-             </CardContent>
+            <CardContent className="space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 sm:p-4 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-lg gap-4 sm:gap-0">
+                <div>
+                  <p className="text-xs sm:text-sm font-medium text-muted-foreground">Available Credits</p>
+                  <p className="text-xl sm:text-2xl font-bold text-blue-600 dark:text-blue-400">{user.credits}</p>
+                </div>
+                <Button onClick={() => setShowCreditPurchase(true)} className="w-full sm:w-auto">
+                  <Star className="w-4 h-4 mr-2" />
+                  Purchase Credits
+                </Button>
+              </div>
+            </CardContent>
           </Card>
         </TabsContent>
 
@@ -760,60 +760,60 @@ export default function Settings() {
           </Card>
         </TabsContent>
 
-                 <TabsContent value="transactions" className="space-y-4 sm:space-y-6">
-           {/* View Selector */}
-           <Card className="bg-gradient-to-br from-slate-50 to-gray-50 dark:from-slate-950/20 dark:to-gray-950/20 border-slate-200 dark:border-slate-800">
-             <CardHeader>
-               <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
-                 <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 text-slate-600 dark:text-slate-400" />
-                 Analytics View
-               </CardTitle>
-               <CardDescription className="text-sm">Choose how you want to view your transaction data</CardDescription>
-             </CardHeader>
-             <CardContent>
-               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
-                 <Button
-                   variant={selectedView === 'item' ? 'default' : 'outline'}
-                   onClick={() => setSelectedView('item')}
-                   className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm h-auto py-2 sm:py-2"
-                 >
-                   <Database className="w-3 h-3 sm:w-4 sm:h-4" />
-                   <span className="hidden sm:inline">By Item Name (Personal)</span>
-                   <span className="sm:hidden">Personal Items</span>
-                 </Button>
-                 <Button
-                   variant={selectedView === 'itemGlobal' ? 'default' : 'outline'}
-                   onClick={() => setSelectedView('itemGlobal')}
-                   className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm h-auto py-2 sm:py-2"
-                 >
-                   <Database className="w-3 h-3 sm:w-4 sm:h-4" />
-                   <span className="hidden sm:inline">By Item Name (Global)</span>
-                   <span className="sm:hidden">Global Items</span>
-                 </Button>
-                 <Button
-                   variant={selectedView === 'taskType' ? 'default' : 'outline'}
-                   onClick={() => setSelectedView('taskType')}
-                   className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm h-auto py-2 sm:py-2"
-                 >
-                   <Activity className="w-3 h-3 sm:w-4 sm:h-4" />
-                   <span className="hidden sm:inline">By Task Type (Global)</span>
-                   <span className="sm:hidden">Global Tasks</span>
-                 </Button>
-                 <Button
-                   variant={selectedView === 'taskTypeUser' ? 'default' : 'outline'}
-                   onClick={() => setSelectedView('taskTypeUser')}
-                   className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm h-auto py-2 sm:py-2"
-                 >
-                   <User className="w-3 h-3 sm:w-4 sm:h-4" />
-                   <span className="hidden sm:inline">By Task Type (Personal)</span>
-                   <span className="sm:hidden">Personal Tasks</span>
-                 </Button>
-               </div>
-             </CardContent>
-           </Card>
+        <TabsContent value="transactions" className="space-y-4 sm:space-y-6">
+          {/* View Selector */}
+          <Card className="bg-gradient-to-br from-slate-50 to-gray-50 dark:from-slate-950/20 dark:to-gray-950/20 border-slate-200 dark:border-slate-800">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+                <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 text-slate-600 dark:text-slate-400" />
+                Analytics View
+              </CardTitle>
+              <CardDescription className="text-sm">Choose how you want to view your transaction data</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
+                <Button
+                  variant={selectedView === 'itemGlobal' ? 'default' : 'outline'}
+                  onClick={() => setSelectedView('itemGlobal')}
+                  className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm h-auto py-2 sm:py-2"
+                >
+                  <Database className="w-3 h-3 sm:w-4 sm:h-4" />
+                  <span className="hidden sm:inline">By Item Name (Global)</span>
+                  <span className="sm:hidden">Global Items</span>
+                </Button>
+                <Button
+                  variant={selectedView === 'item' ? 'default' : 'outline'}
+                  onClick={() => setSelectedView('item')}
+                  className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm h-auto py-2 sm:py-2"
+                >
+                  <Database className="w-3 h-3 sm:w-4 sm:h-4" />
+                  <span className="hidden sm:inline">By Item Name (Personal)</span>
+                  <span className="sm:hidden">Personal Items</span>
+                </Button>
+                <Button
+                  variant={selectedView === 'taskType' ? 'default' : 'outline'}
+                  onClick={() => setSelectedView('taskType')}
+                  className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm h-auto py-2 sm:py-2"
+                >
+                  <Activity className="w-3 h-3 sm:w-4 sm:h-4" />
+                  <span className="hidden sm:inline">By Task Type (Global)</span>
+                  <span className="sm:hidden">Global Tasks</span>
+                </Button>
+                <Button
+                  variant={selectedView === 'taskTypeUser' ? 'default' : 'outline'}
+                  onClick={() => setSelectedView('taskTypeUser')}
+                  className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm h-auto py-2 sm:py-2"
+                >
+                  <User className="w-3 h-3 sm:w-4 sm:h-4" />
+                  <span className="hidden sm:inline">By Task Type (Personal)</span>
+                  <span className="sm:hidden">Personal Tasks</span>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
 
-                     {/* Monthly Transactions Overview */}
-           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+          {/* Monthly Transactions Overview */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
             <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 border-blue-200 dark:border-blue-800">
               <CardContent className="p-4 sm:p-6">
                 <div className="flex items-center justify-between">
@@ -857,27 +857,27 @@ export default function Settings() {
             </Card>
           </div>
 
-                     {/* Charts Section */}
-           {filteredTransactions.length > 0 && (
-             <div className="grid gap-4 sm:gap-6">
+          {/* Charts Section */}
+          {filteredTransactions.length > 0 && (
+            <div className="grid gap-4 sm:gap-6">
 
-               {/* Item Distribution Pie Chart */}
-               <Card className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/20 dark:to-pink-950/20 border-purple-200 dark:border-purple-800">
-                 <CardHeader>
-                   <CardTitle className="flex items-center gap-2">
-                     <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 dark:text-purple-400" />
-                     {selectedView === 'item' && 'Spending by Item Type'}
-                     {selectedView === 'itemGlobal' && 'Global Spending by Item Type'}
-                     {selectedView === 'taskType' && 'Global Spending by Task Type'}
-                     {selectedView === 'taskTypeUser' && 'Personal Spending by Task Type'}
-                   </CardTitle>
-                   <CardDescription className="text-sm">
-                     {selectedView === 'item' && 'Distribution of your gem spending across different services'}
-                     {selectedView === 'itemGlobal' && 'Global distribution of gem spending across different services'}
-                     {selectedView === 'taskType' && 'Global distribution of gem spending across different task types'}
-                     {selectedView === 'taskTypeUser' && 'Distribution of your personal gem spending across different task types'}
-                   </CardDescription>
-                 </CardHeader>
+              {/* Item Distribution Pie Chart */}
+              <Card className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/20 dark:to-pink-950/20 border-purple-200 dark:border-purple-800">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 dark:text-purple-400" />
+                    {selectedView === 'item' && 'Spending by Item Type'}
+                    {selectedView === 'itemGlobal' && 'Global Spending by Item Type'}
+                    {selectedView === 'taskType' && 'Global Spending by Task Type'}
+                    {selectedView === 'taskTypeUser' && 'Personal Spending by Task Type'}
+                  </CardTitle>
+                  <CardDescription className="text-sm">
+                    {selectedView === 'item' && 'Distribution of your gem spending across different services'}
+                    {selectedView === 'itemGlobal' && 'Global distribution of gem spending across different services'}
+                    {selectedView === 'taskType' && 'Global distribution of gem spending across different task types'}
+                    {selectedView === 'taskTypeUser' && 'Distribution of your personal gem spending across different task types'}
+                  </CardDescription>
+                </CardHeader>
                 <CardContent>
                   <div className="h-64 sm:h-80">
                     <ResponsiveContainer width="100%" height="100%">
@@ -913,21 +913,21 @@ export default function Settings() {
             </div>
           )}
 
-                     {/* Usage Comparison Chart */}
-           {filteredTransactions.length > 0 && (
-             <Card className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 border-green-200 dark:border-green-800">
-               <CardHeader>
-                 <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
-                   <Activity className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 dark:text-green-400" />
-                   Usage vs Spending Comparison
-                 </CardTitle>
-                 <CardDescription className="text-sm">
-                   {selectedView === 'item' && 'Compare usage frequency with spending for each service'}
-                   {selectedView === 'itemGlobal' && 'Compare global usage frequency with spending for each service'}
-                   {selectedView === 'taskType' && 'Compare global usage frequency with spending for each task type'}
-                   {selectedView === 'taskTypeUser' && 'Compare your personal usage frequency with spending for each task type'}
-                 </CardDescription>
-               </CardHeader>
+          {/* Usage Comparison Chart */}
+          {filteredTransactions.length > 0 && (
+            <Card className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 border-green-200 dark:border-green-800">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+                  <Activity className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 dark:text-green-400" />
+                  Usage vs Spending Comparison
+                </CardTitle>
+                <CardDescription className="text-sm">
+                  {selectedView === 'item' && 'Compare usage frequency with spending for each service'}
+                  {selectedView === 'itemGlobal' && 'Compare global usage frequency with spending for each service'}
+                  {selectedView === 'taskType' && 'Compare global usage frequency with spending for each task type'}
+                  {selectedView === 'taskTypeUser' && 'Compare your personal usage frequency with spending for each task type'}
+                </CardDescription>
+              </CardHeader>
               <CardContent>
                 <div className="h-64 sm:h-80">
                   <ResponsiveContainer width="100%" height="100%">
@@ -985,71 +985,71 @@ export default function Settings() {
             </Card>
           )}
 
-                     {/* Usage Insights */}
-           {filteredTransactions.length > 0 && (
-             <Card>
-               <CardHeader>
-                 <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
-                   <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" />
-                   Usage Insights
-                 </CardTitle>
-                 <CardDescription className="text-sm">Key insights about your credit usage patterns</CardDescription>
-               </CardHeader>
-               <CardContent>
-                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                   <div className="p-3 sm:p-4 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 rounded-lg">
-                     <div className="flex items-center gap-2 mb-2">
-                       <DollarSign className="w-3 h-3 sm:w-4 sm:h-4 text-blue-600 dark:text-blue-400" />
-                       <span className="text-xs sm:text-sm font-medium text-blue-600 dark:text-blue-400">Most Expensive Item</span>
-                     </div>
-                     <p className="text-sm sm:text-lg font-bold text-blue-900 dark:text-blue-100">
-                       {(() => {
-                         const maxTransaction = filteredTransactions.reduce((max, t) => t.gems_total > max.gems_total ? t : max, filteredTransactions[0]);
-                         return maxTransaction.gems_total > 0
-                           ? ('item_name' in maxTransaction ? maxTransaction.item_name : maxTransaction.task_type)
-                           : 'No data';
-                       })()}
-                     </p>
-                   </div>
+          {/* Usage Insights */}
+          {filteredTransactions.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+                  <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" />
+                  Usage Insights
+                </CardTitle>
+                <CardDescription className="text-sm">Key insights about your credit usage patterns</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                  <div className="p-3 sm:p-4 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 rounded-lg">
+                    <div className="flex items-center gap-2 mb-2">
+                      <DollarSign className="w-3 h-3 sm:w-4 sm:h-4 text-blue-600 dark:text-blue-400" />
+                      <span className="text-xs sm:text-sm font-medium text-blue-600 dark:text-blue-400">Most Expensive Item</span>
+                    </div>
+                    <p className="text-sm sm:text-lg font-bold text-blue-900 dark:text-blue-100">
+                      {(() => {
+                        const maxTransaction = filteredTransactions.reduce((max, t) => t.gems_total > max.gems_total ? t : max, filteredTransactions[0]);
+                        return maxTransaction.gems_total > 0
+                          ? ('item_name' in maxTransaction ? maxTransaction.item_name : maxTransaction.task_type)
+                          : 'No data';
+                      })()}
+                    </p>
+                  </div>
 
-                   <div className="p-3 sm:p-4 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/20 dark:to-pink-950/20 rounded-lg">
-                     <div className="flex items-center gap-2 mb-2">
-                       <Activity className="w-3 h-3 sm:w-4 sm:h-4 text-purple-600 dark:text-purple-400" />
-                       <span className="text-xs sm:text-sm font-medium text-purple-600 dark:text-purple-400">Most Used Item</span>
-                     </div>
-                     <p className="text-sm sm:text-lg font-bold text-purple-900 dark:text-purple-100">
-                       {(() => {
-                         const maxTransaction = filteredTransactions.reduce((max, t) => t.uses_count > max.uses_count ? t : max, filteredTransactions[0]);
-                         return maxTransaction.uses_count > 0
-                           ? ('item_name' in maxTransaction ? maxTransaction.item_name : maxTransaction.task_type)
-                           : 'No data';
-                       })()}
-                     </p>
-                   </div>
+                  <div className="p-3 sm:p-4 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/20 dark:to-pink-950/20 rounded-lg">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Activity className="w-3 h-3 sm:w-4 sm:h-4 text-purple-600 dark:text-purple-400" />
+                      <span className="text-xs sm:text-sm font-medium text-purple-600 dark:text-purple-400">Most Used Item</span>
+                    </div>
+                    <p className="text-sm sm:text-lg font-bold text-purple-900 dark:text-purple-100">
+                      {(() => {
+                        const maxTransaction = filteredTransactions.reduce((max, t) => t.uses_count > max.uses_count ? t : max, filteredTransactions[0]);
+                        return maxTransaction.uses_count > 0
+                          ? ('item_name' in maxTransaction ? maxTransaction.item_name : maxTransaction.task_type)
+                          : 'No data';
+                      })()}
+                    </p>
+                  </div>
 
-                   <div className="p-3 sm:p-4 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 rounded-lg">
-                     <div className="flex items-center gap-2 mb-2">
-                       <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4 text-green-600 dark:text-green-400" />
-                       <span className="text-xs sm:text-sm font-medium text-green-600 dark:text-green-400">Avg. Gems per Use</span>
-                     </div>
-                     <p className="text-sm sm:text-lg font-bold text-green-900 dark:text-green-100">
-                       {(totalGems / totalUses).toFixed(2)}
-                     </p>
-                   </div>
+                  <div className="p-3 sm:p-4 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 rounded-lg">
+                    <div className="flex items-center gap-2 mb-2">
+                      <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4 text-green-600 dark:text-green-400" />
+                      <span className="text-xs sm:text-sm font-medium text-green-600 dark:text-green-400">Avg. Gems per Use</span>
+                    </div>
+                    <p className="text-sm sm:text-lg font-bold text-green-900 dark:text-green-100">
+                      {(totalGems / totalUses).toFixed(2)}
+                    </p>
+                  </div>
 
-                   <div className="p-3 sm:p-4 bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-950/20 dark:to-red-950/20 rounded-lg">
-                     <div className="flex items-center gap-2 mb-2">
-                       <Calendar className="w-3 h-3 sm:w-4 sm:h-4 text-orange-600 dark:text-orange-400" />
-                       <span className="text-xs sm:text-sm font-medium text-orange-600 dark:text-orange-400">Active Months</span>
-                     </div>
-                     <p className="text-sm sm:text-lg font-bold text-orange-900 dark:text-orange-100">
-                       {new Set(filteredTransactions.map(t => t.period)).size}
-                     </p>
-                   </div>
-                 </div>
-               </CardContent>
-             </Card>
-           )}
+                  <div className="p-3 sm:p-4 bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-950/20 dark:to-red-950/20 rounded-lg">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Calendar className="w-3 h-3 sm:w-4 sm:h-4 text-orange-600 dark:text-orange-400" />
+                      <span className="text-xs sm:text-sm font-medium text-orange-600 dark:text-orange-400">Active Months</span>
+                    </div>
+                    <p className="text-sm sm:text-lg font-bold text-orange-900 dark:text-orange-100">
+                      {new Set(filteredTransactions.map(t => t.period)).size}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
       </Tabs>
 

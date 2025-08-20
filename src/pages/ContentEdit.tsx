@@ -145,8 +145,8 @@ export default function ContentEdit() {
   const [showMaskEditor, setShowMaskEditor] = useState(false);
   const [brushSize, setBrushSize] = useState(40);
   const [isErasing, setIsErasing] = useState<boolean>(false); // false = draw mode by default
-  const [maskColor, setMaskColor] = useState('#ffffff'); // Default white mask
-  const [maskOpacity, setMaskOpacity] = useState(50); // Default 50% opacity
+  const [maskColor, setMaskColor] = useState('#00ff00'); // Default green mask
+  const [maskOpacity, setMaskOpacity] = useState(10); // Default 10% opacity
   const [isDrawing, setIsDrawing] = useState(false); // Track if user is currently drawing
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const maskCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -422,7 +422,7 @@ export default function ContentEdit() {
           const r = parseInt(hex.substr(0, 2), 16);
           const g = parseInt(hex.substr(2, 2), 16);
           const b = parseInt(hex.substr(4, 2), 16);
-          const opacity = Math.min(maskOpacity / 100, 0.5); // Cap at 50%
+          const opacity = Math.min(maskOpacity / 100, 0.3); // Cap at 30%
           ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${opacity})`;
         }
 
@@ -2757,10 +2757,10 @@ export default function ContentEdit() {
                       <Label className="text-sm">Opacity: {maskOpacity}%</Label>
                       <Slider
                         value={[maskOpacity]}
-                        onValueChange={([value]) => setMaskOpacity(Math.min(value, 50))}
-                        min={10}
-                        max={50}
-                        step={5}
+                        onValueChange={([value]) => setMaskOpacity(Math.min(value, 30))}
+                        min={2}
+                        max={30}
+                        step={1}
                         className="w-full md:w-24"
                       />
                     </div>

@@ -54,6 +54,9 @@ export interface TemplateInfluencer {
     lorastatus?: number;
     bio?: any; // jsonb bio field from API
     template_pro?: boolean; // true for pro templates, false for free templates
+    example_pic1?: string; // URL for example picture 1
+    example_pic2?: string; // URL for example picture 2
+    example_pic3?: string; // URL for example picture 3
 }
 
 interface TemplateInfluencerState {

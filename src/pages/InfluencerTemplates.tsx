@@ -7,12 +7,13 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Loader2, Plus, Search, Filter, Eye, Star, Crown, MapPin, Users, Sparkles, Image } from 'lucide-react';
+import { Loader2, Plus, Search, Filter, Eye, Star, Crown, MapPin, Users, Sparkles, Image, ChevronLeft, ChevronRight, Check } from 'lucide-react';
 import { RootState } from '@/store/store';
 import { fetchTemplateInfluencers, TemplateInfluencer } from '@/store/slices/templateInfluencerSlice';
 import { useEffect, useState, useMemo } from 'react';
 import { AppDispatch } from '@/store/store';
 import { LoraStatusIndicator } from '@/components/Influencers/LoraStatusIndicator';
+import { cn } from '@/lib/utils';
 import config from '@/config/config';
 
 export default function InfluencerTemplates() {
@@ -27,6 +28,7 @@ export default function InfluencerTemplates() {
   const [sortBy, setSortBy] = useState<string>('popularity');
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<TemplateInfluencer | null>(null);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   const dispatch = useDispatch<AppDispatch>();
   const { templates, loading } = useSelector((state: RootState) => state.templateInfluencer);
@@ -97,7 +99,63 @@ export default function InfluencerTemplates() {
 
   const handlePreviewTemplate = (template: TemplateInfluencer) => {
     setSelectedTemplate(template);
+    setCurrentImageIndex(0);
     setShowPreviewModal(true);
+  };
+
+  // Helper function to get available images for the template
+  const getAvailableImages = (template: TemplateInfluencer) => {
+    const images = [];
+    
+    // Add profile image
+    if (template.image_url) {
+      images.push({
+        url: template.image_url,
+        label: 'Profile',
+        type: 'profile'
+      });
+    }
+    
+    // Add example images from template data
+    if (template.example_pic1) {
+      images.push({
+        url: template.example_pic1,
+        label: 'Example 1',
+        type: 'example'
+      });
+    }
+    
+    if (template.example_pic2) {
+      images.push({
+        url: template.example_pic2,
+        label: 'Example 2',
+        type: 'example'
+      });
+    }
+    
+    if (template.example_pic3) {
+      images.push({
+        url: template.example_pic3,
+        label: 'Example 3',
+        type: 'example'
+      });
+    }
+    
+    return images;
+  };
+
+  const handlePrevImage = () => {
+    if (selectedTemplate) {
+      const images = getAvailableImages(selectedTemplate);
+      setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length);
+    }
+  };
+
+  const handleNextImage = () => {
+    if (selectedTemplate) {
+      const images = getAvailableImages(selectedTemplate);
+      setCurrentImageIndex((prev) => (prev + 1) % images.length);
+    }
   };
 
   const handleUseTemplateFromPreview = () => {
@@ -374,7 +432,15 @@ export default function InfluencerTemplates() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
             {recommendedTemplates.map((template) => (
-              <Card key={template.id} className="group hover:shadow-lg transition-all duration-300 border-border/50 hover:border-ai-purple-500/20">
+              <Card 
+                key={template.id} 
+                className={cn(
+                  "group cursor-pointer transition-all duration-300 hover:shadow-xl border-2 transform hover:scale-105",
+                  "border-gray-200 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-600"
+                )}
+                onDoubleClick={() => handlePreviewTemplate(template)}
+                title="Double-click to preview template"
+              >
                 <CardContent className="p-4 sm:p-6 h-full">
                   <div className="flex flex-col justify-between h-full space-y-3 sm:space-y-4">
                     <div className="relative w-full h-full bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg overflow-hidden">
@@ -429,6 +495,7 @@ export default function InfluencerTemplates() {
                           src={template.image_url}
                           alt={`${template.name_first} ${template.name_last}`}
                           className="w-full h-full object-cover"
+                          onDoubleClick={() => handlePreviewTemplate(template)}
                         />
                       ) : (
                         <div className="flex flex-col w-full h-full items-center justify-center max-h-48 min-h-40">
@@ -527,7 +594,15 @@ export default function InfluencerTemplates() {
       {/* Templates Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-6">
         {filteredAndSortedTemplates.map((template) => (
-          <Card key={template.id} className="group hover:shadow-lg transition-all duration-300 border-border/50 hover:border-ai-purple-500/20">
+          <Card 
+            key={template.id} 
+            className={cn(
+              "group cursor-pointer transition-all duration-300 hover:shadow-xl border-2 transform hover:scale-105",
+              "border-gray-200 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-600"
+            )}
+            onDoubleClick={() => handlePreviewTemplate(template)}
+            title="Double-click to preview template"
+          >
             <CardContent className="p-4 sm:p-6 h-full">
               <div className="flex flex-col justify-between h-full space-y-3 sm:space-y-4">
                 <div className="relative w-full h-full bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg overflow-hidden">
@@ -582,6 +657,7 @@ export default function InfluencerTemplates() {
                       src={template.image_url}
                       alt={`${template.name_first} ${template.name_last}`}
                       className="w-full h-full object-cover"
+                      onDoubleClick={() => handlePreviewTemplate(template)}
                     />
                   ) : (
                     <div className="flex flex-col w-full h-full items-center justify-center max-h-48 min-h-40">
@@ -677,171 +753,206 @@ export default function InfluencerTemplates() {
 
       {/* Preview Modal */}
       <Dialog open={showPreviewModal} onOpenChange={setShowPreviewModal}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-2xl font-bold bg-ai-gradient bg-clip-text text-transparent">
+            <DialogTitle className="text-xl font-bold bg-ai-gradient bg-clip-text text-transparent">
               Template Preview
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-sm">
               See what this template looks like and learn more about it
             </DialogDescription>
           </DialogHeader>
 
-          {selectedTemplate && (
-            <div className="space-y-6">
-              {/* Main Template Image */}
-              <div className="relative aspect-[3/4] max-w-md mx-auto bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg overflow-hidden shadow-xl">
-                {selectedTemplate.image_url && (
-                  <img 
-                    src={selectedTemplate.image_url} 
-                    alt={selectedTemplate.id} 
-                    className="w-full h-full object-cover" 
-                  />
-                )}
-                {/* Template Type Badge - Left Top */}
-                <div className="absolute top-4 left-4">
-                  {selectedTemplate.template_pro ? (
-                    <Badge className="bg-gradient-to-r from-purple-600 via-purple-500 to-indigo-600 text-white border-0 shadow-lg font-semibold px-3 py-2 backdrop-blur-sm">
-                      <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M12 2L15.09 8.26L22 9L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9L8.91 8.26L12 2Z"/>
-                      </svg>
-                      PRO Template
-                    </Badge>
-                  ) : (
-                    <Badge className="bg-gradient-to-r from-green-500 via-emerald-500 to-teal-600 text-white border-0 shadow-lg font-semibold px-3 py-2 backdrop-blur-sm">
-                      <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-                      </svg>
-                      FREE Template
-                    </Badge>
-                  )}
-                </div>
-              </div>
-
-              {/* Template Details */}
+          {selectedTemplate && (() => {
+            const availableImages = getAvailableImages(selectedTemplate);
+            const currentImage = availableImages[currentImageIndex];
+            
+            return (
               <div className="space-y-4">
-                <div className="text-center">
-                  <h2 className="text-2xl font-bold mb-2">
-                    {selectedTemplate.name_first} {selectedTemplate.name_last}
-                  </h2>
-                  {selectedTemplate.lifestyle && (
-                    <p className="text-lg text-muted-foreground mb-2">
-                      {selectedTemplate.lifestyle}
-                    </p>
-                  )}
-                  {selectedTemplate.origin_residence && (
-                    <div className="flex items-center justify-center gap-1 text-muted-foreground">
-                      <MapPin className="w-4 h-4" />
-                      {selectedTemplate.origin_residence}
+                {/* Image Gallery Section */}
+                <div className="flex gap-4">
+                  {/* Main Image Display */}
+                  <div className="flex-1">
+                    <div 
+                      className="relative aspect-[3/4] w-full max-w-sm mx-auto bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg overflow-hidden shadow-md group cursor-pointer"
+                      onMouseEnter={() => {}}
+                    >
+                      {currentImage && (
+                        <img 
+                          src={currentImage.url} 
+                          alt={currentImage.label} 
+                          className="w-full h-full object-cover" 
+                          onError={(e) => {
+                            // Fallback to profile image if example image fails to load
+                            if (currentImage.type === 'example' && selectedTemplate.image_url) {
+                              (e.target as HTMLImageElement).src = selectedTemplate.image_url;
+                            }
+                          }}
+                        />
+                      )}
+                      
+                      {/* Template Type Badge - Left Top */}
+                      <div className="absolute top-4 left-4 z-10">
+                        {selectedTemplate.template_pro ? (
+                          <Badge className="bg-gradient-to-r from-purple-600 via-purple-500 to-indigo-600 text-white border-0 shadow-lg font-semibold px-3 py-2 backdrop-blur-sm">
+                            <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="currentColor">
+                              <path d="M12 2L15.09 8.26L22 9L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9L8.91 8.26L12 2Z"/>
+                            </svg>
+                            PRO Template
+                          </Badge>
+                        ) : (
+                          <Badge className="bg-gradient-to-r from-green-500 via-emerald-500 to-teal-600 text-white border-0 shadow-lg font-semibold px-3 py-2 backdrop-blur-sm">
+                            <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="currentColor">
+                              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                            </svg>
+                            FREE Template
+                          </Badge>
+                        )}
+                      </div>
+
+                      {/* Navigation Arrows - Only show on hover when more than 1 image */}
+                      {availableImages.length > 1 && (
+                        <>
+                          {/* Left Arrow */}
+                          <div 
+                            className="absolute left-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer z-20"
+                            onClick={handlePrevImage}
+                          >
+                            <div className="bg-black/50 hover:bg-black/70 rounded-full p-1.5 backdrop-blur-sm">
+                              <ChevronLeft className="w-4 h-4 text-white" />
+                            </div>
+                          </div>
+
+                          {/* Right Arrow */}
+                          <div 
+                            className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer z-20"
+                            onClick={handleNextImage}
+                          >
+                            <div className="bg-black/50 hover:bg-black/70 rounded-full p-1.5 backdrop-blur-sm">
+                              <ChevronRight className="w-4 h-4 text-white" />
+                            </div>
+                          </div>
+                        </>
+                      )}
+
+                      {/* Image Label */}
+                      <div className="absolute bottom-4 left-4 z-10">
+                        <Badge variant="secondary" className="bg-black/50 text-white border-0 backdrop-blur-sm">
+                          {currentImage?.label}
+                        </Badge>
+                      </div>
                     </div>
-                  )}
+                  </div>
+
+                  {/* Thumbnail Gallery */}
+                  <div className="flex flex-col gap-2 w-20">
+                    {availableImages.map((image, index) => (
+                      <div
+                        key={index}
+                        className={`aspect-square bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg overflow-hidden cursor-pointer transition-all duration-200 ${
+                          index === currentImageIndex 
+                            ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-background' 
+                            : 'hover:ring-1 hover:ring-blue-300 hover:ring-offset-1 hover:ring-offset-background'
+                        }`}
+                        onClick={() => setCurrentImageIndex(index)}
+                      >
+                        <img 
+                          src={image.url} 
+                          alt={image.label} 
+                          className="w-full h-full object-cover" 
+                          onError={(e) => {
+                            // Fallback to profile image if example image fails to load
+                            if (image.type === 'example' && selectedTemplate.image_url) {
+                              (e.target as HTMLImageElement).src = selectedTemplate.image_url;
+                            }
+                          }}
+                        />
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
-                {/* Template Information Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Basic Info */}
-                  <div className="space-y-3">
-                    <h3 className="font-semibold text-lg">Basic Information</h3>
-                    <div className="space-y-2 text-sm">
-                      {selectedTemplate.age && (
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Age:</span>
-                          <span>{selectedTemplate.age}</span>
-                        </div>
-                      )}
-                      {selectedTemplate.sex && (
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Gender:</span>
-                          <span className="capitalize">{selectedTemplate.sex}</span>
-                        </div>
-                      )}
-                      {selectedTemplate.cultural_background && (
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Background:</span>
-                          <span>{selectedTemplate.cultural_background}</span>
-                        </div>
-                      )}
-                      {selectedTemplate.job_title && (
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Profession:</span>
-                          <span>{selectedTemplate.job_title}</span>
+                {/* Template Details - Compact */}
+                <div className="space-y-3">
+                  <div className="text-center">
+                    <h2 className="text-xl font-bold mb-1">
+                      {selectedTemplate.name_first} {selectedTemplate.name_last}
+                    </h2>
+                    <div className="flex items-center justify-center gap-4 text-sm text-muted-foreground">
+                      {selectedTemplate.lifestyle && <span>{selectedTemplate.lifestyle}</span>}
+                      {selectedTemplate.origin_residence && (
+                        <div className="flex items-center gap-1">
+                          <MapPin className="w-3 h-3" />
+                          {selectedTemplate.origin_residence}
                         </div>
                       )}
                     </div>
                   </div>
 
-                  {/* Style & Focus */}
-                  <div className="space-y-3">
-                    <h3 className="font-semibold text-lg">Style & Focus</h3>
-                    <div className="space-y-2">
-                      {selectedTemplate.content_focus && selectedTemplate.content_focus.length > 0 && (
-                        <div>
-                          <p className="text-sm text-muted-foreground mb-1">Content Focus:</p>
-                          <div className="flex flex-wrap gap-1">
-                            {selectedTemplate.content_focus.map((focus, index) => (
-                              <Badge key={index} variant="secondary" className="text-xs">
-                                {focus}
-                              </Badge>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                      {selectedTemplate.hobbies && selectedTemplate.hobbies.length > 0 && (
-                        <div>
-                          <p className="text-sm text-muted-foreground mb-1">Hobbies:</p>
-                          <div className="flex flex-wrap gap-1">
-                            {selectedTemplate.hobbies.map((hobby, index) => (
-                              <Badge key={index} variant="outline" className="text-xs">
-                                {hobby}
-                              </Badge>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Description */}
-                {selectedTemplate.notes && (
-                  <div className="space-y-2">
-                    <h3 className="font-semibold text-lg">Description</h3>
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      {selectedTemplate.notes}
-                    </p>
-                  </div>
-                )}
-
-                {/* Action Buttons */}
-                <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t">
-                  <Button
-                    variant="outline"
-                    onClick={() => setShowPreviewModal(false)}
-                    className="flex-1"
-                  >
-                    Back to Templates
-                  </Button>
-                  <Button
-                    onClick={handleUseTemplateFromPreview}
-                    className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
-                    disabled={loadingButtons[selectedTemplate.id]}
-                  >
-                    {loadingButtons[selectedTemplate.id] ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Creating...
-                      </>
-                    ) : (
-                      <>
-                        <Plus className="w-4 h-4 mr-2" />
-                        Use This Template
-                      </>
+                  {/* Compact Information */}
+                  <div className="grid grid-cols-3 gap-4 max-w-lg mx-auto text-sm">
+                    {selectedTemplate.age && (
+                      <div className="text-center">
+                        <div className="text-muted-foreground">Age</div>
+                        <div className="font-medium">{selectedTemplate.age}</div>
+                      </div>
                     )}
-                  </Button>
+                    {selectedTemplate.sex && (
+                      <div className="text-center">
+                        <div className="text-muted-foreground">Gender</div>
+                        <div className="font-medium capitalize">{selectedTemplate.sex}</div>
+                      </div>
+                    )}
+                    {selectedTemplate.cultural_background && (
+                      <div className="text-center">
+                        <div className="text-muted-foreground">Background</div>
+                        <div className="font-medium text-xs">{selectedTemplate.cultural_background}</div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Compact Description */}
+                  {selectedTemplate.notes && (
+                    <div className="max-w-2xl mx-auto">
+                      <p className="text-sm text-muted-foreground text-center line-clamp-3">
+                        {selectedTemplate.notes}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Action Buttons */}
+                  <div className="flex gap-3 pt-3 border-t">
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowPreviewModal(false)}
+                      className="flex-1"
+                      size="sm"
+                    >
+                      Back
+                    </Button>
+                    <Button
+                      onClick={handleUseTemplateFromPreview}
+                      className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+                      disabled={loadingButtons[selectedTemplate.id]}
+                      size="sm"
+                    >
+                      {loadingButtons[selectedTemplate.id] ? (
+                        <>
+                          <Loader2 className="w-3 h-3 mr-2 animate-spin" />
+                          Creating...
+                        </>
+                      ) : (
+                        <>
+                          <Plus className="w-3 h-3 mr-2" />
+                          Use Template
+                        </>
+                      )}
+                    </Button>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
         </DialogContent>
       </Dialog>
     </div>

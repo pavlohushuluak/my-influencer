@@ -33,13 +33,15 @@ import {
   Zap,
   ArrowLeft,
   RotateCw,
-  Upload
+  Upload,
+  Image
 } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 
 import { CreditConfirmationModal } from '@/components/CreditConfirmationModal';
 import LoraVaultSelector from '@/components/LoraVaultSelector';
+import VaultSelector from '@/components/VaultSelector';
 import config from '@/config/config';
 
 // Interface for file data from getfilenames API
@@ -145,14 +147,7 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
   const [isLoadingLoraStatus, setIsLoadingLoraStatus] = useState(true);
 
   // Credit checking state for LoRA training
-  const [showGemWarning, setShowGemWarning] = useState(false);
   const [showRestartGemWarning, setShowRestartGemWarning] = useState(false);
-  const [gemCostData, setGemCostData] = useState<{
-    id: number;
-    item: string;
-    description: string;
-    gems: number;
-  } | null>(null);
   const [restartGemCostData, setRestartGemCostData] = useState<{
     id: number;
     item: string;
@@ -185,11 +180,46 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
     gems: number;
   } | null>(null);
 
-  // Fetch LoRA status from database
+  // Reference image generation state
+  const [isGeneratingReferenceImages, setIsGeneratingReferenceImages] = useState(false);
+  const [showReferenceImageGemWarning, setShowReferenceImageGemWarning] = useState(false);
+  const [referenceImageGemCostData, setReferenceImageGemCostData] = useState<{
+    id: number;
+    item: string;
+    description: string;
+    gems: number;
+  } | null>(null);
+  
+  // Auto-refresh state for reference image generation
+  const [autoRefreshInterval, setAutoRefreshInterval] = useState<NodeJS.Timeout | null>(null);
+  
+  // Reset training state modal
+  const [showResetTrainingModal, setShowResetTrainingModal] = useState(false);
+  const [isResettingTraining, setIsResettingTraining] = useState(false);
+
+  // Fetch LoRA status from database (check both loras table and influencer.lorastatus)
   const fetchLoraStatus = useCallback(async () => {
     try {
       setIsLoadingLoraStatus(true);
 
+      // First check the influencer table for lorastatus
+      const influencerResponse = await fetch(`${config.supabase_server_url}/influencer?id=eq.${influencerId}&select=lorastatus`, {
+        method: 'GET',
+        headers: {
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        }
+      });
+
+      if (influencerResponse.ok) {
+        const influencerData = await influencerResponse.json();
+        if (influencerData && influencerData.length > 0 && influencerData[0].lorastatus === 0) {
+          // If influencer lorastatus is 0, consider it as "not started"
+          setLoraStatus(null);
+          return;
+        }
+      }
+
+      // Otherwise check the loras table as before
       const response = await fetch(`${config.supabase_server_url}/loras?user_uuid=eq.${userData.id}&model_id=eq.${influencerId}`, {
         method: 'GET',
         headers: {
@@ -205,7 +235,12 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
 
       // Set the first (and should be only) LoRA record for this model
       if (loraData && loraData.length > 0) {
-        setLoraStatus(loraData[0]);
+        // If status is "generation_reset", treat it as "not started"
+        if (loraData[0].status === 'generation_reset') {
+          setLoraStatus(null);
+        } else {
+          setLoraStatus(loraData[0]);
+        }
       } else {
         setLoraStatus(null);
       }
@@ -363,6 +398,9 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
       console.log(file.key);
       const result = file.key.match(/(models\/[^\s]+)/);
 
+      if (!result || result.length === 0) {
+        throw new Error('Failed to extract file path');
+      }
       console.log(result[0]);
 
       const response = await fetch(`${config.backend_url}/downloadfile`, {
@@ -752,6 +790,262 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
     }
   };
 
+  // Function to check gem cost for reference image generation
+  const checkReferenceImageGemCost = async () => {
+    try {
+      setIsGeneratingReferenceImages(true);
+      const response = await fetch('https://api.nymia.ai/v1/getgems', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          item: 'lora_image_regen'
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch gem cost: ${response.status}`);
+      }
+
+      const gemData = await response.json();
+      return gemData;
+    } catch (error) {
+      console.error('Error checking gem cost:', error);
+      toast.error('Failed to check gem cost. Please try again.');
+      return null;
+    } finally {
+      setIsGeneratingReferenceImages(false);
+    }
+  };
+
+  // Function to handle reference image generation
+  const handleGenerateReferenceImages = async () => {
+    // Check gem cost first
+    const gemData = await checkReferenceImageGemCost();
+    if (gemData) {
+      setReferenceImageGemCostData(gemData);
+      
+      // Check if user has enough credits
+      if (userData.credits < gemData.gems) {
+        setShowReferenceImageGemWarning(true);
+        return;
+      } else {
+        // Show confirmation for gem cost
+        setShowReferenceImageGemWarning(true);
+        return;
+      }
+    }
+
+    toast.error('Unable to verify credit cost for reference image generation');
+  };
+
+  // Function to proceed with reference image generation after confirmation
+  const proceedWithReferenceImageGeneration = async () => {
+    try {
+      setShowReferenceImageGemWarning(false);
+      setIsGeneratingReferenceImages(true);
+
+      console.log('Starting reference image generation for influencer:', influencerId);
+      
+      // Get influencer data first
+      const influencerResponse = await fetch(`${config.supabase_server_url}/influencer?id=eq.${influencerId}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        }
+      });
+
+      const influencerData = await influencerResponse.json();
+
+      if (!influencerData || influencerData.length === 0) {
+        throw new Error('Influencer data not found');
+      }
+
+      // Get user ID from database
+      const useridResponse = await fetch(`${config.supabase_server_url}/user?uuid=eq.${userData.id}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        }
+      });
+
+      const useridData = await useridResponse.json();
+
+      if (!useridData || useridData.length === 0) {
+        throw new Error('User not found');
+      }
+
+      // Create the request data structure similar to ContentCreateImage
+      const requestData = {
+        task: 'createloraimages',
+        lora: true,
+        noAI: false,
+        prompt: 'reference images for AI consistency model',
+        negative_prompt: '',
+        nsfw_strength: 0,
+        lora_strength: 1.0,
+        quality: 'high',
+        seed: -1,
+        guidance: 7.5,
+        number_of_images: 4,
+        format: '1024x1024',
+        engine: 'flux',
+        usePromptOnly: false,
+        regenerated_from: '12345678-1111-2222-3333-caffebabe0123',
+        model: {
+          id: influencerData[0].id,
+          influencer_type: influencerData[0].influencer_type,
+          sex: influencerData[0].sex,
+          cultural_background: influencerData[0].cultural_background,
+          hair_length: influencerData[0].hair_length,
+          hair_color: influencerData[0].hair_color,
+          hair_style: influencerData[0].hair_style,
+          eye_color: influencerData[0].eye_color,
+          lip_style: influencerData[0].lip_style,
+          nose_style: influencerData[0].nose_style,
+          face_shape: influencerData[0].face_shape,
+          facial_features: influencerData[0].facial_features,
+          skin_tone: influencerData[0].skin_tone,
+          bust: influencerData[0].bust_size,
+          body_type: influencerData[0].body_type,
+          color_palette: influencerData[0].color_palette || [],
+          clothing_style_everyday: influencerData[0].clothing_style_everyday,
+          eyebrow_style: influencerData[0].eyebrow_style,
+          makeup_style: influencerData[0].makeup_style,
+          name_first: influencerData[0].name_first,
+          name_last: influencerData[0].name_last,
+          visual_only: influencerData[0].visual_only,
+          age: influencerData[0].age,
+          lifestyle: influencerData[0].lifestyle
+        },
+        scene: {
+          framing: 'medium_shot',
+          rotation: 'front',
+          lighting_preset: 'natural',
+          scene_setting: 'studio',
+          pose: 'standing',
+          clothes: 'casual'
+        }
+      };
+
+      console.log('Request data:', requestData);
+
+      // Create the task for reference image generation
+      const response = await fetch(`${config.backend_url}/createtask?userid=${useridData[0].userid}&type=createimage`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify(requestData)
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('API Error:', errorText);
+        throw new Error(`Failed to create reference image generation task: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log('API Response:', result);
+      toast.success('Reference image generation started! Images will appear in your library when ready.');
+      
+      // Start auto-refresh every 60 seconds
+      const interval = setInterval(() => {
+        fetchLoraFiles();
+      }, 60000);
+      setAutoRefreshInterval(interval);
+      
+      // Stop auto-refresh after 10 minutes (600 seconds)
+      setTimeout(() => {
+        if (interval) {
+          clearInterval(interval);
+          setAutoRefreshInterval(null);
+        }
+      }, 600000);
+      
+      // Refresh files list to show any immediate changes
+      fetchLoraFiles();
+    } catch (error) {
+      console.error('Error generating reference images:', error);
+      toast.error('Failed to start reference image generation. Please try again.');
+    } finally {
+      setIsGeneratingReferenceImages(false);
+    }
+  };
+
+  // Clean up auto-refresh on component unmount
+  useEffect(() => {
+    return () => {
+      if (autoRefreshInterval) {
+        clearInterval(autoRefreshInterval);
+      }
+    };
+  }, [autoRefreshInterval]);
+
+  // Function to reset training status
+  const handleResetTrainingStatus = async () => {
+    try {
+      setIsResettingTraining(true);
+      
+      console.log('Resetting training status for influencer:', influencerId);
+      
+      // Update influencer's lorastatus to 0
+      const influencerResponse = await fetch(`${config.supabase_server_url}/influencer?id=eq.${influencerId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          lorastatus: 0
+        })
+      });
+
+      if (!influencerResponse.ok) {
+        const errorText = await influencerResponse.text();
+        console.error('Reset influencer lorastatus error:', errorText);
+        throw new Error(`Failed to reset influencer lorastatus: ${influencerResponse.status}`);
+      }
+
+      // Update loras table status to "generation_reset"
+      const lorasResponse = await fetch(`${config.supabase_server_url}/loras?user_uuid=eq.${userData.id}&model_id=eq.${influencerId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          status: 'generation_reset'
+        })
+      });
+
+      if (!lorasResponse.ok) {
+        const errorText = await lorasResponse.text();
+        console.error('Reset loras status error:', errorText);
+        // Don't throw error here as influencer update was successful
+        console.warn('Loras table update failed, but influencer status was reset successfully');
+      }
+
+      console.log('Training status reset successfully');
+      toast.success('Training status has been reset successfully');
+      setShowResetTrainingModal(false);
+      
+      // Force loraStatus to null since we reset it
+      setLoraStatus(null);
+      
+      // Refresh LoRA status to ensure UI is updated
+      await fetchLoraStatus();
+    } catch (error) {
+      console.error('Error resetting training status:', error);
+      toast.error('Failed to reset training status. Please try again.');
+    } finally {
+      setIsResettingTraining(false);
+    }
+  };
+
   const handleUploadFile = async () => {
     if (!uploadedFile) {
       toast.error('Please select a file to upload');
@@ -816,7 +1110,7 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
           'Authorization': 'Bearer WeInfl3nc3withAI'
         },
         body: JSON.stringify({
-          item: 'nymia_lora'
+          item: 'loratrainer_only'
         })
       });
 
@@ -935,36 +1229,6 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
     return;
   };
 
-  // Function to check gem cost for fast LoRA training
-  const checkFastLoraGemCost = async () => {
-    try {
-      setIsCheckingGems(true);
-      const response = await fetch('https://api.nymia.ai/v1/getgems', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer WeInfl3nc3withAI'
-        },
-        body: JSON.stringify({
-          item: 'fast_lora'
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch gem cost: ${response.status}`);
-      }
-
-      const gemData = await response.json();
-      return gemData;
-    } catch (error) {
-      console.error('Error checking gem cost:', error);
-      toast.error('Failed to check gem cost. Please try again.');
-      return null;
-    } finally {
-      setIsCheckingGems(false);
-    }
-  };
-
   // Function to check gem cost for create image from LoRA training
   const checkCreateImageGemCost = async () => {
     try {
@@ -993,106 +1257,6 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
     } finally {
       setIsCheckingGems(false);
     }
-  };
-
-  // Function to proceed with fast LoRA training after credit confirmation
-  const proceedWithFastLoraTraining = async () => {
-    try {
-      setShowGemWarning(false);
-      await executeFastLoraTraining();
-    } catch (error) {
-      console.error('Error in proceedWithFastLoraTraining:', error);
-      toast.error('Failed to start fast AI consistency training. Please try again.');
-      setIsStartingTraining(false);
-    }
-  };
-
-  // Separated fast LoRA training execution function
-  const executeFastLoraTraining = async () => {
-    try {
-      setIsStartingTraining(true);
-
-      // Get userid from database
-      const useridResponse = await fetch(`${config.supabase_server_url}/user?uuid=eq.${userData.id}`, {
-        method: 'GET',
-        headers: {
-          'Authorization': 'Bearer WeInfl3nc3withAI'
-        }
-      });
-
-      const useridData = await useridResponse.json();
-
-      if (!useridData || useridData.length === 0) {
-        throw new Error('User not found');
-      }
-
-      // Get influencer data to get the latest image number
-      const influencerResponse = await fetch(`${config.supabase_server_url}/influencer?user_id=eq.${userData.id}&id=eq.${influencerId}`, {
-        method: 'GET',
-        headers: {
-          'Authorization': 'Bearer WeInfl3nc3withAI'
-        }
-      });
-
-      const influencerData = await influencerResponse.json();
-
-      if (!influencerData || influencerData.length === 0) {
-        throw new Error('Influencer not found');
-      }
-
-      // Calculate latest image number
-      let latestImageNum = influencerData[0].image_num - 1;
-      if (latestImageNum === -1) {
-        latestImageNum = 0;
-      }
-
-      await fetch(`${config.backend_url}/createtask?userid=${useridData[0].userid}&type=startfastloratraining`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer WeInfl3nc3withAI'
-        },
-        body: JSON.stringify({
-          task: "startfastloratraining",
-          fromsingleimage: true,
-          modelid: influencerId,
-          inputimage: `/models/${influencerId}/profilepic/profilepic${latestImageNum}.png`
-        })
-      });
-
-      toast.success('Fast AI consistency training started successfully');
-
-      // Refresh files to show new training files
-      await fetchLoraFiles();
-    } catch (error) {
-      console.error('Fast training error:', error);
-      toast.error('Failed to start fast AI consistency training.');
-    } finally {
-      setIsStartingTraining(false);
-    }
-  };
-
-  // Main fast LoRA training function with credit checking
-  const handleStartFastLoraTraining = async () => {
-    // Check gem cost before proceeding
-    const gemData = await checkFastLoraGemCost();
-    if (gemData) {
-      setGemCostData(gemData);
-
-      // Check if user has enough credits
-      if (userData.credits < gemData.gems) {
-        setShowGemWarning(true);
-        return;
-      } else {
-        // Show confirmation for gem cost
-        setShowGemWarning(true);
-        return;
-      }
-    }
-
-    // If no gem checking needed or failed, show error and don't proceed
-    toast.error('Unable to verify credit cost. Please try again.');
-    return;
   };
 
   useEffect(() => {
@@ -1169,19 +1333,13 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
       };
     }
 
-    // Any other status - disable training
+    // Any other status - training in progress, allow reset
     return {
       text: 'Training in Progress',
-      disabled: true,
-      onClick: () => { },
+      disabled: false,
+      onClick: () => setShowResetTrainingModal(true),
       variant: 'outline' as const
     };
-  };
-
-  const canStartFastTraining = () => {
-    if (isLoadingLoraStatus) return false;
-    if (!loraStatus) return true; // Can start if no status exists
-    return loraStatus.status === 'lora_provisioned';
   };
 
   // Handle create image from LoRA training image
@@ -1415,6 +1573,18 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
               <SortAsc className="w-4 h-4 transition-transform duration-200 group-hover:scale-110" />
             )}
           </Button>
+
+          {/* Refresh Button */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={fetchLoraFiles}
+            disabled={isLoading}
+            className="h-10 sm:h-11 px-3 sm:px-4 border-2 hover:border-purple-300 dark:hover:border-purple-600 transition-all duration-200 shadow-sm hover:shadow-md group"
+            title="Refresh directory"
+          >
+            <RotateCcw className={`w-4 h-4 transition-transform duration-200 group-hover:scale-110 ${isLoading ? 'animate-spin' : ''}`} />
+          </Button>
         </div>
       </div>
 
@@ -1479,20 +1649,20 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
           </Button>
 
           <Button
-            onClick={canStartFastTraining() ? handleStartFastLoraTraining : () => { }}
-            disabled={isStartingTraining || isCheckingGems || !canStartFastTraining()}
+            onClick={handleGenerateReferenceImages}
+            disabled={isGeneratingReferenceImages}
             variant="outline"
             size="lg"
-            className="relative overflow-hidden border-2 border-orange-300 text-orange-600 hover:bg-orange-50 hover:border-orange-400 dark:border-orange-600 dark:text-orange-400 dark:hover:bg-orange-950/20 dark:hover:border-orange-500 transition-all duration-300 transform hover:scale-[1.02] shadow-lg hover:shadow-xl min-w-[200px] sm:min-w-[240px] h-12 sm:h-14 px-4 sm:px-6 text-sm sm:text-base font-semibold"
+            className="relative overflow-hidden border-2 border-green-300 text-green-600 hover:bg-green-50 hover:border-green-400 dark:border-green-600 dark:text-green-400 dark:hover:bg-green-950/20 dark:hover:border-green-500 transition-all duration-300 transform hover:scale-[1.02] shadow-lg hover:shadow-xl min-w-[200px] sm:min-w-[240px] h-12 sm:h-14 px-4 sm:px-6 text-sm sm:text-base font-semibold"
           >
-            <div className="absolute inset-0 bg-gradient-to-r from-orange-500/0 via-orange-500/5 to-orange-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-            {isStartingTraining || isCheckingGems ? (
+            <div className="absolute inset-0 bg-gradient-to-r from-green-500/0 via-green-500/5 to-green-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+            {isGeneratingReferenceImages ? (
               <RefreshCcw className="w-5 h-5 sm:w-6 sm:h-6 mr-2 sm:mr-3 animate-spin" />
             ) : (
-              <Zap className="w-5 h-5 sm:w-6 sm:h-6 mr-2 sm:mr-3 transition-transform duration-300 group-hover:scale-110" />
+              <Image className="w-5 h-5 sm:w-6 sm:h-6 mr-2 sm:mr-3 transition-transform duration-300 group-hover:scale-110" />
             )}
             <span className="relative z-10">
-              {isCheckingGems ? 'Checking Cost...' : 'Fast Training'}
+              {isGeneratingReferenceImages ? 'Generating...' : 'Generate Reference Images'}
             </span>
           </Button>
         </div>
@@ -1516,22 +1686,109 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
 
       {/* Files Grid */}
       {sortedFiles.length === 0 ? (
-        <Card className="p-12 text-center">
-          <div className="flex flex-col items-center gap-4">
-            <Brain className="w-12 h-12 text-muted-foreground" />
-            <div>
-              <h3 className="text-lg font-semibold mb-2">No AI consistency training files found</h3>
-              <p className="text-muted-foreground">
-                {searchTerm
-                  ? 'Try adjusting your search'
-                  : isInTrash
-                    ? 'No files in trash'
-                    : 'AI consistency training files will appear here once training begins'
-                }
-              </p>
+        <div className="space-y-6">
+          {/* Show upload card when no files and not in trash */}
+          {!isInTrash && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+              <Card
+                className={`group hover:shadow-lg transition-all duration-300 border-border/50 hover:border-purple-500/30 backdrop-blur-sm bg-gradient-to-br from-purple-50/20 to-pink-50/20 dark:from-purple-950/5 dark:to-pink-950/5 cursor-pointer ${dragOverUpload ? 'ring-4 ring-purple-500 ring-opacity-70 bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/40 dark:to-pink-900/40 scale-105 shadow-lg' : ''}`}
+                onClick={() => setUploadModal({ open: true })}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  e.dataTransfer.dropEffect = 'copy';
+                  setDragOverUpload(true);
+                }}
+                onDragLeave={() => setDragOverUpload(false)}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setDragOverUpload(false);
+                  const files = Array.from(e.dataTransfer.files);
+                  if (files.length > 0) {
+                    const file = files[0];
+                    setUploadedFile(file);
+                    setUploadFileName(file.name);
+                    setUploadModal({ open: true });
+                  }
+                }}
+              >
+                <CardContent className="p-6 h-full">
+                  <div className="flex flex-col justify-between h-full space-y-4">
+                    {/* Upload Area */}
+                    <div className="relative w-full h-full bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg overflow-hidden">
+                      <div className={`flex flex-col w-full h-full items-center justify-center max-h-48 min-h-40 transition-all duration-200 ${dragOverUpload ? 'scale-105' : ''}`}>
+                        <Upload className={`w-8 h-8 mb-2 transition-colors ${dragOverUpload ? 'text-purple-500 dark:text-purple-400' : 'text-gray-400 dark:text-gray-500'}`} />
+                        <p className={`text-sm font-medium transition-colors ${dragOverUpload ? 'text-purple-600 dark:text-purple-400' : 'text-gray-500 dark:text-gray-400'}`}>
+                          {dragOverUpload ? 'Drop file here!' : 'Click to upload'}
+                        </p>
+                        <p className={`text-xs transition-colors ${dragOverUpload ? 'text-purple-500 dark:text-purple-400' : 'text-gray-400 dark:text-gray-500'}`}>
+                          or drag & drop
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Upload Info */}
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
+                          Upload File
+                        </h3>
+                        <Badge variant="secondary" className="text-xs">
+                          New
+                        </Badge>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                          Add training images
+                        </span>
+                        <div className="flex gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 w-6 p-0 text-purple-500 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-950/30"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setUploadModal({ open: true });
+                            }}
+                          >
+                            <Upload className="w-3 h-3" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 w-6 p-0 text-blue-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/30"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setShowVaultSelector(true);
+                            }}
+                          >
+                            <Folder className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
-          </div>
-        </Card>
+          )}
+          
+          <Card className="p-12 text-center">
+            <div className="flex flex-col items-center gap-4">
+              <Brain className="w-12 h-12 text-muted-foreground" />
+              <div>
+                <h3 className="text-lg font-semibold mb-2">No AI consistency training files found</h3>
+                <p className="text-muted-foreground">
+                  {searchTerm
+                    ? 'Try adjusting your search'
+                    : isInTrash
+                      ? 'No files in trash'
+                      : 'Upload files above or start training to see AI consistency files here'
+                  }
+                </p>
+              </div>
+            </div>
+          </Card>
+        </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
           {/* Upload Card - Only show when not in trash */}
@@ -1763,107 +2020,114 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
               Upload File to AI consistency training
             </DialogTitle>
             <DialogDescription>
-              Upload a file to the AI consistency training folder for {influencerName}.
+              Upload a file or select from your library to add to AI consistency training folder for {influencerName}.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-6">
-            {/* File Upload Section */}
-            <div className="space-y-4">
-              <Label className="text-sm font-medium">File Upload</Label>
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-purple-400 transition-colors"
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  e.dataTransfer.dropEffect = 'copy';
-                }}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  const files = Array.from(e.dataTransfer.files);
-                  if (files.length > 0) {
-                    const file = files[0];
+            {/* Selection Options */}
+            <div className="grid grid-cols-2 gap-4">
+              {/* Upload from Device */}
+              <Card className="cursor-pointer hover:shadow-lg transition-all duration-300 border-2 hover:border-purple-400" onClick={() => {
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = 'image/*,video/*,.safetensors,.ckpt,.pt,.json,.yaml,.yml';
+                input.onchange = (e) => {
+                  const file = (e.target as HTMLInputElement).files?.[0];
+                  if (file) {
                     setUploadedFile(file);
                     setUploadFileName(file.name);
                   }
-                }}
-              >
-                {uploadedFile ? (
-                  <div className="space-y-4">
-                    <div className="relative w-32 h-32 mx-auto">
-                      {uploadedFile.type.startsWith('image/') ? (
-                        <img
-                          src={URL.createObjectURL(uploadedFile)}
-                          alt={uploadedFile.name}
-                          className="w-full h-full object-cover rounded-md shadow-sm"
-                        />
-                      ) : (
-                        <div className="w-full h-full bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-md flex items-center justify-center">
-                          <FileImage className="w-8 h-8 text-purple-500" />
-                        </div>
-                      )}
-                    </div>
-                    <p className="text-sm text-gray-600 font-medium">{uploadedFile.name}</p>
-                    <p className="text-xs text-gray-500">{(uploadedFile.size / 1024 / 1024).toFixed(2)} MB</p>
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        setUploadedFile(null);
-                        setUploadFileName('');
-                      }}
-                      className="mt-2"
-                    >
-                      Change File
-                    </Button>
+                };
+                input.click();
+              }}>
+                <CardContent className="p-6 text-center space-y-4">
+                  <div className="mx-auto w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center">
+                    <Upload className="w-6 h-6 text-purple-500" />
                   </div>
-                ) : (
-                  <>
-                    <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                    <p className="text-sm text-gray-600 mb-2">
-                      Click to select a file or drag and drop
-                    </p>
-                    <Input
-                      type="file"
-                      accept="image/*,video/*,.safetensors,.ckpt,.pt,.json,.yaml,.yml"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          setUploadedFile(file);
-                          setUploadFileName(file.name);
-                        }
-                      }}
-                      className="hidden"
-                      id="file-upload"
-                    />
-                    <Button
-                      variant="outline"
-                      onClick={() => document.getElementById('file-upload')?.click()}
-                      className="mt-2"
-                    >
-                      Select File
-                    </Button>
-                  </>
-                )}
-              </div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900 dark:text-gray-100">Upload from Device</h3>
+                    <p className="text-sm text-gray-500">Choose files from your computer</p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Browse Library */}
+              <Card className="cursor-pointer hover:shadow-lg transition-all duration-300 border-2 hover:border-blue-400" onClick={() => {
+                setUploadModal({ open: false });
+                setShowVaultSelector(true);
+              }}>
+                <CardContent className="p-6 text-center space-y-4">
+                  <div className="mx-auto w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
+                    <Folder className="w-6 h-6 text-blue-500" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900 dark:text-gray-100">Browse Library</h3>
+                    <p className="text-sm text-gray-500">Select from your image library</p>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
 
-            {/* Filename Input */}
-            <div className="space-y-2">
-              <Label htmlFor="filename">Filename</Label>
-              <Input
-                id="filename"
-                value={uploadFileName}
-                onChange={(e) => setUploadFileName(e.target.value)}
-                placeholder="Enter filename"
-              />
-            </div>
+            {/* File Preview and Details */}
+            {uploadedFile && (
+              <div className="space-y-4 border-t pt-4">
+                <Label className="text-sm font-medium">Selected File</Label>
+                <div className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                  <div className="relative w-16 h-16 flex-shrink-0">
+                    {uploadedFile.type.startsWith('image/') ? (
+                      <img
+                        src={URL.createObjectURL(uploadedFile)}
+                        alt={uploadedFile.name}
+                        className="w-full h-full object-cover rounded-md shadow-sm"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-md flex items-center justify-center">
+                        <FileImage className="w-6 h-6 text-purple-500" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{uploadedFile.name}</p>
+                    <p className="text-xs text-gray-500">{(uploadedFile.size / 1024 / 1024).toFixed(2)} MB</p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setUploadedFile(null);
+                      setUploadFileName('');
+                    }}
+                    className="text-red-600 hover:bg-red-50 hover:border-red-300"
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+
+                {/* Filename Input */}
+                <div className="space-y-2">
+                  <Label htmlFor="filename" className="text-sm font-medium">
+                    Filename
+                  </Label>
+                  <Input
+                    id="filename"
+                    value={uploadFileName}
+                    onChange={(e) => setUploadFileName(e.target.value)}
+                    placeholder="Enter filename"
+                    className="border-purple-300 focus:border-purple-500 focus:ring-purple-500"
+                  />
+                </div>
+              </div>
+            )}
 
             {/* Action Buttons */}
-            <div className="flex gap-2 pt-4 border-t">
+            <div className="flex gap-3 pt-4 border-t">
               <Button
                 variant="outline"
                 onClick={() => {
-                  setUploadModal({ open: false });
                   setUploadedFile(null);
                   setUploadFileName('');
+                  setUploadModal({ open: false });
                 }}
                 className="flex-1"
                 disabled={isUploading}
@@ -1873,7 +2137,7 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
               <Button
                 onClick={handleUploadFile}
                 disabled={!uploadedFile || !uploadFileName.trim() || isUploading}
-                className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 disabled:opacity-50"
               >
                 {isUploading ? (
                   <>
@@ -1901,20 +2165,6 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
         processingText="Restarting Training..."
         title="Restart AI consistency Training Cost"
         confirmButtonText={restartGemCostData ? `Confirm & Use ${restartGemCostData.gems} Credits` : 'Confirm'}
-      />
-
-      {/* Fast LoRA Training Credit Confirmation Modal */}
-      <CreditConfirmationModal
-        isOpen={showGemWarning}
-        onClose={() => setShowGemWarning(false)}
-        onConfirm={proceedWithFastLoraTraining}
-        gemCostData={gemCostData}
-        userCredits={userData.credits}
-        userId={userData.id}
-        isProcessing={isStartingTraining}
-        processingText="Starting Fast Training..."
-        title="Fast AI consistency Training Cost"
-        confirmButtonText={gemCostData ? `Confirm & Use ${gemCostData.gems} Credits` : 'Confirm'}
       />
 
       {/* Create Image Credit Confirmation Modal */}
@@ -1997,16 +2247,87 @@ export default function LoraManagement({ influencerId, influencerName, onClose }
         </DialogContent>
       </Dialog>
 
-      {/* Lora Vault Selector Modal */}
+      {/* Reference Image Generation Credit Confirmation Modal */}
+      <CreditConfirmationModal
+        isOpen={showReferenceImageGemWarning}
+        onClose={() => setShowReferenceImageGemWarning(false)}
+        onConfirm={proceedWithReferenceImageGeneration}
+        gemCostData={referenceImageGemCostData}
+        userCredits={userData.credits}
+        userId={userData.id}
+        isProcessing={isGeneratingReferenceImages}
+        processingText="Generating Reference Images..."
+        title="Reference Image Generation Cost"
+        confirmButtonText={referenceImageGemCostData ? `Confirm & Use ${referenceImageGemCostData.gems} Credits` : 'Confirm'}
+      />
+
+      {/* Standard Vault Selector Modal */}
       {showVaultSelector && (
-        <LoraVaultSelector
+        <VaultSelector
           open={showVaultSelector}
           onOpenChange={setShowVaultSelector}
-          onImageUpload={handleVaultImageSelect}
+          onImageSelect={handleVaultImageSelect}
           title="Select Image from Library"
           description="Browse your library and select an image to copy to AI consistency training folder. Only completed images are shown."
         />
       )}
+
+      {/* Reset Training Status Modal */}
+      <Dialog open={showResetTrainingModal} onOpenChange={setShowResetTrainingModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-orange-600">
+              <AlertTriangle className="w-5 h-5" />
+              Reset Training State
+            </DialogTitle>
+            <DialogDescription className="text-gray-600 dark:text-gray-300">
+              Are you sure you want to reset the training status of the system? Only execute this, when creation is already taking more than 4 hours.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="p-4 bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800 rounded-lg">
+              <div className="flex items-center gap-2 text-orange-800 dark:text-orange-300 mb-2">
+                <AlertTriangle className="w-4 h-4" />
+                <span className="font-medium">Warning</span>
+              </div>
+              <p className="text-sm text-orange-700 dark:text-orange-300">
+                This action will reset the training status to initial state. This should only be used if the training process has been stuck for more than 4 hours.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t">
+            <Button
+              variant="outline"
+              onClick={() => setShowResetTrainingModal(false)}
+              disabled={isResettingTraining}
+              size="lg"
+              className="flex-1"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleResetTrainingStatus}
+              disabled={isResettingTraining}
+              size="lg"
+              className="flex-1 bg-orange-600 hover:bg-orange-700 text-white"
+            >
+              {isResettingTraining ? (
+                <>
+                  <RotateCw className="w-4 h-4 mr-2 animate-spin" />
+                  Resetting...
+                </>
+              ) : (
+                <>
+                  <RotateCcw className="w-4 h-4 mr-2" />
+                  Reset Status
+                </>
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 } 

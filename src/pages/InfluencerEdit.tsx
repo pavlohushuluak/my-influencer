@@ -2141,11 +2141,80 @@ export default function InfluencerEditRedesign() {
     }
   };
 
+  // Copy file from output to models directory using API
+  const copyFileToModelsDirectory = async (sourceFilename: string, influencerId: string): Promise<string | null> => {
+    if (!userData.id) return null;
+
+    try {
+      // Extract filename from sourceFilename path
+      const filename = sourceFilename.split('/').pop();
+      if (!filename) return null;
+
+      const copyData = {
+        user: userData.id,
+        sourcefilename: sourceFilename,
+        destinationfilename: `models/${influencerId}/examples/${filename}`
+      };
+
+      const response = await fetch('https://api.nymia.ai/v1/copyfile', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify(copyData)
+      });
+
+      if (!response.ok) {
+        console.error('Failed to copy file:', sourceFilename);
+        return null;
+      }
+
+      // Return the new URL for the copied file
+      return `https://images.nymia.ai/cdn-cgi/image/w=800/${userData.id}/models/${influencerId}/examples/${filename}`;
+    } catch (error) {
+      console.error('Error copying file:', error);
+      return null;
+    }
+  };
+
   // Save influencer data to database
   const saveInfluencerData = async () => {
     if (!influencerData?.id || !userData.id) return;
 
     try {
+      // Process example images - copy from output directory if needed
+      const updatedExamplePics = { ...influencerData };
+
+      // Check and copy each example picture if it's in the output directory
+      for (let i = 1; i <= 3; i++) {
+        const examplePicKey = `example_pic${i}` as keyof typeof influencerData;
+        const currentUrl = influencerData[examplePicKey] as string;
+        
+        if (currentUrl && currentUrl.includes('/output/')) {
+          // Extract the filename from the URL
+          const urlParts = currentUrl.split('/');
+          const filename = urlParts[urlParts.length - 1]; // Get the actual filename
+          
+          if (filename) {
+            // Copy the file to the models directory
+            const newUrl = await copyFileToModelsDirectory(`output/${filename}`, influencerData.id);
+            
+            if (newUrl) {
+              (updatedExamplePics as any)[examplePicKey] = newUrl;
+              
+              // Update local state immediately
+              handleInputChange(examplePicKey, newUrl);
+              
+              toast.success(`Example picture ${i} moved to permanent storage`);
+            } else {
+              toast.error(`Failed to move example picture ${i} to permanent storage`);
+            }
+          }
+        }
+      }
+
+      // Save to database with updated URLs
       const response = await fetch(
         `${config.supabase_server_url}/influencer?id=eq.${influencerData.id}`,
         {
@@ -2155,18 +2224,22 @@ export default function InfluencerEditRedesign() {
             "Authorization": "Bearer WeInfl3nc3withAI",
           },
           body: JSON.stringify({
-            example_pic1: influencerData.example_pic1,
-            example_pic2: influencerData.example_pic2,
-            example_pic3: influencerData.example_pic3,
+            example_pic1: updatedExamplePics.example_pic1,
+            example_pic2: updatedExamplePics.example_pic2,
+            example_pic3: updatedExamplePics.example_pic3,
           }),
         },
       );
 
       if (!response.ok) {
         console.error('Failed to save example images to database');
+        toast.error('Failed to save example images');
+      } else {
+        toast.success('Example images saved successfully');
       }
     } catch (error) {
       console.error('Error saving example images:', error);
+      toast.error('Error saving example images');
     }
   };
 
@@ -4019,11 +4092,13 @@ export default function InfluencerEditRedesign() {
                 Cancel
               </Button>
               <Button 
-                onClick={() => {
+                onClick={async () => {
+                  await saveInfluencerData();
                   setShowExamplePicturesModal(false);
-                  toast.success('Example pictures updated');
                 }}
+                className="bg-green-600 hover:bg-green-700 text-white"
               >
+                <Save className="w-4 h-4 mr-2" />
                 Save Changes
               </Button>
             </div>

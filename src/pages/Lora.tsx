@@ -24,7 +24,8 @@ import {
   ArrowLeft,
   Loader2,
   ChevronDown,
-  Copy
+  Copy,
+  Cog
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { setInfluencers, setLoading, setError } from '@/store/slices/influencersSlice';
@@ -131,6 +132,10 @@ export default function Lora() {
     gems: number;
   } | null>(null);
   const [isCheckingGems, setIsCheckingGems] = useState(false);
+  
+  // Training Options Modal state
+  const [showTrainingOptionsModal, setShowTrainingOptionsModal] = useState(false);
+  const [trainingInfluencer, setTrainingInfluencer] = useState<Influencer | null>(null);
 
 
 
@@ -177,35 +182,46 @@ export default function Lora() {
     }
   }, [location.state, influencers, isLoading]);
 
-  const handleManageLora = (influencer: Influencer) => {
-    const loraStatus = influencer.lorastatus || 0;
+  // Handle Train action - opens training options modal
+  const handleTrainLora = (influencer: Influencer) => {
+    setTrainingInfluencer(influencer);
+    setShowTrainingOptionsModal(true);
+  };
 
-    if (loraStatus === 0) {
-      // Not trained - open Character Consistency modal directly
-      setSelectedInfluencer(influencer);
-      handleCharacterConsistency(influencer);
-    } else if (loraStatus === 1) {
-      // Training in progress - allow access to management modal
-      setSelectedInfluencer(influencer);
-      setShowLoraManagementModal(true);
-    } else if (loraStatus === 2) {
-      // Trained - show LoRA management component
-      setSelectedInfluencer(influencer);
-      setShowLoraManagementModal(true);
-    } else {
-      // Error or other status - treat as not trained
-      setSelectedInfluencer(influencer);
-      handleCharacterConsistency(influencer);
+  // Handle start training with specific type
+  const handleStartTraining = async (trainingType: 'basic' | 'plus') => {
+    if (!trainingInfluencer) return;
+
+    // Check gem cost before proceeding
+    const gemData = await checkLoraGemCost();
+    if (gemData) {
+      setGemCostData(gemData);
+      setSelectedInfluencer(trainingInfluencer);
+      
+      // Check if user has enough credits
+      if (userData.credits < gemData.gems) {
+        setShowGemWarning(true);
+        setShowTrainingOptionsModal(false);
+        return;
+      } else {
+        // Show confirmation for gem cost
+        setShowGemWarning(true);
+        setShowTrainingOptionsModal(false);
+        return;
+      }
     }
+
+    // If no gem checking needed or failed, show error and don't proceed
+    toast.error('Unable to verify credit cost. Please try again.');
   };
 
-  const handleTrainLora = () => {
-    if (!selectedInfluencer) return;
-
-    setShowWarningModal(false);
-    // Open Character Consistency modal directly
-    handleCharacterConsistency(selectedInfluencer);
+  // Handle Manage action - always opens management modal
+  const handleManageLora = (influencer: Influencer) => {
+    setSelectedInfluencer(influencer);
+    setShowLoraManagementModal(true);
   };
+
+
 
   const handleCharacterConsistency = (influencer?: Influencer) => {
     const targetInfluencer = influencer || selectedInfluencer;
@@ -801,12 +817,19 @@ export default function Lora() {
       </div>
 
       {/* Influencers Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-6">
         {sortedInfluencers.map((influencer) => (
-          <Card key={influencer.id} className="group hover:shadow-lg transition-all duration-300 border-border/50 hover:border-ai-purple-500/20">
-            <CardContent className="p-6 h-full">
-              <div className="flex flex-col justify-between h-full space-y-4">
-                <div className="relative w-full h-full bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg overflow-hidden">
+          <Card 
+            key={influencer.id} 
+            className="group transition-all duration-300 hover:shadow-xl border-2 transform hover:scale-105 border-gray-200 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-600"
+          >
+            <CardContent className="p-4 sm:p-6 h-full">
+              <div className="flex flex-col justify-between h-full space-y-3 sm:space-y-4">
+                <div 
+                  className="relative w-full h-full bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg overflow-hidden cursor-pointer"
+                  onDoubleClick={() => handleManageLora(influencer)}
+                  title="Double-click to manage AI Consistency"
+                >
                   {/* LoraStatusIndicator positioned at top right */}
                   <div className="absolute right-[-15px] top-[-15px] z-10">
                     <LoraStatusIndicator
@@ -860,11 +883,28 @@ export default function Lora() {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => handleManageLora(influencer)}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleTrainLora(influencer);
+                      }}
                       className="flex-1 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white border-0"
                     >
                       <Brain className="w-4 h-4 mr-2" />
-                      {(influencer.lorastatus || 0) === 0 ? 'Train Consistency' : 'Manage Consistency'}
+                      Train
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleManageLora(influencer);
+                      }}
+                      className="flex-1 bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white border-0"
+                    >
+                      <Cog className="w-4 h-4 mr-2" />
+                      Manage
                     </Button>
                   </div>
                 </div>
@@ -962,7 +1002,14 @@ export default function Lora() {
                   </Button>
                   {warningType === 'not-trained' && (
                     <Button
-                      onClick={handleTrainLora}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (selectedInfluencer) {
+                          setShowWarningModal(false);
+                          handleTrainLora(selectedInfluencer);
+                        }
+                      }}
                       className="flex-1 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white"
                     >
                       <Zap className="w-4 h-4 mr-2" />
@@ -1171,6 +1218,152 @@ export default function Lora() {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Training Options Modal */}
+      <Dialog
+        open={showTrainingOptionsModal}
+        onOpenChange={(open) => setShowTrainingOptionsModal(open)}
+      >
+        <DialogContent className="max-w-3xl w-[95vw] max-h-[90vh] overflow-y-auto p-0">
+          <DialogHeader className="px-6 py-6 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 border-b border-blue-200/50 dark:border-blue-800/50">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-500 flex items-center justify-center shadow-lg">
+                <Brain className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                  Choose Training Type
+                </DialogTitle>
+                <DialogDescription className="text-base text-gray-600 dark:text-gray-300 mt-1">
+                  Select the AI consistency training option that best fits your needs
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+
+          <div className="p-6 space-y-6">
+            {/* Profile Picture Info Card */}
+            {trainingInfluencer && (
+              <Card className="bg-gradient-to-br from-blue-50/50 to-indigo-50/50 dark:from-blue-950/20 dark:to-indigo-950/20 border-blue-200/50 dark:border-blue-800/50 shadow-lg">
+                <CardContent className="p-6">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                    <div className="relative">
+                      <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden ring-4 ring-white dark:ring-gray-800 shadow-xl">
+                        <img
+                          src={trainingInfluencer.image_url}
+                          alt={trainingInfluencer.name_first}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full flex items-center justify-center shadow-lg">
+                        <Brain className="w-4 h-4 text-white" />
+                      </div>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-1">
+                        {trainingInfluencer.name_first} {trainingInfluencer.name_last}
+                      </h3>
+                      <p className="text-gray-600 dark:text-gray-300 mb-2">
+                        Training will be performed based on the current profile picture. Choose "Manage" instead for a more customizable approach.
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
+                          AI Consistency Training
+                        </span>
+                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
+                          Current Profile Picture
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Basic Training Option */}
+            <Card className="cursor-pointer hover:shadow-lg transition-all duration-300 border-2 border-gray-200 hover:border-green-300 dark:border-gray-700 dark:hover:border-green-600">
+              <CardContent className="p-6">
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-r from-green-500 to-emerald-500 flex items-center justify-center flex-shrink-0 shadow-lg">
+                    <Brain className="w-6 h-6 text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+                      Basic Character Consistency Training
+                    </h3>
+                    <p className="text-gray-600 dark:text-gray-300 mb-4 leading-relaxed">
+                      This will automatically create 10 images to Lock the Look and perform a normal training process. Good for creating normal, consistent Influencer images.
+                    </p>
+                    <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-4">
+                      <span className="inline-flex items-center px-2 py-1 rounded-full bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 text-xs font-medium">
+                        10 Images
+                      </span>
+                      <span className="inline-flex items-center px-2 py-1 rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 text-xs font-medium">
+                        ~30 minutes
+                      </span>
+                    </div>
+                    <Button
+                      onClick={() => handleStartTraining('basic')}
+                      className="w-full h-12 text-base font-medium bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 shadow-lg hover:shadow-xl transition-all duration-300"
+                    >
+                      <Brain className="w-5 h-5 mr-3" />
+                      Start Basic Training
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Plus Training Option */}
+            <Card className="cursor-pointer hover:shadow-lg transition-all duration-300 border-2 border-gray-200 hover:border-purple-300 dark:border-gray-700 dark:hover:border-purple-600">
+              <CardContent className="p-6">
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center flex-shrink-0 shadow-lg">
+                    <Brain className="w-6 h-6 text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+                      Character Consistency Training Plus
+                    </h3>
+                    <p className="text-gray-600 dark:text-gray-300 mb-4 leading-relaxed">
+                      This will automatically create 25 images to Lock the Look and will execute an enhanced training process with more steps. This is good for creating professional grade, consistent Influencer images.
+                    </p>
+                    <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-4">
+                      <span className="inline-flex items-center px-2 py-1 rounded-full bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300 text-xs font-medium">
+                        25 Images
+                      </span>
+                      <span className="inline-flex items-center px-2 py-1 rounded-full bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300 text-xs font-medium">
+                        Professional Grade
+                      </span>
+                      <span className="inline-flex items-center px-2 py-1 rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 text-xs font-medium">
+                        ~45 minutes
+                      </span>
+                    </div>
+                    <Button
+                      onClick={() => handleStartTraining('plus')}
+                      className="w-full h-12 text-base font-medium bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 shadow-lg hover:shadow-xl transition-all duration-300"
+                    >
+                      <Brain className="w-5 h-5 mr-3" />
+                      Start Plus Training
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Cancel Button */}
+            <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+              <Button
+                variant="outline"
+                onClick={() => setShowTrainingOptionsModal(false)}
+                className="w-full h-12 text-base font-medium border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
 

@@ -2278,6 +2278,7 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
         onConfirm={proceedWithLipSyncGeneration}
         gemCostData={gemCostData}
         userCredits={userData.credits}
+        userId={userData.id}
         isProcessing={isGenerating}
         processingText="Generating LipSync..."
         title="LipSync Generation Cost"

@@ -128,11 +128,11 @@ export default function ContentUpscaler() {
 
   // Image selection modal state
   const [showVaultSelector, setShowVaultSelector] = useState(false);
-  
+
   // Full-size image modal state
   const [showFullSizeModal, setShowFullSizeModal] = useState(false);
   const [fullSizeImage, setFullSizeImage] = useState<{ url: string; title: string; description: string } | null>(null);
-  
+
   // Download loading state
   const [downloadingImages, setDownloadingImages] = useState<Set<string>>(new Set());
 
@@ -141,7 +141,7 @@ export default function ContentUpscaler() {
   const [esrganScale, setEsrganScale] = useState('2');
   const [realismStrength, setRealismStrength] = useState([0.6]);
   const [selectedAspectRatio, setSelectedAspectRatio] = useState('16:9');
-  
+
   // File input ref
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -198,11 +198,11 @@ export default function ContentUpscaler() {
     setIsDragOver(false);
   }, []);
 
-    const handleDrop = useCallback((e: React.DragEvent) => {
+  const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
     setIsDragOver(false);
-    
+
     const files = Array.from(e.dataTransfer.files);
     if (files.length > 0) {
       const file = files[0];
@@ -318,18 +318,18 @@ export default function ContentUpscaler() {
   // Function to proceed with image processing after credit confirmation
   const proceedWithImageProcessing = async () => {
     if (!pendingTask) return;
-    
+
     setShowGemWarning(false);
     setIsProcessing(true);
 
     try {
       const { task, parameters } = pendingTask;
-      
+
       // Show warning for large files
-      
+
       const fileSize = selectedFile?.size || 0;
       const isLargeFile = fileSize > 5 * 1024 * 1024; // 5MB threshold
-      
+
       if (isLargeFile) {
         toast.info('Large file detected. Processing may take longer than usual...', {
           duration: 5000,
@@ -589,7 +589,7 @@ export default function ContentUpscaler() {
       // Show warning for large files
       const fileSize = selectedFile?.size || 0;
       const isLargeFile = fileSize > 5 * 1024 * 1024; // 5MB threshold
-      
+
       if (isLargeFile) {
         toast.info('Large file detected. Download may take a while...', {
           duration: 4000,
@@ -600,10 +600,10 @@ export default function ContentUpscaler() {
       // URL format: https://images.nymia.ai/cdn-cgi/image/w=800/userId/path/system_filename
       const urlParts = result.upscaledUrl.split('/');
       const systemFilename = urlParts[urlParts.length - 1];
-      
+
       // Determine the path (output or vault/path)
       const path = "output"; // Upscaled images are typically in output folder
-      
+
       // Use the same download API as Vault page
       const response = await fetch(`${config.backend_url}/downloadfile`, {
         method: 'POST',
@@ -627,7 +627,7 @@ export default function ContentUpscaler() {
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      
+
       // Generate filename based on task and timestamp
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
       const taskName = result.task.replace('image_', '');
@@ -640,7 +640,7 @@ export default function ContentUpscaler() {
       // Cleanup
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
-      
+
       toast.success('Download completed successfully!');
     } catch (error) {
       console.error('Error downloading image:', error);
@@ -663,7 +663,7 @@ export default function ContentUpscaler() {
     const imageUrl = result.upscaledUrl || result.enhancedUrl;
     const taskName = getTaskDisplayName(result.task);
     const description = `Enhanced using ${taskName} with ${JSON.stringify(result.parameters)}`;
-    
+
     setFullSizeImage({
       url: imageUrl,
       title: `${taskName} Result`,

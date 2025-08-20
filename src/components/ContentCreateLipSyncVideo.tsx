@@ -271,7 +271,7 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
 
       try {
         setIsUploadingAudio(true);
-        
+
         // Create FormData for file upload
         const formData = new FormData();
         formData.append('file', file);
@@ -283,7 +283,7 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
 
         // Upload file to the API
         const uploadUrl = `${config.backend_url}/uploadfile?user=${userData.id}&filename=audio/${filename}`;
-        
+
         console.log('Uploading file to:', uploadUrl);
         console.log('Filename:', filename);
 
@@ -302,11 +302,11 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
           // Set the uploaded file and URL
           setUploadedAudioFile(file);
           setValidationErrors([]);
-          
+
           // Create the audio URL for the uploaded file
           const audioUrl = `${config.data_url}/${userData.id}/audio/${filename}`;
           setUploadedAudioUrl(audioUrl);
-          
+
           // Also set as selected audio for lip sync
           setSelectedAudioUrl(audioUrl);
           setSelectedAudioId(`uploaded_${timestamp}`);
@@ -483,7 +483,7 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
         status: "new"
       };
 
-              const response = await fetch(`${config.backend_url}/generatelipsyncvideo`, {
+      const response = await fetch(`${config.backend_url}/generatelipsyncvideo`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -556,7 +556,7 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
 
       console.log('Generating voice preview:', voiceGenerationData);
 
-              const response = await fetch(`${config.backend_url}/generateaudio`, {
+      const response = await fetch(`${config.backend_url}/generateaudio`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -635,10 +635,10 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
     console.log('handleAudioSelect called with audioId:', audioId);
     console.log('Current audioUrls state:', audioUrls);
     console.log('Available audio IDs:', Object.keys(audioUrls));
-    
+
     const audioUrl = audioUrls[audioId];
     console.log('Found audioUrl:', audioUrl);
-    
+
     if (audioUrl) {
       // Toggle selection - if already selected, deselect it
       if (selectedAudioId === audioId) {
@@ -647,10 +647,10 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
         setSelectedAudioId('');
         toast.success('Audio deselected');
       } else {
-      console.log('Setting selectedAudioUrl to:', audioUrl);
-      setSelectedAudioUrl(audioUrl);
+        console.log('Setting selectedAudioUrl to:', audioUrl);
+        setSelectedAudioUrl(audioUrl);
         setSelectedAudioId(audioId);
-      toast.success('Audio selected for lip sync video generation');
+        toast.success('Audio selected for lip sync video generation');
       }
     } else {
       console.log('No audioUrl found for audioId:', audioId);
@@ -832,13 +832,13 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
       let response;
       try {
         response = await fetch(`${config.supabase_server_url}/lipsync_presets`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer WeInfl3nc3withAI'
-        },
-        body: JSON.stringify(presetData)
-      });
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer WeInfl3nc3withAI'
+          },
+          body: JSON.stringify(presetData)
+        });
       } catch (error) {
         console.error('Network error:', error);
         throw new Error(`Network error: ${error}`);
@@ -866,7 +866,7 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
   const handleApplyLipsyncPreset = (preset: any) => {
     // Apply the preset data to the form
     setTextToSpeak(preset.prompt || '');
-    
+
     // Set the appropriate phase based on upload_flag
     if (preset.upload_flag) {
       setActivePhase('upload');
@@ -888,7 +888,7 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
           console.log(`Applied voice: ${voice.name} (${voice.elevenlabs_id})`);
         } else {
           // If voice not found, try to use the voice_url as fallback
-      if (preset.voice_url) {
+          if (preset.voice_url) {
             setSelectedAudioUrl(preset.voice_url);
             console.log(`Voice not found by name, using URL fallback: ${preset.voice_url}`);
           }
@@ -1186,7 +1186,7 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
                   <Label htmlFor="text-to-speak" className="text-sm font-medium">
                     Text for Voice Generation
                   </Label>
-                  
+
                   {/* Professional Warning */}
                   <div className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border border-amber-200 dark:border-amber-700 rounded-lg p-4">
                     <div className="flex items-start gap-3">
@@ -1202,13 +1202,13 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
                           Character Requirement for Video Generation
                         </h4>
                         <p className="text-sm text-amber-700 dark:text-amber-300">
-                          To generate a lip-sync video, your text must be between <strong>10-500 characters</strong>. 
+                          To generate a lip-sync video, your text must be between <strong>10-500 characters</strong>.
                           This ensures optimal audio quality and video synchronization.
                         </p>
                       </div>
                     </div>
                   </div>
-                  
+
                   <Textarea
                     id="text-to-speak"
                     placeholder="Enter the text you want the voice to speak... (e.g., 'Hello everyone, welcome to my channel!')"
@@ -1282,19 +1282,19 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
                                       {voice.description}
                                     </p>
                                   </div>
-                                  
+
                                   {/* Play/Stop Button */}
                                   <Button
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      
+
                                       // If this voice is currently playing, stop it
                                       if (playingVoiceSample === voice.id.toString()) {
                                         console.log('Stopping voice:', voice.id.toString());
-                                        
+
                                         const currentAudio = voiceAudioElementsRef.current[voice.id.toString()];
                                         console.log('Found audio element:', currentAudio);
-                                        
+
                                         if (currentAudio) {
                                           currentAudio.pause();
                                           currentAudio.currentTime = 0;
@@ -1307,11 +1307,11 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
                                             audio.currentTime = 0;
                                           });
                                         }
-                                        
+
                                         setPlayingVoiceSample(null);
                                         return;
                                       }
-                                      
+
                                       // Stop any other currently playing voice sample
                                       if (playingVoiceSample) {
                                         const currentAudio = voiceAudioElementsRef.current[playingVoiceSample];
@@ -1321,10 +1321,10 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
                                         }
                                         setPlayingVoiceSample(null);
                                       }
-                                      
+
                                       const audioUrl = `${config.data_url}/wizard/mappings/${voice.elevenlabs_id}.mp3`;
                                       const audio = new Audio(audioUrl);
-                                      
+
                                       // Store the audio element reference
                                       console.log('Storing audio element for voice:', voice.id.toString());
                                       voiceAudioElementsRef.current[voice.id.toString()] = audio;
@@ -1336,7 +1336,7 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
                                         console.log('Updated voiceAudioElements:', newElements);
                                         return newElements;
                                       });
-                                      
+
                                       // Set up audio event listeners
                                       audio.addEventListener('ended', () => {
                                         setPlayingVoiceSample(null);
@@ -1359,7 +1359,7 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
                                         });
                                         toast.error('Failed to play voice sample');
                                       });
-                                      
+
                                       // Play the audio
                                       audio.play().then(() => {
                                         setPlayingVoiceSample(voice.id.toString());
@@ -1432,16 +1432,14 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
 
                 {/* Generate Audio Button */}
                 <div className="mt-6">
-                  <div className={`rounded-xl p-6 shadow-lg border transition-all duration-300 ${
-                    selectedElevenLabsVoice 
-                      ? 'bg-gradient-to-r from-purple-600 to-pink-600 border-purple-500/20' 
+                  <div className={`rounded-xl p-6 shadow-lg border transition-all duration-300 ${selectedElevenLabsVoice
+                      ? 'bg-gradient-to-r from-purple-600 to-pink-600 border-purple-500/20'
                       : 'bg-gradient-to-r from-slate-400 to-slate-500 border-slate-300/20'
-                  }`}>
+                    }`}>
                     <div className="text-center">
                       <div className="flex items-center justify-center mb-4">
-                        <div className={`w-12 h-12 rounded-full flex items-center justify-center mr-3 ${
-                          selectedElevenLabsVoice ? 'bg-white/20' : 'bg-white/10'
-                        }`}>
+                        <div className={`w-12 h-12 rounded-full flex items-center justify-center mr-3 ${selectedElevenLabsVoice ? 'bg-white/20' : 'bg-white/10'
+                          }`}>
                           <Mic className={`w-6 h-6 ${selectedElevenLabsVoice ? 'text-white' : 'text-white/70'}`} />
                         </div>
                         <div className="text-left">
@@ -1449,23 +1447,22 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
                             Generate Audio
                           </h3>
                           <p className={`text-sm ${selectedElevenLabsVoice ? 'text-purple-100' : 'text-white/70'}`}>
-                            {selectedElevenLabsVoice 
+                            {selectedElevenLabsVoice
                               ? `${selectedElevenLabsVoice.name} • ${textToSpeak.length} characters`
                               : 'Select a voice first • ' + textToSpeak.length + ' characters'
                             }
                           </p>
                         </div>
                       </div>
-                      
+
                       <Button
                         onClick={() => selectedElevenLabsVoice && playVoicePreview(selectedElevenLabsVoice)}
                         disabled={!selectedElevenLabsVoice || isGeneratingVoice === selectedElevenLabsVoice?.elevenlabs_id}
                         size="lg"
-                        className={`font-semibold px-8 py-3 text-base shadow-lg hover:shadow-xl transition-all duration-200 ${
-                          selectedElevenLabsVoice 
-                            ? 'bg-white text-purple-600 hover:bg-purple-50' 
+                        className={`font-semibold px-8 py-3 text-base shadow-lg hover:shadow-xl transition-all duration-200 ${selectedElevenLabsVoice
+                            ? 'bg-white text-purple-600 hover:bg-purple-50'
                             : 'bg-white/50 text-slate-500 cursor-not-allowed'
-                        }`}
+                          }`}
                       >
                         {isGeneratingVoice === selectedElevenLabsVoice?.elevenlabs_id ? (
                           <>
@@ -1484,9 +1481,9 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
                           </>
                         )}
                       </Button>
-                      
+
                       <p className={`text-xs mt-3 ${selectedElevenLabsVoice ? 'text-purple-200' : 'text-white/60'}`}>
-                        {selectedElevenLabsVoice 
+                        {selectedElevenLabsVoice
                           ? `This will create a ${selectedElevenLabsVoice.speed}x speed audio using ${selectedElevenLabsVoice.name}`
                           : 'Please select a voice from the options above to generate audio'
                         }
@@ -1908,7 +1905,7 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
               LipSync Video Details
             </DialogTitle>
           </DialogHeader>
-          
+
           {selectedVideoForModal && (
             <div className="space-y-6">
               {/* Video Player */}
@@ -1928,7 +1925,7 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
                     <Label className="text-sm font-medium text-muted-foreground">Prompt</Label>
                     <p className="text-sm mt-1">{selectedVideoForModal.prompt}</p>
                   </div>
-                  
+
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <Label className="text-sm font-medium text-muted-foreground">Model</Label>
@@ -1954,7 +1951,7 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
                     <Label className="text-sm font-medium text-muted-foreground">Created</Label>
                     <p className="text-sm mt-1">{formatVideoDate(selectedVideoForModal.task_created_at)}</p>
                   </div>
-                  
+
                   <div>
                     <Label className="text-sm font-medium text-muted-foreground">Status</Label>
                     <div className="flex items-center gap-2 mt-1">

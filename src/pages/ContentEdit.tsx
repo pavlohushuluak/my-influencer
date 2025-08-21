@@ -545,7 +545,7 @@ export default function ContentEdit() {
               const blob = await response.blob();
 
               // Upload to vault
-              const vaultUrl = await uploadSynthesisImageToVault(blob, img.name);
+              const vaultUrl = await uploadImageToVault(blob, img.name, 'synthesis');
               return vaultUrl;
             } catch (error) {
               console.error(`Error uploading ${img.name}:`, error);
@@ -603,86 +603,14 @@ export default function ContentEdit() {
     }
   };
 
-  // Function to upload composite image to vault and return URL
-  const uploadCompositeImageToVault = useCallback(async (blob: Blob): Promise<string> => {
+
+
+  // Function to upload image to vault and return URL
+  const uploadImageToVault = useCallback(async (blob: Blob, filename: string, prefix: string = 'image'): Promise<string> => {
     try {
-      // Generate a unique filename for the composite image
+      // Generate a unique filename for the image
       const timestamp = Date.now();
-      const filename = `ai_edit_composite_${timestamp}.jpg`;
-
-      // Get existing files to check for duplicates
-      const getFilesResponse = await fetch(`${config.backend_url}/getfilenames`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer WeInfl3nc3withAI'
-        },
-        body: JSON.stringify({
-          user: userData.id,
-          folder: `output`
-        })
-      });
-
-      let finalFilename = filename;
-
-      if (getFilesResponse.ok) {
-        const files = await getFilesResponse.json();
-        if (files && files.length > 0 && files[0].Key) {
-          const existingFilenames = files.map((file: any) => {
-            const fileKey = file.Key;
-            const re = new RegExp(`^.*?output/`);
-            const fileName = fileKey.replace(re, "");
-            return fileName;
-          });
-
-          // Generate unique filename if needed
-          if (existingFilenames.includes(filename)) {
-            const baseName = filename.substring(0, filename.lastIndexOf('.'));
-            const extension = filename.substring(filename.lastIndexOf('.'));
-            let counter = 1;
-            let testFilename = filename;
-
-            while (existingFilenames.includes(testFilename)) {
-              testFilename = `${baseName}(${counter})${extension}`;
-              counter++;
-            }
-            finalFilename = testFilename;
-          }
-        }
-      }
-
-      // Create a file from the blob
-      const file = new File([blob], finalFilename, { type: 'image/jpeg' });
-
-      // Upload file to API
-      const uploadResponse = await fetch(`${config.backend_url}/uploadfile?user=${userData.id}&filename=output/${finalFilename}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/octet-stream',
-          'Authorization': 'Bearer WeInfl3nc3withAI'
-        },
-        body: file
-      });
-
-      if (!uploadResponse.ok) {
-        throw new Error('Failed to upload composite image');
-      }
-
-      // Return the URL of the uploaded image
-      return `${config.data_url}/${userData.id}/output/${finalFilename}`;
-
-    } catch (error) {
-      console.error('Error uploading composite image:', error);
-      throw new Error('Failed to upload composite image to vault');
-    }
-  }, [userData?.id]);
-
-  // Function to upload synthesis image to vault and return URL
-  const uploadSynthesisImageToVault = useCallback(async (blob: Blob, filename: string): Promise<string> => {
-    try {
-      // Generate a unique filename for the synthesis image
-      const timestamp = Date.now();
-      const finalFilename = `synthesis_${filename}_${timestamp}.jpg`;
+      const finalFilename = `${prefix}_${filename}_${timestamp}.jpg`;
 
       // Get existing files to check for duplicates
       const getFilesResponse = await fetch(`${config.backend_url}/getfilenames`, {
@@ -739,15 +667,15 @@ export default function ContentEdit() {
       });
 
       if (!uploadResponse.ok) {
-        throw new Error('Failed to upload synthesis image');
+        throw new Error('Failed to upload image');
       }
 
       // Return the URL of the uploaded image
       return `${config.data_url}/${userData.id}/output/${uniqueFilename}`;
 
     } catch (error) {
-      console.error('Error uploading synthesis image:', error);
-      throw new Error('Failed to upload synthesis image to vault');
+      console.error('Error uploading image:', error);
+      throw new Error('Failed to upload image to vault');
     }
   }, [userData?.id]);
 
@@ -761,84 +689,34 @@ export default function ContentEdit() {
     const loadingToast = toast.loading('Processing AI image edit...');
 
     try {
-      // Get mask data
+      // Get mask data and upload to vault
       const canvas = maskCanvasRef.current;
       if (!canvas) {
         throw new Error('Mask canvas not available');
       }
 
-      const maskDataUrl = canvas.toDataURL('image/png');
+      // Convert mask canvas to blob and upload to vault
+      toast.loading('Uploading mask to vault...', {
+        id: loadingToast,
+        description: 'Preparing mask for AI processing'
+      });
+
+      const maskBlob = await new Promise<Blob>((resolve) => {
+        canvas.toBlob((blob) => {
+          resolve(blob!);
+        }, 'image/png');
+      });
+
+      const maskVaultUrl = await uploadImageToVault(maskBlob, 'mask', 'ai_edit');
 
       // Create payload for AI processing
-      let payload: any;
-      
-      if (selectedImage?.originalUrl) {
-        // For library/influencer images, send URL directly
-        payload = {
-          image_url: selectedImage.originalUrl,
-          mask_data_url: maskDataUrl,
-          prompt: textPrompt,
-          user: userData.id
-        };
-      } else {
-        // For uploaded images, first upload the canvas-drawn image to vault
-        toast.loading('Uploading image to vault...', {
-          id: loadingToast,
-          description: 'Preparing image for AI processing'
-        });
-
-        // Create a canvas with the original image and mask overlay
-        const compositeCanvas = document.createElement('canvas');
-        const compositeCtx = compositeCanvas.getContext('2d');
-        if (!compositeCtx) {
-          throw new Error('Failed to create composite canvas');
-        }
-
-        // Load the original image
-        const originalImg = document.createElement('img');
-        await new Promise((resolve, reject) => {
-          originalImg.onload = resolve;
-          originalImg.onerror = reject;
-          originalImg.src = aiEditImage;
-        });
-
-        // Set canvas size to match original image
-        compositeCanvas.width = originalImg.width;
-        compositeCanvas.height = originalImg.height;
-
-        // Draw the original image
-        compositeCtx.drawImage(originalImg, 0, 0);
-
-        // Load and draw the mask overlay
-        const maskImg = document.createElement('img');
-        await new Promise((resolve, reject) => {
-          maskImg.onload = resolve;
-          maskImg.onerror = reject;
-          maskImg.src = maskDataUrl;
-        });
-
-        // Draw the mask overlay
-        compositeCtx.globalCompositeOperation = 'multiply';
-        compositeCtx.drawImage(maskImg, 0, 0);
-
-        // Convert composite canvas to blob
-        const compositeBlob = await new Promise<Blob>((resolve) => {
-          compositeCanvas.toBlob((blob) => {
-            resolve(blob!);
-          }, 'image/jpeg', 0.9);
-        });
-
-        // Upload the composite image to vault
-        const uploadedImageUrl = await uploadCompositeImageToVault(compositeBlob);
-        
-        // Now send the URL to the backend
-        payload = {
-          image_url: uploadedImageUrl,
-          mask_data_url: maskDataUrl,
-          prompt: textPrompt,
-          user: userData.id
-        };
-      }
+      // Now all images (uploaded, library, influencer) are already Vault URLs
+      const payload = {
+        image_url: aiEditImage, // This is now always a Vault URL
+        mask_data_url: maskVaultUrl,
+        prompt: textPrompt,
+        user: userData.id
+      };
 
       const useridResponse = await fetch(`${config.supabase_server_url}/user?uuid=eq.${userData.id}`, {
         headers: {
@@ -1052,25 +930,24 @@ export default function ContentEdit() {
     return () => document.removeEventListener('mousedown', handleClick);
   }, [showSizeControls]);
 
-  // Get editor defaults with upload configuration
+  // Get editor defaults with vault upload configuration
   const getEditorDefaultsWithUpload = useCallback(() => {
     return getEditorDefaults({
       // Image writer configuration
       imageWriter: {
-        store: {
-          url: `${config.backend_url}/uploadfile`,
-          headers: {
-            'Authorization': 'Bearer WeInfl3nc3withAI'
-          },
-          dataset: (state: any) => [
-            ['file', state.dest, state.dest.name],
-            ['user', userData?.id || ''],
-            ['filename', `edited/${state.dest.name}`]
-          ],
+        store: async (file: File) => {
+          try {
+            // Upload to vault instead of direct backend upload
+            const vaultUrl = await uploadImageToVault(file, file.name.split('.')[0], 'professional_edit');
+            return vaultUrl;
+          } catch (error) {
+            console.error('Error uploading to vault:', error);
+            throw new Error('Failed to upload image to vault');
+          }
         },
       },
     });
-  }, [userData?.id]);
+  }, [userData?.id, uploadImageToVault]);
 
   const editorDefaults = getEditorDefaultsWithUpload();
 
@@ -1777,7 +1654,7 @@ export default function ContentEdit() {
       reader.onerror = () => {
         toast.error('Error reading file. Please try again.');
       };
-      reader.onload = (e) => {
+      reader.onload = async (e) => {
         const result = e.target?.result as string;
 
         // Create a selectedImage object for uploaded files
@@ -1793,16 +1670,36 @@ export default function ContentEdit() {
           originalUrl: result // Store the data URL as original URL for uploaded files
         };
 
-                    if (editMode === 'ai-image-edit') {
-              // For AI Image Edit mode
-              setSelectedImage(uploadedImage);
-              setAiEditImage(result);
-              setIsErasing(false); // Reset to draw mode
-              setTimeout(() => {
-                initializeMaskCanvas(result);
-              }, 100);
-              toast.success('Image uploaded for AI editing');
-            } else if (editMode === 'ai-synthesis') {
+        if (editMode === 'ai-image-edit') {
+          // For AI Image Edit mode - upload to vault immediately
+          const loadingToast = toast.loading('Uploading image to vault...', {
+            description: 'Preparing image for AI editing'
+          });
+          
+          try {
+            // Convert data URL to blob and upload to vault
+            const response = await fetch(result);
+            const blob = await response.blob();
+            const vaultUrl = await uploadImageToVault(blob, file.name.split('.')[0], 'ai_edit_upload');
+
+            // Update the uploadedImage with vault URL
+            uploadedImage.originalUrl = vaultUrl;
+            setSelectedImage(uploadedImage);
+            setAiEditImage(vaultUrl);
+            setIsErasing(false); // Reset to draw mode
+            setTimeout(() => {
+              initializeMaskCanvas(vaultUrl);
+            }, 100);
+            
+            toast.dismiss(loadingToast);
+            toast.success('Image uploaded for AI editing');
+          } catch (error) {
+            console.error('Error uploading to vault:', error);
+            toast.dismiss(loadingToast);
+            toast.error('Failed to upload image to vault. Please try again.');
+            return;
+          }
+        } else if (editMode === 'ai-synthesis') {
               // For AI Image Synthesis mode
               handleSynthesisImageSelect({
                 url: result,
@@ -1851,7 +1748,7 @@ export default function ContentEdit() {
         reader.onerror = () => {
           toast.error('Error reading file. Please try again.');
         };
-        reader.onload = (e) => {
+        reader.onload = async (e) => {
           const result = e.target?.result as string;
 
           // Create a selectedImage object for uploaded files
@@ -1867,16 +1764,36 @@ export default function ContentEdit() {
             originalUrl: result // Store the data URL as original URL for uploaded files
           };
 
-                      if (editMode === 'ai-image-edit') {
-              // For AI Image Edit mode
+          if (editMode === 'ai-image-edit') {
+            // For AI Image Edit mode - upload to vault immediately
+            const loadingToast = toast.loading('Uploading image to vault...', {
+              description: 'Preparing image for AI editing'
+            });
+            
+            try {
+              // Convert data URL to blob and upload to vault
+              const response = await fetch(result);
+              const blob = await response.blob();
+              const vaultUrl = await uploadImageToVault(blob, file.name.split('.')[0], 'ai_edit_upload');
+
+              // Update the uploadedImage with vault URL
+              uploadedImage.originalUrl = vaultUrl;
               setSelectedImage(uploadedImage);
-              setAiEditImage(result);
+              setAiEditImage(vaultUrl);
               setIsErasing(false); // Reset to draw mode
               setTimeout(() => {
-                initializeMaskCanvas(result);
+                initializeMaskCanvas(vaultUrl);
               }, 100);
+              
+              toast.dismiss(loadingToast);
               toast.success('Image uploaded for AI editing');
-            } else if (editMode === 'ai-synthesis') {
+            } catch (error) {
+              console.error('Error uploading to vault:', error);
+              toast.dismiss(loadingToast);
+              toast.error('Failed to upload image to vault. Please try again.');
+              return;
+            }
+          } else if (editMode === 'ai-synthesis') {
               // For AI Image Synthesis mode
               handleSynthesisImageSelect({
                 url: result,

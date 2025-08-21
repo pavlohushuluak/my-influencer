@@ -594,7 +594,7 @@ export default function InfluencerProfiles() {
         })
       });
 
-      influencerData.image_url = `${config.data_url}/cdn-cgi/image/w=400/${userData.id}/models/${influencerData.id}/profilepic/profilepic${influencerData.image_num}.png`;
+      influencerData.image_url = `${config.data_url}/${userData.id}/models/${influencerData.id}/profilepic/profilepic${influencerData.image_num}.png`;
       influencerData.image_num = influencerData.image_num + 1;
     }
 
@@ -809,7 +809,7 @@ export default function InfluencerProfiles() {
         })
       });
 
-      influencerData.image_url = `${config.data_url}/cdn-cgi/image/w=400/${userData.id}/models/${influencerData.id}/profilepic/profilepic${influencerData.image_num}.png`;
+      influencerData.image_url = `${config.data_url}/${userData.id}/models/${influencerData.id}/profilepic/profilepic${influencerData.image_num}.png`;
       influencerData.image_num = influencerData.image_num + 1;
     }
 
@@ -1005,7 +1005,7 @@ export default function InfluencerProfiles() {
             if (imagesData.length > 0 && imagesData[0].generation_status === 'completed' && imagesData[0].system_filename) {
               const completedImage = imagesData[0];
               // Use the same URL pattern as Vault component
-              const imageUrl = `${config.data_url}/cdn-cgi/image/w=800/${userData.id}/${completedImage.user_filename === "" || completedImage.user_filename === null ? "output" : "vault/" + completedImage.user_filename}/${completedImage.system_filename}`;
+              const imageUrl = `${config.data_url}/${userData.id}/${completedImage.user_filename === "" || completedImage.user_filename === null ? "output" : "vault/" + completedImage.user_filename}/${completedImage.system_filename}`;
               console.log('Generated image URL:', imageUrl);
               console.log('Completed image data:', completedImage);
 
@@ -1048,7 +1048,7 @@ export default function InfluencerProfiles() {
                     console.log('Refetched generated image data:', completedImage);
 
                     // Update the preview image with refreshed data
-                    const imageUrl = `${config.data_url}/cdn-cgi/image/w=800/${userData.id}/${completedImage.user_filename === "" || completedImage.user_filename === null ? "output" : "vault/" + completedImage.user_filename}/${completedImage.system_filename}`;
+                    const imageUrl = `${config.data_url}/${userData.id}/${completedImage.user_filename === "" || completedImage.user_filename === null ? "output" : "vault/" + completedImage.user_filename}/${completedImage.system_filename}`;
 
                     setPreviewImages(prev => prev.map((img, index) =>
                       index === taskResult.displayIndex
@@ -1118,7 +1118,7 @@ export default function InfluencerProfiles() {
       }
 
       // Update the influencer data with the new profile picture URL
-      const newImageUrl = `${config.data_url}/cdn-cgi/image/w=400/${userData.id}/models/${influencerData.id}/profilepic/profilepic${influencerData.image_num}.png`;
+      const newImageUrl = `${config.data_url}/${userData.id}/models/${influencerData.id}/profilepic/profilepic${influencerData.image_num}.png`;
 
       setInfluencerData(prev => ({
         ...prev,
@@ -1233,7 +1233,7 @@ export default function InfluencerProfiles() {
           const imagesData = await imagesResponse.json();
           if (imagesData.length > 0) {
             const completedImage = imagesData[0];
-            const imageUrl = `${config.data_url}/cdn-cgi/image/w=400/${userData.id}/vault/example/${index + 1}/${completedImage.system_filename}`;
+            const imageUrl = `${config.data_url}/${userData.id}/vault/example/${index + 1}/${completedImage.system_filename}`;
             
             const newUrls = [...examplePreviewUrls];
             newUrls[index] = imageUrl;
@@ -5619,7 +5619,7 @@ export default function InfluencerProfiles() {
                                     }
 
                                     // Update the influencer data with the new profile picture URL
-                                    const newImageUrl = `${config.data_url}/cdn-cgi/image/w=400/${userData.id}/models/${influencerData.id}/profilepic/profilepic${num}.png`;
+                                    const newImageUrl = `${config.data_url}/${userData.id}/models/${influencerData.id}/profilepic/profilepic${num}.png`;
 
                                     // Update local state
                                     setInfluencerData(prev => ({
@@ -5733,7 +5733,7 @@ export default function InfluencerProfiles() {
                       } cursor-pointer`}
                     onClick={() => {
                       setProfileImageId(image.id);
-                      const imageUrl = `${config.data_url}/cdn-cgi/image/w=800/${userData.id}/${image.user_filename === "" ? "output" : "vault/" + image.user_filename}/${image.system_filename}`;
+                      const imageUrl = `${config.data_url}/${userData.id}/${image.user_filename === "" ? "output" : "vault/" + image.user_filename}/${image.system_filename}`;
                       handleImageSelect(imageUrl);
                     }}
                   >
@@ -5796,7 +5796,7 @@ export default function InfluencerProfiles() {
                       {/* Image */}
                       <div className="relative w-full group mb-4" style={{ paddingBottom: '100%' }}>
                         <img
-                          src={`${config.data_url}/cdn-cgi/image/w=400/${userData.id}/${image.user_filename === "" ? "output" : "vault/" + image.user_filename}/${image.system_filename}`}
+                          src={`${config.data_url}/${userData.id}/${image.user_filename === "" ? "output" : "vault/" + image.user_filename}/${image.system_filename}`}
                           alt={image.system_filename}
                           className="absolute inset-0 w-full h-full object-cover rounded-md shadow-sm cursor-pointer transition-all duration-200 hover:scale-105"
                           onError={(e) => {
@@ -5823,7 +5823,7 @@ export default function InfluencerProfiles() {
                           className="absolute right-2 top-2 bg-black/50 rounded-full w-8 h-8 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer"
                           onClick={(e) => {
                             e.stopPropagation();
-                            const imageUrl = `${config.data_url}/cdn-cgi/image/w=800/${userData.id}/${image.user_filename === "" ? "output" : "vault/" + image.user_filename}/${image.system_filename}`;
+                            const imageUrl = `${config.data_url}/${userData.id}/${image.user_filename === "" ? "output" : "vault/" + image.user_filename}/${image.system_filename}`;
                             setPreviewImage(imageUrl);
                           }}
                         >

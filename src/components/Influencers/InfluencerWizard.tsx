@@ -1586,7 +1586,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
           })
         });
 
-        influencerData.image_url = `${config.data_url}/cdn-cgi/image/w=400/${userData.id}/models/${data[0].id}/profilepic/profilepic${num}.${extension}`;
+        influencerData.image_url = `${config.data_url}/${userData.id}/models/${data[0].id}/profilepic/profilepic${num}.${extension}`;
         influencerData.image_num = num + 1;
       }
 
@@ -1951,7 +1951,7 @@ export function InfluencerWizard({ onComplete }: InfluencerWizardProps) {
 
             if (imagesData.length > 0 && imagesData[0].generation_status === 'completed' && imagesData[0].file_path) {
               const completedImage = imagesData[0];
-              const imageUrl = `${config.data_url}/cdn-cgi/image/w=800/${completedImage.file_path}`;
+              const imageUrl = `${config.data_url}/${completedImage.file_path}`;
 
               setPreviewImages(prev => prev.map((img, index) =>
                 index === taskResult.displayIndex ? { ...img, imageUrl, isLoading: false, taskId: taskResult.taskId } : img

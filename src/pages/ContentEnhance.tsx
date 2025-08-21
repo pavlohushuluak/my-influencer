@@ -129,7 +129,7 @@ export default function ContentEnhance() {
 
   const handleVaultImageSelect = (image: GeneratedImageData) => {
     // Convert vault image to file-like object for processing
-    const imageUrl = `${config.data_url}/cdn-cgi/image/w=400/${userData.id}/${image.user_filename === "" ? "output" : "vault/" + image.user_filename}/${image.system_filename}`;
+    const imageUrl = `${config.data_url}/${userData.id}/${image.user_filename === "" ? "output" : "vault/" + image.user_filename}/${image.system_filename}`;
     setPreviewUrl(imageUrl);
     setSelectedFile(null); // We don't have a File object for vault images
     setShowVaultSelector(false);
@@ -285,7 +285,7 @@ export default function ContentEnhance() {
         throw new Error('Failed to create database entry');
       }
 
-      const imageUrl = `${config.data_url}/cdn-cgi/image/w=800/${userData.id}/output/${uniqueFilename}`;
+      const imageUrl = `${config.data_url}/${userData.id}/output/${uniqueFilename}`;
 
       return { imageUrl, imageData };
     } catch (error) {
@@ -308,7 +308,7 @@ export default function ContentEnhance() {
 
         if (imagesData.length > 0 && imagesData[0].generation_status === 'completed' && imagesData[0].system_filename) {
           const completedImage = imagesData[0];
-          const upscaledUrl = `${config.data_url}/cdn-cgi/image/w=800/${userData.id}/${completedImage.user_filename === "" || completedImage.user_filename === null ? "output" : "vault/" + completedImage.user_filename}/${completedImage.system_filename}`;
+          const upscaledUrl = `${config.data_url}/${userData.id}/${completedImage.user_filename === "" || completedImage.user_filename === null ? "output" : "vault/" + completedImage.user_filename}/${completedImage.system_filename}`;
           
           // Update the result
           setUpscaleResults(prev => prev.map(r => 

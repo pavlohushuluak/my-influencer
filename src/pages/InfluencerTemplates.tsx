@@ -331,7 +331,7 @@ export default function InfluencerTemplates() {
         },
         body: JSON.stringify({
           new: false,
-          image_url: `${config.data_url}/cdn-cgi/image/w=400/${userData.id}/models/${data[0].id}/profilepic/profilepic${data[0].image_num}.png`,
+          image_url: `${config.data_url}/${userData.id}/models/${data[0].id}/profilepic/profilepic${data[0].image_num}.png`,
           image_num: data[0].image_num + 1
         })
       });

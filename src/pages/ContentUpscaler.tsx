@@ -597,7 +597,6 @@ export default function ContentUpscaler() {
       }
 
       // Extract the system_filename from the upscaledUrl
-      // URL format: https://images.nymia.ai/cdn-cgi/image/w=800/userId/path/system_filename
       const urlParts = result.upscaledUrl.split('/');
       const systemFilename = urlParts[urlParts.length - 1];
 

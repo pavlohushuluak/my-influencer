@@ -341,7 +341,7 @@ export default function HistoryCard({ userId }: { userId: string }) {
   };
 
   const shareToSocialMedia = (platform: string, itemId: string) => {
-    const imageUrl = `${config.data_url}/cdn-cgi/image/w=800/${userData.id}/output/${itemId}`;
+    const imageUrl = `${config.data_url}/${userData.id}/output/${itemId}`;
     const shareText = `Check out this amazing content!`;
 
     let shareUrl = '';
@@ -665,10 +665,10 @@ export default function HistoryCard({ userId }: { userId: string }) {
                 {/* Image */}
                 <div className="relative w-full group mb-4" style={{ paddingBottom: '100%' }}>
                   <img
-                    src={`${config.data_url}/cdn-cgi/image/w=400/${image.file_path}`}
+                    src={`${config.data_url}/${image.file_path}`}
                     alt={image.system_filename}
                     className="absolute inset-0 w-full h-full object-cover rounded-md shadow-sm cursor-pointer transition-all duration-200 hover:scale-105"
-                    onClick={() => setZoomModal({ open: true, imageUrl: `${config.data_url}/cdn-cgi/image/w=1200/${image.file_path}`, imageName: image.system_filename })}
+                    onClick={() => setZoomModal({ open: true, imageUrl: `${config.data_url}/${image.file_path}`, imageName: image.system_filename })}
                     onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
                   />
                   {/* Zoom Overlay */}
@@ -680,7 +680,7 @@ export default function HistoryCard({ userId }: { userId: string }) {
                         className="h-8 w-8 p-0 bg-white/90 dark:bg-black/90 hover:bg-white dark:hover:bg-black shadow-lg hover:shadow-xl transition-all duration-200"
                         onClick={(e) => {
                           e.stopPropagation();
-                          setZoomModal({ open: true, imageUrl: `${config.data_url}/cdn-cgi/image/w=1200/${image.file_path}`, imageName: image.system_filename });
+                          setZoomModal({ open: true, imageUrl: `${config.data_url}/${image.file_path}`, imageName: image.system_filename });
                         }}
                       >
                         <ZoomIn className="w-3 h-3 text-gray-700 dark:text-gray-300" />

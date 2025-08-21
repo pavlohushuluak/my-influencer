@@ -1043,7 +1043,7 @@ export default function PresetsManager({ onClose, onApplyPreset }: {
 
         // Generate image URL from image_name and route
         const presetImageUrl = preset.image_name ?
-          `${config.data_url}/cdn-cgi/image/w=400/${userData.id}/presets/${preset.route ? preset.route + '/' : ''}${preset.image_name}` :
+          `${config.data_url}/${userData.id}/presets/${preset.route ? preset.route + '/' : ''}${preset.image_name}` :
           null;
 
         return {

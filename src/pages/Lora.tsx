@@ -232,7 +232,7 @@ export default function Lora() {
         latestImageNum = 0;
       }
       console.log(targetInfluencer.image_num);
-      const profileImageUrl = `${config.data_url}/cdn-cgi/image/w=400/${userData.id}/models/${targetInfluencer.id}/profilepic/profilepic${latestImageNum}.png`;
+      const profileImageUrl = `${config.data_url}/${userData.id}/models/${targetInfluencer.id}/profilepic/profilepic${latestImageNum}.png`;
 
       setSelectedProfileImage(profileImageUrl);
       setShowCharacterConsistencyModal(true);
@@ -509,7 +509,7 @@ export default function Lora() {
       if (latestImageNum === -1) {
         latestImageNum = 0;
       }
-      const profileImageUrl = `${config.data_url}/cdn-cgi/image/w=400/${userData.id}/models/${selectedInfluencer.id}/profilepic/profilepic${latestImageNum}.png`;
+      const profileImageUrl = `${config.data_url}/${userData.id}/models/${selectedInfluencer.id}/profilepic/profilepic${latestImageNum}.png`;
       setSelectedProfileImage(profileImageUrl);
     }
   };

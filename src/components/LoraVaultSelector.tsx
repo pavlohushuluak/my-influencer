@@ -466,7 +466,7 @@ export default function LoraVaultSelector({
 
   // Get image URL
   const getImageUrl = (image: GeneratedImageData) => {
-    return `${config.data_url}/cdn-cgi/image/w=800/${userData.id}/${image.user_filename === "" || image.user_filename === null ? "output" : "vault/" + image.user_filename}/${image.system_filename}`;
+    return `${config.data_url}/${userData.id}/${image.user_filename === "" || image.user_filename === null ? "output" : "vault/" + image.user_filename}/${image.system_filename}`;
   };
 
   // Get full size image URL

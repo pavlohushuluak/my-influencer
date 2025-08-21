@@ -859,7 +859,7 @@ export default function InfluencerLoraTraining() {
                   <CardContent className="p-0">
                     <div className="aspect-square relative overflow-hidden rounded-t-lg">
                       <img
-                        src={`${config.data_url}/cdn-cgi/image/w=400/${userData.id}/${image.file_path}`}
+                        src={`${config.data_url}/${userData.id}/${image.file_path}`}
                         alt={image.filename}
                         className="w-full h-full object-cover"
                         onError={(e) => {
@@ -1252,7 +1252,7 @@ export default function InfluencerLoraTraining() {
                         {/* Image */}
                         <div className="relative w-full group mb-4" style={{ paddingBottom: '100%' }}>
                           <img
-                            src={`${config.data_url}/cdn-cgi/image/w=400/${userData.id}/${image.user_filename === "" ? "output" : "vault/" + image.user_filename}/${image.system_filename}`}
+                            src={`${config.data_url}/${userData.id}/${image.user_filename === "" ? "output" : "vault/" + image.user_filename}/${image.system_filename}`}
                             alt={image.system_filename}
                             className="absolute inset-0 w-full h-full object-cover rounded-md shadow-sm cursor-pointer transition-all duration-200 hover:scale-105"
                             onError={(e) => {
@@ -1279,7 +1279,7 @@ export default function InfluencerLoraTraining() {
                             className="absolute right-2 top-2 bg-black/50 rounded-full w-8 h-8 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer"
                             onClick={(e) => {
                               e.stopPropagation();
-                              const imageUrl = `${config.data_url}/cdn-cgi/image/w=800/${userData.id}/${image.user_filename === "" ? "output" : "vault/" + image.user_filename}/${image.system_filename}`;
+                              const imageUrl = `${config.data_url}/${userData.id}/${image.user_filename === "" ? "output" : "vault/" + image.user_filename}/${image.system_filename}`;
                               setPreviewImage(imageUrl);
                             }}
                           >

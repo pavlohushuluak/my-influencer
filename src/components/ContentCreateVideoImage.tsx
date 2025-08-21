@@ -1714,7 +1714,7 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
             // Convert GeneratedImageData to a format compatible with our modelData
             const selectedImage = {
               id: image.id,
-              image_url: `${config.data_url}/cdn-cgi/image/w=800/${image.file_path}`,
+              image_url: `${config.data_url}/${image.file_path}`,
               name_first: image.user_filename || 'Selected',
               name_last: 'Image',
               influencer_type: 'Video Start Image',
@@ -2028,7 +2028,7 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
                           </div>
 
                           <img
-                            src={selectedPresetImage.preview_url || `${config.data_url}/cdn-cgi/image/w=400/${userData.id}/${selectedPresetImage.user_filename === "" ? "output" : "vault/" + selectedPresetImage.user_filename}/${selectedPresetImage.system_filename}`}
+                            src={selectedPresetImage.preview_url || `${config.data_url}/${userData.id}/${selectedPresetImage.user_filename === "" ? "output" : "vault/" + selectedPresetImage.user_filename}/${selectedPresetImage.system_filename}`}
                             alt="Selected preset image"
                             className="absolute inset-0 w-full h-full object-cover rounded-md shadow-sm cursor-pointer transition-all duration-200 hover:scale-105"
                           />
@@ -2880,7 +2880,7 @@ function ContentCreateVideoImage({ influencerData, onBack }: ContentCreateVideoI
                         </div>
 
                         <img
-                          src={selectedPresetImage.preview_url || `${config.data_url}/cdn-cgi/image/w=400/${userData.id}/${selectedPresetImage.user_filename === "" ? "output" : "vault/" + selectedPresetImage.user_filename}/${selectedPresetImage.system_filename}`}
+                          src={selectedPresetImage.preview_url || `${config.data_url}/${userData.id}/${selectedPresetImage.user_filename === "" ? "output" : "vault/" + selectedPresetImage.user_filename}/${selectedPresetImage.system_filename}`}
                           alt="Selected preset image"
                           className="absolute inset-0 w-full h-full object-cover rounded-md shadow-sm cursor-pointer transition-all duration-200 hover:scale-105"
                         />

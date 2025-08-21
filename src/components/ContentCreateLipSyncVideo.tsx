@@ -782,7 +782,7 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
 
       // Get video URL from selected video
       if (selectedVideo) {
-        video_url = `${config.data_url}/cdn-cgi/image/w=400/${userData.id}/${selectedVideo.user_filename === "" ? "output" : "vault/" + selectedVideo.user_filename}/${selectedVideo.system_filename}`;
+        video_url = `${config.data_url}/${userData.id}/${selectedVideo.user_filename === "" ? "output" : "vault/" + selectedVideo.user_filename}/${selectedVideo.system_filename}`;
       }
 
       // Validate required fields
@@ -804,7 +804,7 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
         prompt: textToSpeak.trim(),
         video_url: video_url || null, // Ensure null if empty
         voice_url: voice_url || null, // Ensure null if empty
-        preset_image: selectedPresetImage.preview_url || `${config.data_url}/cdn-cgi/image/w=400/${userData.id}/${selectedPresetImage.user_filename === "" ? "output" : "vault/" + selectedPresetImage.user_filename}/${selectedPresetImage.system_filename}`,
+        preset_image: selectedPresetImage.preview_url || `${config.data_url}/${userData.id}/${selectedPresetImage.user_filename === "" ? "output" : "vault/" + selectedPresetImage.user_filename}/${selectedPresetImage.system_filename}`,
         upload_flag: upload_flag
       };
 
@@ -2120,7 +2120,7 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
                         </div>
 
                         <img
-                          src={selectedPresetImage.preview_url || `${config.data_url}/cdn-cgi/image/w=400/${userData.id}/${selectedPresetImage.user_filename === "" ? "output" : "vault/" + selectedPresetImage.user_filename}/${selectedPresetImage.system_filename}`}
+                          src={selectedPresetImage.preview_url || `${config.data_url}/${userData.id}/${selectedPresetImage.user_filename === "" ? "output" : "vault/" + selectedPresetImage.user_filename}/${selectedPresetImage.system_filename}`}
                           alt="Selected preset image"
                           className="absolute inset-0 w-full h-full object-cover rounded-md shadow-sm cursor-pointer transition-all duration-200 hover:scale-105"
                         />

@@ -1190,6 +1190,10 @@ export default function InfluencerEditRedesign() {
     clothing_style_sports: "",
     clothing_style_sexy_dress: "",
     home_environment: "",
+    // Example pictures
+    example_pic1: "",
+    example_pic2: "",
+    example_pic3: "",
   });
 
   // Database Options - All field options
@@ -1696,7 +1700,7 @@ export default function InfluencerEditRedesign() {
             imagesData[0].system_filename
           ) {
             const completedImage = imagesData[0];
-            const imageUrl = `${config.data_url}/cdn-cgi/image/w=800/${userData.id}/${completedImage.user_filename === "" || completedImage.user_filename === null ? "output" : "vault/" + completedImage.user_filename}/${completedImage.system_filename}`;
+            const imageUrl = `${config.data_url}/${userData.id}/${completedImage.user_filename === "" || completedImage.user_filename === null ? "output" : "vault/" + completedImage.user_filename}/${completedImage.system_filename}`;
 
             setPreviewImage(imageUrl);
             setIsGenerating(false);
@@ -1751,7 +1755,7 @@ export default function InfluencerEditRedesign() {
       }
 
       // Update influencer data
-      const newImageUrl = `${config.data_url}/cdn-cgi/image/w=400/${userData.id}/models/${influencerData.id}/profilepic/profilepic${num}.png`;
+      const newImageUrl = `${config.data_url}/${userData.id}/models/${influencerData.id}/profilepic/profilepic${num}.png`;
 
       setInfluencerData((prev) => ({
         ...prev,
@@ -2171,7 +2175,7 @@ export default function InfluencerEditRedesign() {
       }
 
       // Return the new URL for the copied file
-      return `https://images.nymia.ai/cdn-cgi/image/w=800/${userData.id}/models/${influencerId}/examples/${filename}`;
+      return `https://images.nymia.ai/${userData.id}/models/${influencerId}/examples/${filename}`;
     } catch (error) {
       console.error('Error copying file:', error);
       return null;
@@ -2342,7 +2346,7 @@ export default function InfluencerEditRedesign() {
             if (imagesData.length > 0) {
               if (imagesData[0].generation_status === 'completed' && imagesData[0].file_path) {
                 const completedImage = imagesData[0];
-                const imageUrl = `${config.data_url}/cdn-cgi/image/w=800/${completedImage.file_path}`;
+                const imageUrl = `${config.data_url}/${completedImage.file_path}`;
                 
                 console.log(`Generated image ${imageIndex}:`, imageUrl);
                 
@@ -2491,7 +2495,7 @@ export default function InfluencerEditRedesign() {
             if (imagesData.length > 0) {
               if (imagesData[0].generation_status === 'completed' && imagesData[0].file_path) {
                 const completedImage = imagesData[0];
-                const imageUrl = `${config.data_url}/cdn-cgi/image/w=800/${completedImage.file_path}`;
+                const imageUrl = `${config.data_url}/${completedImage.file_path}`;
                 
                 console.log(`Generated image ${taskResult.order + 1}:`, imageUrl);
                 
@@ -2636,7 +2640,7 @@ export default function InfluencerEditRedesign() {
         })
       });
 
-      influencerData.image_url = `${config.data_url}/cdn-cgi/image/w=400/${userData.id}/models/${influencerData.id}/profilepic/profilepic${influencerData.image_num}.png`;
+      influencerData.image_url = `${config.data_url}/${userData.id}/models/${influencerData.id}/profilepic/profilepic${influencerData.image_num}.png`;
       influencerData.image_num = influencerData.image_num + 1;
     }
 
@@ -2795,7 +2799,7 @@ export default function InfluencerEditRedesign() {
 
             if (imagesData.length > 0 && imagesData[0].generation_status === 'completed' && imagesData[0].system_filename) {
               const completedImage = imagesData[0];
-              const imageUrl = `${config.data_url}/cdn-cgi/image/w=800/${userData.id}/${completedImage.user_filename === "" || completedImage.user_filename === null ? "output" : "vault/" + completedImage.user_filename}/${completedImage.system_filename}`;
+              const imageUrl = `${config.data_url}/${userData.id}/${completedImage.user_filename === "" || completedImage.user_filename === null ? "output" : "vault/" + completedImage.user_filename}/${completedImage.system_filename}`;
 
               setPreviewImages(prev => prev.map((img, index) =>
                 index === taskResult.displayIndex
@@ -2874,7 +2878,7 @@ export default function InfluencerEditRedesign() {
         throw new Error('Failed to copy image to profile picture');
       }
 
-      const newImageUrl = `${config.data_url}/cdn-cgi/image/w=400/${userData.id}/models/${influencerData.id}/profilepic/profilepic${num}.png`;
+      const newImageUrl = `${config.data_url}/${userData.id}/models/${influencerData.id}/profilepic/profilepic${num}.png`;
 
       setInfluencerData(prev => ({
         ...prev,

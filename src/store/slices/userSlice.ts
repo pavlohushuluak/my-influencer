@@ -14,6 +14,7 @@ interface UserState {
   free_purchase: boolean;
   billed_date: number;
   guide_step: number;
+  active_influencer_id: string | null;
 }
 
 const initialState: UserState = {
@@ -29,7 +30,8 @@ const initialState: UserState = {
   billing_date: 0,
   free_purchase: true,
   billed_date: 0,
-  guide_step: 1
+  guide_step: 1,
+  active_influencer_id: null
 };
 
 const userSlice = createSlice({

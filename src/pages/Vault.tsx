@@ -743,7 +743,7 @@ export default function Vault() {
   };
 
   const shareToSocialMedia = (platform: string, itemId: string) => {
-    const imageUrl = `${config.data_url}/cdn-cgi/image/w=800/${userData.id}/${shareModal.itemPath}/${itemId}`;
+    const imageUrl = `${config.data_url}/${userData.id}/${shareModal.itemPath}/${itemId}`;
     const shareText = `Check out this amazing content!`;
 
     let shareUrl = '';
@@ -2892,7 +2892,7 @@ export default function Vault() {
           'Authorization': 'Bearer WeInfl3nc3withAI'
         },
         body: JSON.stringify({
-          image_url: `${config.data_url}/cdn-cgi/image/w=400/${userData.id}/models/${influencer.id}/profilepic/profilepic${influencer.image_num}.${extension}`
+          image_url: `${config.data_url}/${userData.id}/models/${influencer.id}/profilepic/profilepic${influencer.image_num}.${extension}`
         })
       });
 
@@ -4550,7 +4550,7 @@ export default function Vault() {
                     )}
 
                     <img
-                      src={`${config.data_url}/cdn-cgi/image/w=400/${userData.id}/${image.user_filename === "" ? "output" : "vault/" + image.user_filename}/${image.system_filename}`}
+                      src={`${config.data_url}/${userData.id}/${image.user_filename === "" ? "output" : "vault/" + image.user_filename}/${image.system_filename}`}
                       alt={image.system_filename}
                       className={`absolute inset-0 w-full h-full object-cover rounded-md shadow-sm cursor-pointer transition-all duration-200 ${isDragging && draggedImage?.id === image.id
                         ? 'opacity-50 scale-95 ring-2 ring-blue-500 ring-opacity-50'
@@ -5228,7 +5228,7 @@ export default function Vault() {
                 <div className="relative group">
                   <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-purple-600/20 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-500"></div>
                   <img
-                    src={`${config.data_url}/cdn-cgi/image/w=800/${userData.id}/${detailedImageModal.image.user_filename === "" ? "output" : "vault/" + detailedImageModal.image.user_filename}/${detailedImageModal.image.system_filename}`}
+                    src={`${config.data_url}/${userData.id}/${detailedImageModal.image.user_filename === "" ? "output" : "vault/" + detailedImageModal.image.user_filename}/${detailedImageModal.image.system_filename}`}
                     alt={detailedImageModal.image.user_filename || detailedImageModal.image.system_filename}
                     className="relative max-w-full max-h-[65vh] object-contain rounded-2xl shadow-2xl border border-gray-200/50 dark:border-gray-700/50 group-hover:scale-[1.02] transition-transform duration-300"
                   />
@@ -5874,7 +5874,7 @@ export default function Vault() {
               <div className="flex items-center gap-4">
                 <div className="relative w-20 h-20">
                   <img
-                    src={`${config.data_url}/cdn-cgi/image/w=400/${userData.id}/${selectedImageForProfile.user_filename === "" ? "output" : "vault/" + selectedImageForProfile.user_filename}/${selectedImageForProfile.system_filename}`}
+                    src={`${config.data_url}/${userData.id}/${selectedImageForProfile.user_filename === "" ? "output" : "vault/" + selectedImageForProfile.user_filename}/${selectedImageForProfile.system_filename}`}
                     alt={selectedImageForProfile.system_filename}
                     className="w-full h-full object-cover rounded-md"
                   />

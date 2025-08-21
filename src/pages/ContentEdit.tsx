@@ -285,8 +285,8 @@ export default function ContentEdit() {
       // Store the original URL for API calls (same as Image Synthesis)
       const isInfluencerImage = imageData.file_path?.includes('models/') || imageData.id?.startsWith('influencer-');
       const originalUrl = isInfluencerImage
-        ? `${config.data_url}/cdn-cgi/image/w=1200/${imageData.file_path}`
-        : `${config.data_url}/cdn-cgi/image/w=1200/${userData.id}/output/${imageData.system_filename}`;
+        ? `${config.data_url}/${imageData.file_path}`
+        : `${config.data_url}/${userData.id}/output/${imageData.system_filename}`;
       
       // Store the original URL in the selectedImage for later use
       const imageDataWithUrl: ImageData = {
@@ -348,8 +348,8 @@ export default function ContentEdit() {
       // Fallback to CDN URL
       const isInfluencerImage = imageData.file_path?.includes('models/') || imageData.id?.startsWith('influencer-');
       const fallbackUrl = isInfluencerImage
-        ? `${config.data_url}/cdn-cgi/image/w=1200/${imageData.file_path}`
-        : `${config.data_url}/cdn-cgi/image/w=1200/${userData.id}/output/${imageData.system_filename}`;
+        ? `${config.data_url}/${imageData.file_path}`
+        : `${config.data_url}/${userData.id}/output/${imageData.system_filename}`;
 
       setAiEditImage(fallbackUrl);
       setIsErasing(false); // Reset to draw mode
@@ -529,12 +529,41 @@ export default function ContentEdit() {
       // Extract reference tags from prompt (words starting with @)
       const referenceTags = synthesisPrompt.match(/@(\w+)/g)?.map(tag => tag.slice(1)) || [];
 
+      // Process images: upload uploaded images to vault, keep library/influencer URLs as is
+      const processedImageUrls = await Promise.all(
+        synthesisImages.map(async (img) => {
+          if (img.source === 'upload') {
+            // For uploaded images, fetch the blob and upload to vault
+            toast.loading(`Uploading ${img.name} to vault...`, {
+              id: loadingToast,
+              description: 'Preparing images for synthesis'
+            });
+
+            try {
+              // Fetch the image as blob
+              const response = await fetch(img.url);
+              const blob = await response.blob();
+
+              // Upload to vault
+              const vaultUrl = await uploadSynthesisImageToVault(blob, img.name);
+              return vaultUrl;
+            } catch (error) {
+              console.error(`Error uploading ${img.name}:`, error);
+              throw new Error(`Failed to upload ${img.name} to vault`);
+            }
+          } else {
+            // For library/influencer images, use the URL as is
+            return img.url;
+          }
+        })
+      );
+
       const payload = {
         prompt: synthesisPrompt,
         resolution: "1080p",
         aspect_ratio: "4:3",
         reference_tags: referenceTags,
-        reference_images: synthesisImages.map(img => img.url)
+        reference_images: processedImageUrls
       };
 
       console.log(payload);
@@ -574,6 +603,154 @@ export default function ContentEdit() {
     }
   };
 
+  // Function to upload composite image to vault and return URL
+  const uploadCompositeImageToVault = useCallback(async (blob: Blob): Promise<string> => {
+    try {
+      // Generate a unique filename for the composite image
+      const timestamp = Date.now();
+      const filename = `ai_edit_composite_${timestamp}.jpg`;
+
+      // Get existing files to check for duplicates
+      const getFilesResponse = await fetch(`${config.backend_url}/getfilenames`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          user: userData.id,
+          folder: `output`
+        })
+      });
+
+      let finalFilename = filename;
+
+      if (getFilesResponse.ok) {
+        const files = await getFilesResponse.json();
+        if (files && files.length > 0 && files[0].Key) {
+          const existingFilenames = files.map((file: any) => {
+            const fileKey = file.Key;
+            const re = new RegExp(`^.*?output/`);
+            const fileName = fileKey.replace(re, "");
+            return fileName;
+          });
+
+          // Generate unique filename if needed
+          if (existingFilenames.includes(filename)) {
+            const baseName = filename.substring(0, filename.lastIndexOf('.'));
+            const extension = filename.substring(filename.lastIndexOf('.'));
+            let counter = 1;
+            let testFilename = filename;
+
+            while (existingFilenames.includes(testFilename)) {
+              testFilename = `${baseName}(${counter})${extension}`;
+              counter++;
+            }
+            finalFilename = testFilename;
+          }
+        }
+      }
+
+      // Create a file from the blob
+      const file = new File([blob], finalFilename, { type: 'image/jpeg' });
+
+      // Upload file to API
+      const uploadResponse = await fetch(`${config.backend_url}/uploadfile?user=${userData.id}&filename=output/${finalFilename}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/octet-stream',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: file
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error('Failed to upload composite image');
+      }
+
+      // Return the URL of the uploaded image
+      return `${config.data_url}/${userData.id}/output/${finalFilename}`;
+
+    } catch (error) {
+      console.error('Error uploading composite image:', error);
+      throw new Error('Failed to upload composite image to vault');
+    }
+  }, [userData?.id]);
+
+  // Function to upload synthesis image to vault and return URL
+  const uploadSynthesisImageToVault = useCallback(async (blob: Blob, filename: string): Promise<string> => {
+    try {
+      // Generate a unique filename for the synthesis image
+      const timestamp = Date.now();
+      const finalFilename = `synthesis_${filename}_${timestamp}.jpg`;
+
+      // Get existing files to check for duplicates
+      const getFilesResponse = await fetch(`${config.backend_url}/getfilenames`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: JSON.stringify({
+          user: userData.id,
+          folder: `output`
+        })
+      });
+
+      let uniqueFilename = finalFilename;
+
+      if (getFilesResponse.ok) {
+        const files = await getFilesResponse.json();
+        if (files && files.length > 0 && files[0].Key) {
+          const existingFilenames = files.map((file: any) => {
+            const fileKey = file.Key;
+            const re = new RegExp(`^.*?output/`);
+            const fileName = fileKey.replace(re, "");
+            return fileName;
+          });
+
+          // Generate unique filename if needed
+          if (existingFilenames.includes(finalFilename)) {
+            const baseName = finalFilename.substring(0, finalFilename.lastIndexOf('.'));
+            const extension = finalFilename.substring(finalFilename.lastIndexOf('.'));
+            let counter = 1;
+            let testFilename = finalFilename;
+
+            while (existingFilenames.includes(testFilename)) {
+              testFilename = `${baseName}(${counter})${extension}`;
+              counter++;
+            }
+            uniqueFilename = testFilename;
+          }
+        }
+      }
+
+      // Create a file from the blob
+      const file = new File([blob], uniqueFilename, { type: 'image/jpeg' });
+
+      // Upload file to API
+      const uploadResponse = await fetch(`${config.backend_url}/uploadfile?user=${userData.id}&filename=output/${uniqueFilename}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/octet-stream',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        },
+        body: file
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error('Failed to upload synthesis image');
+      }
+
+      // Return the URL of the uploaded image
+      return `${config.data_url}/${userData.id}/output/${uniqueFilename}`;
+
+    } catch (error) {
+      console.error('Error uploading synthesis image:', error);
+      throw new Error('Failed to upload synthesis image to vault');
+    }
+  }, [userData?.id]);
+
   const processAiEdit = async () => {
     if (!aiEditImage || !textPrompt.trim()) {
       toast.error('Please select an image and enter a text prompt');
@@ -604,13 +781,63 @@ export default function ContentEdit() {
           user: userData.id
         };
       } else {
-        // For uploaded images, send file as blob
-        const formData = new FormData();
-        formData.append('image', await fetch(aiEditImage).then(r => r.blob()));
-        formData.append('mask', await fetch(maskDataUrl).then(r => r.blob()));
-        formData.append('prompt', textPrompt);
-        formData.append('user', userData.id);
-        payload = formData;
+        // For uploaded images, first upload the canvas-drawn image to vault
+        toast.loading('Uploading image to vault...', {
+          id: loadingToast,
+          description: 'Preparing image for AI processing'
+        });
+
+        // Create a canvas with the original image and mask overlay
+        const compositeCanvas = document.createElement('canvas');
+        const compositeCtx = compositeCanvas.getContext('2d');
+        if (!compositeCtx) {
+          throw new Error('Failed to create composite canvas');
+        }
+
+        // Load the original image
+        const originalImg = document.createElement('img');
+        await new Promise((resolve, reject) => {
+          originalImg.onload = resolve;
+          originalImg.onerror = reject;
+          originalImg.src = aiEditImage;
+        });
+
+        // Set canvas size to match original image
+        compositeCanvas.width = originalImg.width;
+        compositeCanvas.height = originalImg.height;
+
+        // Draw the original image
+        compositeCtx.drawImage(originalImg, 0, 0);
+
+        // Load and draw the mask overlay
+        const maskImg = document.createElement('img');
+        await new Promise((resolve, reject) => {
+          maskImg.onload = resolve;
+          maskImg.onerror = reject;
+          maskImg.src = maskDataUrl;
+        });
+
+        // Draw the mask overlay
+        compositeCtx.globalCompositeOperation = 'multiply';
+        compositeCtx.drawImage(maskImg, 0, 0);
+
+        // Convert composite canvas to blob
+        const compositeBlob = await new Promise<Blob>((resolve) => {
+          compositeCanvas.toBlob((blob) => {
+            resolve(blob!);
+          }, 'image/jpeg', 0.9);
+        });
+
+        // Upload the composite image to vault
+        const uploadedImageUrl = await uploadCompositeImageToVault(compositeBlob);
+        
+        // Now send the URL to the backend
+        payload = {
+          image_url: uploadedImageUrl,
+          mask_data_url: maskDataUrl,
+          prompt: textPrompt,
+          user: userData.id
+        };
       }
 
       const useridResponse = await fetch(`${config.supabase_server_url}/user?uuid=eq.${userData.id}`, {
@@ -623,18 +850,14 @@ export default function ContentEdit() {
 
       // Send to AI processing endpoint
       const headers: any = {
-        'Authorization': 'Bearer WeInfl3nc3withAI'
+        'Authorization': 'Bearer WeInfl3nc3withAI',
+        'Content-Type': 'application/json'
       };
-      
-      // Set appropriate content type based on payload type
-      if (selectedImage?.originalUrl) {
-        headers['Content-Type'] = 'application/json';
-      }
       
       const response = await fetch(`${config.backend_url}/createtask?userid=${useridData[0].userid}&type=createimage`, {
         method: 'POST',
         headers: headers,
-        body: selectedImage?.originalUrl ? JSON.stringify(payload) : payload
+        body: JSON.stringify(payload)
       });
 
       if (!response.ok) {
@@ -908,8 +1131,8 @@ export default function ContentEdit() {
       // Fallback to CDN URL if download fails
       const isInfluencerImage = imageData.file_path?.includes('models/') || imageData.id?.startsWith('influencer-');
       const fallbackUrl = isInfluencerImage
-        ? `${config.data_url}/cdn-cgi/image/w=1200/${imageData.file_path}`
-        : `${config.data_url}/cdn-cgi/image/w=1200/${userData.id}/output/${imageData.system_filename}`;
+        ? `${config.data_url}/${imageData.file_path}`
+        : `${config.data_url}/${userData.id}/output/${imageData.system_filename}`;
 
       setImageSrc(fallbackUrl);
       setHasImage(true);
@@ -3351,7 +3574,7 @@ export default function ContentEdit() {
               onOpenChange={setShowVaultSelector}
               onImageSelect={(image) => {
                 handleSynthesisImageSelect({
-                  url: `${config.data_url}/cdn-cgi/image/w=1200/${userData.id}/output/${image.system_filename}`,
+                  url: `${config.data_url}/${userData.id}/output/${image.system_filename}`,
                   source: 'library',
                   tempId: `synthesis-${Date.now()}`
                 });

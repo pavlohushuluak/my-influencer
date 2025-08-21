@@ -786,7 +786,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
   };
 
   const handleViewFullSize = (image: any) => {
-          const imageUrl = `${config.data_url}/cdn-cgi/image/w=800/${image.file_path}`;
+          const imageUrl = `${config.data_url}/${image.file_path}`;
     const imageName = image.system_filename || 'Generated Image';
     setFullSizeImageModal({
       isOpen: true,
@@ -2018,7 +2018,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
   };
 
   const shareToSocialMedia = (platform: string, itemId: string) => {
-    const imageUrl = `${config.data_url}/cdn-cgi/image/w=800/${userData.id}/output/${itemId}`;
+    const imageUrl = `${config.data_url}/${userData.id}/output/${itemId}`;
     const shareText = `Check out this amazing content!`;
 
     let shareUrl = '';
@@ -5370,7 +5370,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
                             {/* Image */}
                             <div className="relative w-full group mb-4" style={{ paddingBottom: '100%' }}>
                               <img
-                                src={`${config.data_url}/cdn-cgi/image/w=400/${image.file_path}`}
+                                src={`${config.data_url}/${image.file_path}`}
                                 alt={image.system_filename}
                                 className="absolute inset-0 w-full h-full object-cover rounded-md shadow-sm cursor-pointer transition-all duration-200 hover:scale-105"
                                 onClick={() => setDetailedImageModal({ open: true, image })}
@@ -5390,7 +5390,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
                                       e.stopPropagation();
                                       setFullSizeImageModal({
                                         isOpen: true,
-                                        imageUrl: `${config.data_url}/cdn-cgi/image/w=1200/${image.file_path}`,
+                                        imageUrl: `${config.data_url}/${image.file_path}`,
                                         imageName: decodeName(image.system_filename)
                                       });
                                     }}
@@ -6045,7 +6045,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
                         </div>
 
                         <img
-                          src={selectedPresetImage.preview_url || `${config.data_url}/cdn-cgi/image/w=400/${userData.id}/${selectedPresetImage.user_filename === "" ? "output" : "vault/" + selectedPresetImage.user_filename}/${selectedPresetImage.system_filename}`}
+                          src={selectedPresetImage.preview_url || `${config.data_url}/${userData.id}/${selectedPresetImage.user_filename === "" ? "output" : "vault/" + selectedPresetImage.user_filename}/${selectedPresetImage.system_filename}`}
                           alt="Selected preset image"
                           className="absolute inset-0 w-full h-full object-cover rounded-md shadow-sm cursor-pointer transition-all duration-200 hover:scale-105"
                           onError={(e) => {
@@ -6267,7 +6267,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
                     <CardContent className="p-4">
                       <div className="relative w-full" style={{ paddingBottom: '100%' }}>
                         <img
-                          src={`${config.data_url}/cdn-cgi/image/w=400/${image.file_path}`}
+                          src={`${config.data_url}/${image.file_path}`}
                           alt={image.system_filename}
                           className="absolute inset-0 w-full h-full object-cover rounded-md"
                         />
@@ -6363,7 +6363,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
                         {/* Image */}
                         <div className="relative w-full group mb-4" style={{ paddingBottom: '100%' }}>
                           <img
-                            src={`${config.data_url}/cdn-cgi/image/w=400/${image.file_path}`}
+                            src={`${config.data_url}/${image.file_path}`}
                             alt={image.system_filename}
                             className="absolute inset-0 w-full h-full object-cover rounded-md shadow-sm cursor-pointer transition-all duration-200 hover:scale-105"
                             onError={(e) => {
@@ -6382,7 +6382,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
                                   e.stopPropagation();
                                   setFullSizeImageModal({
                                     isOpen: true,
-                                    imageUrl: `${config.data_url}/cdn-cgi/image/w=1200/${image.file_path}`,
+                                    imageUrl: `${config.data_url}/${image.file_path}`,
                                     imageName: decodeName(image.system_filename)
                                   });
                                 }}
@@ -6551,7 +6551,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
               {selectedPreset.image_name && (
                 <div className="relative w-full max-w-md mx-auto" style={{ paddingBottom: '75%' }}>
                   <img
-                    src={`${config.data_url}/cdn-cgi/image/w=600/${userData.id}/presets/${selectedPreset.image_name}`}
+                    src={`${config.data_url}/${userData.id}/presets/${selectedPreset.image_name}`}
                     alt={selectedPreset.name}
                     className="absolute inset-0 w-full h-full object-cover rounded-lg shadow-lg"
                     onError={(e) => {

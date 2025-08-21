@@ -135,12 +135,10 @@ export default function Settings() {
   const [isLoadingStats, setIsLoadingStats] = useState(true);
   const [monthlyTransactions, setMonthlyTransactions] = useState<MonthlyTransaction[]>([]);
   const [monthlyTransactionsByItem, setMonthlyTransactionsByItem] = useState<MonthlyTransactionByItem[]>([]);
-  const [monthlyTransactionsByItemGlobal, setMonthlyTransactionsByItemGlobal] = useState<MonthlyTransaction[]>([]);
-  const [monthlyTransactionsByTaskType, setMonthlyTransactionsByTaskType] = useState<MonthlyTransactionByTaskType[]>([]);
   const [monthlyTransactionsByTaskTypeUser, setMonthlyTransactionsByTaskTypeUser] = useState<MonthlyTransactionByTaskTypeUser[]>([]);
   const [isLoadingTransactions, setIsLoadingTransactions] = useState(false);
   const [selectedPeriod, setSelectedPeriod] = useState<string>('all');
-  const [selectedView, setSelectedView] = useState<'item' | 'itemGlobal' | 'taskType' | 'taskTypeUser'>('item');
+  const [selectedView, setSelectedView] = useState<'item' | 'taskTypeUser'>('item');
   const navigate = useNavigate();
 
   // Mock subscription data - replace with actual data from your backend
@@ -218,20 +216,8 @@ export default function Settings() {
     setIsLoadingTransactions(true);
     try {
       // Fetch all transaction views
-      const [itemResponse, itemGlobalResponse, taskTypeResponse, taskTypeUserResponse] = await Promise.all([
+      const [itemResponse, taskTypeUserResponse] = await Promise.all([
         fetch(`${config.supabase_server_url}/v_transactions_monthly_by_item_name_user?user_id=eq.${user.id}`, {
-          headers: {
-            'Authorization': 'Bearer WeInfl3nc3withAI',
-            'Content-Type': 'application/json'
-          }
-        }),
-        fetch(`${config.supabase_server_url}/v_transactions_monthly_by_item_name`, {
-          headers: {
-            'Authorization': 'Bearer WeInfl3nc3withAI',
-            'Content-Type': 'application/json'
-          }
-        }),
-        fetch(`${config.supabase_server_url}/v_transactions_monthly_by_task_type`, {
           headers: {
             'Authorization': 'Bearer WeInfl3nc3withAI',
             'Content-Type': 'application/json'
@@ -245,20 +231,16 @@ export default function Settings() {
         })
       ]);
 
-      if (!itemResponse.ok || !itemGlobalResponse.ok || !taskTypeResponse.ok || !taskTypeUserResponse.ok) {
+      if (!itemResponse.ok || !taskTypeUserResponse.ok) {
         throw new Error('Failed to fetch monthly transactions');
       }
 
-      const [itemData, itemGlobalData, taskTypeData, taskTypeUserData] = await Promise.all([
+      const [itemData, taskTypeUserData] = await Promise.all([
         itemResponse.json(),
-        itemGlobalResponse.json(),
-        taskTypeResponse.json(),
         taskTypeUserResponse.json()
       ]);
 
       setMonthlyTransactionsByItem(itemData);
-      setMonthlyTransactionsByItemGlobal(itemGlobalData);
-      setMonthlyTransactionsByTaskType(taskTypeData);
       setMonthlyTransactionsByTaskTypeUser(taskTypeUserData);
 
       // For backward compatibility, use item data as main transactions
@@ -418,10 +400,6 @@ export default function Settings() {
     switch (selectedView) {
       case 'item':
         return monthlyTransactionsByItem;
-      case 'itemGlobal':
-        return monthlyTransactionsByItemGlobal;
-      case 'taskType':
-        return monthlyTransactionsByTaskType;
       case 'taskTypeUser':
         return monthlyTransactionsByTaskTypeUser;
       default:
@@ -771,16 +749,7 @@ export default function Settings() {
               <CardDescription className="text-sm">Choose how you want to view your transaction data</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
-                <Button
-                  variant={selectedView === 'itemGlobal' ? 'default' : 'outline'}
-                  onClick={() => setSelectedView('itemGlobal')}
-                  className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm h-auto py-2 sm:py-2"
-                >
-                  <Database className="w-3 h-3 sm:w-4 sm:h-4" />
-                  <span className="hidden sm:inline">By Item Name (Global)</span>
-                  <span className="sm:hidden">Global Items</span>
-                </Button>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
                 <Button
                   variant={selectedView === 'item' ? 'default' : 'outline'}
                   onClick={() => setSelectedView('item')}
@@ -789,15 +758,6 @@ export default function Settings() {
                   <Database className="w-3 h-3 sm:w-4 sm:h-4" />
                   <span className="hidden sm:inline">By Item Name (Personal)</span>
                   <span className="sm:hidden">Personal Items</span>
-                </Button>
-                <Button
-                  variant={selectedView === 'taskType' ? 'default' : 'outline'}
-                  onClick={() => setSelectedView('taskType')}
-                  className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm h-auto py-2 sm:py-2"
-                >
-                  <Activity className="w-3 h-3 sm:w-4 sm:h-4" />
-                  <span className="hidden sm:inline">By Task Type (Global)</span>
-                  <span className="sm:hidden">Global Tasks</span>
                 </Button>
                 <Button
                   variant={selectedView === 'taskTypeUser' ? 'default' : 'outline'}
@@ -867,19 +827,15 @@ export default function Settings() {
                   <CardTitle className="flex items-center gap-2">
                     <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 dark:text-purple-400" />
                     {selectedView === 'item' && 'Spending by Item Type'}
-                    {selectedView === 'itemGlobal' && 'Global Spending by Item Type'}
-                    {selectedView === 'taskType' && 'Global Spending by Task Type'}
                     {selectedView === 'taskTypeUser' && 'Personal Spending by Task Type'}
                   </CardTitle>
                   <CardDescription className="text-sm">
                     {selectedView === 'item' && 'Distribution of your gem spending across different services'}
-                    {selectedView === 'itemGlobal' && 'Global distribution of gem spending across different services'}
-                    {selectedView === 'taskType' && 'Global distribution of gem spending across different task types'}
                     {selectedView === 'taskTypeUser' && 'Distribution of your personal gem spending across different task types'}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="h-64 sm:h-80">
+                  <div className="relative h-80 sm:h-96">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
@@ -887,27 +843,97 @@ export default function Settings() {
                           cx="50%"
                           cy="50%"
                           labelLine={false}
-                          label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                          outerRadius={60}
+                          label={false}
+                          outerRadius={120}
+                          innerRadius={60}
                           fill="#8884d8"
                           dataKey="value"
+                          stroke="rgba(255, 255, 255, 0.2)"
+                          strokeWidth={2}
                         >
                           {pieChartData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                            <Cell 
+                              key={`cell-${index}`} 
+                              fill={COLORS[index % COLORS.length]}
+                            />
                           ))}
                         </Pie>
                         <Tooltip
                           contentStyle={{
-                            backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                            border: '1px solid #E2E8F0',
-                            borderRadius: '8px',
-                            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                            backgroundColor: 'rgba(255, 255, 255, 0.98)',
+                            border: 'none',
+                            borderRadius: '12px',
+                            boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+                            fontSize: '13px',
+                            padding: '12px 16px',
+                            fontWeight: '500'
                           }}
-                          formatter={(value: any) => [`${value.toFixed(2)} gems`, 'Total Spent']}
+                          formatter={(value: any, name: any) => [
+                            `${value.toFixed(2)} gems`,
+                            'Total Spent'
+                          ]}
+                          labelFormatter={(label: any) => (
+                            <span style={{ fontWeight: 'bold', color: '#374151' }}>
+                              {label}
+                            </span>
+                          )}
                         />
                       </PieChart>
                     </ResponsiveContainer>
+                    
+                    {/* Center Text Display */}
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                      <div className="text-center">
+                        <div className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">
+                          {totalGems.toFixed(0)}
+                        </div>
+                        <div className="text-sm sm:text-base text-gray-600 dark:text-gray-400 font-medium">
+                          Total Gems
+                        </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                          {totalUses} uses
+                        </div>
+                      </div>
+                    </div>
                   </div>
+                  
+                  {/* Enhanced Legend */}
+                  {pieChartData.length > 0 && (
+                    <div className="mt-6 space-y-3">
+                      <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                        Breakdown by Category
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {pieChartData
+                          .sort((a, b) => b.value - a.value) // Sort by value descending
+                          .map((entry, index) => {
+                            const percentage = ((entry.value / pieChartData.reduce((sum, item) => sum + item.value, 0)) * 100);
+                            const originalIndex = pieChartData.findIndex(item => item.name === entry.name);
+                            return (
+                              <div key={index} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                                <div className="flex items-center gap-3">
+                                  <div 
+                                    className="w-4 h-4 rounded-full shadow-sm" 
+                                    style={{ backgroundColor: COLORS[originalIndex % COLORS.length] }}
+                                  />
+                                  <span className="font-medium text-gray-900 dark:text-gray-100 text-sm">
+                                    {entry.name}
+                                  </span>
+                                </div>
+                                <div className="text-right">
+                                  <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                                    {entry.value.toFixed(1)}
+                                  </div>
+                                  <div className="text-xs text-gray-500 dark:text-gray-400">
+                                    {percentage.toFixed(1)}%
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>
@@ -923,8 +949,6 @@ export default function Settings() {
                 </CardTitle>
                 <CardDescription className="text-sm">
                   {selectedView === 'item' && 'Compare usage frequency with spending for each service'}
-                  {selectedView === 'itemGlobal' && 'Compare global usage frequency with spending for each service'}
-                  {selectedView === 'taskType' && 'Compare global usage frequency with spending for each task type'}
                   {selectedView === 'taskTypeUser' && 'Compare your personal usage frequency with spending for each task type'}
                 </CardDescription>
               </CardHeader>

@@ -5,6 +5,9 @@ import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { TermsOfService } from '@/components/TermsOfService';
 import { PrivacyPolicy } from '@/components/PrivacyPolicy';
+import { DMCAPolicy } from '@/components/DMCAPolicy';
+import { CookiePolicy } from '@/components/CookiePolicy';
+import { ComplaintPolicy } from '@/components/ComplaintPolicy';
 
 
 export function AppFooter() {
@@ -205,6 +208,24 @@ export function AppFooter() {
       <PrivacyPolicy
         open={showPrivacyPolicy}
         onOpenChange={setShowPrivacyPolicy}
+      />
+
+      {/* DMCA Policy Modal */}
+      <DMCAPolicy
+        open={showDMCAPolicy}
+        onOpenChange={setShowDMCAPolicy}
+      />
+
+      {/* Cookie Policy Modal */}
+      <CookiePolicy
+        open={showCookiePolicy}
+        onOpenChange={setShowCookiePolicy}
+      />
+
+      {/* Complaint Policy Modal */}
+      <ComplaintPolicy
+        open={showComplaintPolicy}
+        onOpenChange={setShowComplaintPolicy}
       />
     </footer>
   );

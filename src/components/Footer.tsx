@@ -4,11 +4,17 @@ import { Twitter, Github, Mail, Globe } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { PrivacyPolicy } from './PrivacyPolicy';
 import { TermsOfService } from './TermsOfService';
+import { DMCAPolicy } from './DMCAPolicy';
+import { CookiePolicy } from './CookiePolicy';
+import { ComplaintPolicy } from './ComplaintPolicy';
 
 const Footer = () => {
   const navigate = useNavigate();
   const [privacyModalOpen, setPrivacyModalOpen] = useState(false);
   const [termsModalOpen, setTermsModalOpen] = useState(false);
+  const [dmcaModalOpen, setDmcaModalOpen] = useState(false);
+  const [cookieModalOpen, setCookieModalOpen] = useState(false);
+  const [complaintModalOpen, setComplaintModalOpen] = useState(false);
   const footerLinks = {
     'Product': [
       'Features',
@@ -35,7 +41,7 @@ const Footer = () => {
       'Privacy Policy',
       'Terms of Service',
       'Cookie Policy',
-      'Compliance',
+      'Complaint',
       'DMCA'
     ]
   };
@@ -93,6 +99,12 @@ const Footer = () => {
                             setPrivacyModalOpen(true);
                           } else if (link === 'Terms of Service') {
                             setTermsModalOpen(true);
+                          } else if (link === 'Cookie Policy') {
+                            setCookieModalOpen(true);
+                          } else if (link === 'Complaint') {
+                            setComplaintModalOpen(true);
+                          } else if (link === 'DMCA') {
+                            setDmcaModalOpen(true);
                           }
                         }}
                         className="text-slate-400 hover:text-white transition-colors text-sm cursor-pointer text-left w-full"
@@ -135,9 +147,12 @@ const Footer = () => {
               >
                 Terms of service
               </button>
-              <a href="#" className="hover:text-white transition-colors">
-                Compliance
-              </a>
+              <button 
+                onClick={() => setComplaintModalOpen(true)}
+                className="hover:text-white transition-colors cursor-pointer"
+              >
+                Complaint
+              </button>
             </div>
           </div>
         </div>
@@ -153,6 +168,24 @@ const Footer = () => {
       <TermsOfService 
         open={termsModalOpen} 
         onOpenChange={setTermsModalOpen} 
+      />
+
+      {/* DMCA Policy Modal */}
+      <DMCAPolicy 
+        open={dmcaModalOpen} 
+        onOpenChange={setDmcaModalOpen} 
+      />
+
+      {/* Cookie Policy Modal */}
+      <CookiePolicy 
+        open={cookieModalOpen} 
+        onOpenChange={setCookieModalOpen} 
+      />
+
+      {/* Complaint Policy Modal */}
+      <ComplaintPolicy 
+        open={complaintModalOpen} 
+        onOpenChange={setComplaintModalOpen} 
       />
     </footer>
   );

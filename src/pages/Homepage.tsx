@@ -729,6 +729,7 @@ import Compliance from '@/components/Compliance';
 import FAQ from '@/components/FAQ';
 import FinalCTA from '@/components/FinalCTA';
 import Footer from '@/components/Footer';
+import ScrollToEndButton from '@/components/ScrollToEndButton';
 
 function Homepage() {
   return (
@@ -748,6 +749,7 @@ function Homepage() {
       <FAQ />
       <FinalCTA />
       <Footer />
+      <ScrollToEndButton />
     </div>
   );
 }

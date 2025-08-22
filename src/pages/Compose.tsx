@@ -80,7 +80,7 @@ interface SelectedImage {
   type: 'library' | 'influencer' | 'upload';
 }
 
-type EditorMode = 'professional' | 'ai-powered';
+type EditorMode = 'professional' | 'ai-powered' | 'ai-synthesis';
 
 export default function Compose() {
   const userData = useSelector((state: RootState) => state.user);
@@ -107,7 +107,7 @@ export default function Compose() {
   const [isEditing, setIsEditing] = useState(false);
   const [editorMode, setEditorMode] = useState<EditorMode>('ai-powered');
   const [prompt, setPrompt] = useState('');
-
+  const [synthesisPrompt, setSynthesisPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
 
   // Upload progress state
@@ -312,16 +312,32 @@ export default function Compose() {
     // For Professional Editor, fetch the image properly
     if (editorMode === 'professional') {
       fetchImageForProfessionalEditor(image.url, image.name);
-      setProfessionalImage(image.url);
-    } else if (editorMode === 'ai-powered') {
-      // For AI-Powered Editor, set the URL directly and initialize mask canvas
+    } else {
+      // For other editors, set the URL directly
       setImageSrc(image.url);
       setHasImage(true);
       setAiEditImage(image.url);
+      setProfessionalImage(image.url);
+    }
+
+    // Initialize mask canvas for AI-Powered Editor
+    if (editorMode === 'ai-powered') {
       setIsErasing(false); // Reset to draw mode
       setTimeout(() => {
         initializeMaskCanvas(image.url);
       }, 100);
+    }
+
+    // For AI Synthesis Editor, automatically add image name to prompt
+    if (editorMode === 'ai-synthesis') {
+      const imageReference = `@${image.name}`;
+      if (!synthesisPrompt.includes(imageReference)) {
+        setSynthesisPrompt(prev => prev ? `${prev} ${imageReference}` : imageReference);
+        toast.success(`Added @${image.name} to synthesis prompt`);
+      } else {
+        toast.success(`Selected ${image.name} for editing`);
+      }
+    } else if (editorMode !== 'professional') {
       toast.success(`Selected ${image.name} for editing`);
     }
   };
@@ -377,9 +393,13 @@ export default function Compose() {
     toast.success(`Added ${processedName} to composition`);
   };
 
-  // Add image to prompt
+  // Add image to synthesis prompt
   const addImageToPrompt = (imageName: string) => {
-    setPrompt(prev => prev + ` @${imageName}`);
+    if (editorMode === 'ai-synthesis') {
+      setSynthesisPrompt(prev => prev + ` @${imageName}`);
+    } else {
+      setPrompt(prev => prev + ` @${imageName}`);
+    }
   };
 
   // Professional Editor functions (same as ContentEdit)
@@ -844,38 +864,6 @@ export default function Compose() {
     }
   }, [showInfluencers]);
 
-  // Handle editor mode changes - ensure proper image loading for each mode
-  useEffect(() => {
-    const currentImage = currentImageIndex !== null ? selectedImages[currentImageIndex] : null;
-    
-    console.log('Editor mode changed:', editorMode, 'Current image:', currentImage);
-    
-    if (currentImage) {
-      if (editorMode === 'professional') {
-        console.log('Loading image for Professional Editor:', currentImage.url);
-        // For Professional Editor, fetch the image properly
-        fetchImageForProfessionalEditor(currentImage.url, currentImage.name);
-        setProfessionalImage(currentImage.url);
-      } else if (editorMode === 'ai-powered') {
-        console.log('Loading image for AI-Powered Editor:', currentImage.url);
-        // For AI-Powered Editor, set the URL directly
-        setImageSrc(currentImage.url);
-        setHasImage(true);
-        setAiEditImage(currentImage.url);
-        setTimeout(() => {
-          initializeMaskCanvas(currentImage.url);
-        }, 100);
-      }
-    } else {
-      // Clear states when no image is selected
-      console.log('No image selected, clearing states');
-      setImageSrc(null);
-      setHasImage(false);
-      setAiEditImage(null);
-      setProfessionalImage(null);
-    }
-  }, [editorMode, currentImageIndex]);
-
   // Filtered influencers for search
   const filteredInfluencers = influencers.filter(influencer => {
     if (!searchTerm) return true;
@@ -1086,7 +1074,9 @@ export default function Compose() {
         case 'ai-powered':
           // AI-Powered Editor generation
           break;
-
+        case 'ai-synthesis':
+          // AI Synthesis generation
+          break;
         case 'professional':
           // Professional Editor generation
           break;
@@ -1497,7 +1487,76 @@ export default function Compose() {
     </div>
   );
 
+  // Render AI Synthesis Editor
+  const renderAISynthesisEditor = () => (
+    <div className="flex-1 bg-gray-50 dark:bg-gray-900 rounded-lg p-4">
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex items-center space-x-2">
+          <Sparkles className="h-5 w-5 text-green-600" />
+          <h3 className="text-lg font-semibold">AI Synthesis Editor</h3>
+        </div>
 
+        {/* Synthesis Controls */}
+        <Card className="border-0 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm shadow-xl">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+              <div className="w-6 h-6 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex items-center justify-center">
+                <Sparkles className="w-4 h-4 text-white" />
+              </div>
+              Synthesis Controls
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div>
+              <Label htmlFor="synthesis-prompt" className="text-sm font-medium">Synthesis Prompt</Label>
+              <Textarea
+                id="synthesis-prompt"
+                placeholder="Describe the image you want to generate... (e.g., 'A professional portrait of @person1 in a modern office setting')"
+                value={synthesisPrompt}
+                onChange={(e) => setSynthesisPrompt(e.target.value)}
+                className="mt-2 min-h-[120px] text-sm"
+              />
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Tip: Use @imageName to reference your selected images
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <Label className="text-sm font-medium">Strength: {aiEditStrength}</Label>
+                <Slider
+                  value={[aiEditStrength]}
+                  onValueChange={([value]) => setAiEditStrength(value)}
+                  max={1}
+                  min={0}
+                  step={0.1}
+                  className="mt-2"
+                />
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Controls how closely the AI follows your prompt
+                </p>
+              </div>
+              <div>
+                <Label className="text-sm font-medium">Guidance: {aiEditGuidance}</Label>
+                <Slider
+                  value={[aiEditGuidance]}
+                  onValueChange={([value]) => setAiEditGuidance(value)}
+                  max={20}
+                  min={1}
+                  step={0.5}
+                  className="mt-2"
+                />
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Controls the creativity vs. adherence balance
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
 
   return (
     <div className="flex flex-col h-full bg-background">
@@ -1531,7 +1590,12 @@ export default function Compose() {
                     <span>AI Powered Editor</span>
                   </div>
                 </SelectItem>
-
+                <SelectItem value="ai-synthesis">
+                  <div className="flex items-center space-x-2">
+                    <Sparkles className="h-4 w-4" />
+                    <span>AI Synthesis Editor</span>
+                  </div>
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -1550,7 +1614,7 @@ export default function Compose() {
         <div className="flex-1 min-w-0">
           {editorMode === 'ai-powered' && renderAIPoweredEditor()}
           {editorMode === 'professional' && renderProfessionalEditor()}
-
+          {editorMode === 'ai-synthesis' && renderAISynthesisEditor()}
         </div>
 
         {/* Right side - Image Selection Cards */}
@@ -1651,13 +1715,23 @@ export default function Compose() {
           {/* Prompt Window */}
           <div className="flex-1">
             <Label htmlFor="prompt" className="text-sm font-medium mb-2 block">
-              Text Prompt
+              {editorMode === 'ai-synthesis' ? 'Synthesis Prompt' : 'Text Prompt'}
             </Label>
             <Textarea
               id="prompt"
-              placeholder="Enter your editing instructions..."
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
+              placeholder={
+                editorMode === 'ai-synthesis'
+                  ? "Describe the image you want to generate..."
+                  : "Enter your editing instructions..."
+              }
+              value={editorMode === 'ai-synthesis' ? synthesisPrompt : prompt}
+              onChange={(e) => {
+                if (editorMode === 'ai-synthesis') {
+                  setSynthesisPrompt(e.target.value);
+                } else {
+                  setPrompt(e.target.value);
+                }
+              }}
               className="min-h-[80px]"
             />
           </div>

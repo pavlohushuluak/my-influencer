@@ -226,16 +226,52 @@ export default function Compose() {
     }
   }, [userData?.id]);
 
-  // Handle image selection
+  // Handle image selection (for adding new images)
   const handleImageSelect = (index: number) => {
     setCurrentImageIndex(index);
     setShowImageSelector(true);
   };
   
-  // Handle image naming for synthesis
+  // Handle clicking on an existing image to select it for editing
+  const handleImageClick = (image: SelectedImage, index: number) => {
+    console.log('Clicking on image:', image);
+    console.log('Image URL:', image.url);
+    setImageSrc(image.url);
+    setHasImage(true);
+    setAiEditImage(image.url);
+    setProfessionalImage(image.url);
+    setCurrentImageIndex(index);
+    toast.success(`Selected ${image.name} for editing`);
+  };
+  
+  // Handle removing an image from selection
+  const handleRemoveImage = (index: number) => {
+    const updatedImages = [...selectedImages];
+    updatedImages[index] = null;
+    setSelectedImages(updatedImages);
+    
+    // If this was the currently selected image, clear the editor
+    if (currentImageIndex === index) {
+      setImageSrc(null);
+      setHasImage(false);
+      setAiEditImage(null);
+      setProfessionalImage(null);
+      setCurrentImageIndex(null);
+    }
+    
+    toast.success('Image removed from composition');
+  };
+  
+  // Handle image naming for uploaded images only
   const handleImageNameConfirm = () => {
     if (!pendingImageData || !pendingImageName.trim()) {
       toast.error('Please enter a name for the image');
+      return;
+    }
+    
+    // This should only be called for uploaded images
+    if (pendingImageData.type !== 'upload') {
+      console.error('Naming modal should only be used for uploaded images');
       return;
     }
     
@@ -246,19 +282,13 @@ export default function Compose() {
       id: pendingImageData.tempId || `compose-${Date.now()}`,
       url: pendingImageData.url,
       name: processedName,
-      type: pendingImageData.type
+      type: 'upload'
     };
     
-    // Update selected images
+    // Update selected images (don't set as current image for editing)
     const updatedImages = [...selectedImages];
     updatedImages[currentImageIndex!] = finalImage;
     setSelectedImages(updatedImages);
-    
-    // Set as current image for editing
-    setImageSrc(pendingImageData.url);
-    setHasImage(true);
-    setAiEditImage(pendingImageData.url);
-    setProfessionalImage(pendingImageData.url);
     
     // Close modals
     setShowImageNameModal(false);
@@ -585,76 +615,40 @@ export default function Compose() {
   // Handle library selection
   const handleLibrarySelect = async (image: ImageData) => {
     try {
-      const loadingToast = toast.loading('Loading image...', {
-        description: 'Preparing image for editing',
-        duration: Infinity
-      });
-
-      // Download the image file from vault
-      const response = await fetch(`${config.backend_url}/downloadfile`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer WeInfl3nc3withAI'
-        },
-        body: JSON.stringify({
-          user: userData.id,
-          filename: 'output/' + image.system_filename
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to download image');
-      }
-
-      // Get the blob from the response
-      const blob = await response.blob();
-
-      // Create a URL for the downloaded blob
-      const imageUrl = URL.createObjectURL(blob);
-
-      // Set pending image data for naming
-      setPendingImageData({
+      // Use CDN URL directly (same as ContentEdit AI Image Edit mode)
+      const imageUrl = `${config.data_url}/${userData.id}/output/${image.system_filename}`;
+      
+      console.log('Library image URL:', imageUrl);
+      
+      // For library images, add directly without naming modal
+      const finalImage: SelectedImage = {
+        id: image.id,
         url: imageUrl,
         name: image.user_filename || image.system_filename,
-        type: 'library',
-        tempId: image.id
-      });
-      setPendingImageName(image.user_filename || image.system_filename);
-      setShowImageNameModal(true);
+        type: 'library'
+      };
+      
+      console.log('Final library image:', finalImage);
+      
+      // Update selected images directly
+      const updatedImages = [...selectedImages];
+      updatedImages[currentImageIndex!] = finalImage;
+      setSelectedImages(updatedImages);
+      
+      // Close modals
       setShowLibrary(false);
       setShowImageSelector(false);
 
-      toast.dismiss(loadingToast);
+      toast.success(`Added ${image.user_filename || image.system_filename} from library`);
     } catch (error) {
-      console.error('Error loading image from library:', error);
-      toast.error('Failed to load image from library. Please try again.');
-      
-      // Fallback to CDN URL
-      const fallbackUrl = `${config.data_url}/${userData.id}/output/${image.system_filename}`;
-      
-      // Set pending image data for naming
-      setPendingImageData({
-        url: fallbackUrl,
-        name: image.user_filename || image.system_filename,
-        type: 'library',
-        tempId: image.id
-      });
-      setPendingImageName(image.user_filename || image.system_filename);
-      setShowImageNameModal(true);
-      setShowLibrary(false);
-      setShowImageSelector(false);
+      console.error('Error selecting image from library:', error);
+      toast.error('Failed to select image from library. Please try again.');
     }
   };
 
   // Handle influencer selection
   const handleInfluencerSelect = async (influencer: Influencer) => {
     try {
-      const loadingToast = toast.loading('Loading influencer image...', {
-        description: 'Preparing image for editing',
-        duration: Infinity
-      });
-
       // Get the latest profile picture URL (same logic as ContentEdit)
       let latestImageNum = influencer.image_num - 1;
       if (latestImageNum === -1) {
@@ -664,65 +658,27 @@ export default function Compose() {
       const profileImageUrl = `${config.data_url}/${userData.id}/models/${influencer.id}/profilepic/profilepic${latestImageNum}.png`;
       console.log('Profile image URL:', profileImageUrl);
 
-      // Download the image file from the correct path
-      const response = await fetch(`${config.backend_url}/downloadfile`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer WeInfl3nc3withAI'
-        },
-        body: JSON.stringify({
-          user: userData.id,
-          filename: `models/${influencer.id}/profilepic/profilepic${latestImageNum}.png`
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to download influencer image');
-      }
-
-      // Get the blob from the response
-      const blob = await response.blob();
-
-      // Create a URL for the downloaded blob
-      const imageUrl = URL.createObjectURL(blob);
-
-      // Set pending image data for naming
-      setPendingImageData({
-        url: imageUrl,
+      // For influencer images, add directly without naming modal
+      const finalImage: SelectedImage = {
+        id: influencer.id,
+        url: profileImageUrl,
         name: `${influencer.name_first} ${influencer.name_last}`,
-        type: 'influencer',
-        tempId: influencer.id
-      });
-      setPendingImageName(`${influencer.name_first} ${influencer.name_last}`);
-      setShowImageNameModal(true);
+        type: 'influencer'
+      };
+      
+      // Update selected images directly
+      const updatedImages = [...selectedImages];
+      updatedImages[currentImageIndex!] = finalImage;
+      setSelectedImages(updatedImages);
+      
+      // Close modals
       setShowInfluencers(false);
       setShowImageSelector(false);
 
-      toast.dismiss(loadingToast);
+      toast.success(`Added ${influencer.name_first} ${influencer.name_last} from influencers`);
     } catch (error) {
       console.error('Error selecting influencer:', error);
-      toast.error('Failed to load influencer image. Please try again.');
-      
-      // Fallback to CDN URL if download fails
-      let latestImageNum = influencer.image_num - 1;
-      if (latestImageNum === -1) {
-        latestImageNum = 0;
-      }
-      
-      const fallbackUrl = `${config.data_url}/${userData.id}/models/${influencer.id}/profilepic/profilepic${latestImageNum}.png`;
-      
-      // Set pending image data for naming
-      setPendingImageData({
-        url: fallbackUrl,
-        name: `${influencer.name_first} ${influencer.name_last}`,
-        type: 'influencer',
-        tempId: influencer.id
-      });
-      setPendingImageName(`${influencer.name_first} ${influencer.name_last}`);
-      setShowImageNameModal(true);
-      setShowInfluencers(false);
-      setShowImageSelector(false);
+      toast.error('Failed to select influencer. Please try again.');
     }
   };
 
@@ -976,16 +932,16 @@ export default function Compose() {
                {selectedImages.filter(img => img !== null).length}/5
              </Badge>
            </div>
-           {selectedImages.map((image, index) => (
-             <Card
-               key={index}
-               className={`group cursor-pointer transition-all duration-300 hover:shadow-xl hover:scale-[1.02] ${
-                 image 
-                   ? 'ring-2 ring-purple-500 bg-gradient-to-br from-purple-50/50 to-blue-50/50 dark:from-purple-950/20 dark:to-blue-950/20' 
-                   : 'border-2 border-dashed border-gray-300 dark:border-gray-600 hover:border-purple-400 dark:hover:border-purple-500'
-               }`}
-               onClick={() => handleImageSelect(index)}
-             >
+                       {selectedImages.map((image, index) => (
+              <Card
+                key={index}
+                className={`group transition-all duration-300 hover:shadow-xl hover:scale-[1.02] ${
+                  image 
+                    ? `ring-2 ${currentImageIndex === index ? 'ring-purple-500 bg-gradient-to-br from-purple-50/50 to-blue-50/50 dark:from-purple-950/20 dark:to-blue-950/20' : 'ring-gray-300 dark:ring-gray-600 hover:ring-purple-400 dark:hover:ring-purple-500'} cursor-pointer` 
+                    : 'border-2 border-dashed border-gray-300 dark:border-gray-600 hover:border-purple-400 dark:hover:border-purple-500 cursor-pointer'
+                }`}
+                onClick={() => image ? handleImageClick(image, index) : handleImageSelect(index)}
+              >
                <CardContent className="p-4">
                  {image ? (
                    <div className="space-y-3">
@@ -1004,17 +960,28 @@ export default function Compose() {
                          </div>
                        </div>
                        
-                       {/* Type indicator */}
-                       <div className="absolute top-2 right-2">
-                         <Badge 
-                           variant={image.type === 'upload' ? 'default' : image.type === 'influencer' ? 'secondary' : 'outline'}
-                           className="text-xs px-2 py-1"
-                         >
-                           {image.type === 'upload' && '📤'}
-                           {image.type === 'influencer' && '👤'}
-                           {image.type === 'library' && '📁'}
-                         </Badge>
-                       </div>
+                                               {/* Type indicator and delete button */}
+                        <div className="absolute top-2 right-2 flex items-center space-x-1">
+                          <Badge 
+                            variant={image.type === 'upload' ? 'default' : image.type === 'influencer' ? 'secondary' : 'outline'}
+                            className="text-xs px-2 py-1"
+                          >
+                            {image.type === 'upload' && '📤'}
+                            {image.type === 'influencer' && '👤'}
+                            {image.type === 'library' && '📁'}
+                          </Badge>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            className="h-6 w-6 p-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRemoveImage(index);
+                            }}
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
                      </div>
                      
                      <div className="space-y-2">
@@ -1026,7 +993,9 @@ export default function Compose() {
                                                <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
                           <span className="capitalize">{image.type}</span>
                           <div className="flex items-center space-x-2">
-                            <span className="text-green-600 dark:text-green-400">✓ Selected</span>
+                            <span className={currentImageIndex === index ? "text-purple-600 dark:text-purple-400 font-medium" : "text-gray-500 dark:text-gray-400"}>
+                              {currentImageIndex === index ? "✓ Editing" : "Click to edit"}
+                            </span>
                             <TooltipProvider>
                               <Tooltip>
                                 <TooltipTrigger asChild>

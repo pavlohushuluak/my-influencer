@@ -309,28 +309,14 @@ export default function ContentEdit() {
       setIsLoadingImage(true);
       const loadingToast = toast.loading('Loading image for AI editing...');
 
-      // Determine the correct file path based on the image data
+      // Use CDN URL directly instead of downloading
       const isInfluencerImage = imageData.file_path?.includes('models/') || imageData.id?.startsWith('influencer-');
-      const filename = isInfluencerImage ? imageData.file_path : 'output/' + imageData.system_filename;
+      const imageUrl = isInfluencerImage
+        ? `${config.data_url}/${imageData.file_path}`
+        : `${config.data_url}/${userData.id}/output/${imageData.system_filename}`;
 
-      const response = await fetch(`${config.backend_url}/downloadfile`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer WeInfl3nc3withAI'
-        },
-        body: JSON.stringify({
-          user: userData.id,
-          filename: filename
-        })
-      });
+      console.log('AI Edit using CDN URL:', imageUrl);
 
-      if (!response.ok) {
-        throw new Error('Failed to download image');
-      }
-
-      const blob = await response.blob();
-      const imageUrl = URL.createObjectURL(blob);
       setAiEditImage(imageUrl);
       setIsErasing(false); // Reset to draw mode
 
@@ -344,18 +330,6 @@ export default function ContentEdit() {
     } catch (error) {
       console.error('Error loading image for AI editing:', error);
       toast.error('Failed to load image for AI editing. Please try again.');
-
-      // Fallback to CDN URL
-      const isInfluencerImage = imageData.file_path?.includes('models/') || imageData.id?.startsWith('influencer-');
-      const fallbackUrl = isInfluencerImage
-        ? `${config.data_url}/${imageData.file_path}`
-        : `${config.data_url}/${userData.id}/output/${imageData.system_filename}`;
-
-      setAiEditImage(fallbackUrl);
-      setIsErasing(false); // Reset to draw mode
-      setTimeout(() => {
-        initializeMaskCanvas(fallbackUrl);
-      }, 100);
     } finally {
       setIsLoadingImage(false);
     }
@@ -731,6 +705,7 @@ export default function ContentEdit() {
         'Authorization': 'Bearer WeInfl3nc3withAI',
         'Content-Type': 'application/json'
       };
+
       
       const response = await fetch(`${config.backend_url}/createtask?userid=${useridData[0].userid}&type=ai_edit_image`, {
         method: 'POST',

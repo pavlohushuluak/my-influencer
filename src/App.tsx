@@ -27,7 +27,7 @@ import Poses from '@/pages/Poses';
 import Accessories from '@/pages/Accessories';
 import Vault from '@/pages/Vault';
 import ContentCreateImage from '@/pages/ContentCreateImage';
-import Compose from '@/pages/Compose';
+// import Compose from '@/pages/Compose';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 // Wrapper component to pass location state to ContentCreateImage
@@ -107,7 +107,7 @@ const App = () => {
                   <Route path='/catalog/accessories' element={<Accessories />} />
 
                   <Route path='/create/images' element={<ContentCreateImageWrapper />} />
-                  <Route path='/create/compose' element={<Compose />} />
+                  {/* <Route path='/create/compose' element={<Compose />} /> */}
                   <Route path='/create/faceswap' element={<FaceSwap />} />
                   <Route path='/create/videos' element={<ContentCreateVideoWrapper />} />
                   <Route path='/create/optimizer' element={<ContentUpscaler />} />

@@ -576,7 +576,7 @@ export default function ContentEdit() {
       });
       const useridData = await useridResponse.json();
 
-      const response = await fetch(`${config.backend_url}/createtask?userid=${useridData[0].userid}&type=createimage`, {
+      const response = await fetch(`${config.backend_url}/createtask?userid=${useridData[0].userid}&type=synthesize_image`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -732,7 +732,7 @@ export default function ContentEdit() {
         'Content-Type': 'application/json'
       };
       
-      const response = await fetch(`${config.backend_url}/createtask?userid=${useridData[0].userid}&type=createimage`, {
+      const response = await fetch(`${config.backend_url}/createtask?userid=${useridData[0].userid}&type=ai_edit_image`, {
         method: 'POST',
         headers: headers,
         body: JSON.stringify(payload)

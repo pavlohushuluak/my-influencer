@@ -96,6 +96,7 @@ const menuItems = [
     items: [
       { title: "Images", url: "/create/images", icon: FileImage },
       { title: "Videos", url: "/create/videos", icon: FileVideo },
+      { title: "Compose", url: "/create/compose", icon: Palette },
       { title: "Edit", url: "/create/edit", icon: PaletteIcon },
       { title: "Face Swap", url: "/create/faceswap", icon: RefreshCw, badge: "Future" },
       { title: "Optimizer", url: "/create/optimizer", icon: Zap },

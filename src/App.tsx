@@ -27,6 +27,7 @@ import Poses from '@/pages/Poses';
 import Accessories from '@/pages/Accessories';
 import Vault from '@/pages/Vault';
 import ContentCreateImage from '@/pages/ContentCreateImage';
+import Compose from '@/pages/Compose';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 // Wrapper component to pass location state to ContentCreateImage
@@ -104,19 +105,20 @@ const App = () => {
                   <Route path='/catalog/location' element={<Location />} />
                   <Route path='/catalog/poses' element={<Poses />} />
                   <Route path='/catalog/accessories' element={<Accessories />} />
-                  
-                                <Route path='/create/images' element={<ContentCreateImageWrapper />} />
-                <Route path='/create/faceswap' element={<FaceSwap />} />
-                <Route path='/create/videos' element={<ContentCreateVideoWrapper />} />
-                <Route path='/create/optimizer' element={<ContentUpscaler />} />
-                                <Route path='/create/edit' element={<ContentEdit />} />
-                <Route path='/library/images' element={<Vault />} />
-                <Route path='/library/videos' element={<VideoFolderWrapper />} />
-                <Route path='/library/audios' element={<AudioFolderWrapper />} />
-                <Route path='/social/bio' element={<SocialBio />} />
-                <Route path='/social/story' element={<ContentStory />} />
-                <Route path='/social/schedule' element={<ContentSchedule />} />
-                <Route path='/social/batch' element={<ContentBatch />} />
+
+                  <Route path='/create/images' element={<ContentCreateImageWrapper />} />
+                  <Route path='/create/compose' element={<Compose />} />
+                  <Route path='/create/faceswap' element={<FaceSwap />} />
+                  <Route path='/create/videos' element={<ContentCreateVideoWrapper />} />
+                  <Route path='/create/optimizer' element={<ContentUpscaler />} />
+                  <Route path='/create/edit' element={<ContentEdit />} />
+                  <Route path='/library/images' element={<Vault />} />
+                  <Route path='/library/videos' element={<VideoFolderWrapper />} />
+                  <Route path='/library/audios' element={<AudioFolderWrapper />} />
+                  <Route path='/social/bio' element={<SocialBio />} />
+                  <Route path='/social/story' element={<ContentStory />} />
+                  <Route path='/social/schedule' element={<ContentSchedule />} />
+                  <Route path='/social/batch' element={<ContentBatch />} />
                   <Route path='/settings' element={<Settings />} />
                   <Route path="/pricing" element={<Pricing />} />
                 </Route>

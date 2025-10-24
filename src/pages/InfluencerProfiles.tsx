@@ -21,7 +21,7 @@ import { toast } from 'sonner';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
-import { LoraStatusIndicator } from '@/components/Influencers/LoraStatusIndicator';
+
 import { config } from '@/config/config';
 
 interface GeneratedImageData {
@@ -190,6 +190,9 @@ interface FacialTemplateDetail {
 
 const INFLUENCER_TYPES = ['Lifestyle', 'Educational'];
 
+// Type alias for influencer data to fix TypeScript errors
+type InfluencerData = Influencer;
+
 export default function InfluencerProfiles() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -206,13 +209,12 @@ export default function InfluencerProfiles() {
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterType, setFilterType] = useState('all');
   
-  // Quick Action Modal state
-  const [showQuickActionModal, setShowQuickActionModal] = useState(false);
-  const [selectedInfluencerForActions, setSelectedInfluencerForActions] = useState<Influencer | null>(null);
-  
+
   // Example Pictures Modal state
   const [showExamplePicturesModal, setShowExamplePicturesModal] = useState(false);
   const [selectedInfluencerForExamples, setSelectedInfluencerForExamples] = useState<Influencer | null>(null);
+
+
   const [examplePreviewUrls, setExamplePreviewUrls] = useState<string[]>(['', '', '']);
   const [exampleFiles, setExampleFiles] = useState<(File | null)[]>([null, null, null]);
   const [showExampleImageSelector, setShowExampleImageSelector] = useState<number | null>(null);
@@ -440,7 +442,8 @@ export default function InfluencerProfiles() {
 
 
   const isFeatureLocked = (feature: string) => {
-    return FEATURE_RESTRICTIONS[subscriptionLevel].includes(feature);
+    const restrictions = FEATURE_RESTRICTIONS[subscriptionLevel as keyof typeof FEATURE_RESTRICTIONS];
+    return restrictions ? restrictions.includes(feature as never) : false;
   };
 
   const handleInputChange = (field: string, value: string | boolean) => {
@@ -450,21 +453,21 @@ export default function InfluencerProfiles() {
     //   return;
     // }
 
-    setInfluencerData(prev => ({
+    setInfluencerData((prev: typeof influencerData) => ({
       ...prev,
       [field]: value
     }));
   };
 
   const handleAddTag = (field: string, value: string) => {
-    setInfluencerData(prev => ({
+    setInfluencerData((prev: typeof influencerData) => ({
       ...prev,
       [field]: [...(prev[field as keyof typeof influencerData] as string[] || []), value]
     }));
   };
 
   const handleRemoveTag = (field: string, tag: string) => {
-    setInfluencerData(prev => ({
+    setInfluencerData((prev: typeof influencerData) => ({
       ...prev,
       [field]: (prev[field as keyof typeof influencerData] as string[]).filter(t => t !== tag)
     }));
@@ -558,7 +561,7 @@ export default function InfluencerProfiles() {
 
   // Function to handle image selection
   const handleImageSelect = (imageUrl: string) => {
-    setInfluencerData(prev => ({
+    setInfluencerData((prev: InfluencerData) => ({
       ...prev,
       image_url: imageUrl
     }));
@@ -1120,7 +1123,7 @@ export default function InfluencerProfiles() {
       // Update the influencer data with the new profile picture URL
       const newImageUrl = `${config.data_url}/${userData.id}/models/${influencerData.id}/profilepic/profilepic${influencerData.image_num}.png`;
 
-      setInfluencerData(prev => ({
+      setInfluencerData((prev: InfluencerData) => ({
         ...prev,
         image_url: newImageUrl,
         image_num: num + 1
@@ -1750,7 +1753,7 @@ export default function InfluencerProfiles() {
   const handleColorSelect = (type: 'hair' | 'eye', color: string) => {
     if (type === 'hair') {
       setSelectedHairColor(color);
-      setInfluencerData(prev => ({
+      setInfluencerData((prev: InfluencerData) => ({
         ...prev,
         hair_color: color
       }));
@@ -1758,7 +1761,7 @@ export default function InfluencerProfiles() {
       toast.success('Hair color updated');
     } else {
       setSelectedEyeColor(color);
-      setInfluencerData(prev => ({
+      setInfluencerData((prev: InfluencerData) => ({
         ...prev,
         eye_color: color
       }));
@@ -1880,7 +1883,7 @@ export default function InfluencerProfiles() {
       setIsApplyingTemplate(true);
 
       // Update influencer data with template values
-      setInfluencerData(prev => ({
+      setInfluencerData((prev: InfluencerData) => ({
         ...prev,
         facial_features: selectedFacialTemplate.template_name,
         face_shape: selectedFacialTemplate.implied_face_shape,
@@ -2103,13 +2106,13 @@ export default function InfluencerProfiles() {
     return (
       <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 animate-fade-in">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 sm:p-6 border-b border-border/50 bg-gradient-to-r from-purple-50/50 to-blue-50/50 dark:from-purple-950/20 dark:to-blue-950/20 space-y-4 sm:space-y-0">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight bg-ai-gradient bg-clip-text text-transparent">
-              Influencers
+            <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+              Profiles
             </h1>
-            <p className="text-sm sm:text-base text-muted-foreground">
-              Manage your AI influencers and their content
+            <p className="text-muted-foreground mt-1 text-sm sm:text-base">
+              Manage your AI influencers and their detailed profiles
             </p>
           </div>
           <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
@@ -2209,12 +2212,17 @@ export default function InfluencerProfiles() {
                       </div>
                     )}
                     
-                    {/* LoraStatusIndicator positioned at top right */}
-                    <div className="absolute right-[-15px] top-[-15px] z-10">
-                      <LoraStatusIndicator
-                        status={influencer.lorastatus || 0}
-                        className="flex-shrink-0"
-                      />
+                    {/* AI Consistency Status Badge positioned at top right */}
+                    <div className="absolute right-1 top-0.5 z-10">
+                      {(influencer.lorastatus || 0) === 2 ? (
+                        <Badge className="bg-green-600/50 text-white text-[10px] px-1.5 py-0.5 font-medium rounded-sm shadow-sm">
+                          Trained
+                        </Badge>
+                      ) : (
+                        <Badge className="bg-amber-500/50 text-white text-[10px] px-1.5 py-0.5 font-medium rounded-sm shadow-sm">
+                          Pending
+                        </Badge>
+                      )}
                     </div>
                     
                     {
@@ -2259,29 +2267,22 @@ export default function InfluencerProfiles() {
                       </div>
                     </div>
 
-                    {/* Quick Action Button */}
-                    <div className="flex flex-col gap-2">
+                    {/* Edit and Delete Buttons */}
+                    <div className="flex gap-2">
                       <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          setSelectedInfluencerForActions(influencer);
-                          setShowQuickActionModal(true);
-                        }}
-                        className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-xs sm:text-sm px-2 sm:px-3 py-2"
+                        onClick={() => navigate("/influencers/edit", { state: { influencerData: influencer } })}
+                        className="flex-1 h-10 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-medium shadow-sm hover:shadow-md transition-all duration-200"
+                        data-testid={`button-edit-${influencer.id}`}
                       >
-                        <MoreHorizontal className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
-                        Quick Actions
+                        <Pencil className="w-4 h-4 mr-2" />
+                        Edit
                       </Button>
                       <Button
-                        size="sm"
                         variant="outline"
                         onClick={() => handleDeleteInfluencer(influencer)}
-                        className="relative overflow-hidden border-red-200 hover:border-red-300 bg-white hover:bg-red-50 text-red-600 hover:text-red-700 font-medium shadow-sm hover:shadow-md transition-all duration-300 transform hover:scale-[1.02] text-xs sm:text-sm px-2 sm:px-3 py-2"
+                        className="w-10 h-10 p-0 bg-red-600 hover:bg-red-700 border-red-600 hover:border-red-700 text-white shadow-sm hover:shadow-md transition-all duration-200 flex items-center justify-center"
                       >
-                        <div className="absolute inset-0 bg-gradient-to-r from-red-500/0 via-red-500/5 to-red-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                        <Trash2 className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 transition-transform duration-300 group-hover:scale-110" />
-                        <span className="relative z-10">Delete</span>
+                        <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>
                   </div>
@@ -2357,223 +2358,6 @@ export default function InfluencerProfiles() {
           </DialogContent>
         </Dialog>
 
-        {/* Quick Action Modal */}
-        <Dialog
-          open={showQuickActionModal}
-          onOpenChange={(open) => setShowQuickActionModal(open)}
-        >
-          <DialogContent className="max-w-2xl w-[95vw] max-h-[90vh] overflow-y-auto p-0">
-            {/* Header with gradient background */}
-            <div className="bg-gradient-to-br from-purple-600 via-blue-600 to-indigo-700 p-4 sm:p-6 lg:p-8 text-white relative overflow-hidden">
-              {/* Background pattern */}
-              <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent"></div>
-              <div className="absolute top-0 right-0 w-20 sm:w-32 lg:w-40 h-20 sm:h-32 lg:h-40 bg-white/5 rounded-full -translate-y-10 sm:-translate-y-16 lg:-translate-y-20 translate-x-10 sm:translate-x-16 lg:translate-x-20"></div>
-              <div className="absolute bottom-0 left-0 w-16 sm:w-24 lg:w-32 h-16 sm:h-24 lg:h-32 bg-white/5 rounded-full translate-y-8 sm:translate-y-12 lg:translate-y-16 -translate-x-8 sm:-translate-x-12 lg:-translate-x-16"></div>
-
-              <div className="relative z-10 text-center">
-                <div className="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-4 sm:mb-6 bg-white/20 rounded-2xl sm:rounded-3xl flex items-center justify-center backdrop-blur-sm border border-white/30 shadow-xl sm:shadow-2xl">
-                  <MoreHorizontal className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
-                </div>
-                <DialogTitle className="text-xl sm:text-2xl lg:text-3xl font-bold mb-3 sm:mb-4 bg-gradient-to-r from-white to-purple-100 bg-clip-text text-transparent">
-                  Quick Actions
-                </DialogTitle>
-                <DialogDescription className="text-sm sm:text-base lg:text-lg text-purple-100 leading-relaxed max-w-2xl mx-auto">
-                  Choose an action to perform with {selectedInfluencerForActions?.name_first} {selectedInfluencerForActions?.name_last}
-                </DialogDescription>
-              </div>
-            </div>
-
-            {/* Content */}
-            <div className="p-4 sm:p-6 lg:p-8">
-              {/* Influencer Info Card */}
-              {selectedInfluencerForActions && (
-                <Card className="mb-6 bg-gradient-to-br from-purple-50/50 to-blue-50/50 dark:from-purple-950/20 dark:to-blue-950/20 border-purple-200/50 dark:border-purple-800/50 shadow-xl">
-                  <CardContent className="p-4 sm:p-6">
-                    <div className="flex flex-col sm:flex-row items-center gap-4">
-                      <div className="relative">
-                        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden ring-4 ring-white dark:ring-gray-800 shadow-xl">
-                          <img
-                            src={selectedInfluencerForActions.image_url}
-                            alt={selectedInfluencerForActions.name_first}
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                        <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center shadow-lg">
-                          <MoreHorizontal className="w-4 h-4 text-white" />
-                        </div>
-                      </div>
-                      <div className="flex-1 text-center sm:text-left">
-                        <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100 mb-1">
-                          {selectedInfluencerForActions.name_first} {selectedInfluencerForActions.name_last}
-                        </h3>
-                        <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">
-                          {selectedInfluencerForActions.lifestyle || 'No lifestyle'} • {selectedInfluencerForActions.origin_residence || 'No residence'}
-                        </p>
-                        <div className="flex flex-wrap gap-2 justify-center sm:justify-start">
-                          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300">
-                            <MoreHorizontal className="w-3 h-3 mr-1" />
-                            Quick Actions Available
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Action Options Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-                {/* Edit Profile */}
-                <Card
-                  onClick={() => {
-                    setShowQuickActionModal(false);
-                    if (selectedInfluencerForActions) {
-                      handleEditInfluencer(selectedInfluencerForActions.id);
-                    }
-                  }}
-                  className="group cursor-pointer hover:shadow-2xl transition-all duration-300 transform hover:scale-105 border-2 hover:border-purple-300 dark:hover:border-purple-600 bg-gradient-to-br from-white to-purple-50/30 dark:from-slate-800/50 dark:to-purple-900/20"
-                >
-                  <CardContent className="p-4 sm:p-6 text-center">
-                    <div className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 bg-gradient-to-r from-purple-500 to-blue-500 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow duration-300">
-                      <Settings className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
-                    </div>
-                    <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-                      Edit Profile
-                    </h3>
-                    <p className="text-gray-600 dark:text-gray-300 text-xs sm:text-sm leading-relaxed mb-3 sm:mb-4">
-                      Modify influencer details, appearance, and personality traits
-                    </p>
-                    <div className="flex items-center justify-center gap-2 text-xs text-purple-600 dark:text-purple-400">
-                      <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                      Profile customization
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Example Pictures */}
-                <Card
-                  onClick={() => {
-                    setShowQuickActionModal(false);
-                    if (selectedInfluencerForActions) {
-                      setSelectedInfluencerForExamples(selectedInfluencerForActions);
-                      setShowExamplePicturesModal(true);
-                    }
-                  }}
-                  className="group cursor-pointer hover:shadow-2xl transition-all duration-300 transform hover:scale-105 border-2 hover:border-orange-300 dark:hover:border-orange-600 bg-gradient-to-br from-white to-orange-50/30 dark:from-slate-800/50 dark:to-orange-900/20"
-                  data-testid="card-example-pictures"
-                >
-                  <CardContent className="p-4 sm:p-6 text-center">
-                    <div className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 bg-gradient-to-r from-orange-500 to-yellow-500 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow duration-300">
-                      <Image className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
-                    </div>
-                    <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-                      Example Pictures
-                    </h3>
-                    <p className="text-gray-600 dark:text-gray-300 text-xs sm:text-sm leading-relaxed mb-3 sm:mb-4">
-                      Upload, select, or generate example pictures for reference
-                    </p>
-                    <div className="flex items-center justify-center gap-2 text-xs text-orange-600 dark:text-orange-400">
-                      <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                      Picture management
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* AI Consistency */}
-                <Card
-                  onClick={() => {
-                    setShowQuickActionModal(false);
-                    if (selectedInfluencerForActions) {
-                      handleAIConsistency(selectedInfluencerForActions);
-                    }
-                  }}
-                  className="group cursor-pointer hover:shadow-2xl transition-all duration-300 transform hover:scale-105 border-2 hover:border-green-300 dark:hover:border-green-600 bg-gradient-to-br from-white to-green-50/30 dark:from-slate-800/50 dark:to-green-900/20"
-                >
-                  <CardContent className="p-4 sm:p-6 text-center">
-                    <div className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 bg-gradient-to-r from-green-500 to-emerald-500 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow duration-300">
-                      <Brain className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
-                    </div>
-                    <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-                      AI Consistency
-                    </h3>
-                    <p className="text-gray-600 dark:text-gray-300 text-xs sm:text-sm leading-relaxed mb-3 sm:mb-4">
-                      Train AI for better character consistency in generated content
-                    </p>
-                    <div className="flex items-center justify-center gap-2 text-xs text-green-600 dark:text-green-400">
-                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                      AI training
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Bio */}
-                <Card
-                  onClick={() => {
-                    setShowQuickActionModal(false);
-                    if (selectedInfluencerForActions) {
-                      handleBio(selectedInfluencerForActions);
-                    }
-                  }}
-                  className="group cursor-pointer hover:shadow-2xl transition-all duration-300 transform hover:scale-105 border-2 hover:border-indigo-300 dark:hover:border-indigo-600 bg-gradient-to-br from-white to-indigo-50/30 dark:from-slate-800/50 dark:to-indigo-900/20"
-                >
-                  <CardContent className="p-4 sm:p-6 text-center">
-                    <div className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow duration-300">
-                      <User className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
-                    </div>
-                    <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-                      Bio
-                    </h3>
-                    <p className="text-gray-600 dark:text-gray-300 text-xs sm:text-sm leading-relaxed mb-3 sm:mb-4">
-                      Manage influencer biography and social media profiles
-                    </p>
-                    <div className="flex items-center justify-center gap-2 text-xs text-indigo-600 dark:text-indigo-400">
-                      <div className="w-2 h-2 bg-indigo-500 rounded-full"></div>
-                      Profile management
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Create Social Post */}
-                <Card
-                  onClick={() => {
-                    setShowQuickActionModal(false);
-                    if (selectedInfluencerForActions) {
-                      handleCreateSocialPost(selectedInfluencerForActions);
-                    }
-                  }}
-                  className="group cursor-pointer hover:shadow-2xl transition-all duration-300 transform hover:scale-105 border-2 hover:border-pink-300 dark:hover:border-pink-600 bg-gradient-to-br from-white to-pink-50/30 dark:from-slate-800/50 dark:to-pink-900/20"
-                >
-                  <CardContent className="p-4 sm:p-6 text-center">
-                    <div className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 bg-gradient-to-r from-pink-500 to-rose-500 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow duration-300">
-                      <Plus className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
-                    </div>
-                    <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-                      Create Social Post
-                    </h3>
-                    <p className="text-gray-600 dark:text-gray-300 text-xs sm:text-sm leading-relaxed mb-3 sm:mb-4">
-                      Generate new social media content with this influencer
-                    </p>
-                    <div className="flex items-center justify-center gap-2 text-xs text-pink-600 dark:text-pink-400">
-                      <div className="w-2 h-2 bg-pink-500 rounded-full"></div>
-                      Content creation
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-6 sm:pt-8">
-                <Button
-                  variant="outline"
-                  onClick={() => setShowQuickActionModal(false)}
-                  className="flex-1 h-10 sm:h-12 text-sm sm:text-base font-medium border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 px-3 sm:px-4"
-                >
-                  Cancel
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
 
         {/* Example Pictures Modal */}
         <Dialog
@@ -4075,7 +3859,7 @@ export default function InfluencerProfiles() {
                     <Label>Color Palette (Max 3)</Label>
                     <div className="space-y-4">
                       <div className="flex flex-wrap gap-2">
-                        {influencerData.color_palette.map((palette, index) => (
+                        {influencerData.color_palette.map((palette: string, index: number) => (
                           <Badge
                             key={index}
                             variant="secondary"
@@ -4104,7 +3888,7 @@ export default function InfluencerProfiles() {
                                 handleRemoveTag('color_palette', option.label);
                               } else {
                                 if (influencerData.color_palette.length < 3) {
-                                  setInfluencerData(prev => ({
+                                  setInfluencerData((prev: InfluencerData) => ({
                                     ...prev,
                                     color_palette: [...prev.color_palette, option.label]
                                   }));
@@ -4165,7 +3949,7 @@ export default function InfluencerProfiles() {
                       </Button>
                       <div className="space-y-2">
                         <div className="flex flex-wrap gap-2">
-                          {influencerData.content_focus.map((focus, index) => (
+                          {influencerData.content_focus.map((focus: string, index: number) => (
                             <Badge
                               key={index}
                               variant="secondary"
@@ -4182,7 +3966,7 @@ export default function InfluencerProfiles() {
                           ))}
                         </div>
                         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                          {influencerData.content_focus.map((focus, index) => {
+                          {influencerData.content_focus.map((focus: string, index: number) => {
                             const option = contentFocusOptions.find(opt => opt.label === focus);
                             if (!option) return null;
                             return (
@@ -4219,7 +4003,7 @@ export default function InfluencerProfiles() {
                       </Button>
                       <div className="space-y-4">
                         <div className="flex flex-wrap gap-2">
-                          {influencerData.content_focus_areas.map((area, index) => (
+                                                     {influencerData.content_focus_areas.map((area: string, index: number) => (
                             <Badge
                               key={index}
                               variant="secondary"
@@ -4236,7 +4020,7 @@ export default function InfluencerProfiles() {
                           ))}
                         </div>
                         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                          {influencerData.content_focus_areas.map((area, index) => {
+                                                     {influencerData.content_focus_areas.map((area: string, index: number) => {
                             const option = contentFocusAreasOptions.find(opt => opt.label === area);
                             if (!option) return null;
                             return (
@@ -4329,7 +4113,7 @@ export default function InfluencerProfiles() {
                       </Button>
                       <div className="space-y-4">
                         <div className="flex flex-wrap gap-2">
-                          {influencerData.hobbies.map((hobby, index) => (
+                                                     {influencerData.hobbies.map((hobby: string, index: number) => (
                             <Badge
                               key={index}
                               variant="secondary"
@@ -4346,7 +4130,7 @@ export default function InfluencerProfiles() {
                           ))}
                         </div>
                         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                          {influencerData.hobbies.map((hobby, index) => {
+                                                     {influencerData.hobbies.map((hobby: string, index: number) => {
                             const option = hobbyOptions.find(opt => opt.label === hobby);
                             if (!option) return null;
                             return (
@@ -4390,7 +4174,7 @@ export default function InfluencerProfiles() {
                       </Button>
                       <div className="space-y-4">
                         <div className="flex flex-wrap gap-2">
-                          {influencerData.strengths.map((strength, index) => (
+                                                     {influencerData.strengths.map((strength: string, index: number) => (
                             <Badge
                               key={index}
                               variant="secondary"
@@ -4407,7 +4191,7 @@ export default function InfluencerProfiles() {
                           ))}
                         </div>
                         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                          {influencerData.strengths.map((strength, index) => {
+                                                     {influencerData.strengths.map((strength: string, index: number) => {
                             const option = strengthOptions.find(opt => opt.label === strength);
                             if (!option) return null;
                             return (
@@ -4444,7 +4228,7 @@ export default function InfluencerProfiles() {
                       </Button>
                       <div className="space-y-4">
                         <div className="flex flex-wrap gap-2">
-                          {influencerData.weaknesses.map((weakness, index) => (
+                                                     {influencerData.weaknesses.map((weakness: string, index: number) => (
                             <Badge
                               key={index}
                               variant="secondary"
@@ -4461,7 +4245,7 @@ export default function InfluencerProfiles() {
                           ))}
                         </div>
                         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                          {influencerData.weaknesses.map((weakness, index) => {
+                                                     {influencerData.weaknesses.map((weakness: string, index: number) => {
                             const option = weaknessOptions.find(opt => opt.label === weakness);
                             if (!option) return null;
                             return (
@@ -4498,7 +4282,7 @@ export default function InfluencerProfiles() {
                       </Button>
                       <div className="space-y-4">
                         <div className="flex flex-wrap gap-2">
-                          {influencerData.speech_style.map((style, index) => (
+                                                     {influencerData.speech_style.map((style: string, index: number) => (
                             <Badge
                               key={index}
                               variant="secondary"
@@ -4515,7 +4299,7 @@ export default function InfluencerProfiles() {
                           ))}
                         </div>
                         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                          {influencerData.speech_style.map((style, index) => {
+                                                     {influencerData.speech_style.map((style: string, index: number) => {
                             const option = speechOptions.find(opt => opt.label === style);
                             if (!option) return null;
                             return (
@@ -4552,7 +4336,7 @@ export default function InfluencerProfiles() {
                       </Button>
                       <div className="space-y-4">
                         <div className="flex flex-wrap gap-2">
-                          {influencerData.humor.map((style, index) => (
+                                                     {influencerData.humor.map((style: string, index: number) => (
                             <Badge
                               key={index}
                               variant="secondary"
@@ -4569,7 +4353,7 @@ export default function InfluencerProfiles() {
                           ))}
                         </div>
                         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                          {influencerData.humor.map((style, index) => {
+                                                     {influencerData.humor.map((style: string, index: number) => {
                             const option = humorOptions.find(opt => opt.label === style);
                             if (!option) return null;
                             return (
@@ -4607,7 +4391,7 @@ export default function InfluencerProfiles() {
                         </Button>
                         <div className="space-y-4">
                           <div className="flex flex-wrap gap-2">
-                            {influencerData.core_values.map((style, index) => (
+                                                         {influencerData.core_values.map((style: string, index: number) => (
                               <Badge
                                 key={index}
                                 variant="secondary"
@@ -4624,7 +4408,7 @@ export default function InfluencerProfiles() {
                             ))}
                           </div>
                           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                            {influencerData.core_values.map((style, index) => {
+                                                         {influencerData.core_values.map((style: string, index: number) => {
                               const option = coreValuesOptions.find(opt => opt.label === style);
                               if (!option) return null;
                               return (
@@ -4661,7 +4445,7 @@ export default function InfluencerProfiles() {
                         </Button>
                         <div className="space-y-4">
                           <div className="flex flex-wrap gap-2">
-                            {influencerData.current_goals.map((goal, index) => (
+                                                         {influencerData.current_goals.map((goal: string, index: number) => (
                               <Badge
                                 key={index}
                                 variant="secondary"
@@ -4678,7 +4462,7 @@ export default function InfluencerProfiles() {
                             ))}
                           </div>
                           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                            {influencerData.current_goals.map((goal, index) => {
+                                                         {influencerData.current_goals.map((goal: string, index: number) => {
                               const option = goalsOptions.find(opt => opt.label === goal);
                               if (!option) return null;
                               return (
@@ -4715,7 +4499,7 @@ export default function InfluencerProfiles() {
                         </Button>
                         <div className="space-y-4">
                           <div className="flex flex-wrap gap-2">
-                            {influencerData.background_elements.map((element, index) => (
+                                                         {influencerData.background_elements.map((element: string, index: number) => (
                               <Badge
                                 key={index}
                                 variant="secondary"
@@ -4732,7 +4516,7 @@ export default function InfluencerProfiles() {
                             ))}
                           </div>
                           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                            {influencerData.background_elements.map((element, index) => {
+                                                         {influencerData.background_elements.map((element: string, index: number) => {
                               const option = backgroundOptions.find(opt => opt.label === element);
                               if (!option) return null;
                               return (
@@ -4899,7 +4683,7 @@ export default function InfluencerProfiles() {
                         onCheckedChange={(checked) => {
                           if (!checked) {
                             // When turning off Fanvue, clear API key and set show_on_dashboard to false
-                            setInfluencerData(prev => ({
+                            setInfluencerData((prev: InfluencerData) => ({
                               ...prev,
                               use_fanvue_api: false,
                               fanvue_api_key: '',
@@ -5304,7 +5088,7 @@ export default function InfluencerProfiles() {
             options={contentFocusOptions}
             onSelect={(selected) => {
               const newValues = selected.split(',').filter(Boolean);
-              setInfluencerData(prev => ({
+              setInfluencerData((prev: InfluencerData) => ({
                 ...prev,
                 content_focus: newValues
               }));
@@ -5324,7 +5108,7 @@ export default function InfluencerProfiles() {
             options={hobbyOptions}
             onSelect={(selected) => {
               const newValues = selected.split(',').filter(Boolean);
-              setInfluencerData(prev => ({
+              setInfluencerData((prev: InfluencerData) => ({
                 ...prev,
                 hobbies: newValues
               }));
@@ -5355,7 +5139,7 @@ export default function InfluencerProfiles() {
             options={speechOptions}
             onSelect={(selected) => {
               const newValues = selected.split(',').filter(Boolean);
-              setInfluencerData(prev => ({
+              setInfluencerData((prev: InfluencerData) => ({
                 ...prev,
                 speech_style: newValues
               }));
@@ -5375,7 +5159,7 @@ export default function InfluencerProfiles() {
             options={strengthOptions}
             onSelect={(selected) => {
               const newValues = selected.split(',').filter(Boolean);
-              setInfluencerData(prev => ({
+              setInfluencerData((prev: InfluencerData) => ({
                 ...prev,
                 strengths: newValues
               }));
@@ -5395,10 +5179,10 @@ export default function InfluencerProfiles() {
             options={weaknessOptions}
             onSelect={(selected) => {
               const newValues = selected.split(',').filter(Boolean);
-              setInfluencerData(prev => ({
-                ...prev,
-                weaknesses: newValues
-              }));
+                          setInfluencerData((prev: InfluencerData) => ({
+              ...prev,
+              weaknesses: newValues
+            }));
             }}
             onClose={() => setShowWeaknessSelector(false)}
             title="Select Weaknesses"
@@ -5414,10 +5198,10 @@ export default function InfluencerProfiles() {
           options={humorOptions}
           onSelect={(selected) => {
             const newValues = selected.split(',').filter(Boolean);
-            setInfluencerData(prev => ({
-              ...prev,
-              humor: newValues
-            }));
+                      setInfluencerData((prev: InfluencerData) => ({
+            ...prev,
+            humor: newValues
+          }));
           }}
           onClose={() => setShowHumorSelector(false)}
           title="Select Humor Style"
@@ -5432,10 +5216,10 @@ export default function InfluencerProfiles() {
           options={coreValuesOptions}
           onSelect={(selected) => {
             const newValues = selected.split(',').filter(Boolean);
-            setInfluencerData(prev => ({
-              ...prev,
-              core_values: newValues
-            }));
+                      setInfluencerData((prev: InfluencerData) => ({
+            ...prev,
+            core_values: newValues
+          }));
           }}
           onClose={() => setShowCoreValuesSelector(false)}
           title="Select Core Values Style"
@@ -5450,10 +5234,10 @@ export default function InfluencerProfiles() {
           options={goalsOptions}
           onSelect={(selected) => {
             const newValues = selected.split(',').filter(Boolean);
-            setInfluencerData(prev => ({
-              ...prev,
-              current_goals: newValues
-            }));
+                      setInfluencerData((prev: InfluencerData) => ({
+            ...prev,
+            current_goals: newValues
+          }));
           }}
           onClose={() => setShowGoalsSelector(false)}
           title="Select Current Goals"
@@ -5468,10 +5252,10 @@ export default function InfluencerProfiles() {
           options={backgroundOptions}
           onSelect={(selected) => {
             const newValues = selected.split(',').filter(Boolean);
-            setInfluencerData(prev => ({
-              ...prev,
-              background_elements: newValues
-            }));
+                      setInfluencerData((prev: InfluencerData) => ({
+            ...prev,
+            background_elements: newValues
+          }));
           }}
           onClose={() => setShowBackgroundSelector(false)}
           title="Select Background Elements"
@@ -5485,7 +5269,7 @@ export default function InfluencerProfiles() {
         <OptionSelector
           options={jobAreaOptions}
           onSelect={(label) => {
-            setInfluencerData(prev => ({
+            setInfluencerData((prev: InfluencerData) => ({
               ...prev,
               job_area: label
             }));
@@ -5501,7 +5285,7 @@ export default function InfluencerProfiles() {
           options={contentFocusAreasOptions}
           onSelect={(selected) => {
             const newValues = selected.split(',').filter(Boolean);
-            setInfluencerData(prev => ({
+            setInfluencerData((prev: InfluencerData) => ({
               ...prev,
               content_focus_areas: newValues
             }));
@@ -5622,7 +5406,7 @@ export default function InfluencerProfiles() {
                                     const newImageUrl = `${config.data_url}/${userData.id}/models/${influencerData.id}/profilepic/profilepic${num}.png`;
 
                                     // Update local state
-                                    setInfluencerData(prev => ({
+                                    setInfluencerData((prev: InfluencerData) => ({
                                       ...prev,
                                       image_url: newImageUrl,
                                       image_num: num + 1
@@ -5656,9 +5440,10 @@ export default function InfluencerProfiles() {
                                   } else {
                                     throw new Error('Image data not found');
                                   }
-                                } catch (error) {
+                                } catch (error: unknown) {
                                   console.error('Error setting profile picture:', error);
-                                  toast.error(`Failed to set profile picture: ${error.message}`);
+                                  const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+                                  toast.error(`Failed to set profile picture: ${errorMessage}`);
                                 }
                               }}
                             >
@@ -6781,7 +6566,7 @@ export default function InfluencerProfiles() {
                             Uploaded Image
                           </h4>
                           <p className="text-sm text-gray-600 dark:text-gray-300">
-                            {uploadedFile?.name} • {(uploadedFile?.size / 1024 / 1024).toFixed(2)} MB
+                            {uploadedFile?.name} • {((uploadedFile?.size || 0) / 1024 / 1024).toFixed(2)} MB
                           </p>
                           <div className="flex items-center justify-center gap-2 text-xs text-blue-600 dark:text-blue-400 mb-3">
                             <div className="w-2 h-2 bg-blue-500 rounded-full"></div>

@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Star, Search, Download, Share, Trash2, Filter, Calendar, Image, Video, SortAsc, SortDesc, ZoomIn, Folder, Plus, Upload, ChevronRight, Home, ArrowLeft, Pencil, Menu, X, File, User, RefreshCcw, Edit, Music, QrCode } from 'lucide-react';
+import { Star, Search, Download, Share, Trash2, Filter, Calendar, Image, Video, SortAsc, SortDesc, ZoomIn, Folder, Plus, Upload, ChevronRight, Home, ArrowLeft, Pencil, Menu, X, File, User, RefreshCcw, Edit, Music, QrCode, Info } from 'lucide-react';
 import QRCode from 'qrcode';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
@@ -226,7 +226,7 @@ export default function Vault() {
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(16);
+  const [itemsPerPage, setItemsPerPage] = useState(20);
   const [goToPageInput, setGoToPageInput] = useState('');
 
   // Load copy state from localStorage on component mount
@@ -3069,15 +3069,27 @@ export default function Vault() {
       jsonjob.regenerated_from = image.id || '12345678-1111-2222-3333-caffebabe0123';
 
       // Step 5: Navigate to ContentCreate with the JSON job data
-              navigate('/create/images', {
+      navigate('/create/images', {
         state: {
-          jsonjobData: jsonjob,
-          isRegeneration: true,
-          originalImage: image
+          regenerateData: {
+            prompt: jsonjob.prompt,
+            negative_prompt: jsonjob.negative_prompt,
+            influencer_id: jsonjob.model?.id?.toString(),
+            format: jsonjob.format,
+            quality: jsonjob.quality,
+            engine: jsonjob.engine,
+            guidance: jsonjob.guidance,
+            lora_strength: jsonjob.lora_strength,
+            nsfw_strength: jsonjob.nsfw_strength,
+            number_of_images: jsonjob.number_of_images,
+            scene: jsonjob.scene
+          },
+          regenerateFrom: image.system_filename || 'unknown'
+
         }
       });
 
-      toast.success('Redirecting to ContentCreate for regeneration');
+      toast.success('Regenerating without page reload');
 
     } catch (error) {
       console.error('Regeneration error:', error);
@@ -3774,7 +3786,7 @@ export default function Vault() {
                     variant="outline"
                     size="sm"
                     onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-                    className="flex items-center gap-1"
+                    className="flex items-center gap-0.5"
                   >
                     {sortOrder === 'asc' ? <SortAsc className="w-3 h-3" /> : <SortDesc className="w-3 h-3" />}
                     {sortOrder === 'asc' ? 'Ascending' : 'Descending'}
@@ -3818,7 +3830,7 @@ export default function Vault() {
                           <Badge
                             key={index}
                             variant="secondary"
-                            className="text-xs flex items-center gap-1"
+                            className="text-xs flex items-center gap-0.5"
                           >
                             Tag: {tag}
                             <button
@@ -3914,7 +3926,7 @@ export default function Vault() {
               size="sm"
               onClick={handleRefresh}
               disabled={isRefreshing}
-              className="flex items-center gap-1.5 transition-all duration-200 bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 dark:from-blue-950/20 dark:to-indigo-950/20 dark:hover:from-blue-900/30 dark:hover:to-indigo-900/30 border-blue-200 dark:border-blue-800 hover:border-blue-300 dark:hover:border-blue-700 text-blue-700 dark:text-blue-300 hover:text-blue-800 dark:hover:text-blue-200 shadow-sm hover:shadow-md"
+              className="flex items-center gap-0.5.5 transition-all duration-200 bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 dark:from-blue-950/20 dark:to-indigo-950/20 dark:hover:from-blue-900/30 dark:hover:to-indigo-900/30 border-blue-200 dark:border-blue-800 hover:border-blue-300 dark:hover:border-blue-700 text-blue-700 dark:text-blue-300 hover:text-blue-800 dark:hover:text-blue-200 shadow-sm hover:shadow-md"
             >
               {isRefreshing ? (
                 <>
@@ -3936,7 +3948,7 @@ export default function Vault() {
                 variant="outline"
                 size="sm"
                 onClick={navigateToParent}
-                className="flex items-center gap-1"
+                className="flex items-center gap-0.5"
                 disabled={currentPath === ''}
               >
                 <ArrowLeft className="w-4 h-4" />
@@ -3949,7 +3961,7 @@ export default function Vault() {
                 size="sm"
                 onClick={handlePaste}
                 disabled={copyState === 0 || currentPath === '' || isPasting}
-                className={`flex items-center gap-1.5 transition-all duration-200 ${copyState > 0
+                className={`flex items-center gap-0.5.5 transition-all duration-200 ${copyState > 0
                   ? 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-md'
                   : 'text-muted-foreground'
                   }`}
@@ -3975,7 +3987,7 @@ export default function Vault() {
                 size="sm"
                 onClick={handleFilePaste}
                 disabled={fileCopyState === 0 || isPastingFile || currentPath === '' || isMultiCopyActive}
-                className={`flex items-center gap-1.5 transition-all duration-200 ${fileCopyState > 0 && !isMultiCopyActive
+                className={`flex items-center gap-0.5.5 transition-all duration-200 ${fileCopyState > 0 && !isMultiCopyActive
                   ? 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-md'
                   : 'text-muted-foreground'
                   }`}
@@ -4055,7 +4067,7 @@ export default function Vault() {
                     ) : (
                       <span className={`text-xs font-medium text-center transition-colors ${renamingFolder === folder.path
                         ? 'text-yellow-700 dark:text-yellow-300'
-                        : 'text-gray-700 dark:text-gray-300 group-hover:text-blue-600 dark:group-hover:text-blue-400'
+                        : 'text-gray-700 dark:text-white fill-white stroke-gray-300 stroke-1 group-hover:text-blue-600 dark:group-hover:text-blue-400'
                         }`}>
                         {decodeName(folder.name)}
                         {renamingFolder === folder.path && ' (Renaming...)'}
@@ -4066,7 +4078,7 @@ export default function Vault() {
                     </span>
                     <span className="text-xs text-muted-foreground">
                       {loadingFileCounts[folder.path] ? (
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-0.5">
                           <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-gray-400"></div>
                           Loading...
                         </div>
@@ -4168,7 +4180,7 @@ export default function Vault() {
                         ) : (
                           <span className={`text-xs font-medium text-center transition-colors ${renamingFolder === folderPath
                             ? 'text-yellow-700 dark:text-yellow-300'
-                            : 'text-gray-700 dark:text-gray-300 group-hover:text-blue-600 dark:group-hover:text-blue-400'
+                            : 'text-gray-700 dark:text-white fill-white stroke-gray-300 stroke-1 group-hover:text-blue-600 dark:group-hover:text-blue-400'
                             }`}>
                             {decodeName(folderName)}
                             {renamingFolder === folderPath && ' (Renaming...)'}
@@ -4179,7 +4191,7 @@ export default function Vault() {
                         </span>
                         <span className="text-xs text-muted-foreground">
                           {loadingFileCounts[folderPath] ? (
-                            <div className="flex items-center gap-1">
+                            <div className="flex items-center gap-0.5">
                               <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-gray-400"></div>
                               Loading...
                             </div>
@@ -4201,10 +4213,10 @@ export default function Vault() {
               onClick={() => setShowNewFolderModal(true)}
             >
               <div className="flex flex-col items-center p-3 rounded-lg border-2 border-dashed border-gray-300 hover:border-green-400 hover:bg-green-50 dark:hover:bg-green-950/20 transition-all duration-200">
-                <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex items-center justify-center mb-2 group-hover:scale-110 transition-transform duration-200">
+                <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex items-center justify-center mb-2 group-transition-all duration-150 hover:scale-110 duration-200">
                   <Plus className="w-6 h-6 text-white" />
                 </div>
-                <span className="text-xs font-medium text-center text-gray-700 dark:text-gray-300 group-hover:text-green-600 dark:group-hover:text-green-400 transition-colors">
+                <span className="text-xs font-medium text-center text-gray-700 dark:text-white fill-white stroke-gray-300 stroke-1 group-hover:text-green-600 dark:group-hover:text-green-400 transition-colors">
                   New Folder
                 </span>
               </div>
@@ -4382,7 +4394,7 @@ export default function Vault() {
                   }}
                 >
                   <CardContent className="p-4 flex flex-col items-center justify-center h-full">
-                    <div className="bg-gradient-to-br from-purple-500 to-pink-600 rounded-full w-16 h-16 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-200">
+                    <div className="bg-gradient-to-br from-purple-500 to-pink-600 rounded-full w-16 h-16 flex items-center justify-center mb-4 group-transition-all duration-150 hover:scale-110 duration-200">
                       <Upload className="w-8 h-8 text-white" />
                     </div>
                     <span className="text-lg font-semibold text-purple-700 dark:text-purple-300 mb-2">Upload Model</span>
@@ -4459,44 +4471,34 @@ export default function Vault() {
 
                   {/* Top Row: File Type, Ratings, Favorite */}
                   <div className="flex items-center justify-between mb-3">
-                    {/* File Type Icon */}
-                    <div className={`rounded-full w-8 h-8 flex items-center justify-center shadow-md ${image.task_id?.startsWith('upload_')
-                      ? 'bg-gradient-to-br from-purple-500 to-pink-600'
-                      : 'bg-gradient-to-br from-blue-500 to-purple-600'
-                      } ${renamingFile === image.system_filename ? 'animate-pulse' : ''
-                      }`}>
-                      {renamingFile === image.system_filename ? (
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                      ) : (
-                        <>
-                          {image.task_id?.startsWith('upload_') ? (
-                            <Upload className="w-4 h-4 text-white" />
-                          ) : image.file_type === 'video' ? (
-                            <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="currentColor">
-                              <path d="M8 5v14l11-7z" />
-                              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15V7l8 5-8 5z" opacity="0.3" />
-                            </svg>
-                          ) : (
-                            <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="currentColor">
-                              <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z" />
-                              <circle cx="8.5" cy="8.5" r="1.5" opacity="0.8" />
-                            </svg>
-                          )}
-                        </>
-                      )}
+                    {/* Info Icon */}
+                    <div
+                      className="opacity-60 hover:opacity-100 cursor-pointer transition-opacity duration-200"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDetailedImageModal({ open: true, image });
+                      }}
+                      title="Image Details"
+                    >
+                      <Info className="w-4 h-4 text-gray-600 dark:text-gray-400" />
                     </div>
 
                     {/* Rating Stars */}
-                    <div className="flex gap-1">
+                    <div className="flex gap-0.5">
                       {[1, 2, 3, 4, 5].map((star) => (
                         <svg
                           key={star}
-                          className={`w-4 h-4 cursor-pointer hover:scale-110 transition-transform ${star <= image.rating ? 'text-yellow-400 fill-current' : 'text-gray-300'
+                          className={`w-4 h-4 cursor-pointer transition-all duration-150 hover:scale-110 ${star <= image.rating ? 'text-yellow-400 fill-yellow-400' : 'text-white fill-white stroke-gray-300 stroke-1'
                             }`}
                           viewBox="0 0 24 24"
-                          onClick={(e) => {
+                          onClick={async (e) => {
                             e.stopPropagation();
-                            updateRating(image.system_filename, star);
+                            const currentRating = image.rating || 0;
+                            const newRating =
+                              star === 1 && currentRating === 1
+                                ? 0
+                                : star;
+                            updateRating(image.system_filename, newRating);
                           }}
                           onDragStart={(e) => e.stopPropagation()}
                         >
@@ -4633,7 +4635,7 @@ export default function Vault() {
                         }}
                         autoFocus
                       />
-                      <div className="flex gap-1">
+                      <div className="flex gap-0.5">
                         <Button
                           size="sm"
                           variant="outline"
@@ -4663,7 +4665,7 @@ export default function Vault() {
                     <div className="mb-3" onDragStart={(e) => e.stopPropagation()}>
                       {image.user_notes ? (
                         <p
-                          className="text-sm text-gray-700 dark:text-gray-300 line-clamp-2 cursor-pointer hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
+                          className="text-sm text-gray-700 dark:text-white fill-white stroke-gray-300 stroke-1 line-clamp-2 cursor-pointer hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
                           onClick={() => {
                             setEditingNotes(image.system_filename);
                             setNotesInput(image.user_notes || '');
@@ -4673,7 +4675,7 @@ export default function Vault() {
                         </p>
                       ) : (
                         <div
-                          className="text-sm text-gray-500 dark:text-gray-400 cursor-pointer hover:text-gray-700 dark:hover:text-gray-300"
+                          className="text-sm text-gray-500 dark:text-gray-400 cursor-pointer hover:text-gray-700 dark:hover:text-white fill-white stroke-gray-300 stroke-1"
                           onClick={() => {
                             setEditingNotes(image.system_filename);
                             setNotesInput('');
@@ -4687,12 +4689,12 @@ export default function Vault() {
 
                   {/* User Tags */}
                   {image.user_tags && image.user_tags.length > 0 && (
-                    <div className="mb-3 flex flex-wrap gap-1" onDragStart={(e) => e.stopPropagation()}>
+                    <div className="mb-3 flex flex-wrap gap-0.5" onDragStart={(e) => e.stopPropagation()}>
                       {image.user_tags.map((tag, index) => (
                         <Badge
                           key={index}
                           variant="secondary"
-                          className="text-xs flex items-center gap-1 cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/20 transition-colors"
+                          className="text-xs flex items-center gap-0.5 cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/20 transition-colors"
                           onClick={(e) => {
                             e.stopPropagation();
                             addTagToFilter(tag);
@@ -4739,7 +4741,7 @@ export default function Vault() {
                           }}
                           autoFocus
                         />
-                        <div className="flex gap-1">
+                        <div className="flex gap-0.5">
                           <Button
                             size="sm"
                             variant="outline"
@@ -4771,7 +4773,7 @@ export default function Vault() {
                       </div>
                     ) : (
                       <div
-                        className="text-sm text-gray-500 dark:text-gray-400 cursor-pointer hover:text-gray-700 dark:hover:text-gray-300"
+                        className="text-sm text-gray-500 dark:text-gray-400 cursor-pointer hover:text-gray-700 dark:hover:text-white fill-white stroke-gray-300 stroke-1"
                         onClick={() => {
                           setEditingTags(image.system_filename);
                           setTagsInput('');
@@ -4782,43 +4784,9 @@ export default function Vault() {
                     )}
                   </div>
 
-                  {/* Filename and Date */}
-                  <div className="space-y-2" onDragStart={(e) => e.stopPropagation()}>
-                    {editingFile === image.system_filename && renamingFile !== image.system_filename ? (
-                      <div className="w-full">
-                        <div className="relative">
-                          <Input
-                            value={decodeName(editingFileName)}
-                            onChange={(e) => setEditingFileName(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') {
-                                handleFileRename(image.system_filename, editingFileName, currentPath);
-                              } else if (e.key === 'Escape') {
-                                setEditingFile(null);
-                                setEditingFileName('');
-                              }
-                            }}
-                            onBlur={() => handleFileRename(image.system_filename, editingFileName, currentPath)}
-                            className="text-sm h-8"
-                            autoFocus
-                          />
-                        </div>
-                      </div>
-                    ) : (
-                      <>
-                        <h3 className="font-medium text-sm text-gray-800 dark:text-gray-200 truncate">
-                          {decodeName(image.system_filename)}
-                        </h3>
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <Calendar className="w-3 h-3" />
-                          {new Date(image.created_at).toLocaleDateString()}
-                        </div>
-                      </>
-                    )}
-                  </div>
 
                   {/* Action Buttons */}
-                  <div className="flex gap-1.5 mt-3">
+                  <div className="flex gap-0.5.5 mt-3">
                     <Button
                       size="sm"
                       variant="outline"
@@ -5257,38 +5225,38 @@ export default function Vault() {
                   </CardHeader>
                   <CardContent className="space-y-4 pt-6">
                     <div className="flex justify-between items-center p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
-                      <span className="font-semibold text-gray-700 dark:text-gray-300">Filename:</span>
+                      <span className="font-semibold text-gray-700 dark:text-white fill-white stroke-gray-300 stroke-1">Filename:</span>
                       <span className="text-gray-600 dark:text-gray-400 font-mono text-sm">{decodeName(detailedImageModal.image.system_filename)}</span>
                     </div>
                     {detailedImageModal.image.user_filename && (
                       <div className="flex justify-between items-center p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
-                        <span className="font-semibold text-gray-700 dark:text-gray-300">Custom Name:</span>
+                        <span className="font-semibold text-gray-700 dark:text-white fill-white stroke-gray-300 stroke-1">Custom Name:</span>
                         <span className="text-gray-600 dark:text-gray-400">{decodeName(detailedImageModal.image.user_filename)}</span>
                       </div>
                     )}
                     <div className="flex justify-between items-center p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
-                      <span className="font-semibold text-gray-700 dark:text-gray-300">File Type:</span>
+                      <span className="font-semibold text-gray-700 dark:text-white fill-white stroke-gray-300 stroke-1">File Type:</span>
                       <Badge variant="outline" className="bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300">
                         {detailedImageModal.image.file_type}
                       </Badge>
                     </div>
                     <div className="flex justify-between items-center p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
-                      <span className="font-semibold text-gray-700 dark:text-gray-300">Format:</span>
+                      <span className="font-semibold text-gray-700 dark:text-white fill-white stroke-gray-300 stroke-1">Format:</span>
                       <span className="text-gray-600 dark:text-gray-400 font-mono">{detailedImageModal.image.image_format}</span>
                     </div>
                     <div className="flex justify-between items-center p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
-                      <span className="font-semibold text-gray-700 dark:text-gray-300">File Size:</span>
+                      <span className="font-semibold text-gray-700 dark:text-white fill-white stroke-gray-300 stroke-1">File Size:</span>
                       <span className="text-gray-600 dark:text-gray-400 font-mono">{(detailedImageModal.image.file_size_bytes / 1024 / 1024).toFixed(2)} MB</span>
                     </div>
                     <div className="flex justify-between items-center p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
-                      <span className="font-semibold text-gray-700 dark:text-gray-300">Status:</span>
+                      <span className="font-semibold text-gray-700 dark:text-white fill-white stroke-gray-300 stroke-1">Status:</span>
                       <Badge variant={detailedImageModal.image.generation_status === 'completed' ? 'default' : 'secondary'} className="bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-300">
                         {detailedImageModal.image.generation_status}
                       </Badge>
                     </div>
                     {detailedImageModal.image.favorite && (
                       <div className="flex justify-between items-center p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
-                        <span className="font-semibold text-gray-700 dark:text-gray-300">Favorite:</span>
+                        <span className="font-semibold text-gray-700 dark:text-white fill-white stroke-gray-300 stroke-1">Favorite:</span>
                         <Star className="w-5 h-5 text-yellow-500 fill-current" />
                       </div>
                     )}
@@ -5307,31 +5275,31 @@ export default function Vault() {
                   </CardHeader>
                   <CardContent className="space-y-4 pt-6">
                     <div className="flex justify-between items-center p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
-                      <span className="font-semibold text-gray-700 dark:text-gray-300">Model:</span>
+                      <span className="font-semibold text-gray-700 dark:text-white fill-white stroke-gray-300 stroke-1">Model:</span>
                       <span className="text-gray-600 dark:text-gray-400 font-mono text-sm">{detailedImageModal.image.model_version}</span>
                     </div>
                     <div className="flex justify-between items-center p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
-                      <span className="font-semibold text-gray-700 dark:text-gray-300">Seed:</span>
+                      <span className="font-semibold text-gray-700 dark:text-white fill-white stroke-gray-300 stroke-1">Seed:</span>
                       <span className="text-gray-600 dark:text-gray-400 font-mono">{detailedImageModal.image.seed}</span>
                     </div>
                     <div className="flex justify-between items-center p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
-                      <span className="font-semibold text-gray-700 dark:text-gray-300">Steps:</span>
+                      <span className="font-semibold text-gray-700 dark:text-white fill-white stroke-gray-300 stroke-1">Steps:</span>
                       <span className="text-gray-600 dark:text-gray-400 font-mono">{detailedImageModal.image.steps}</span>
                     </div>
                     <div className="flex justify-between items-center p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
-                      <span className="font-semibold text-gray-700 dark:text-gray-300">Guidance:</span>
+                      <span className="font-semibold text-gray-700 dark:text-white fill-white stroke-gray-300 stroke-1">Guidance:</span>
                       <span className="text-gray-600 dark:text-gray-400 font-mono">{detailedImageModal.image.guidance}</span>
                     </div>
                     <div className="flex justify-between items-center p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
-                      <span className="font-semibold text-gray-700 dark:text-gray-300">NSFW Strength:</span>
+                      <span className="font-semibold text-gray-700 dark:text-white fill-white stroke-gray-300 stroke-1">NSFW Strength:</span>
                       <span className="text-gray-600 dark:text-gray-400 font-mono">{detailedImageModal.image.nsfw_strength}</span>
                     </div>
                     <div className="flex justify-between items-center p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
-                      <span className="font-semibold text-gray-700 dark:text-gray-300">AI Consistency Strength:</span>
+                      <span className="font-semibold text-gray-700 dark:text-white fill-white stroke-gray-300 stroke-1">AI Consistency Strength:</span>
                       <span className="text-gray-600 dark:text-gray-400 font-mono">{detailedImageModal.image.lora_strength}</span>
                     </div>
                     <div className="flex justify-between items-center p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
-                      <span className="font-semibold text-gray-700 dark:text-gray-300">Quality Setting:</span>
+                      <span className="font-semibold text-gray-700 dark:text-white fill-white stroke-gray-300 stroke-1">Quality Setting:</span>
                       <Badge variant="outline" className="bg-purple-100 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300">
                         {detailedImageModal.image.quality_setting}
                       </Badge>
@@ -5384,29 +5352,29 @@ export default function Vault() {
                   <CardContent className="space-y-4 pt-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="flex justify-between items-center p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
-                        <span className="font-semibold text-gray-700 dark:text-gray-300">Task ID:</span>
+                        <span className="font-semibold text-gray-700 dark:text-white fill-white stroke-gray-300 stroke-1">Task ID:</span>
                         <span className="text-gray-600 dark:text-gray-400 font-mono text-sm">{detailedImageModal.image.task_id}</span>
                       </div>
                       <div className="flex justify-between items-center p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
-                        <span className="font-semibold text-gray-700 dark:text-gray-300">Image Sequence:</span>
+                        <span className="font-semibold text-gray-700 dark:text-white fill-white stroke-gray-300 stroke-1">Image Sequence:</span>
                         <span className="text-gray-600 dark:text-gray-400 font-mono">{detailedImageModal.image.image_sequence_number}</span>
                       </div>
                       <div className="flex justify-between items-center p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
-                        <span className="font-semibold text-gray-700 dark:text-gray-300">Generation Time:</span>
+                        <span className="font-semibold text-gray-700 dark:text-white fill-white stroke-gray-300 stroke-1">Generation Time:</span>
                         <span className="text-gray-600 dark:text-gray-400 font-mono">{detailedImageModal.image.generation_time_seconds}s</span>
                       </div>
                       <div className="flex justify-between items-center p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
-                        <span className="font-semibold text-gray-700 dark:text-gray-300">Retry Count:</span>
+                        <span className="font-semibold text-gray-700 dark:text-white fill-white stroke-gray-300 stroke-1">Retry Count:</span>
                         <span className="text-gray-600 dark:text-gray-400 font-mono">{detailedImageModal.image.retry_count}</span>
                       </div>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
-                        <span className="font-semibold text-gray-700 dark:text-gray-300 block mb-1">Started At:</span>
+                        <span className="font-semibold text-gray-700 dark:text-white fill-white stroke-gray-300 stroke-1 block mb-1">Started At:</span>
                         <span className="text-gray-600 dark:text-gray-400 text-sm">{new Date(detailedImageModal.image.generation_started_at).toLocaleString()}</span>
                       </div>
                       <div className="p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
-                        <span className="font-semibold text-gray-700 dark:text-gray-300 block mb-1">Completed At:</span>
+                        <span className="font-semibold text-gray-700 dark:text-white fill-white stroke-gray-300 stroke-1 block mb-1">Completed At:</span>
                         <span className="text-gray-600 dark:text-gray-400 text-sm">{new Date(detailedImageModal.image.generation_completed_at).toLocaleString()}</span>
                       </div>
                     </div>
@@ -5468,7 +5436,7 @@ export default function Vault() {
                     <Badge
                       key={index}
                       variant="default"
-                      className="text-xs flex items-center gap-1"
+                      className="text-xs flex items-center gap-0.5"
                     >
                       {tag}
                       <button
@@ -5927,7 +5895,7 @@ export default function Vault() {
                             </h3>
                           </div>
 
-                          <div className="flex flex-col gap-1 mb-3">
+                          <div className="flex flex-col gap-0.5 mb-3">
                             <div className="flex text-xs text-muted-foreground flex-col">
                               {influencer.notes ? (
                                 <span className="font-medium mr-2">Notes:</span>
@@ -6039,7 +6007,7 @@ export default function Vault() {
           className="fixed z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg py-1 min-w-[160px]"
           style={{ left: multiSelectContextMenu.x, top: multiSelectContextMenu.y }}
         >
-          <div className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 border-b border-gray-200 dark:border-gray-700">
+          <div className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-white fill-white stroke-gray-300 stroke-1 border-b border-gray-200 dark:border-gray-700">
             {selectedImages.size} file{selectedImages.size !== 1 ? 's' : ''} selected
           </div>
           <button
@@ -6107,9 +6075,33 @@ export default function Vault() {
       {/* Pagination Controls */}
       {totalItems > 0 && (
         <div className="flex flex-col sm:flex-row justify-between items-center gap-4 py-6 border-t border-gray-200 dark:border-gray-700 mt-4">
-          {/* Page info */}
-          <div className="text-sm text-gray-600 dark:text-gray-400">
-            Showing {startIndex + 1}-{Math.min(endIndex, totalItems)} of {totalItems} items (16 per page)
+          {/* Left side: Items per page selector and page info */}
+          <div className="flex flex-col sm:flex-row items-center gap-4">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-600 dark:text-gray-400">Items per page:</span>
+              <Select
+                value={itemsPerPage.toString()}
+                onValueChange={(value) => {
+                  const newItemsPerPage = parseInt(value);
+                  setItemsPerPage(newItemsPerPage);
+                  setCurrentPage(1); // Reset to first page when changing items per page
+                }}
+              >
+                <SelectTrigger className="w-20 h-8">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="10">10</SelectItem>
+                  <SelectItem value="20">20</SelectItem>
+                  <SelectItem value="50">50</SelectItem>
+                  <SelectItem value="100">100</SelectItem>
+                  <SelectItem value="200">200</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="text-sm text-gray-600 dark:text-gray-400">
+              Showing {startIndex + 1}-{Math.min(endIndex, totalItems)} of {totalItems} items
+            </div>
           </div>
 
           {/* Pagination buttons */}
@@ -6132,7 +6124,7 @@ export default function Vault() {
             </Button>
 
             {/* Page numbers */}
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-0.5">
               {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                 let pageNumber;
                 if (totalPages <= 5) {

@@ -1,18 +1,5 @@
-import { useState, useEffect, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
-import { useSelector, useDispatch } from "react-redux";
-import { RootState } from "@/store/store";
-import { setUser } from "@/store/slices/userSlice";
-import {
-  selectLatestTrainedInfluencer,
-  selectLatestGeneratedInfluencer,
-  setInfluencers,
-  setError,
-  setLoading,
-  updateInfluencer,
-} from "@/store/slices/influencersSlice";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -21,34 +8,42 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import config from "@/config/config";
 import {
+  selectLatestGeneratedInfluencer,
+  selectLatestTrainedInfluencer,
+  setError,
+  setInfluencers,
+  setLoading,
+  updateInfluencer,
+} from "@/store/slices/influencersSlice";
+import { setUser } from "@/store/slices/userSlice";
+import { RootState } from "@/store/store";
+import axios from "axios";
+import { motion } from "framer-motion";
+import {
+  AlertTriangle,
+  ArrowRight,
+  Brain,
   CheckCircle,
   Circle,
-  Play,
-  Star,
-  AlertTriangle,
-  Brain,
   Copy,
-  Upload,
-  X,
   FileImage,
   FileVideo,
-  Palette,
-  RefreshCw,
-  Zap,
-  Sparkles,
   FolderOpen,
-  Volume2,
-  User,
   Image as ImageIcon,
-  ArrowRight,
+  Palette,
+  Play,
+  RefreshCw,
+  Sparkles,
+  User,
+  Volume2,
+  Zap,
 } from "lucide-react";
-import InstructionVideo from "@/components/InstructionVideo";
-import { getInstructionVideoConfig } from "@/config/instructionVideos";
+import { useEffect, useMemo, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import axios from "axios";
-import config from "@/config/config";
-import { motion } from "framer-motion";
 
 export default function Start() {
   const navigate = useNavigate();
@@ -59,7 +54,7 @@ export default function Start() {
   // Get latest generated influencer with lorastatus === 0
   const latestGeneratedInfluencerWithLora0 = useMemo(() => {
     const influencersWithLora0 = influencers.filter(
-      (inf) => inf.lorastatus === 0,
+      (inf) => inf.lorastatus === 0
     );
     if (influencersWithLora0.length === 0) return null;
 
@@ -84,12 +79,18 @@ export default function Start() {
   ] = useState(false);
   const [showPhase3CreationModal, setShowPhase3CreationModal] = useState(false);
   const [showPhase4LibraryModal, setShowPhase4LibraryModal] = useState(false);
-  const [showCharacterConsistencyModal, setShowCharacterConsistencyModal] = useState(false);
-  const [showTrainingOptionsModal, setShowTrainingOptionsModal] = useState(false);
-  const [selectedTrainingType, setSelectedTrainingType] = useState<'basic' | 'plus' | null>(null);
+  const [showCharacterConsistencyModal, setShowCharacterConsistencyModal] =
+    useState(false);
+  const [showTrainingOptionsModal, setShowTrainingOptionsModal] =
+    useState(false);
+  const [selectedTrainingType, setSelectedTrainingType] = useState<
+    "basic" | "plus" | null
+  >(null);
   const [showImagePreviewModal, setShowImagePreviewModal] = useState(false);
-  const [showPhase2InfluencerSelector, setShowPhase2InfluencerSelector] = useState(false);
-  const [showActiveInfluencerSelector, setShowActiveInfluencerSelector] = useState(false);
+  const [showPhase2InfluencerSelector, setShowPhase2InfluencerSelector] =
+    useState(false);
+  const [showActiveInfluencerSelector, setShowActiveInfluencerSelector] =
+    useState(false);
   const [showCostWarningModal, setShowCostWarningModal] = useState(false);
   const [gemCostData, setGemCostData] = useState<any>(null);
   const [blinkState, setBlinkState] = useState(false);
@@ -108,36 +109,41 @@ export default function Start() {
   const [isCopyingImage, setIsCopyingImage] = useState(false);
 
   // Phase 2 and Phase 3 selected influencer state
-  const [selectedPhase2Influencer, setSelectedPhase2Influencer] = useState<any>(null);
-  const [selectedPhase3Influencer, setSelectedPhase3Influencer] = useState<any>(null);
+  const [selectedPhase2Influencer, setSelectedPhase2Influencer] =
+    useState<any>(null);
+  const [selectedPhase3Influencer, setSelectedPhase3Influencer] =
+    useState<any>(null);
 
   // Initialize selectedPhase2Influencer with latestGeneratedInfluencerWithLora0 only once
   useEffect(() => {
     // Check if there's a newly created influencer from the wizard
-    const newlyCreatedId = localStorage.getItem('newly_created_influencer_id');
-    
+    const newlyCreatedId = localStorage.getItem("newly_created_influencer_id");
+
     if (newlyCreatedId) {
       // Find the newly created influencer
-      const newlyCreatedInfluencer = influencers.find(inf => inf.id.toString() === newlyCreatedId);
+      const newlyCreatedInfluencer = influencers.find(
+        (inf) => inf.id.toString() === newlyCreatedId
+      );
       if (newlyCreatedInfluencer) {
         setSelectedPhase2Influencer(newlyCreatedInfluencer);
-        
+
         // Auto-jump to Phase 2 when coming from wizard
-        const isComingFromWizard = localStorage.getItem('coming_from_wizard');
-        if (isComingFromWizard === 'true') {
+        const isComingFromWizard = localStorage.getItem("coming_from_wizard");
+        if (isComingFromWizard === "true") {
           dispatch(setUser({ guide_step: 2 }));
-          localStorage.removeItem('coming_from_wizard');
-          
-          toast.success('Phase 2 activated!', {
-            description: 'You are now on Lock the Look with your newly created influencer'
+          localStorage.removeItem("coming_from_wizard");
+
+          toast.success("Phase 2 activated!", {
+            description:
+              "You are now on Lock the Look with your newly created influencer",
           });
         }
-        
-        localStorage.removeItem('newly_created_influencer_id'); // Clean up
+
+        localStorage.removeItem("newly_created_influencer_id"); // Clean up
         return;
       }
     }
-    
+
     // Fall back to latest generated influencer if no newly created one or not found
     if (latestGeneratedInfluencerWithLora0 && !selectedPhase2Influencer) {
       setSelectedPhase2Influencer(latestGeneratedInfluencerWithLora0);
@@ -150,7 +156,10 @@ export default function Start() {
     setShowPhase2InfluencerSelector(false);
 
     // If user is in Phase 3 or 4 and selects an influencer with lorastatus !== 2, move back to Phase 2
-    if ((currentPhase === 3 || currentPhase === 4) && influencer.lorastatus !== 2) {
+    if (
+      (currentPhase === 3 || currentPhase === 4) &&
+      influencer.lorastatus !== 2
+    ) {
       try {
         // Update local state immediately
         setLocalGuideStep(2);
@@ -181,7 +190,9 @@ export default function Start() {
           }
         }
 
-        toast.info("Moved back to Phase 2 because selected influencer needs AI Consistency Training");
+        toast.info(
+          "Moved back to Phase 2 because selected influencer needs AI Consistency Training"
+        );
       } catch (error) {
         console.error("Error updating user phase:", error);
       }
@@ -189,60 +200,69 @@ export default function Start() {
   };
 
   // Cost checking function for LoRA training
-  const checkGemCost = async (trainingType: 'basic' | 'plus') => {
+  const checkGemCost = async (trainingType: "basic" | "plus") => {
     try {
       // Determine the product type based on training selection
-      const productType = trainingType === 'basic' ? 'nymia_lora' : 'nymia_lora_plus';
-      
+      const productType =
+        trainingType === "basic" ? "nymia_lora" : "nymia_lora_plus";
+
       // Try to fetch pricing from API
       const response = await fetch(`${config.backend_url}/pricing`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Authorization': `Bearer WeInfl3nc3withAI`,
-          'Content-Type': 'application/json'
+          Authorization: `Bearer WeInfl3nc3withAI`,
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          type: productType
-        })
+          type: productType,
+        }),
       });
 
-      let gemCost = trainingType === 'basic' ? 50 : 100; // Default costs
-      let productName = trainingType === 'basic' ? 'Basic Character Consistency Training' : 'Character Consistency Training Plus';
-      let description = trainingType === 'basic' 
-        ? 'Creates 10 images to Lock the Look. Good for creating normal, consistent Influencer images.'
-        : 'Creates 25 images to Lock the Look with more training steps. Good for professional grade Influencer images.';
-      
+      let gemCost = trainingType === "basic" ? 50 : 100; // Default costs
+      let productName =
+        trainingType === "basic"
+          ? "Basic Character Consistency Training"
+          : "Character Consistency Training Plus";
+      let description =
+        trainingType === "basic"
+          ? "Creates 10 images to Lock the Look. Good for creating normal, consistent Influencer images."
+          : "Creates 25 images to Lock the Look with more training steps. Good for professional grade Influencer images.";
+
       if (response.ok) {
         const costData = await response.json();
         // API returns { gems: X }, convert to our format
         const formattedCostData = {
           gem_cost: costData.gems || gemCost,
           product_name: productName,
-          description: description
+          description: description,
         };
         setGemCostData(formattedCostData);
         gemCost = costData.gems || gemCost;
       } else {
         // API endpoint not available, use default cost
-        console.log('Pricing API not available, using default cost');
+        console.log("Pricing API not available, using default cost");
         const defaultCostData = {
           gem_cost: gemCost,
           product_name: productName,
-          description: description
+          description: description,
         };
         setGemCostData(defaultCostData);
       }
-      
-      const currentCredits = userData.credits || 0;
-      
-      // Check if user has enough credits
-      if (currentCredits < gemCost) {
-        toast.error(`Insufficient credits! You need ${gemCost} gems but only have ${currentCredits} gems.`, {
-          description: "Please purchase more gems to continue with AI consistency training."
-        });
+
+      const currentGems = userData.credits || 0;
+
+      // Check if user has enough gems
+      if (currentGems < gemCost) {
+        toast.error(
+          `Insufficient gems! You need ${gemCost} gems but only have ${currentGems} gems.`,
+          {
+            description:
+              "Please purchase more gems to continue with AI consistency training.",
+          }
+        );
         return false;
       }
-      
+
       // Show cost confirmation modal if there's a cost
       if (gemCost > 0) {
         setShowCostWarningModal(true);
@@ -251,36 +271,44 @@ export default function Start() {
         return true; // Proceed with training (free)
       }
     } catch (error) {
-      console.error('Error checking gem cost:', error);
+      console.error("Error checking gem cost:", error);
       // Fallback to default cost even on network error
-      let gemCost = trainingType === 'basic' ? 50 : 100;
-      let productName = trainingType === 'basic' ? 'Basic Character Consistency Training' : 'Character Consistency Training Plus';
-      let description = trainingType === 'basic' 
-        ? 'Creates 10 images to Lock the Look. Good for creating normal, consistent Influencer images.'
-        : 'Creates 25 images to Lock the Look with more training steps. Good for professional grade Influencer images.';
-        
+      let gemCost = trainingType === "basic" ? 50 : 100;
+      let productName =
+        trainingType === "basic"
+          ? "Basic Character Consistency Training"
+          : "Character Consistency Training Plus";
+      let description =
+        trainingType === "basic"
+          ? "Creates 10 images to Lock the Look. Good for creating normal, consistent Influencer images."
+          : "Creates 25 images to Lock the Look with more training steps. Good for professional grade Influencer images.";
+
       const defaultCostData = {
         gem_cost: gemCost,
         product_name: productName,
-        description: description
+        description: description,
       };
       setGemCostData(defaultCostData);
-      
-      const currentCredits = userData.credits || 0;
-      if (currentCredits < gemCost) {
-        toast.error(`Insufficient credits! You need ${gemCost} gems but only have ${currentCredits} gems.`, {
-          description: "Please purchase more gems to continue with AI consistency training."
-        });
+
+      const currentGems = userData.credits || 0;
+      if (currentGems < gemCost) {
+        toast.error(
+          `Insufficient gems! You need ${gemCost} gems but only have ${currentGems} gems.`,
+          {
+            description:
+              "Please purchase more gems to continue with AI consistency training.",
+          }
+        );
         return false;
       }
-      
+
       setShowCostWarningModal(true);
       return false;
     }
   };
 
   // Handle training start with cost check
-  const handleStartTraining = async (trainingType: 'basic' | 'plus') => {
+  const handleStartTraining = async (trainingType: "basic" | "plus") => {
     setSelectedTrainingType(trainingType);
     const canProceed = await checkGemCost(trainingType);
     if (canProceed) {
@@ -294,18 +322,20 @@ export default function Start() {
   };
 
   // Start training function
-  const startTraining = async (trainingType: 'basic' | 'plus') => {
+  const startTraining = async (trainingType: "basic" | "plus") => {
     if (!selectedPhase2Influencer) {
       toast.error("No influencer selected for training");
       return;
     }
 
-    // Final check for sufficient credits
+    // Final check for sufficient gems
     const gemCost = gemCostData?.gem_cost || 50;
-    const currentCredits = userData.credits || 0;
-    
-    if (currentCredits < gemCost) {
-      toast.error(`Insufficient credits! You need ${gemCost} gems but only have ${currentCredits} gems.`);
+    const currentGems = userData.credits || 0;
+
+    if (currentGems < gemCost) {
+      toast.error(
+        `Insufficient gems! You need ${gemCost} gems but only have ${currentGems} gems.`
+      );
       setShowCostWarningModal(false);
       setShowTrainingOptionsModal(false);
       return;
@@ -313,7 +343,7 @@ export default function Start() {
 
     setShowTrainingOptionsModal(false);
     setShowCostWarningModal(false);
-    
+
     try {
       const useridResponse = await fetch(
         `${config.supabase_server_url}/user?uuid=eq.${userData.id}`,
@@ -322,13 +352,14 @@ export default function Start() {
           headers: {
             Authorization: "Bearer WeInfl3nc3withAI",
           },
-        },
+        }
       );
 
       const useridData = await useridResponse.json();
 
       // Determine task type based on training selection
-      const taskType = trainingType === 'basic' ? 'createlora' : 'createloraplus';
+      const taskType =
+        trainingType === "basic" ? "createlora" : "createloraplus";
 
       // Start LoRA training for the selected influencer
       await fetch(
@@ -343,16 +374,23 @@ export default function Start() {
             task: taskType,
             fromsingleimage: true,
             modelid: selectedPhase2Influencer.id,
-            inputimage: `/models/${selectedPhase2Influencer.id}/profilepic/profilepic${selectedPhase2Influencer.image_num - 1}.png`,
+            inputimage: `/models/${
+              selectedPhase2Influencer.id
+            }/profilepic/profilepic${
+              selectedPhase2Influencer.image_num - 1
+            }.png`,
           }),
-        },
+        }
       );
 
-      const trainingName = trainingType === 'basic' ? 'Basic AI Consistency Training' : 'AI Consistency Training Plus';
-      const imageCount = trainingType === 'basic' ? '10' : '25';
-      
+      const trainingName =
+        trainingType === "basic"
+          ? "Basic AI Consistency Training"
+          : "AI Consistency Training Plus";
+      const imageCount = trainingType === "basic" ? "10" : "25";
+
       toast.success(`${trainingName} Started!`, {
-        description: `Training has begun for ${selectedPhase2Influencer.name_first}. Creating ${imageCount} images. This will take about 30 minutes.`
+        description: `Training has begun for ${selectedPhase2Influencer.name_first}. Creating ${imageCount} images. This will take about 30 minutes.`,
       });
 
       // Update influencer lorastatus to 1 (processing) and start polling
@@ -366,22 +404,24 @@ export default function Start() {
               Authorization: "Bearer WeInfl3nc3withAI",
             },
             body: JSON.stringify({ lorastatus: 1 }),
-          },
+          }
         );
-        
+
         if (influencerUpdateResponse.ok) {
           // Update local state to show processing status
           setSelectedPhase2Influencer({
             ...selectedPhase2Influencer,
-            lorastatus: 1
+            lorastatus: 1,
           });
-          
+
           // Update Redux store with updated influencer
-          dispatch(updateInfluencer({
-            ...selectedPhase2Influencer,
-            lorastatus: 1
-          }));
-          
+          dispatch(
+            updateInfluencer({
+              ...selectedPhase2Influencer,
+              lorastatus: 1,
+            })
+          );
+
           // Start polling for training status
           setIsTrainingPolling(true);
           startTrainingStatusPolling(selectedPhase2Influencer.id);
@@ -424,7 +464,7 @@ export default function Start() {
                 "Content-Type": "application/json",
                 Authorization: `Bearer WeInfl3nc3withAI`,
               },
-            },
+            }
           );
           return response.data;
         } catch (error) {
@@ -448,7 +488,7 @@ export default function Start() {
                 "Content-Type": "application/json",
                 Authorization: `Bearer WeInfl3nc3withAI`,
               },
-            },
+            }
           );
           return response.data;
         } catch (error) {
@@ -480,7 +520,7 @@ export default function Start() {
             headers: {
               Authorization: "Bearer WeInfl3nc3withAI",
             },
-          },
+          }
         );
 
         if (!response.ok) {
@@ -491,9 +531,7 @@ export default function Start() {
         dispatch(setInfluencers(data));
       } catch (error) {
         dispatch(
-          setError(
-            error instanceof Error ? error.message : "An error occurred",
-          ),
+          setError(error instanceof Error ? error.message : "An error occurred")
         );
       } finally {
         dispatch(setLoading(false));
@@ -570,7 +608,7 @@ export default function Start() {
     const hasTrainedInfluencer = selectedPhase2Influencer?.lorastatus === 2;
     const isTrainingInProgress = selectedPhase2Influencer?.lorastatus === 1;
     const hasUntrainedInfluencer = selectedPhase2Influencer?.lorastatus === 0;
-    
+
     return [
       {
         id: 1,
@@ -587,23 +625,32 @@ export default function Start() {
         id: 2,
         phase: "Phase 2",
         title: "Lock the Look",
-        description: "We handle training automatically — no settings, no jargon.",
+        description:
+          "We handle training automatically — no settings, no jargon.",
         time: "Runs ~30 minutes in the background.",
         icon: Brain,
         imageSrc: "/phase2.png",
         completed: hasTrainedInfluencer,
         // Phase 2 is pending if: user has untrained influencer OR is explicitly in phase 2
-        isPending: (hasUntrainedInfluencer && currentPhase >= 2 && !isTrainingInProgress && !hasTrainedInfluencer) || 
-                  (currentPhase === 2 && !isTrainingInProgress && !hasTrainedInfluencer),
+        isPending:
+          (hasUntrainedInfluencer &&
+            currentPhase >= 2 &&
+            !isTrainingInProgress &&
+            !hasTrainedInfluencer) ||
+          (currentPhase === 2 &&
+            !isTrainingInProgress &&
+            !hasTrainedInfluencer),
         isProcessing: isTrainingInProgress,
         showProgress: isTrainingInProgress,
-        progressMessage: "This step takes about 30–60 minutes. You can keep working on other tasks while we train your AI.",
+        progressMessage:
+          "This step takes about 30–60 minutes. You can keep working on other tasks while we train your AI.",
       },
       {
         id: 3,
         phase: "Phase 3",
         title: "Create Content",
-        description: "Produce images, videos, audio and LipSync videos using curated templates or by using your own prompts.",
+        description:
+          "Produce images, videos, audio and LipSync videos using curated templates or by using your own prompts.",
         time: "Ready‑to‑post packs for Instagram & Fanvue.",
         icon: ImageIcon,
         imageSrc: "/phase3.png",
@@ -616,7 +663,8 @@ export default function Start() {
         id: 4,
         phase: "Phase 4",
         title: "Publish",
-        description: "Sort by series, prepare Fanvue PPV sets, export IG carousels, and queue ideas.",
+        description:
+          "Sort by series, prepare Fanvue PPV sets, export IG carousels, and queue ideas.",
         time: "Downloads available on paid plans.",
         icon: FolderOpen,
         imageSrc: "/phase4.png",
@@ -627,7 +675,7 @@ export default function Start() {
       },
     ];
   };
-  
+
   const phases = getPhaseLogic();
 
   // Auto-correct phase logic when user is in wrong phase
@@ -635,15 +683,23 @@ export default function Start() {
     const hasTrainedInfluencer = selectedPhase2Influencer?.lorastatus === 2;
     const hasUntrainedInfluencer = selectedPhase2Influencer?.lorastatus === 0;
     const isTrainingInProgress = selectedPhase2Influencer?.lorastatus === 1;
-    
+
     // If user is in Phase 3 or 4 but doesn't have trained influencer, move back to Phase 2
-    if ((currentPhase === 3 || currentPhase === 4) && !hasTrainedInfluencer && (hasUntrainedInfluencer || isTrainingInProgress)) {
-      console.log('Auto-correcting phase: User in Phase', currentPhase, 'but needs trained influencer');
-      
+    if (
+      (currentPhase === 3 || currentPhase === 4) &&
+      !hasTrainedInfluencer &&
+      (hasUntrainedInfluencer || isTrainingInProgress)
+    ) {
+      console.log(
+        "Auto-correcting phase: User in Phase",
+        currentPhase,
+        "but needs trained influencer"
+      );
+
       // Update to Phase 2 without showing toast (silent correction)
       dispatch(setUser({ guide_step: 2 }));
       localStorage.setItem("guide_step", "2");
-      
+
       // Update backend silently
       if (userData.id) {
         fetch(`${config.supabase_server_url}/user?uuid=eq.${userData.id}`, {
@@ -654,15 +710,20 @@ export default function Start() {
             Prefer: "return=representation",
           },
           body: JSON.stringify({ guide_step: 2 }),
-        }).catch(error => console.error("Error updating user phase:", error));
+        }).catch((error) => console.error("Error updating user phase:", error));
       }
     }
-  }, [currentPhase, selectedPhase2Influencer?.lorastatus, userData.id, dispatch]);
+  }, [
+    currentPhase,
+    selectedPhase2Influencer?.lorastatus,
+    userData.id,
+    dispatch,
+  ]);
 
   // Use Redux selectors for getting latest influencers
   const latestTrainedInfluencer = useSelector(selectLatestTrainedInfluencer);
   const latestGeneratedInfluencer = useSelector(
-    selectLatestGeneratedInfluencer,
+    selectLatestGeneratedInfluencer
   );
 
   const handleCreateInfluencer = async () => {
@@ -702,10 +763,17 @@ export default function Start() {
 
   const handlePhaseClick = async (phaseId: number) => {
     // Check if Phase 3 or 4 is clicked without trained influencer
-    if ((phaseId === 3 || phaseId === 4) && (!selectedPhase2Influencer || selectedPhase2Influencer.lorastatus !== 2)) {
-      toast.error("Phase 3 and 4 require a trained influencer with AI Consistency Training completed", {
-        description: "Please complete Phase 2 first or select a trained influencer"
-      });
+    if (
+      (phaseId === 3 || phaseId === 4) &&
+      (!selectedPhase2Influencer || selectedPhase2Influencer.lorastatus !== 2)
+    ) {
+      toast.error(
+        "Phase 3 and 4 require a trained influencer with AI Consistency Training completed",
+        {
+          description:
+            "Please complete Phase 2 first or select a trained influencer",
+        }
+      );
       return;
     }
 
@@ -717,7 +785,7 @@ export default function Start() {
           headers: {
             Authorization: "Bearer WeInfl3nc3withAI",
           },
-        },
+        }
       );
 
       if (!response.ok) {
@@ -729,7 +797,10 @@ export default function Start() {
 
       // Check if user is trying to access a phase higher than their current guide_step
       // Allow Phase 3 always, Phase 4 only if user has completed Phase 3
-      if (phaseId > currentGuideStep && !(phaseId === 3 || (phaseId === 4 && currentGuideStep >= 3))) {
+      if (
+        phaseId > currentGuideStep &&
+        !(phaseId === 3 || (phaseId === 4 && currentGuideStep >= 3))
+      ) {
         toast.error(`Cannot access Phase ${phaseId}`, {
           description: `You need to complete the previous phases first. Your current progress is Phase ${currentGuideStep}.`,
         });
@@ -758,7 +829,9 @@ export default function Start() {
 
       // Show success message
       toast.success(`Phase ${phaseId} activated!`, {
-        description: `You are now on ${phases.find((p) => p.id === phaseId)?.title}`,
+        description: `You are now on ${
+          phases.find((p) => p.id === phaseId)?.title
+        }`,
       });
     } catch (error) {
       console.error("Failed to fetch user guide_step:", error);
@@ -802,20 +875,20 @@ export default function Start() {
           body: JSON.stringify({
             guide_step: 3,
           }),
-        },
+        }
       );
 
       if (response.ok) {
         dispatch(setUser({ guide_step: 3 }));
         toast.success("Progress updated! Moving to Phase 3...");
         setShowWarningModal(false);
-        
+
         // Pass the selected influencer to content creation
         if (selectedPhase2Influencer) {
-          navigate("/create/images", { 
-            state: { 
-              selectedInfluencer: selectedPhase2Influencer 
-            } 
+          navigate("/create/images", {
+            state: {
+              selectedInfluencer: selectedPhase2Influencer,
+            },
           });
         } else {
           navigate("/create/images");
@@ -893,8 +966,6 @@ export default function Start() {
     setShowInfluencerSelectorModal(false);
   };
 
-
-
   const handleCopyProfileImage = async () => {
     const trainingInfluencer =
       selectedPhase2Influencer || latestGeneratedInfluencerWithLora0;
@@ -916,7 +987,7 @@ export default function Start() {
               Authorization: "Bearer WeInfl3nc3withAI",
             },
             body: uploadedFile,
-          },
+          }
         );
 
         if (!uploadResponse.ok) {
@@ -930,7 +1001,7 @@ export default function Start() {
             headers: {
               Authorization: "Bearer WeInfl3nc3withAI",
             },
-          },
+          }
         );
 
         const useridData = await useridResponse.json();
@@ -949,11 +1020,11 @@ export default function Start() {
               modelid: trainingInfluencer.id,
               inputimage: `/models/${trainingInfluencer.id}/loratraining/${uploadedFile.name}`,
             }),
-          },
+          }
         );
 
         toast.success(
-          "Image uploaded for AI consistency training successfully",
+          "Image uploaded for AI consistency training successfully"
         );
       } else {
         // Copy existing profile picture to LoRA folder
@@ -966,7 +1037,7 @@ export default function Start() {
             headers: {
               Authorization: "Bearer WeInfl3nc3withAI",
             },
-          },
+          }
         );
 
         const useridData = await useridResponse.json();
@@ -985,11 +1056,11 @@ export default function Start() {
               modelid: trainingInfluencer.id,
               inputimage: `/models/${trainingInfluencer.id}/profilepic/profilepic${latestImageNum}.png`,
             }),
-          },
+          }
         );
 
         toast.success(
-          "Profile image selected successfully for AI consistency training",
+          "Profile image selected successfully for AI consistency training"
         );
       }
 
@@ -1006,24 +1077,28 @@ export default function Start() {
                 Authorization: "Bearer WeInfl3nc3withAI",
               },
               body: JSON.stringify({ lorastatus: 1 }),
-            },
+            }
           );
-          
+
           if (influencerUpdateResponse.ok) {
             // Update local state to show processing status
             setSelectedPhase2Influencer({
               ...selectedPhase2Influencer,
-              lorastatus: 1
+              lorastatus: 1,
             });
-            
+
             // Update Redux store with updated influencer
-            dispatch(updateInfluencer({
-              ...selectedPhase2Influencer,
-              lorastatus: 1
-            }));
-            
-            toast.success(`Starting training for ${selectedPhase2Influencer.name_first} ${selectedPhase2Influencer.name_last}`);
-            
+            dispatch(
+              updateInfluencer({
+                ...selectedPhase2Influencer,
+                lorastatus: 1,
+              })
+            );
+
+            toast.success(
+              `Starting training for ${selectedPhase2Influencer.name_first} ${selectedPhase2Influencer.name_last}`
+            );
+
             // Start polling for training status
             setIsTrainingPolling(true);
             startTrainingStatusPolling(selectedPhase2Influencer.id);
@@ -1060,24 +1135,24 @@ export default function Start() {
             },
           }
         );
-        
+
         if (response.ok) {
           const influencerData = await response.json();
           if (influencerData && influencerData[0]) {
             const updatedInfluencer = influencerData[0];
-            
+
             // Update Redux store
             dispatch(updateInfluencer(updatedInfluencer));
-            
+
             // Update local state
             setSelectedPhase2Influencer(updatedInfluencer);
-            
+
             // Check if training is complete
             if (updatedInfluencer.lorastatus === 2) {
               // Training completed successfully
               setIsTrainingPolling(false);
               clearInterval(pollInterval);
-              
+
               // Update user's guide_step to 3
               try {
                 const guideStepResponse = await fetch(
@@ -1091,10 +1166,12 @@ export default function Start() {
                     body: JSON.stringify({ guide_step: 3 }),
                   }
                 );
-                
+
                 if (guideStepResponse.ok) {
                   dispatch(setUser({ guide_step: 3 }));
-                  toast.success(`Training completed for ${updatedInfluencer.name_first}! Moving to Phase 3...`);
+                  toast.success(
+                    `Training completed for ${updatedInfluencer.name_first}! Moving to Phase 3...`
+                  );
                 }
               } catch (error) {
                 console.error("Failed to update guide_step:", error);
@@ -1103,7 +1180,9 @@ export default function Start() {
               // Training failed
               setIsTrainingPolling(false);
               clearInterval(pollInterval);
-              toast.error(`Training failed for ${updatedInfluencer.name_first}. Please try again.`);
+              toast.error(
+                `Training failed for ${updatedInfluencer.name_first}. Please try again.`
+              );
             }
           }
         }
@@ -1203,7 +1282,8 @@ export default function Start() {
                   Less than 60 Minutes from Idea to Virtual Influencer
                 </div>
                 <div className="text-slate-300">
-                  This includes render time in the background, you can work on while waiting for your AI Influencer to be ready.
+                  This includes render time in the background, you can work on
+                  while waiting for your AI Influencer to be ready.
                 </div>
               </div>
             </div>
@@ -1213,24 +1293,36 @@ export default function Start() {
               <div className="flex items-center justify-between relative max-w-2xl mx-auto">
                 {/* Progress Line */}
                 <div className="absolute top-4 left-6 right-6 h-0.5 bg-slate-600/30">
-                  <div 
+                  <div
                     className="h-full bg-gradient-to-r from-purple-500 to-green-500 transition-all duration-1000 ease-out rounded-full"
-                    style={{ width: currentPhase <= 4? `${((currentPhase - 1) / 3) * 100}%` : `104%` }}
+                    style={{
+                      width:
+                        currentPhase <= 4
+                          ? `${((currentPhase - 1) / 3) * 100}%`
+                          : `104%`,
+                    }}
                   />
                 </div>
 
                 {phases.map((phase, index) => (
-                  <div key={phase.id} className="flex flex-col items-center z-10 relative">
+                  <div
+                    key={phase.id}
+                    className="flex flex-col items-center z-10 relative"
+                  >
                     {/* Smaller Step Circle */}
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 transition-all duration-300 ${
-                      phase.completed 
-                        ? 'bg-green-500 border-green-400 shadow-md shadow-green-500/25' 
-                        : phase.isProcessing
-                          ? `bg-blue-500 border-blue-400 shadow-md shadow-blue-500/25 ${blinkState ? "opacity-100" : "opacity-75"}`
-                        : phase.isPending 
-                          ? 'bg-orange-500 border-orange-400 shadow-md shadow-orange-500/25' 
-                          : 'bg-slate-600 border-slate-500'
-                    }`}>
+                    <div
+                      className={`w-8 h-8 rounded-full flex items-center justify-center border-2 transition-all duration-300 ${
+                        phase.completed
+                          ? "bg-green-500 border-green-400 shadow-md shadow-green-500/25"
+                          : phase.isProcessing
+                          ? `bg-blue-500 border-blue-400 shadow-md shadow-blue-500/25 ${
+                              blinkState ? "opacity-100" : "opacity-75"
+                            }`
+                          : phase.isPending
+                          ? "bg-orange-500 border-orange-400 shadow-md shadow-orange-500/25"
+                          : "bg-slate-600 border-slate-500"
+                      }`}
+                    >
                       {phase.completed ? (
                         <CheckCircle className="w-4 h-4 text-white" />
                       ) : phase.isProcessing ? (
@@ -1247,16 +1339,24 @@ export default function Start() {
                       <div className="text-xs font-medium text-slate-400 mb-1">
                         {phase.title}
                       </div>
-                      <div className={`px-2 py-0.5 rounded text-xs font-semibold ${
-                        phase.completed 
-                          ? 'bg-green-500/20 text-green-400' 
+                      <div
+                        className={`px-2 py-0.5 rounded text-xs font-semibold ${
+                          phase.completed
+                            ? "bg-green-500/20 text-green-400"
+                            : phase.isProcessing
+                            ? "bg-blue-500/20 text-blue-400"
+                            : phase.isPending
+                            ? "bg-orange-500/20 text-orange-400"
+                            : "bg-slate-600/20 text-slate-400"
+                        }`}
+                      >
+                        {phase.completed
+                          ? "Done"
                           : phase.isProcessing
-                            ? 'bg-blue-500/20 text-blue-400'
-                          : phase.isPending 
-                            ? 'bg-orange-500/20 text-orange-400' 
-                            : 'bg-slate-600/20 text-slate-400'
-                      }`}>
-                        {phase.completed ? 'Done' : phase.isProcessing ? 'Processing' : phase.isPending ? 'Current' : 'Pending'}
+                          ? "Processing"
+                          : phase.isPending
+                          ? "Current"
+                          : "Pending"}
                       </div>
                     </div>
                   </div>
@@ -1277,28 +1377,40 @@ export default function Start() {
                   phase.disabled
                     ? "bg-slate-900/30 border-slate-600/30 opacity-50 cursor-not-allowed"
                     : phase.completed
-                      ? "bg-green-900/20 border-green-500/50 ring-2 ring-green-500/30 shadow-lg shadow-green-500/10 hover:scale-[1.02] cursor-pointer"
-                      : phase.isProcessing
-                        ? "bg-blue-900/20 border-blue-500/50 ring-2 ring-blue-500/40 shadow-lg shadow-blue-500/20 hover:scale-[1.02] cursor-pointer"
-                      : phase.isPending
-                        ? `bg-orange-900/20 border-orange-500/50 ring-2 ring-orange-500/40 shadow-lg shadow-orange-500/20 hover:scale-[1.02] cursor-pointer ${blinkState ? "opacity-100" : "opacity-85"}`
-                        : "bg-slate-800/30 border-slate-700/50 hover:bg-slate-800/50 hover:scale-[1.02] cursor-pointer"
+                    ? "bg-green-900/20 border-green-500/50 ring-2 ring-green-500/30 shadow-lg shadow-green-500/10 hover:scale-[1.02] cursor-pointer"
+                    : phase.isProcessing
+                    ? "bg-blue-900/20 border-blue-500/50 ring-2 ring-blue-500/40 shadow-lg shadow-blue-500/20 hover:scale-[1.02] cursor-pointer"
+                    : phase.isPending
+                    ? `bg-orange-900/20 border-orange-500/50 ring-2 ring-orange-500/40 shadow-lg shadow-orange-500/20 hover:scale-[1.02] cursor-pointer ${
+                        blinkState ? "opacity-100" : "opacity-85"
+                      }`
+                    : "bg-slate-800/30 border-slate-700/50 hover:bg-slate-800/50 hover:scale-[1.02] cursor-pointer"
                 }`}
               >
                 {/* Status Badge */}
                 <div className="absolute top-4 right-4">
-                  <div className={`px-3 py-1 rounded-full text-xs font-bold ${
-                    phase.disabled
-                      ? "bg-slate-700 text-slate-400"
-                      : phase.completed
+                  <div
+                    className={`px-3 py-1 rounded-full text-xs font-bold ${
+                      phase.disabled
+                        ? "bg-slate-700 text-slate-400"
+                        : phase.completed
                         ? "bg-green-500 text-white"
                         : phase.isProcessing
-                          ? "bg-blue-500 text-white"
+                        ? "bg-blue-500 text-white"
                         : phase.isPending
-                          ? "bg-orange-500 text-white"
-                          : "bg-slate-600 text-slate-300"
-                  }`}>
-                    {phase.disabled ? "LOCKED" : phase.completed ? "COMPLETED" : phase.isProcessing ? "PROCESSING" : phase.isPending ? "CURRENT" : "PENDING"}
+                        ? "bg-orange-500 text-white"
+                        : "bg-slate-600 text-slate-300"
+                    }`}
+                  >
+                    {phase.disabled
+                      ? "LOCKED"
+                      : phase.completed
+                      ? "COMPLETED"
+                      : phase.isProcessing
+                      ? "PROCESSING"
+                      : phase.isPending
+                      ? "CURRENT"
+                      : "PENDING"}
                   </div>
                 </div>
 
@@ -1310,7 +1422,11 @@ export default function Start() {
                     onClick={(e) => {
                       e.stopPropagation();
                       // Show influencer image for Phase 2 if active, otherwise show phase image
-                      if (phase.id === 2 && currentPhase === 2 && selectedPhase2Influencer?.image_url) {
+                      if (
+                        phase.id === 2 &&
+                        currentPhase === 2 &&
+                        selectedPhase2Influencer?.image_url
+                      ) {
                         setShowImagePreviewModal(true);
                       } else {
                         setHoveredImage(phase.imageSrc);
@@ -1319,12 +1435,16 @@ export default function Start() {
                   >
                     <img
                       src={
-                        ((phase.id === 2 && currentPhase === 2) || (phase.id === 3 && currentPhase === 3)) && selectedPhase2Influencer?.image_url
+                        ((phase.id === 2 && currentPhase === 2) ||
+                          (phase.id === 3 && currentPhase === 3)) &&
+                        selectedPhase2Influencer?.image_url
                           ? selectedPhase2Influencer.image_url
                           : phase.imageSrc
                       }
                       alt={
-                        ((phase.id === 2 && currentPhase === 2) || (phase.id === 3 && currentPhase === 3)) && selectedPhase2Influencer
+                        ((phase.id === 2 && currentPhase === 2) ||
+                          (phase.id === 3 && currentPhase === 3)) &&
+                        selectedPhase2Influencer
                           ? `${selectedPhase2Influencer.name_first} ${selectedPhase2Influencer.name_last}`
                           : phase.title
                       }
@@ -1338,11 +1458,13 @@ export default function Start() {
                       </div>
                     </div>
                     {/* Influencer indicator for Phase 2 and 3 */}
-                    {((phase.id === 2 && currentPhase === 2) || (phase.id === 3 && currentPhase === 3)) && selectedPhase2Influencer && (
-                      <div className="absolute -top-1 -right-1 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center shadow-lg">
-                        <User className="w-3 h-3 text-white" />
-                      </div>
-                    )}
+                    {((phase.id === 2 && currentPhase === 2) ||
+                      (phase.id === 3 && currentPhase === 3)) &&
+                      selectedPhase2Influencer && (
+                        <div className="absolute -top-1 -right-1 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center shadow-lg">
+                          <User className="w-3 h-3 text-white" />
+                        </div>
+                      )}
                   </motion.div>
 
                   {/* Phase Info */}
@@ -1353,8 +1475,8 @@ export default function Start() {
                           phase.completed
                             ? "bg-green-500"
                             : phase.isPending
-                              ? "bg-orange-500"
-                              : "bg-slate-600"
+                            ? "bg-orange-500"
+                            : "bg-slate-600"
                         }`}
                       >
                         {phase.completed ? (
@@ -1363,13 +1485,15 @@ export default function Start() {
                           <phase.icon className="w-5 h-5 text-white" />
                         )}
                       </div>
-                      <span className={`text-sm font-medium ${
-                        phase.completed
-                          ? "text-green-400"
-                          : phase.isPending
+                      <span
+                        className={`text-sm font-medium ${
+                          phase.completed
+                            ? "text-green-400"
+                            : phase.isPending
                             ? "text-orange-400"
                             : "text-slate-400"
-                      }`}>
+                        }`}
+                      >
                         {phase.phase}
                       </span>
                     </div>
@@ -1378,8 +1502,8 @@ export default function Start() {
                         phase.completed
                           ? "text-green-400"
                           : phase.isPending
-                            ? "text-orange-400"
-                            : "text-white"
+                          ? "text-orange-400"
+                          : "text-white"
                       }`}
                     >
                       {phase.title}
@@ -1394,41 +1518,63 @@ export default function Start() {
                   <p className="text-sm text-slate-400 italic">{phase.time}</p>
 
                   {/* Current Progress Display */}
-                  {phase.completed && phase.id === 1 && latestGeneratedInfluencerWithLora0 && (
-                    <div className="mt-3 p-3 bg-green-950/30 border border-green-800/50 rounded-lg">
-                      <div className="flex items-center gap-2 text-sm text-green-400">
-                        <CheckCircle className="w-4 h-4" />
-                        <span className="font-medium">Current Progress:</span>
-                        <span>Influencer "{latestGeneratedInfluencerWithLora0.name_first} {latestGeneratedInfluencerWithLora0.name_last}" created</span>
+                  {phase.completed &&
+                    phase.id === 1 &&
+                    latestGeneratedInfluencerWithLora0 && (
+                      <div className="mt-3 p-3 bg-green-950/30 border border-green-800/50 rounded-lg">
+                        <div className="flex items-center gap-2 text-sm text-green-400">
+                          <CheckCircle className="w-4 h-4" />
+                          <span className="font-medium">Current Progress:</span>
+                          <span>
+                            Influencer "
+                            {latestGeneratedInfluencerWithLora0.name_first}{" "}
+                            {latestGeneratedInfluencerWithLora0.name_last}"
+                            created
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
 
                   {/* Phase 2 Current Progress - Processing Status */}
-                  {phase.id === 2 && selectedPhase2Influencer && selectedPhase2Influencer.lorastatus === 1 && (
-                    <div className="mt-3 p-3 bg-blue-950/30 border border-blue-800/50 rounded-lg">
-                      <div className="flex items-center gap-2 text-sm text-blue-400">
-                        <Brain className="w-4 h-4 animate-pulse" />
-                        <span className="font-medium">Current Progress:</span>
-                        <span>Training your influencer {selectedPhase2Influencer.name_first} {selectedPhase2Influencer.name_last}</span>
+                  {phase.id === 2 &&
+                    selectedPhase2Influencer &&
+                    selectedPhase2Influencer.lorastatus === 1 && (
+                      <div className="mt-3 p-3 bg-blue-950/30 border border-blue-800/50 rounded-lg">
+                        <div className="flex items-center gap-2 text-sm text-blue-400">
+                          <Brain className="w-4 h-4 animate-pulse" />
+                          <span className="font-medium">Current Progress:</span>
+                          <span>
+                            Training your influencer{" "}
+                            {selectedPhase2Influencer.name_first}{" "}
+                            {selectedPhase2Influencer.name_last}
+                          </span>
+                        </div>
+                        <div className="mt-2 flex items-center gap-2 text-xs text-blue-300">
+                          <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
+                          <span>
+                            AI consistency training in progress... Checking
+                            status every 30 seconds
+                          </span>
+                        </div>
                       </div>
-                      <div className="mt-2 flex items-center gap-2 text-xs text-blue-300">
-                        <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
-                        <span>AI consistency training in progress... Checking status every 30 seconds</span>
-                      </div>
-                    </div>
-                  )}
+                    )}
 
                   {/* Phase 2 Current Progress - Completed Status */}
-                  {phase.completed && phase.id === 2 && latestTrainedInfluencer && (
-                    <div className="mt-3 p-3 bg-green-950/30 border border-green-800/50 rounded-lg">
-                      <div className="flex items-center gap-2 text-sm text-green-400">
-                        <CheckCircle className="w-4 h-4" />
-                        <span className="font-medium">Current Progress:</span>
-                        <span>Character consistency locked for "{latestTrainedInfluencer.name_first} {latestTrainedInfluencer.name_last}"</span>
+                  {phase.completed &&
+                    phase.id === 2 &&
+                    latestTrainedInfluencer && (
+                      <div className="mt-3 p-3 bg-green-950/30 border border-green-800/50 rounded-lg">
+                        <div className="flex items-center gap-2 text-sm text-green-400">
+                          <CheckCircle className="w-4 h-4" />
+                          <span className="font-medium">Current Progress:</span>
+                          <span>
+                            Character consistency locked for "
+                            {latestTrainedInfluencer.name_first}{" "}
+                            {latestTrainedInfluencer.name_last}"
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
 
                   {phase.completed && phase.id === 3 && (
                     <div className="mt-3 p-3 bg-green-950/30 border border-green-800/50 rounded-lg">
@@ -1445,7 +1591,9 @@ export default function Start() {
                       <div className="flex items-center gap-2 text-sm text-green-400">
                         <CheckCircle className="w-4 h-4" />
                         <span className="font-medium">Current Progress:</span>
-                        <span>Content successfully published to social media</span>
+                        <span>
+                          Content successfully published to social media
+                        </span>
                       </div>
                     </div>
                   )}
@@ -1454,7 +1602,9 @@ export default function Start() {
                   {phase.showProgress && (
                     <div className="mt-4 space-y-4">
                       <div className="text-center">
-                        <div className="text-sm font-medium text-blue-400 mb-2">Training your influencer</div>
+                        <div className="text-sm font-medium text-blue-400 mb-2">
+                          Training your influencer
+                        </div>
                         <div className="flex justify-center items-center gap-1">
                           {[...Array(3)].map((_, i) => (
                             <div
@@ -1462,20 +1612,23 @@ export default function Start() {
                               className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"
                               style={{
                                 animationDelay: `${i * 0.2}s`,
-                                animationDuration: '1s'
+                                animationDuration: "1s",
                               }}
                             ></div>
                           ))}
                         </div>
                       </div>
-                      
+
                       <div className="bg-blue-950/20 border border-blue-800/30 rounded-lg p-3">
                         <div className="flex items-center justify-between text-xs text-blue-300 mb-2">
                           <span>AI Consistency Training</span>
                           <span>~30-60 minutes</span>
                         </div>
                         <div className="w-full bg-blue-900/30 rounded-full h-2">
-                          <div className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full animate-pulse" style={{ width: "45%" }}></div>
+                          <div
+                            className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full animate-pulse"
+                            style={{ width: "45%" }}
+                          ></div>
                         </div>
                         <div className="mt-2 text-xs text-blue-400 text-center">
                           Checking status automatically every 30 seconds...
@@ -1565,7 +1718,7 @@ export default function Start() {
                     <Button
                       onClick={() => {
                         // Navigate to Image Library
-                        navigate('/library/images');
+                        navigate("/library/images");
                       }}
                       variant="outline"
                       className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-semibold text-lg px-6 py-3 rounded-xl shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 border-blue-500"
@@ -1576,7 +1729,7 @@ export default function Start() {
                     <Button
                       onClick={() => {
                         // Navigate to Video Library (placeholder for now)
-                        navigate('/library/videos');
+                        navigate("/library/videos");
                       }}
                       variant="outline"
                       className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold text-lg px-6 py-3 rounded-xl shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 border-purple-500"
@@ -1643,11 +1796,13 @@ export default function Start() {
                             </div>
                           )}
                         </div>
-                        <div className={`absolute -top-2 -right-2 w-6 h-6 rounded-full flex items-center justify-center shadow-lg ${
-                          displayInfluencer.lorastatus === 0 
-                            ? 'bg-orange-500' 
-                            : 'bg-green-500'
-                        }`}>
+                        <div
+                          className={`absolute -top-2 -right-2 w-6 h-6 rounded-full flex items-center justify-center shadow-lg ${
+                            displayInfluencer.lorastatus === 0
+                              ? "bg-orange-500"
+                              : "bg-green-500"
+                          }`}
+                        >
                           {displayInfluencer.lorastatus === 0 ? (
                             <Brain className="w-3 h-3 text-white" />
                           ) : (
@@ -1661,27 +1816,28 @@ export default function Start() {
                           {displayInfluencer.name_last}
                         </h4>
                         <p className="text-sm text-slate-400">
-                          {displayInfluencer.influencer_type ||
-                            "AI Influencer"}
+                          {displayInfluencer.influencer_type || "AI Influencer"}
                         </p>
                         <p className="text-xs text-slate-500">
-                          Created:{" "}
-                          {formatDate(displayInfluencer.created_at)}
+                          Created: {formatDate(displayInfluencer.created_at)}
                         </p>
-                        <div className={`flex items-center gap-2 text-xs mt-2 ${
-                          displayInfluencer.lorastatus === 0 
-                            ? 'text-orange-400' 
-                            : 'text-green-400'
-                        }`}>
-                          <div className={`w-2 h-2 rounded-full ${
-                            displayInfluencer.lorastatus === 0 
-                              ? 'bg-orange-500' 
-                              : 'bg-green-500'
-                          }`}></div>
-                          {displayInfluencer.lorastatus === 0 
-                            ? 'Ready for Training' 
-                            : 'AI Consistency Trained'
-                          }
+                        <div
+                          className={`flex items-center gap-2 text-xs mt-2 ${
+                            displayInfluencer.lorastatus === 0
+                              ? "text-orange-400"
+                              : "text-green-400"
+                          }`}
+                        >
+                          <div
+                            className={`w-2 h-2 rounded-full ${
+                              displayInfluencer.lorastatus === 0
+                                ? "bg-orange-500"
+                                : "bg-green-500"
+                            }`}
+                          ></div>
+                          {displayInfluencer.lorastatus === 0
+                            ? "Ready for Training"
+                            : "AI Consistency Trained"}
                         </div>
                       </div>
                     </div>
@@ -2175,7 +2331,7 @@ export default function Start() {
           <div className="p-6">
             {(() => {
               const availableInfluencers = influencers.filter(
-                (inf) => inf.lorastatus === 0,
+                (inf) => inf.lorastatus === 0
               );
 
               if (availableInfluencers.length === 0) {
@@ -2284,26 +2440,34 @@ export default function Start() {
                     onClick={() => {
                       setSelectedPhase2Influencer(influencer);
                       setShowActiveInfluencerSelector(false);
-                      
+
                       // If selecting untrained influencer in Phase 3/4, move back to Phase 2
-                      if ((currentPhase === 3 || currentPhase === 4) && influencer.lorastatus !== 2) {
+                      if (
+                        (currentPhase === 3 || currentPhase === 4) &&
+                        influencer.lorastatus !== 2
+                      ) {
                         setLocalGuideStep(2);
                         localStorage.setItem("guide_step", "2");
                         if (userData.id) {
-                          fetch(`${config.supabase_server_url}/user?uuid=eq.${userData.id}`, {
-                            method: "PATCH",
-                            headers: {
-                              "Content-Type": "application/json",
-                              Authorization: "Bearer WeInfl3nc3withAI",
-                            },
-                            body: JSON.stringify({ guide_step: 2 }),
-                          }).then(response => {
+                          fetch(
+                            `${config.supabase_server_url}/user?uuid=eq.${userData.id}`,
+                            {
+                              method: "PATCH",
+                              headers: {
+                                "Content-Type": "application/json",
+                                Authorization: "Bearer WeInfl3nc3withAI",
+                              },
+                              body: JSON.stringify({ guide_step: 2 }),
+                            }
+                          ).then((response) => {
                             if (response.ok) {
                               dispatch(setUser({ guide_step: 2 }));
                             }
                           });
                         }
-                        toast.info("Moved back to Phase 2 because selected influencer needs AI Consistency Training");
+                        toast.info(
+                          "Moved back to Phase 2 because selected influencer needs AI Consistency Training"
+                        );
                       }
                     }}
                     className="cursor-pointer hover:shadow-lg transition-all duration-200 border-2 hover:border-purple-300 dark:hover:border-purple-600 bg-gradient-to-br from-slate-50/80 to-slate-100/80 dark:from-slate-800/50 dark:to-slate-700/50"
@@ -2679,7 +2843,7 @@ export default function Start() {
                         body: JSON.stringify({
                           guide_step: 5,
                         }),
-                      },
+                      }
                     );
 
                     if (response.ok) {
@@ -2731,7 +2895,7 @@ export default function Start() {
                         body: JSON.stringify({
                           guide_step: 5,
                         }),
-                      },
+                      }
                     );
 
                     if (response.ok) {
@@ -2783,7 +2947,7 @@ export default function Start() {
                         body: JSON.stringify({
                           guide_step: 5,
                         }),
-                      },
+                      }
                     );
 
                     if (response.ok) {
@@ -2844,7 +3008,7 @@ export default function Start() {
                         body: JSON.stringify({
                           guide_step: 5,
                         }),
-                      },
+                      }
                     );
 
                     if (response.ok) {
@@ -2911,10 +3075,16 @@ export default function Start() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-1">
-                        {selectedPhase2Influencer.name_first} {selectedPhase2Influencer.name_last}
+                        {selectedPhase2Influencer.name_first}{" "}
+                        {selectedPhase2Influencer.name_last}
                       </h3>
                       <p className="text-gray-600 dark:text-gray-300 mb-2">
-                        Latest profile picture • Version {selectedPhase2Influencer.image_num === null || selectedPhase2Influencer.image_num === undefined || isNaN(selectedPhase2Influencer.image_num) ? 0 : selectedPhase2Influencer.image_num - 1}
+                        Latest profile picture • Version{" "}
+                        {selectedPhase2Influencer.image_num === null ||
+                        selectedPhase2Influencer.image_num === undefined ||
+                        isNaN(selectedPhase2Influencer.image_num)
+                          ? 0
+                          : selectedPhase2Influencer.image_num - 1}
                       </p>
                       <div className="flex flex-wrap gap-2">
                         <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
@@ -2934,7 +3104,11 @@ export default function Start() {
                 <CardContent className="p-6">
                   <div className="flex items-start gap-4">
                     <div className="w-10 h-10 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 flex items-center justify-center flex-shrink-0">
-                      <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                      <svg
+                        className="w-5 h-5 text-white"
+                        fill="currentColor"
+                        viewBox="0 0 24 24"
+                      >
                         <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
                       </svg>
                     </div>
@@ -2943,9 +3117,11 @@ export default function Start() {
                         Character Consistency Training
                       </h4>
                       <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
-                        This action will start AI consistency training for your influencer,
-                        ensuring they look the same in every generated image and video. The training will be
-                        used as a reference for maintaining consistent visual characteristics.
+                        This action will start AI consistency training for your
+                        influencer, ensuring they look the same in every
+                        generated image and video. The training will be used as
+                        a reference for maintaining consistent visual
+                        characteristics.
                       </p>
                     </div>
                   </div>
@@ -2992,7 +3168,8 @@ export default function Start() {
                   Choose Training Type
                 </DialogTitle>
                 <DialogDescription className="text-base text-gray-600 dark:text-gray-300 mt-1">
-                  Select the AI consistency training option that best fits your needs
+                  Select the AI consistency training option that best fits your
+                  needs
                 </DialogDescription>
               </div>
             </div>
@@ -3011,18 +3188,20 @@ export default function Start() {
                       Basic Character Consistency Training
                     </h3>
                     <p className="text-gray-600 dark:text-gray-300 mb-4 leading-relaxed">
-                      This will automatically create 10 images to Lock the Look and perform a normal training process. Good for creating normal, consistent Influencer images.
+                      This will automatically create 12 images to Lock the Look
+                      and perform a normal training process. Good for creating
+                      normal, consistent Influencer images.
                     </p>
                     <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-4">
                       <span className="inline-flex items-center px-2 py-1 rounded-full bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 text-xs font-medium">
-                        10 Images
+                        12 Images
                       </span>
                       <span className="inline-flex items-center px-2 py-1 rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 text-xs font-medium">
-                        ~30 minutes
+                        ~10 - 15 minutes
                       </span>
                     </div>
                     <Button
-                      onClick={() => handleStartTraining('basic')}
+                      onClick={() => handleStartTraining("basic")}
                       className="w-full h-12 text-base font-medium bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 shadow-lg hover:shadow-xl transition-all duration-300"
                     >
                       <Brain className="w-5 h-5 mr-3" />
@@ -3045,7 +3224,10 @@ export default function Start() {
                       Character Consistency Training Plus
                     </h3>
                     <p className="text-gray-600 dark:text-gray-300 mb-4 leading-relaxed">
-                      This will automatically create 25 images to Lock the Look and will execute an enhanced training process with more steps. This is good for creating professional grade, consistent Influencer images.
+                      This will automatically create 25 images to Lock the Look
+                      and will execute an enhanced training process with 3x more
+                      steps. This is good for creating professional grade,
+                      consistent Influencer images.
                     </p>
                     <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-4">
                       <span className="inline-flex items-center px-2 py-1 rounded-full bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300 text-xs font-medium">
@@ -3055,11 +3237,11 @@ export default function Start() {
                         Professional Grade
                       </span>
                       <span className="inline-flex items-center px-2 py-1 rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 text-xs font-medium">
-                        ~45 minutes
+                        ~20 - 25 minutes
                       </span>
                     </div>
                     <Button
-                      onClick={() => handleStartTraining('plus')}
+                      onClick={() => handleStartTraining("plus")}
                       className="w-full h-12 text-base font-medium bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 shadow-lg hover:shadow-xl transition-all duration-300"
                     >
                       <Brain className="w-5 h-5 mr-3" />
@@ -3097,9 +3279,8 @@ export default function Start() {
               </div>
               <div>
                 <DialogTitle className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                  {selectedPhase2Influencer && 
-                    `${selectedPhase2Influencer.name_first} ${selectedPhase2Influencer.name_last}`
-                  }
+                  {selectedPhase2Influencer &&
+                    `${selectedPhase2Influencer.name_first} ${selectedPhase2Influencer.name_last}`}
                 </DialogTitle>
                 <DialogDescription className="text-sm text-gray-600 dark:text-gray-300">
                   Current influencer for Lock the Look phase
@@ -3116,15 +3297,17 @@ export default function Start() {
                   alt={`${selectedPhase2Influencer.name_first} ${selectedPhase2Influencer.name_last}`}
                   className="w-full h-auto max-h-[60vh] object-contain"
                 />
-                
+
                 {/* Overlay Info */}
                 <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-6">
                   <div className="text-white">
                     <h3 className="text-lg font-bold mb-1">
-                      {selectedPhase2Influencer.name_first} {selectedPhase2Influencer.name_last}
+                      {selectedPhase2Influencer.name_first}{" "}
+                      {selectedPhase2Influencer.name_last}
                     </h3>
                     <p className="text-sm text-gray-200 mb-2">
-                      {selectedPhase2Influencer.influencer_type || "AI Influencer"}
+                      {selectedPhase2Influencer.influencer_type ||
+                        "AI Influencer"}
                     </p>
                     <div className="flex flex-wrap gap-2">
                       <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-blue-500/20 text-blue-200 border border-blue-400/30">
@@ -3176,7 +3359,8 @@ export default function Start() {
           </DialogHeader>
 
           <div className="p-6">
-            {influencers.filter(influencer => influencer.lorastatus === 0).length === 0 ? (
+            {influencers.filter((influencer) => influencer.lorastatus === 0)
+              .length === 0 ? (
               <div className="text-center py-12">
                 <Circle className="w-16 h-16 mx-auto mb-4 text-slate-400 opacity-50" />
                 <p className="text-slate-600 dark:text-slate-400">
@@ -3185,58 +3369,62 @@ export default function Start() {
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {influencers.filter(influencer => influencer.lorastatus === 0).map((influencer) => (
-                  <Card
-                    key={influencer.id}
-                    onClick={() => handlePhase2InfluencerSelection(influencer)}
-                    className={`cursor-pointer hover:shadow-lg transition-all duration-200 border-2 ${
-                      selectedPhase2Influencer?.id === influencer.id
-                        ? 'border-purple-500 bg-purple-50/50 dark:bg-purple-950/20'
-                        : 'hover:border-purple-300 dark:hover:border-purple-600'
-                    } bg-gradient-to-br from-slate-50/80 to-slate-100/80 dark:from-slate-800/50 dark:to-slate-700/50`}
-                  >
-                    <CardContent className="p-4">
-                      <div className="space-y-3">
-                        {/* Profile Image */}
-                        <div className="relative">
-                          <div className="w-full aspect-square bg-gradient-to-br from-slate-200 to-slate-300 dark:from-slate-600 dark:to-slate-500 rounded-xl overflow-hidden shadow-md">
-                            {influencer.image_url ? (
-                              <img
-                                src={influencer.image_url}
-                                alt={`${influencer.name_first} ${influencer.name_last}`}
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center">
-                                <Circle className="w-8 h-8 text-slate-400" />
+                {influencers
+                  .filter((influencer) => influencer.lorastatus === 0)
+                  .map((influencer) => (
+                    <Card
+                      key={influencer.id}
+                      onClick={() =>
+                        handlePhase2InfluencerSelection(influencer)
+                      }
+                      className={`cursor-pointer hover:shadow-lg transition-all duration-200 border-2 ${
+                        selectedPhase2Influencer?.id === influencer.id
+                          ? "border-purple-500 bg-purple-50/50 dark:bg-purple-950/20"
+                          : "hover:border-purple-300 dark:hover:border-purple-600"
+                      } bg-gradient-to-br from-slate-50/80 to-slate-100/80 dark:from-slate-800/50 dark:to-slate-700/50`}
+                    >
+                      <CardContent className="p-4">
+                        <div className="space-y-3">
+                          {/* Profile Image */}
+                          <div className="relative">
+                            <div className="w-full aspect-square bg-gradient-to-br from-slate-200 to-slate-300 dark:from-slate-600 dark:to-slate-500 rounded-xl overflow-hidden shadow-md">
+                              {influencer.image_url ? (
+                                <img
+                                  src={influencer.image_url}
+                                  alt={`${influencer.name_first} ${influencer.name_last}`}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center">
+                                  <Circle className="w-8 h-8 text-slate-400" />
+                                </div>
+                              )}
+                            </div>
+                            {selectedPhase2Influencer?.id === influencer.id && (
+                              <div className="absolute -top-1 -right-1 w-6 h-6 bg-purple-500 rounded-full flex items-center justify-center shadow-lg">
+                                <CheckCircle className="w-3 h-3 text-white" />
                               </div>
                             )}
                           </div>
-                          {selectedPhase2Influencer?.id === influencer.id && (
-                            <div className="absolute -top-1 -right-1 w-6 h-6 bg-purple-500 rounded-full flex items-center justify-center shadow-lg">
-                              <CheckCircle className="w-3 h-3 text-white" />
-                            </div>
-                          )}
-                        </div>
 
-                        {/* Influencer Info */}
-                        <div className="text-center space-y-1">
-                          <h3 className="font-semibold text-slate-900 dark:text-slate-100 text-sm">
-                            {influencer.name_first} {influencer.name_last}
-                          </h3>
-                          <p className="text-xs text-slate-600 dark:text-slate-400">
-                            {influencer.influencer_type || "AI Influencer"}
-                          </p>
-                          <div className="flex items-center justify-center gap-1">
-                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
-                              Ready for Training
-                            </span>
+                          {/* Influencer Info */}
+                          <div className="text-center space-y-1">
+                            <h3 className="font-semibold text-slate-900 dark:text-slate-100 text-sm">
+                              {influencer.name_first} {influencer.name_last}
+                            </h3>
+                            <p className="text-xs text-slate-600 dark:text-slate-400">
+                              {influencer.influencer_type || "AI Influencer"}
+                            </p>
+                            <div className="flex items-center justify-center gap-1">
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
+                                Ready for Training
+                              </span>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                      </CardContent>
+                    </Card>
+                  ))}
               </div>
             )}
           </div>
@@ -3289,33 +3477,39 @@ export default function Start() {
             </Card>
 
             {/* Current Balance */}
-            <div className={`flex items-center justify-between p-4 rounded-xl ${
-              (userData.credits || 0) < (gemCostData?.gem_cost || 50)
-                ? 'bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800'
-                : 'bg-gray-50 dark:bg-gray-800/50'
-            }`}>
+            <div
+              className={`flex items-center justify-between p-4 rounded-xl ${
+                (userData.credits || 0) < (gemCostData?.gem_cost || 50)
+                  ? "bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800"
+                  : "bg-gray-50 dark:bg-gray-800/50"
+              }`}
+            >
               <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                 Current Balance
               </span>
               <div className="flex items-center gap-2">
-                <div className={`w-4 h-4 rounded flex items-center justify-center ${
-                  (userData.credits || 0) < (gemCostData?.gem_cost || 50)
-                    ? 'bg-gradient-to-r from-red-500 to-red-600'
-                    : 'bg-gradient-to-r from-green-500 to-emerald-500'
-                }`}>
+                <div
+                  className={`w-4 h-4 rounded flex items-center justify-center ${
+                    (userData.credits || 0) < (gemCostData?.gem_cost || 50)
+                      ? "bg-gradient-to-r from-red-500 to-red-600"
+                      : "bg-gradient-to-r from-green-500 to-emerald-500"
+                  }`}
+                >
                   <span className="text-white text-xs">💎</span>
                 </div>
-                <span className={`font-bold ${
-                  (userData.credits || 0) < (gemCostData?.gem_cost || 50)
-                    ? 'text-red-600 dark:text-red-400'
-                    : 'text-green-600 dark:text-green-400'
-                }`}>
+                <span
+                  className={`font-bold ${
+                    (userData.credits || 0) < (gemCostData?.gem_cost || 50)
+                      ? "text-red-600 dark:text-red-400"
+                      : "text-green-600 dark:text-green-400"
+                  }`}
+                >
                   {userData.credits || 0} Gems
                 </span>
               </div>
             </div>
 
-            {/* Insufficient Credits Warning */}
+            {/* Insufficient Gems Warning */}
             {(userData.credits || 0) < (gemCostData?.gem_cost || 50) && (
               <Card className="bg-gradient-to-br from-red-50/50 to-orange-50/50 dark:from-red-950/20 dark:to-orange-950/20 border-red-200/50 dark:border-red-800/50">
                 <CardContent className="p-4">
@@ -3325,11 +3519,14 @@ export default function Start() {
                     </div>
                     <div className="space-y-2">
                       <h4 className="font-semibold text-red-900 dark:text-red-100">
-                        Insufficient Credits
+                        Insufficient Gems
                       </h4>
                       <p className="text-sm text-red-700 dark:text-red-300">
-                        You need {(gemCostData?.gem_cost || 50) - (userData.credits || 0)} more gems to start training.
-                        Please purchase additional gems to continue.
+                        You need{" "}
+                        {(gemCostData?.gem_cost || 50) -
+                          (userData.credits || 0)}{" "}
+                        more gems to start training. Please purchase additional
+                        gems to continue.
                       </p>
                     </div>
                   </div>
@@ -3347,15 +3544,19 @@ export default function Start() {
                 Cancel
               </Button>
               <Button
-                onClick={() => selectedTrainingType && startTraining(selectedTrainingType)}
-                disabled={!gemCostData || (userData.credits || 0) < (gemCostData?.gem_cost || 50)}
+                onClick={() =>
+                  selectedTrainingType && startTraining(selectedTrainingType)
+                }
+                disabled={
+                  !gemCostData ||
+                  (userData.credits || 0) < (gemCostData?.gem_cost || 50)
+                }
                 className="flex-1 h-12 text-base font-medium bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Brain className="w-5 h-5 mr-2" />
-                {(userData.credits || 0) < (gemCostData?.gem_cost || 50) 
-                  ? "Insufficient Credits" 
-                  : "Confirm & Start Training"
-                }
+                {(userData.credits || 0) < (gemCostData?.gem_cost || 50)
+                  ? "Insufficient Gems"
+                  : "Confirm & Start Training"}
               </Button>
             </div>
           </div>
@@ -3373,7 +3574,7 @@ export default function Start() {
               Get our companion app for easy data transfer on your phone.
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-6 py-4">
             {/* Download Buttons */}
             <div className="space-y-3">
@@ -3397,7 +3598,9 @@ export default function Start() {
             <div className="flex justify-center">
               <div className="w-32 h-32 bg-white rounded-lg flex items-center justify-center">
                 <div className="text-black text-xs text-center">
-                  QR Code<br/>Coming Soon
+                  QR Code
+                  <br />
+                  Coming Soon
                 </div>
               </div>
             </div>

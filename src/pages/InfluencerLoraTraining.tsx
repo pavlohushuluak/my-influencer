@@ -691,17 +691,8 @@ export default function InfluencerLoraTraining() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate('/influencers/profiles')}
-            className="text-muted-foreground hover:text-foreground"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back
-          </Button>
           <div>
-            <h1 className="text-2xl font-bold">AI consistency training</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">Consistency</h1>
             <p className="text-muted-foreground">
               {selectedInfluencer.name} • Manage training images and AI consistency versions
             </p>

@@ -1,12 +1,14 @@
-import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import { Twitter, Github, Mail, Globe } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import { PrivacyPolicy } from './PrivacyPolicy';
-import { TermsOfService } from './TermsOfService';
-import { DMCAPolicy } from './DMCAPolicy';
-import { CookiePolicy } from './CookiePolicy';
-import { ComplaintPolicy } from './ComplaintPolicy';
+import { motion } from "framer-motion";
+import { Github, Globe, Mail, Twitter } from "lucide-react";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { CommunityGuidelines } from "./CommunityGuidelines";
+import { ComplaintPolicy } from "./ComplaintPolicy";
+import { CookiePolicy } from "./CookiePolicy";
+import { DMCAPolicy } from "./DMCAPolicy";
+import { PrivacyPolicy } from "./PrivacyPolicy";
+import { RefundPolicy } from "./RefundPolicy";
+import { TermsOfService } from "./TermsOfService";
 
 const Footer = () => {
   const navigate = useNavigate();
@@ -15,35 +17,20 @@ const Footer = () => {
   const [dmcaModalOpen, setDmcaModalOpen] = useState(false);
   const [cookieModalOpen, setCookieModalOpen] = useState(false);
   const [complaintModalOpen, setComplaintModalOpen] = useState(false);
+  const [communityGuidelinesModalOpen, setCommunityGuidelinesModalOpen] =
+    useState(false);
+  const [refundPolicyModalOpen, setRefundPolicyModalOpen] = useState(false);
   const footerLinks = {
-    'Product': [
-      'Features',
-      'Pricing',
-      'Roadmap',
-      'API',
-      'Integrations'
+    Product: ["Features", "Pricing", "Roadmap", "API", "Integrations"],
+    Resources: ["Documentation", "Tutorials", "Blog", "Community", "Support"],
+    Company: ["About", "Careers", "Press", "Partners", "Contact"],
+    Legal: [
+      "Privacy Policy",
+      "Terms of Service",
+      "Cookie Policy",
+      "Complaint",
+      "DMCA",
     ],
-    'Resources': [
-      'Documentation',
-      'Tutorials',
-      'Blog',
-      'Community',
-      'Support'
-    ],
-    'Company': [
-      'About',
-      'Careers',
-      'Press',
-      'Partners',
-      'Contact'
-    ],
-    'Legal': [
-      'Privacy Policy',
-      'Terms of Service',
-      'Cookie Policy',
-      'Complaint',
-      'DMCA'
-    ]
   };
 
   return (
@@ -56,20 +43,20 @@ const Footer = () => {
               <div className="flex items-center space-x-3">
                 <div className="relative group">
                   <div className="absolute inset-0 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-xl blur-sm group-hover:blur-md transition-all duration-300"></div>
-                  <img 
-                    src="/logo.jpg" 
-                    alt="Nymia Logo" 
+                  <img
+                    src="/logo.jpg"
+                    alt="Nymia Logo"
                     className="relative h-12 w-auto rounded-xl cursor-pointer object-cover shadow-lg border border-white/10 backdrop-blur-sm group-hover:shadow-2xl group-hover:shadow-purple-500/25 transition-all duration-300 group-hover:scale-105"
                     onClick={() => {
-                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                      window.scrollTo({ top: 0, behavior: "smooth" });
                     }}
                   />
                 </div>
               </div>
             </div>
             <p className="text-slate-400 mb-6 leading-relaxed">
-              Launch virtual influencers in under 60 minutes. 
-              Guided assistants, AI Consistency, and stunning content creation.
+              Launch virtual influencers in under 60 minutes. Guided assistants,
+              AI Consistency, and stunning content creation.
             </p>
             <div className="flex items-center space-x-4">
               {[Twitter, Github, Mail, Globe].map((Icon, index) => (
@@ -92,18 +79,18 @@ const Footer = () => {
               <ul className="space-y-3">
                 {links.map((link, index) => (
                   <li key={index}>
-                    {category === 'Legal' ? (
+                    {category === "Legal" ? (
                       <button
                         onClick={() => {
-                          if (link === 'Privacy Policy') {
+                          if (link === "Privacy Policy") {
                             setPrivacyModalOpen(true);
-                          } else if (link === 'Terms of Service') {
+                          } else if (link === "Terms of Service") {
                             setTermsModalOpen(true);
-                          } else if (link === 'Cookie Policy') {
+                          } else if (link === "Cookie Policy") {
                             setCookieModalOpen(true);
-                          } else if (link === 'Complaint') {
+                          } else if (link === "Complaint") {
                             setComplaintModalOpen(true);
-                          } else if (link === 'DMCA') {
+                          } else if (link === "DMCA") {
                             setDmcaModalOpen(true);
                           }
                         }}
@@ -135,23 +122,17 @@ const Footer = () => {
             </div>
 
             <div className="flex items-center space-x-6 text-slate-500 text-sm">
-              <button 
-                onClick={() => setPrivacyModalOpen(true)}
+              <button
+                onClick={() => setCommunityGuidelinesModalOpen(true)}
                 className="hover:text-white transition-colors cursor-pointer"
               >
-                Privacy policy
+                Community Guidelines
               </button>
-              <button 
-                onClick={() => setTermsModalOpen(true)}
+              <button
+                onClick={() => setRefundPolicyModalOpen(true)}
                 className="hover:text-white transition-colors cursor-pointer"
               >
-                Terms of service
-              </button>
-              <button 
-                onClick={() => setComplaintModalOpen(true)}
-                className="hover:text-white transition-colors cursor-pointer"
-              >
-                Complaint
+                Refund Policy
               </button>
             </div>
           </div>
@@ -159,33 +140,36 @@ const Footer = () => {
       </div>
 
       {/* Privacy Policy Modal */}
-      <PrivacyPolicy 
-        open={privacyModalOpen} 
-        onOpenChange={setPrivacyModalOpen} 
+      <PrivacyPolicy
+        open={privacyModalOpen}
+        onOpenChange={setPrivacyModalOpen}
       />
 
       {/* Terms of Service Modal */}
-      <TermsOfService 
-        open={termsModalOpen} 
-        onOpenChange={setTermsModalOpen} 
-      />
+      <TermsOfService open={termsModalOpen} onOpenChange={setTermsModalOpen} />
 
       {/* DMCA Policy Modal */}
-      <DMCAPolicy 
-        open={dmcaModalOpen} 
-        onOpenChange={setDmcaModalOpen} 
-      />
+      <DMCAPolicy open={dmcaModalOpen} onOpenChange={setDmcaModalOpen} />
 
       {/* Cookie Policy Modal */}
-      <CookiePolicy 
-        open={cookieModalOpen} 
-        onOpenChange={setCookieModalOpen} 
-      />
+      <CookiePolicy open={cookieModalOpen} onOpenChange={setCookieModalOpen} />
 
       {/* Complaint Policy Modal */}
-      <ComplaintPolicy 
-        open={complaintModalOpen} 
-        onOpenChange={setComplaintModalOpen} 
+      <ComplaintPolicy
+        open={complaintModalOpen}
+        onOpenChange={setComplaintModalOpen}
+      />
+
+      {/* Community Guidelines Modal */}
+      <CommunityGuidelines
+        open={communityGuidelinesModalOpen}
+        onOpenChange={setCommunityGuidelinesModalOpen}
+      />
+
+      {/* Refund Policy Modal */}
+      <RefundPolicy
+        open={refundPolicyModalOpen}
+        onOpenChange={setRefundPolicyModalOpen}
       />
     </footer>
   );

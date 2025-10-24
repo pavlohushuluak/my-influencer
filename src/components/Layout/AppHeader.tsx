@@ -1,14 +1,20 @@
-import { useSelector, useDispatch } from 'react-redux';
-import { RootState } from '@/store/store';
-import { toggleTheme } from '@/store/slices/uiSlice';
-import config from '@/config/config';
-import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { Star, Moon, Sun, Menu } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import { useIsMobile } from '@/hooks/use-mobile';
-import { useState } from 'react';
-import { toast } from 'sonner';
+import { Button } from "@/components/ui/button";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import config from "@/config/config";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { toggleTheme } from "@/store/slices/uiSlice";
+import { RootState } from "@/store/store";
+import { Menu, Moon, Star, Sun } from "lucide-react";
+import { useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 interface AppHeaderProps {
   showAuthButtons?: boolean;
@@ -20,41 +26,41 @@ export function AppHeader({ showAuthButtons = true }: AppHeaderProps) {
   const { theme } = useSelector((state: RootState) => state.ui);
   const isMobile = useIsMobile();
   const [isSheetOpen, setIsSheetOpen] = useState(false);
-  const isLoggedIn = sessionStorage.getItem('access_token') !== null;
+  const isLoggedIn = sessionStorage.getItem("access_token") !== null;
 
   const handleThemeToggle = () => {
     dispatch(toggleTheme());
   };
 
   const handleLogout = async () => {
-    const accessToken = sessionStorage.getItem('access_token');
-    
+    const accessToken = sessionStorage.getItem("access_token");
+
     if (accessToken) {
       try {
         const response = await fetch(`${config.backend_url}/logout`, {
-          method: 'POST',
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer WeInfl3nc3withAI'
+            "Content-Type": "application/json",
+            Authorization: "Bearer WeInfl3nc3withAI",
           },
           body: JSON.stringify({
-            access_token: accessToken
-          })
+            access_token: accessToken,
+          }),
         });
 
         if (!response.ok) {
-          throw new Error('Failed to logout');
+          throw new Error("Failed to logout");
         }
       } catch (error) {
-        console.error('Error during logout:', error);
+        console.error("Error during logout:", error);
       }
     }
 
     // Remove tokens and navigate regardless of API call success
-    sessionStorage.removeItem('access_token');
-    sessionStorage.removeItem('refresh_token');
-    toast.success('Signed out successfully');
-    navigate('/signin');
+    sessionStorage.removeItem("access_token");
+    sessionStorage.removeItem("refresh_token");
+    toast.success("Signed out successfully");
+    navigate("/signin");
   };
 
   const handleNavigation = (href: string) => {
@@ -63,20 +69,22 @@ export function AppHeader({ showAuthButtons = true }: AppHeaderProps) {
   };
 
   const navigationItems = [
-    { name: 'Features', href: '/#features' },
-    { name: 'Pricing', href: '/pricing' },
-    { name: 'About', href: '/#about' },
-    { name: 'Contact', href: '/#contact' }
+    { name: "Features", href: "/#features" },
+    { name: "Pricing", href: "/pricing" },
+    { name: "About", href: "/#about" },
+    { name: "Contact", href: "/#contact" },
   ];
 
   return (
     <header className="border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         {/* Logo */}
-        <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/')}>
-          <img src='/logo.jpg' alt='logo' className='h-10 rounded-xl' />
+        <div
+          className="flex items-center gap-3 cursor-pointer"
+          onClick={() => window.open("https://www.nymia.ai/")}
+        >
+          <img src="/logo.jpg" alt="logo" className="h-10 rounded-xl" />
         </div>
-
 
         {/* Desktop Actions */}
         {!isMobile && (
@@ -88,7 +96,7 @@ export function AppHeader({ showAuthButtons = true }: AppHeaderProps) {
               onClick={handleThemeToggle}
               className="w-9 h-9 hover:bg-accent transition-colors"
             >
-              {theme === 'dark' ? (
+              {theme === "dark" ? (
                 <Sun className="w-4 h-4 text-foreground" />
               ) : (
                 <Moon className="w-4 h-4 text-foreground" />
@@ -98,16 +106,12 @@ export function AppHeader({ showAuthButtons = true }: AppHeaderProps) {
               <>
                 <Button
                   variant="outline"
-                  onClick={isLoggedIn ? handleLogout : () => navigate('/signin')}
+                  onClick={
+                    isLoggedIn ? handleLogout : () => navigate("/signin")
+                  }
                   className="px-8 py-3 border-border border-neutral-300 hover:bg-accent dark:border-neutral-600 text-neutral-800 dark:text-neutral-100 bg-transparent hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
                 >
-                  {isLoggedIn ? 'Sign Out' : 'Sign In'}
-                </Button>
-                <Button
-                  className="bg-ai-gradient hover:opacity-90 transition-opacity shadow-lg"
-                  onClick={() => navigate(isLoggedIn ? '/start' : '/signup')}
-                >
-                  {isLoggedIn ? 'Start Creating' : 'Get Started'}
+                  {isLoggedIn ? "Sign Out" : "Sign In"}
                 </Button>
               </>
             )}
@@ -123,7 +127,7 @@ export function AppHeader({ showAuthButtons = true }: AppHeaderProps) {
               onClick={handleThemeToggle}
               className="w-9 h-9 hover:bg-accent transition-colors"
             >
-              {theme === 'dark' ? (
+              {theme === "dark" ? (
                 <Sun className="w-4 h-4 text-foreground" />
               ) : (
                 <Moon className="w-4 h-4 text-foreground" />
@@ -141,34 +145,26 @@ export function AppHeader({ showAuthButtons = true }: AppHeaderProps) {
                     <div className="w-8 h-8 bg-ai-gradient rounded-lg flex items-center justify-center">
                       <Star className="w-4 h-4 text-white" />
                     </div>
-                    <span className="bg-ai-gradient bg-clip-text text-transparent">AI Influence</span>
+                    <span className="bg-ai-gradient bg-clip-text text-transparent">
+                      AI Influence
+                    </span>
                   </SheetTitle>
                 </SheetHeader>
 
                 <div className="flex flex-col gap-6 mt-8">
-
                   <Button
                     variant="outline"
                     onClick={() => {
                       if (isLoggedIn) {
                         handleLogout();
                       } else {
-                        navigate('/signin');
+                        navigate("/signin");
                       }
                       setIsSheetOpen(false);
                     }}
                     className="w-full"
                   >
-                    {isLoggedIn ? 'Sign Out' : 'Sign In'}
-                  </Button>
-                  <Button
-                    className="w-full bg-ai-gradient hover:opacity-90 transition-opacity"
-                    onClick={() => {
-                      navigate(isLoggedIn ? '/start' : '/signup');
-                      setIsSheetOpen(false);
-                    }}
-                  >
-                    {isLoggedIn ? 'Start Creating' : 'Get Started'}
+                    {isLoggedIn ? "Sign Out" : "Sign In"}
                   </Button>
                 </div>
               </SheetContent>

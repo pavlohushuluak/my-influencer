@@ -864,10 +864,6 @@ export default function LibraryManager({ onClose, onApplyPreset }: {
                             </p>
                           </div>
                         <div className="space-y-1 text-sm text-muted-foreground">
-                          <p className="flex items-center gap-1">
-                            <Calendar className="w-3 h-3" />
-                            {preset.createdDate} at {preset.createdTime}
-                          </p>
                           {preset.jsonjob?.prompt && (
                             <p className="line-clamp-2 text-xs">
                               {preset.jsonjob.prompt.length > 50

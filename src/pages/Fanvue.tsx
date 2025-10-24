@@ -1,10 +1,9 @@
-
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowLeft, Construction, Zap } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
-export default function ContentBatch() {
+export default function Fanvue() {
   const navigate = useNavigate();
 
   return (
@@ -24,10 +23,10 @@ export default function ContentBatch() {
             </Button>
             <div>
               <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-                Batch Content Creator
+                Fanvue Integration
               </h1>
               <p className="text-slate-600 dark:text-slate-400 mt-1">
-                Create and manage multiple pieces of content simultaneously with AI assistance
+                Connect and manage your Fanvue content
               </p>
             </div>
           </div>
@@ -55,7 +54,9 @@ export default function ContentBatch() {
                   In Beta Test
                 </h2>
                 <p className="text-lg text-slate-600 dark:text-slate-400 leading-relaxed">
-                  We're currently testing the Batch Content Creator. This feature will be available soon with powerful tools to create and manage multiple pieces of content simultaneously with AI assistance.
+                  We're currently testing the Fanvue integration. This feature
+                  will be available soon with powerful tools to manage your
+                  Fanvue content and boost your creator workflow.
                 </p>
               </div>
 
@@ -63,34 +64,34 @@ export default function ContentBatch() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8">
                 <div className="p-4 rounded-lg bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 border border-purple-200 dark:border-purple-800">
                   <h3 className="font-semibold text-slate-900 dark:text-slate-100 mb-2">
-                    Bulk Content Generation
+                    Content Management
                   </h3>
                   <p className="text-sm text-slate-600 dark:text-slate-400">
-                    Generate multiple pieces of content at once
+                    Schedule and organize your Fanvue posts
                   </p>
                 </div>
                 <div className="p-4 rounded-lg bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border border-green-200 dark:border-green-800">
                   <h3 className="font-semibold text-slate-900 dark:text-slate-100 mb-2">
-                    Template System
+                    Analytics Dashboard
                   </h3>
                   <p className="text-sm text-slate-600 dark:text-slate-400">
-                    Use templates to maintain consistency across content
+                    Track performance and engagement metrics
                   </p>
                 </div>
                 <div className="p-4 rounded-lg bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20 border border-orange-200 dark:border-orange-800">
                   <h3 className="font-semibold text-slate-900 dark:text-slate-100 mb-2">
-                    Multi-Platform Export
+                    AI Content Creation
                   </h3>
                   <p className="text-sm text-slate-600 dark:text-slate-400">
-                    Export content optimized for different platforms
+                    Generate engaging content with AI assistance
                   </p>
                 </div>
                 <div className="p-4 rounded-lg bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 border border-indigo-200 dark:border-indigo-800">
                   <h3 className="font-semibold text-slate-900 dark:text-slate-100 mb-2">
-                    Workflow Automation
+                    Audience Insights
                   </h3>
                   <p className="text-sm text-slate-600 dark:text-slate-400">
-                    Automate repetitive content creation tasks
+                    Understand your audience better
                   </p>
                 </div>
               </div>

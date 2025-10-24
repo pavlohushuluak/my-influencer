@@ -1,64 +1,98 @@
-import { useSelector, useDispatch } from 'react-redux';
-import { RootState } from '@/store/store';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { useState, useEffect } from 'react';
-import { Search, MessageCircle, Instagram, Send, X, Filter, Crown, Plus, Sparkles, Image, Copy, Upload, Trash, Loader2, FileText, Wand2, Check, AlertTriangle } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Command, CommandItem, CommandList } from '@/components/ui/command';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { useDebounce } from '@/hooks/useDebounce';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { Influencer } from '@/store/slices/influencersSlice';
-import { setInfluencers, setLoading, setError } from '@/store/slices/influencersSlice';
-import { setUser } from '@/store/slices/userSlice';
-import { toast } from 'sonner';
-import { LoraStatusIndicator } from '@/components/Influencers/LoraStatusIndicator';
-import { setBio } from '@/store/slices/bioSlice';
-import config from '@/config/config';
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Command, CommandItem, CommandList } from "@/components/ui/command";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { useDebounce } from "@/hooks/useDebounce";
+import {
+  Influencer,
+  setError,
+  setInfluencers,
+  setLoading,
+} from "@/store/slices/influencersSlice";
+import { RootState } from "@/store/store";
+import {
+  AlertTriangle,
+  Check,
+  FileText,
+  Filter,
+  Image,
+  Search,
+  Sparkles,
+  Wand2,
+  X,
+} from "lucide-react";
+import { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { useLocation, useNavigate } from "react-router-dom";
+import { toast } from "sonner";
+
+import config from "@/config/config";
+import { setBio } from "@/store/slices/bioSlice";
 
 const SEARCH_FIELDS = [
-  { id: 'all', label: 'All Fields' },
-  { id: 'name', label: 'Name' },
-  { id: 'age_lifestyle', label: 'Age/Lifestyle' },
-  { id: 'influencer_type', label: 'Type' }
+  { id: "all", label: "All Fields" },
+  { id: "name", label: "Name" },
+  { id: "age_lifestyle", label: "Age/Lifestyle" },
+  { id: "influencer_type", label: "Type" },
 ];
 
 export default function SocialBio() {
-  const influencers = useSelector((state: RootState) => state.influencers.influencers);
-  const isLoading = useSelector((state: RootState) => state.influencers.loading);
+  const influencers = useSelector(
+    (state: RootState) => state.influencers.influencers
+  );
+  const isLoading = useSelector(
+    (state: RootState) => state.influencers.loading
+  );
   const { subscription } = useSelector((state: RootState) => state.user);
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedInfluencer, setSelectedInfluencer] = useState<string>('');
-  const [selectedSearchField, setSelectedSearchField] = useState(SEARCH_FIELDS[0]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedInfluencer, setSelectedInfluencer] = useState<string>("");
+  const [selectedSearchField, setSelectedSearchField] = useState(
+    SEARCH_FIELDS[0]
+  );
   const [openFilter, setOpenFilter] = useState(false);
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
-  const [selectedInfluencerData, setSelectedInfluencerData] = useState<Influencer | null>(null);
+  const [selectedInfluencerData, setSelectedInfluencerData] =
+    useState<Influencer | null>(null);
   const [showBioModal, setShowBioModal] = useState(false);
-  const [bioMode, setBioMode] = useState<'view' | 'create' | null>(null);
+  const [bioMode, setBioMode] = useState<"view" | "create" | null>(null);
   const [bioLoading, setBioLoading] = useState(false);
   const [bioError, setBioError] = useState<string | null>(null);
 
-  const filteredInfluencers = influencers.filter(influencer => {
+  const filteredInfluencers = influencers.filter((influencer) => {
     if (!debouncedSearchTerm) return true;
 
     const searchLower = debouncedSearchTerm.toLowerCase();
 
     switch (selectedSearchField.id) {
-      case 'name':
-        return `${influencer.name_first} ${influencer.name_last}`.toLowerCase().includes(searchLower);
-      case 'age_lifestyle':
+      case "name":
+        return `${influencer.name_first} ${influencer.name_last}`
+          .toLowerCase()
+          .includes(searchLower);
+      case "age_lifestyle":
         return influencer.age_lifestyle.toLowerCase().includes(searchLower);
-      case 'influencer_type':
+      case "influencer_type":
         return influencer.influencer_type.toLowerCase().includes(searchLower);
       default:
         return (
-          `${influencer.name_first} ${influencer.name_last}`.toLowerCase().includes(searchLower) ||
+          `${influencer.name_first} ${influencer.name_last}`
+            .toLowerCase()
+            .includes(searchLower) ||
           influencer.age_lifestyle.toLowerCase().includes(searchLower) ||
           influencer.influencer_type.toLowerCase().includes(searchLower)
         );
@@ -70,20 +104,25 @@ export default function SocialBio() {
   const fetchInfluencers = async () => {
     try {
       dispatch(setLoading(true));
-      const response = await fetch(`${config.supabase_server_url}/influencer?user_id=eq.${userData.id}`, {
-        headers: {
-          'Authorization': 'Bearer WeInfl3nc3withAI'
+      const response = await fetch(
+        `${config.supabase_server_url}/influencer?user_id=eq.${userData.id}`,
+        {
+          headers: {
+            Authorization: "Bearer WeInfl3nc3withAI",
+          },
         }
-      });
+      );
 
       if (!response.ok) {
-        throw new Error('Failed to fetch influencers');
+        throw new Error("Failed to fetch influencers");
       }
 
       const data = await response.json();
       dispatch(setInfluencers(data));
     } catch (error) {
-      dispatch(setError(error instanceof Error ? error.message : 'An error occurred'));
+      dispatch(
+        setError(error instanceof Error ? error.message : "An error occurred")
+      );
     } finally {
       dispatch(setLoading(false));
     }
@@ -93,21 +132,54 @@ export default function SocialBio() {
     fetchInfluencers();
   }, [userData.id]);
 
-  // Auto-trigger bio button click when navigating from Quick Actions modal
+  // Auto-trigger bio button click when navigating from Quick Actions modal or Dashboard
   useEffect(() => {
-    if (location.state?.influencerData && location.state?.fromQuickActions && location.state?.autoClickBio && influencers.length > 0 && !isLoading) {
+    if (
+      location.state?.influencerData &&
+      influencers.length > 0 &&
+      !isLoading
+    ) {
       const influencerData = location.state.influencerData;
-      const targetInfluencer = influencers.find(inf => inf.id === influencerData.id);
-      
-      if (targetInfluencer) {
-        console.log('Auto-clicking bio button for influencer:', targetInfluencer.name_first);
-        
+      const targetInfluencer = influencers.find(
+        (inf) => inf.id === influencerData.id
+      );
+
+      // Check if coming from Dashboard with autoShowBioModal flag
+      if (
+        location.state?.fromDashboard &&
+        location.state?.autoShowBioModal &&
+        targetInfluencer
+      ) {
+        console.log(
+          "Auto-showing bio modal for influencer from Dashboard:",
+          targetInfluencer.name_first
+        );
+
+        // Automatically show the bio modal
+        setTimeout(() => {
+          handleBioClick(targetInfluencer.id);
+        }, 500); // Small delay to ensure page is fully loaded
+
+        // Clear the location state to prevent re-triggering
+        navigate(location.pathname, { replace: true });
+      }
+      // Check if coming from Quick Actions modal
+      else if (
+        location.state?.fromQuickActions &&
+        location.state?.autoClickBio &&
+        targetInfluencer
+      ) {
+        console.log(
+          "Auto-clicking bio button for influencer from Quick Actions:",
+          targetInfluencer.name_first
+        );
+
         // Simulate clicking the bio button on the influencer card
         // This is exactly what happens when user clicks the bio button
         setTimeout(() => {
           handleBioClick(targetInfluencer.id);
         }, 500); // Small delay to ensure page is fully loaded
-        
+
         // Clear the location state to prevent re-triggering
         navigate(location.pathname, { replace: true });
       }
@@ -115,16 +187,16 @@ export default function SocialBio() {
   }, [location.state, influencers, isLoading]);
 
   const handleBioClick = (influencerId: string) => {
-    const influencer = influencers.find(i => i.id === influencerId);
+    const influencer = influencers.find((i) => i.id === influencerId);
     if (!influencer) return;
 
     setSelectedInfluencer(influencerId);
     setSelectedInfluencerData(influencer);
 
     if (!influencer?.bio || Object.keys(influencer.bio).length === 0) {
-      setBioMode('create');
+      setBioMode("create");
     } else {
-      setBioMode('view');
+      setBioMode("view");
     }
     setShowBioModal(true);
   };
@@ -137,37 +209,40 @@ export default function SocialBio() {
       // Remove bio from influencer data
       const { bio, ...influencerData } = selectedInfluencerData;
       const response = await fetch(`${config.backend_url}/biowizard`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer WeInfl3nc3withAI'
+          "Content-Type": "application/json",
+          Authorization: "Bearer WeInfl3nc3withAI",
         },
         body: JSON.stringify([influencerData]),
       });
       if (!response.ok) {
-        throw new Error('Failed to generate bio');
+        throw new Error("Failed to generate bio");
       }
       const data = await response.json();
       // Save to redux store
       dispatch(setBio({ influencerId: selectedInfluencerData.id, bio: data }));
       // Save to database
-      const patchResponse = await fetch(`${config.supabase_server_url}/influencer?id=eq.${selectedInfluencerData.id}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer WeInfl3nc3withAI',
-        },
-        body: JSON.stringify({ bio: data }),
-      });
+      const patchResponse = await fetch(
+        `${config.supabase_server_url}/influencer?id=eq.${selectedInfluencerData.id}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: "Bearer WeInfl3nc3withAI",
+          },
+          body: JSON.stringify({ bio: data }),
+        }
+      );
       if (!patchResponse.ok) {
-        throw new Error('Failed to save bio to database');
+        throw new Error("Failed to save bio to database");
       }
       setShowBioModal(false);
-      toast.success('Bio generated successfully!');
+      toast.success("Bio generated successfully!");
       navigate(`/influencers/bio?id=${selectedInfluencerData.id}`);
     } catch (err: any) {
-      setBioError(err.message || 'Failed to generate or save bio');
-      toast.error('Failed to generate bio. Please try again.');
+      setBioError(err.message || "Failed to generate or save bio");
+      toast.error("Failed to generate bio. Please try again.");
     } finally {
       setBioLoading(false);
     }
@@ -175,7 +250,12 @@ export default function SocialBio() {
 
   const handleViewBio = () => {
     if (selectedInfluencerData?.bio) {
-      dispatch(setBio({ influencerId: selectedInfluencerData.id, bio: selectedInfluencerData.bio }));
+      dispatch(
+        setBio({
+          influencerId: selectedInfluencerData.id,
+          bio: selectedInfluencerData.bio,
+        })
+      );
     }
     navigate(`/influencers/bio?id=${selectedInfluencerData?.id}`);
   };
@@ -185,7 +265,7 @@ export default function SocialBio() {
   };
 
   const handleSearchClear = () => {
-    setSearchTerm('');
+    setSearchTerm("");
   };
 
   return (
@@ -257,38 +337,52 @@ export default function SocialBio() {
 
         {/* Search Results Count */}
         <div className="text-sm text-muted-foreground">
-          Found {filteredInfluencers.length} influencer{filteredInfluencers.length !== 1 ? 's' : ''}
+          Found {filteredInfluencers.length} influencer
+          {filteredInfluencers.length !== 1 ? "s" : ""}
         </div>
       </div>
 
       {/* Influencers Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-6 px-4">
         {filteredInfluencers.map((influencer) => (
-          <Card key={influencer.id} className="group hover:shadow-lg transition-all duration-300 border-border/50 hover:border-ai-purple-500/20">
-            <CardContent className="p-6 h-full">
-              <div className="space-y-4 flex flex-col justify-between h-full">
-                <div className="relative w-full h-full bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg overflow-hidden">
-                  {/* LoraStatusIndicator positioned at top right */}
-                  <div className="absolute right-[-15px] top-[-15px] z-10">
-                    <LoraStatusIndicator 
-                      status={influencer.lorastatus || 0} 
-                      className="flex-shrink-0"
-                    />
-                  </div>
-                  {
-                    influencer.image_url ? (
-                      <img
-                        src={influencer.image_url}
-                        alt={`${influencer.name_first} ${influencer.name_last}`}
-                        className="w-full h-full object-cover"
-                      />
+          <Card
+            key={influencer.id}
+            className="group transition-all duration-300 hover:shadow-xl border-2 transform hover:scale-105 border-gray-200 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-600"
+          >
+            <CardContent className="p-4 sm:p-6 h-full">
+              <div className="flex flex-col justify-between h-full space-y-3 sm:space-y-4">
+                <div
+                  className="relative w-full h-full bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg overflow-hidden cursor-pointer"
+                  title="Click to manage bio"
+                >
+                  {/* AI Consistency Status Badge positioned at top right */}
+                  <div className="absolute right-1 top-0.5 z-10">
+                    {(influencer.lorastatus || 0) === 2 ? (
+                      <Badge className="bg-green-600/50 text-white text-[10px] px-1.5 py-0.5 font-medium rounded-sm shadow-sm">
+                        <Sparkles className="w-2.5 h-2.5 mr-1" />
+                        Trained
+                      </Badge>
                     ) : (
-                      <div className="flex flex-col w-full h-full items-center justify-center max-h-48 min-h-40">
-                        <Image className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                        <h3 className="text-lg font-semibold mb-2">No image found</h3>
-                      </div>
-                    )
-                  }
+                      <Badge className="bg-amber-500/50 text-white text-[10px] px-1.5 py-0.5 font-medium rounded-sm shadow-sm">
+                        <AlertTriangle className="w-2.5 h-2.5 mr-1" />
+                        Pending
+                      </Badge>
+                    )}
+                  </div>
+                  {influencer.image_url ? (
+                    <img
+                      src={influencer.image_url}
+                      alt={`${influencer.name_first} ${influencer.name_last}`}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex flex-col w-full h-full items-center justify-center max-h-48 min-h-40">
+                      <Image className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold mb-2">
+                        No image found
+                      </h3>
+                    </div>
+                  )}
                 </div>
 
                 <div>
@@ -302,14 +396,14 @@ export default function SocialBio() {
                     <div className="flex text-sm text-muted-foreground flex-col">
                       {influencer.notes ? (
                         <span className="text-sm text-muted-foreground">
-                          {influencer.notes.length > 50 
-                            ? `${influencer.notes.substring(0, 50)}...` 
-                            : influencer.notes
-                          }
+                          {influencer.notes.length > 50
+                            ? `${influencer.notes.substring(0, 50)}...`
+                            : influencer.notes}
                         </span>
                       ) : (
                         <span className="text-sm text-muted-foreground">
-                          {influencer.lifestyle || 'No lifestyle'} • {influencer.origin_residence || 'No residence'}
+                          {influencer.lifestyle || "No lifestyle"} •{" "}
+                          {influencer.origin_residence || "No residence"}
                         </span>
                       )}
                     </div>
@@ -334,10 +428,7 @@ export default function SocialBio() {
       </div>
 
       {/* Bio Modal */}
-      <Dialog
-        open={showBioModal}
-        onOpenChange={setShowBioModal}
-      >
+      <Dialog open={showBioModal} onOpenChange={setShowBioModal}>
         <DialogContent className="max-w-2xl w-[95vw] max-h-[90vh] overflow-y-auto p-0">
           {/* Header with gradient background */}
           <div className="bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 p-4 sm:p-6 lg:p-8 text-white relative overflow-hidden">
@@ -351,13 +442,13 @@ export default function SocialBio() {
                 <FileText className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
               </div>
               <DialogTitle className="text-xl sm:text-2xl lg:text-3xl font-bold mb-3 sm:mb-4 bg-gradient-to-r from-white to-purple-100 bg-clip-text text-transparent">
-                  Bio Management
-                </DialogTitle>
+                Bio Management
+              </DialogTitle>
               <DialogDescription className="text-sm sm:text-base lg:text-lg text-purple-100 leading-relaxed max-w-2xl mx-auto">
                 Manage influencer bio with AI assistance and professional tools
-                </DialogDescription>
-              </div>
+              </DialogDescription>
             </div>
+          </div>
 
           {/* Content */}
           <div className="p-4 sm:p-6 lg:p-8">
@@ -380,22 +471,27 @@ export default function SocialBio() {
                     </div>
                     <div className="flex-1 text-center sm:text-left">
                       <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100 mb-1">
-                        {selectedInfluencerData.name_first} {selectedInfluencerData.name_last}
+                        {selectedInfluencerData.name_first}{" "}
+                        {selectedInfluencerData.name_last}
                       </h3>
                       <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">
-                        {selectedInfluencerData.age_lifestyle || 'No age/lifestyle'} • {selectedInfluencerData.influencer_type || 'No type'}
+                        {selectedInfluencerData.age_lifestyle ||
+                          "No age/lifestyle"}{" "}
+                        • {selectedInfluencerData.influencer_type || "No type"}
                       </p>
                       <div className="flex flex-wrap gap-2 justify-center sm:justify-start">
                         <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300">
                           <FileText className="w-3 h-3 mr-1" />
                           Bio Management
                         </span>
-                        {selectedInfluencerData.bio && Object.keys(selectedInfluencerData.bio).length > 0 && (
-                          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
-                            <Check className="w-3 h-3 mr-1" />
-                            Bio Available
-                          </span>
-                        )}
+                        {selectedInfluencerData.bio &&
+                          Object.keys(selectedInfluencerData.bio).length >
+                            0 && (
+                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
+                              <Check className="w-3 h-3 mr-1" />
+                              Bio Available
+                            </span>
+                          )}
                       </div>
                     </div>
                   </div>
@@ -404,7 +500,7 @@ export default function SocialBio() {
             )}
 
             {/* Loading State */}
-          {bioLoading && (
+            {bioLoading && (
               <Card className="bg-gradient-to-br from-indigo-50/50 to-purple-50/50 dark:from-indigo-950/20 dark:to-purple-950/20 border-indigo-200/50 dark:border-indigo-800/50 shadow-xl">
                 <CardContent className="p-6 sm:p-8 text-center">
                   <div className="w-16 h-16 sm:w-20 sm:h-20 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mx-auto mb-4 sm:mb-6"></div>
@@ -412,90 +508,101 @@ export default function SocialBio() {
                     Generating Bio
                   </h3>
                   <p className="text-sm sm:text-base text-muted-foreground">
-                    Creating a professional bio for {selectedInfluencerData?.name_first} using AI...
+                    Creating a professional bio for{" "}
+                    {selectedInfluencerData?.name_first} using AI...
                   </p>
                 </CardContent>
               </Card>
-          )}
+            )}
 
             {/* Error State */}
-          {bioError && (
+            {bioError && (
               <Card className="bg-gradient-to-br from-red-50/50 to-pink-50/50 dark:from-red-950/20 dark:to-pink-950/20 border-red-200/50 dark:border-red-800/50 shadow-xl">
                 <CardContent className="p-6 sm:p-8 text-center">
                   <div className="w-16 h-16 sm:w-20 sm:h-20 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6">
                     <AlertTriangle className="w-8 h-8 sm:w-10 sm:h-10 text-red-600 dark:text-red-400" />
-              </div>
+                  </div>
                   <h3 className="text-lg sm:text-xl font-bold text-red-600 dark:text-red-400 mb-2">
                     Generation Error
                   </h3>
-                  <p className="text-sm sm:text-base text-muted-foreground mb-4 sm:mb-6">{bioError}</p>
-              <Button 
-                onClick={() => setShowBioModal(false)}
+                  <p className="text-sm sm:text-base text-muted-foreground mb-4 sm:mb-6">
+                    {bioError}
+                  </p>
+                  <Button
+                    onClick={() => setShowBioModal(false)}
                     className="bg-red-600 hover:bg-red-700 text-white px-6 py-2"
-              >
-                Close
-              </Button>
+                  >
+                    Close
+                  </Button>
                 </CardContent>
               </Card>
-          )}
+            )}
 
             {/* Create Bio State */}
-          {bioMode === 'create' && !bioLoading && !bioError && (
+            {bioMode === "create" && !bioLoading && !bioError && (
               <Card className="bg-gradient-to-br from-indigo-50/50 to-purple-50/50 dark:from-indigo-950/20 dark:to-purple-950/20 border-2 border-indigo-200/50 dark:border-indigo-800/50 shadow-xl">
                 <CardContent className="p-6 sm:p-8">
                   <div className="text-center space-y-4 sm:space-y-6">
                     <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-2xl sm:rounded-3xl flex items-center justify-center mx-auto shadow-xl">
                       <Wand2 className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
-                  </div>
-                  <div>
+                    </div>
+                    <div>
                       <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100 mb-2 sm:mb-3">
-                      No Bio Found
-                    </h3>
+                        No Bio Found
+                      </h3>
                       <p className="text-sm sm:text-base text-muted-foreground mb-4 sm:mb-6 max-w-md mx-auto">
-                        Would you like to create a professional bio for {selectedInfluencerData?.name_first} using AI? This will generate platform-specific bios optimized for engagement.
-                    </p>
-                  </div>
-                  <Button 
-                    onClick={handleCreateBio} 
+                        Would you like to create a professional bio for{" "}
+                        {selectedInfluencerData?.name_first} using AI? This will
+                        generate platform-specific bios optimized for
+                        engagement.
+                      </p>
+                    </div>
+                    <Button
+                      onClick={handleCreateBio}
                       className="relative overflow-hidden bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 hover:from-indigo-600 hover:via-purple-600 hover:to-pink-600 text-white shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-[1.02] w-full sm:w-auto px-8 py-3 text-sm sm:text-base font-semibold"
-                  >
+                    >
                       <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                       <Wand2 className="w-4 h-4 sm:w-5 sm:h-5 mr-2 sm:mr-3 transition-transform duration-300 group-hover:scale-110" />
                       <span className="relative z-10">Generate AI Bio</span>
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-          
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* View Bio State */}
-          {bioMode === 'view' && !bioLoading && !bioError && selectedInfluencerData && (
-              <Card className="bg-gradient-to-br from-green-50/50 to-emerald-50/50 dark:from-green-950/20 dark:to-emerald-950/20 border-2 border-green-200/50 dark:border-green-800/50 shadow-xl">
-                <CardContent className="p-6 sm:p-8">
-                  <div className="text-center space-y-4 sm:space-y-6">
-                    <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-green-500 to-emerald-500 rounded-2xl sm:rounded-3xl flex items-center justify-center mx-auto shadow-xl">
-                      <FileText className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
-                  </div>
-                  <div>
-                      <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100 mb-2 sm:mb-3">
-                      Bio Available
-                    </h3>
-                      <p className="text-sm sm:text-base text-muted-foreground mb-4 sm:mb-6 max-w-md mx-auto">
-                        {selectedInfluencerData.name_first} already has a professional bio ready to view and edit. Access platform-specific content and optimization scores.
-                    </p>
-                  </div>
-                  <Button 
-                    onClick={handleViewBio} 
-                      className="relative overflow-hidden bg-gradient-to-r from-green-500 via-emerald-500 to-teal-500 hover:from-green-600 hover:via-emerald-600 hover:to-teal-600 text-white shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-[1.02] w-full sm:w-auto px-8 py-3 text-sm sm:text-base font-semibold"
-                  >
-                      <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                      <FileText className="w-4 h-4 sm:w-5 sm:h-5 mr-2 sm:mr-3 transition-transform duration-300 group-hover:scale-110" />
-                      <span className="relative z-10">View & Edit Bio</span>
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+            {bioMode === "view" &&
+              !bioLoading &&
+              !bioError &&
+              selectedInfluencerData && (
+                <Card className="bg-gradient-to-br from-green-50/50 to-emerald-50/50 dark:from-green-950/20 dark:to-emerald-950/20 border-2 border-green-200/50 dark:border-green-800/50 shadow-xl">
+                  <CardContent className="p-6 sm:p-8">
+                    <div className="text-center space-y-4 sm:space-y-6">
+                      <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-green-500 to-emerald-500 rounded-2xl sm:rounded-3xl flex items-center justify-center mx-auto shadow-xl">
+                        <FileText className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100 mb-2 sm:mb-3">
+                          Bio Available
+                        </h3>
+                        <p className="text-sm sm:text-base text-muted-foreground mb-4 sm:mb-6 max-w-md mx-auto">
+                          {selectedInfluencerData.name_first} already has a
+                          professional bio ready to view and edit. Access
+                          platform-specific content and optimization scores.
+                        </p>
+                      </div>
+                      <Button
+                        onClick={handleViewBio}
+                        className="relative overflow-hidden bg-gradient-to-r from-green-500 via-emerald-500 to-teal-500 hover:from-green-600 hover:via-emerald-600 hover:to-teal-600 text-white shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-[1.02] w-full sm:w-auto px-8 py-3 text-sm sm:text-base font-semibold"
+                      >
+                        <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                        <FileText className="w-4 h-4 sm:w-5 sm:h-5 mr-2 sm:mr-3 transition-transform duration-300 group-hover:scale-110" />
+                        <span className="relative z-10">View & Edit Bio</span>
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
 
             {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-6 sm:pt-8 border-t border-gray-200 dark:border-gray-700">
@@ -512,4 +619,4 @@ export default function SocialBio() {
       </Dialog>
     </div>
   );
-} 
+}

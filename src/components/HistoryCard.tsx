@@ -9,8 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { Loader2, RefreshCw, Calendar as CalendarIcon, ZoomIn, Download, Share, Trash2, Edit3, RotateCcw, Search, Filter, X, SortAsc, SortDesc, QrCode } from 'lucide-react';
-import QRCode from 'qrcode';
+import { Loader2, RefreshCw, Calendar as CalendarIcon, ZoomIn, Download, Share, Trash2, Edit3, RotateCcw, Search, Filter, X, SortAsc, SortDesc, QrCode, Heart, Star, Info } from 'lucide-react';
+// import QRCode from 'qrcode'; // Removed unused import
 import { useToast } from '@/hooks/use-toast';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/store/store';
@@ -23,83 +23,145 @@ export default function HistoryCard({ userId }: { userId: string }) {
   const { toast } = useToast();
   const userData = useSelector((state: RootState) => state.user);
   
-  const [tasks, setTasks] = useState<any[]>([]);
-  const [imagesByTask, setImagesByTask] = useState<{ [taskId: string]: any[] }>({});
+  // Simplified state - only images, no tasks
+  const [images, setImages] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [isImagesLoading, setIsImagesLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
   const [refreshKey, setRefreshKey] = useState(0);
-  const [jumpPage, setJumpPage] = useState('');
   const [zoomModal, setZoomModal] = useState<{ open: boolean; imageUrl: string; imageName: string }>({ open: false, imageUrl: '', imageName: '' });
   const [regeneratingImages, setRegeneratingImages] = useState<Set<string>>(new Set());
   const [shareModal, setShareModal] = useState<{ open: boolean; itemId: string | null; itemPath: string | null }>({ open: false, itemId: null, itemPath: null });
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>('');
+  const [imageInfoModal, setImageInfoModal] = useState<{ open: boolean; image: any | null }>({ open: false, image: null });
+  const [editingImageData, setEditingImageData] = useState<any>(null);
+  const [tempRating, setTempRating] = useState<number>(0);
+  const [newTag, setNewTag] = useState<string>('');
 
-  // Search and filter state
+  // Search and filter state - Default to today's date range
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'filename'>('newest');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(() => {
+    const today = new Date();
+    const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
+    return { from: startOfDay, to: endOfDay };
+  });
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [showFilters, setShowFilters] = useState(false);
-  const [activeFilters, setActiveFilters] = useState<string[]>([]);
+  const [activeFilters, setActiveFilters] = useState<string[]>(['today']);
 
+  // Direct image loading from generated_images table
   useEffect(() => {
+    console.log('=== FETCHING IMAGES DIRECTLY ===');
+    console.log('userId:', userId);
+    console.log('dateRange:', dateRange);
+    
+    if (!userId) {
+      console.log('No userId provided, skipping fetch');
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
-    fetch(`${config.supabase_server_url}/tasks?uuid=eq.${userId}&type=eq.generate_image&order=id.desc`, {
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer WeInfl3nc3withAI'
+    
+    // Helper function to fetch images with optional date filter
+    const fetchImages = async (withDateFilter: boolean) => {
+      let imageUrl = `${config.supabase_server_url}/generated_images?user_uuid=eq.${userId}&generation_status=eq.completed&order=created_at.desc`;
+      
+      if (withDateFilter) {
+        // Add date range filters server-side
+        imageUrl += '&limit=100';
+        if (dateRange?.from) {
+          const fromISO = dateRange.from.toISOString();
+          imageUrl += `&created_at=gte.${fromISO}`;
+          console.log('Adding from date filter:', fromISO);
+        }
+        if (dateRange?.to) {
+          const toISO = dateRange.to.toISOString();
+          imageUrl += `&created_at=lte.${toISO}`;
+          console.log('Adding to date filter:', toISO);
+        }
+      } else {
+        // No date filter, just get last 15 images
+        imageUrl += '&limit=15';
+        console.log('Fetching last 15 images without date filter');
       }
-    })
-      .then(res => res.json())
-      .then(data => setTasks(data))
-      .catch(() => setError('Failed to fetch history.'))
+      
+      console.log('Image query URL:', imageUrl);
+      
+      const response = await fetch(imageUrl, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer WeInfl3nc3withAI'
+        }
+      });
+      
+      console.log('Image response status:', response.status);
+      const fetchedImages = await response.json();
+      console.log('Images fetched:', fetchedImages.length);
+      
+      return fetchedImages;
+    };
+
+    // Fetch images with smart fallback logic
+    const fetchWithFallback = async () => {
+      try {
+        // Check if we should try with today's date filter first  
+        const hasDateFilter = dateRange?.from && dateRange?.to;
+        
+        if (hasDateFilter) {
+          console.log('Trying with today date filter first...');
+          const todayImages = await fetchImages(true);
+          
+          if (todayImages.length === 0) {
+            console.log('No images found for today, fallback to last 15 images...');
+            // No images found for today, try without date filter
+            const fallbackImages = await fetchImages(false);
+            
+            // Update active filters to show we're no longer filtering by today
+            setActiveFilters(prev => prev.filter(f => f !== 'today'));
+            setDateRange(undefined);
+            
+            return fallbackImages;
+          }
+          
+          return todayImages;
+        } else {
+          // No date filter set, fetch with current constraints  
+          console.log('Fetching without date filter...');
+          return await fetchImages(false);
+        }
+      } catch (error) {
+        console.error('Image fetch error:', error);
+        setError('Failed to fetch history.');
+        return [];
+      }
+    };
+
+    // Execute the fetch with fallback
+    fetchWithFallback()
+      .then(fetchedImages => {
+        // Transform to match existing data structure
+        const transformedImages = fetchedImages.map((img: any) => ({
+          ...img,
+          task: { id: img.task_id } // Use task_id directly from generated_images
+        }));
+        
+        setImages(transformedImages);
+        console.log('Final images set:', transformedImages.length);
+      })
       .finally(() => setIsLoading(false));
   }, [userId, refreshKey]);
 
-  useEffect(() => {
-    if (!tasks.length) return;
-    setIsImagesLoading(true);
-    
-    // Fetch images for all tasks if not already loaded
-    Promise.all(
-      tasks.map(task =>
-        imagesByTask[task.id]
-          ? Promise.resolve()
-          : fetch(`${config.supabase_server_url}/generated_images?task_id=eq.${task.id}&generation_status=eq.completed`, {
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': 'Bearer WeInfl3nc3withAI'
-              }
-            })
-              .then(res => res.json())
-              .then(imgs => setImagesByTask(prev => ({ ...prev, [task.id]: imgs })))
-              .catch(() => {})
-      )
-    ).finally(() => setIsImagesLoading(false));
-    // eslint-disable-next-line
-  }, [tasks, imagesByTask]);
-
-  // Get all images from all tasks
-  const allImages = tasks.flatMap(task => 
-    (imagesByTask[task.id] || []).map(image => ({
-      ...image,
-      task: task // Include task info for display
-    }))
-  );
-
-  // Apply search and filters
-  const filteredImages = allImages.filter(image => {
+  // Apply search and filters to direct images
+  const filteredImages = images.filter(image => {
     // Search by filename
     if (searchTerm && !image.system_filename.toLowerCase().includes(searchTerm.toLowerCase())) {
       return false;
     }
 
-    // Date range filter
+    // Date range filter (already handled server-side, but kept for client-side date changes)
     if (dateRange?.from || dateRange?.to) {
       const imageDate = new Date(image.created_at);
       if (dateRange.from && imageDate < dateRange.from) return false;
@@ -126,69 +188,16 @@ export default function HistoryCard({ userId }: { userId: string }) {
       case 'filename':
         comparison = a.system_filename.localeCompare(b.system_filename);
         break;
+      default:
+        comparison = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
     }
     
-    return sortOrder === 'asc' ? comparison : -comparison;
+    if (sortBy === 'oldest') {
+      comparison = -comparison;
+    }
+    
+    return sortOrder === 'desc' ? -comparison : comparison;
   });
-
-  // Update active filters
-  useEffect(() => {
-    const filters = [];
-    if (searchTerm) filters.push(`Search: "${searchTerm}"`);
-    if (dateRange?.from || dateRange?.to) filters.push('Date Range');
-    if (statusFilter !== 'all') filters.push(`Status: ${statusFilter}`);
-    setActiveFilters(filters);
-  }, [searchTerm, dateRange, statusFilter]);
-
-  // Generate QR code when share modal opens
-  useEffect(() => {
-    if (shareModal.open && shareModal.itemId && shareModal.itemPath) {
-      const directLink = `${config.data_url}/${userData.id}/${shareModal.itemPath}/${shareModal.itemId}`;
-      generateQRCode(directLink);
-    }
-  }, [shareModal.open, shareModal.itemId, shareModal.itemPath, userData.id]);
-
-  // Paginate images instead of tasks
-  const start = pageSize === -1 ? 0 : (page - 1) * pageSize;
-  const end = pageSize === -1 ? sortedImages.length : start + pageSize;
-  const pageImages = sortedImages.slice(start, end);
-  const pageCount = pageSize === -1 ? 1 : Math.ceil(sortedImages.length / pageSize);
-
-  const handleRefresh = () => {
-    setImagesByTask({});
-    setRefreshKey(k => k + 1);
-  };
-
-  const handleJump = (e: React.FormEvent) => {
-    e.preventDefault();
-    const num = parseInt(jumpPage, 10);
-    if (!isNaN(num) && num >= 1 && num <= pageCount) setPage(num);
-    setJumpPage('');
-  };
-
-  const clearFilters = () => {
-    setSearchTerm('');
-    setDateRange(undefined);
-    setStatusFilter('all');
-    setSortBy('newest');
-    setSortOrder('desc');
-    setPage(1);
-  };
-
-  const removeFilter = (filterType: string) => {
-    switch (filterType) {
-      case 'search':
-        setSearchTerm('');
-        break;
-      case 'date':
-        setDateRange(undefined);
-        break;
-      case 'status':
-        setStatusFilter('all');
-        break;
-    }
-    setPage(1);
-  };
 
   const handleDownload = async (image: any) => {
     try {
@@ -198,51 +207,59 @@ export default function HistoryCard({ userId }: { userId: string }) {
         variant: 'default'
       });
 
-      const filename = image.file_path.split('/').pop();
-      console.log(filename);
+      console.log('Image object:', image);
+      console.log('Image file_path:', image.file_path);
+      console.log('Config data_url:', config.data_url);
+      console.log('Full download URL:', `${config.data_url}/${image.file_path}`);
 
-      const response = await fetch(`${config.backend_url}/downloadfile`, {
+      const filename = image.file_path.split('/').pop();
+      console.log('Extracted filename:', filename);
+
+      // Use local backend proxy for proper download  
+      const downloadUrl = '/api/proxy-download';
+      console.log('Using local backend proxy for download');
+      
+      const response = await fetch(downloadUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer WeInfl3nc3withAI'
         },
         body: JSON.stringify({
-          user: userData.id,
-          filename: 'output/' + filename
+          imageUrl: `${config.data_url}/${image.file_path}`,
+          filename: image.user_filename || image.system_filename || `generated-image-${Date.now()}.png`
         })
       });
 
       if (!response.ok) {
-        throw new Error('Failed to download file');
+        throw new Error(`Proxy download failed: ${response.status} ${response.statusText}`);
       }
 
       const blob = await response.blob();
-
-      // Create a download link
       const url = window.URL.createObjectURL(blob);
+
       const link = document.createElement('a');
       link.href = url;
-      link.download = image.system_filename || `generated-image-${Date.now()}.png`;
+      link.download = image.user_filename || image.system_filename || `generated-image-${Date.now()}.png`;
 
       // Trigger download
       document.body.appendChild(link);
       link.click();
-
-      // Cleanup
       document.body.removeChild(link);
+
+      // Clean up
       window.URL.revokeObjectURL(url);
 
       toast({
         title: 'Success!',
-        description: 'Image downloaded successfully!',
+        description: 'Image downloaded successfully',
         variant: 'default'
       });
+
     } catch (error) {
-      console.error('Error downloading image:', error);
+      console.error('Download error:', error);
       toast({
         title: 'Error',
-        description: 'Failed to download image. Please try again.',
+        description: `Failed to download image: ${error instanceof Error ? error.message : 'Please try again.'}`,
         variant: 'destructive'
       });
     }
@@ -256,21 +273,8 @@ export default function HistoryCard({ userId }: { userId: string }) {
         variant: 'default'
       });
 
-      const filename = image.file_path.split('/').pop();
-
-      await fetch(`${config.backend_url}/deletefile`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer WeInfl3nc3withAI'
-        },
-        body: JSON.stringify({
-          user: userData.id,
-          filename: 'output/' + filename
-        })
-      });
-
-      await fetch(`${config.supabase_server_url}/generated_images?id=eq.${image.id}`, {
+      // Delete from database first
+      const deleteDbResponse = await fetch(`${config.supabase_server_url}/generated_images?id=eq.${image.id}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -278,32 +282,49 @@ export default function HistoryCard({ userId }: { userId: string }) {
         }
       });
 
-      // Remove from local state
-      setImagesByTask(prev => {
-        const newState = { ...prev };
-        Object.keys(newState).forEach(taskId => {
-          newState[taskId] = newState[taskId].filter(img => img.id !== image.id);
+      if (!deleteDbResponse.ok) {
+        throw new Error(`Database delete failed: ${deleteDbResponse.status}`);
+      }
+
+      // Delete file from server (optional - file can remain on server if needed)
+      try {
+        await fetch('/api/delete-file', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            filename: image.system_filename,
+            filepath: image.file_path
+          })
         });
-        return newState;
-      });
+      } catch (fileDeleteError) {
+        console.warn('File delete failed, but database delete succeeded:', fileDeleteError);
+        // Continue - database delete succeeded, which is most important
+      }
+
+      // Remove from local state
+      setImages(prev => prev.filter(img => img.id !== image.id));
 
       toast({
         title: 'Success!',
-        description: `Image "${filename}" deleted successfully`,
+        description: 'Image deleted successfully',
         variant: 'default'
       });
+
     } catch (error) {
-      console.error('Error deleting image:', error);
+      console.error('Delete error:', error);
       toast({
         title: 'Error',
-        description: 'Failed to delete image. Please try again.',
+        description: `Failed to delete image: ${error instanceof Error ? error.message : 'Please try again.'}`,
         variant: 'destructive'
       });
     }
   };
 
-  const handleShare = (systemFilename: string) => {
-    setShareModal({ open: true, itemId: systemFilename, itemPath: 'output' });
+  const handleShare = (image: any) => {
+    // Use the complete file_path which includes user_uuid
+    setShareModal({ open: true, itemId: image.system_filename, itemPath: image.file_path });
   };
 
   const copyToClipboard = async (text: string) => {
@@ -314,60 +335,34 @@ export default function HistoryCard({ userId }: { userId: string }) {
         description: 'Link copied to clipboard',
         variant: 'default'
       });
-    } catch (error) {
-      console.error('Failed to copy to clipboard:', error);
-    }
-  };
-
-  const generateQRCode = async (url: string) => {
-    try {
-      const qrCodeDataUrl = await QRCode.toDataURL(url, {
-        width: 200,
-        margin: 2,
-        color: {
-          dark: '#000000',
-          light: '#FFFFFF'
-        }
-      });
-      setQrCodeDataUrl(qrCodeDataUrl);
-    } catch (error) {
-      console.error('Failed to generate QR code:', error);
+    } catch (err) {
+      console.error('Failed to copy: ', err);
       toast({
         title: 'Error',
-        description: 'Failed to generate QR code',
+        description: 'Failed to copy link',
         variant: 'destructive'
       });
     }
   };
 
-  const shareToSocialMedia = (platform: string, itemId: string) => {
-    const imageUrl = `${config.data_url}/${userData.id}/output/${itemId}`;
-    const shareText = `Check out this amazing content!`;
+  useEffect(() => {
+    if (shareModal.open && shareModal.itemId && shareModal.itemPath) {
+      const generateQRCode = async () => {
+        try {
+          const url = `${config.data_url}/${shareModal.itemPath}`;
+          // QR Code generation temporarily disabled
+          setQrCodeDataUrl('');
+        } catch (error) {
+          console.error('Error generating QR code:', error);
+        }
+      };
 
-    let shareUrl = '';
-
-    switch (platform) {
-      case 'twitter':
-        shareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(imageUrl)}`;
-        break;
-      case 'facebook':
-        shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(imageUrl)}`;
-        break;
-      case 'linkedin':
-        shareUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(imageUrl)}`;
-        break;
-      case 'pinterest':
-        shareUrl = `https://pinterest.com/pin/create/button/?url=${encodeURIComponent(imageUrl)}&description=${encodeURIComponent(shareText)}`;
-        break;
-      default:
-        return;
+      generateQRCode();
     }
-
-    window.open(shareUrl, '_blank', 'width=600,height=400');
-  };
+  }, [shareModal.open, shareModal.itemId, shareModal.itemPath]);
 
   const handleEdit = (image: any) => {
-            navigate('/create/edit', {
+    navigate('/create/edit', {
       state: {
         imageData: image
       }
@@ -394,66 +389,90 @@ export default function HistoryCard({ userId }: { userId: string }) {
         variant: 'default'
       });
 
-      // Step 1: Get the task_id from the generated image
-      const imageResponse = await fetch(`${config.supabase_server_url}/generated_images?file_path=eq.${image.file_path}`, {
-        headers: {
-          'Authorization': 'Bearer WeInfl3nc3withAI'
-        }
-      });
-
-      if (!imageResponse.ok) {
-        throw new Error('Failed to fetch image data');
+      // Convert task_id (VARCHAR) to BIGINT and query tasks table for jsonjob
+      const taskIdAsInt = parseInt(image.task_id, 10);
+      console.log('Converting task_id to integer:', image.task_id, '->', taskIdAsInt);
+      
+      if (isNaN(taskIdAsInt)) {
+        throw new Error(`Invalid task_id: ${image.task_id} cannot be converted to integer`);
       }
-
-      const imageData = await imageResponse.json();
-      if (!imageData || imageData.length === 0) {
-        throw new Error('Image data not found');
-      }
-
-      const taskId = imageData[0].task_id;
-
-      // Step 2: Get the original task data
-      const taskResponse = await fetch(`${config.supabase_server_url}/tasks?id=eq.${taskId}`, {
+      
+      const taskResponse = await fetch(`${config.supabase_server_url}/tasks?id=eq.${taskIdAsInt}`, {
         headers: {
           'Authorization': 'Bearer WeInfl3nc3withAI'
         }
       });
 
       if (!taskResponse.ok) {
-        throw new Error('Failed to fetch task data');
+        throw new Error('Failed to fetch original task');
       }
 
       const taskData = await taskResponse.json();
       if (!taskData || taskData.length === 0) {
-        throw new Error('Task data not found');
+        throw new Error('Original task not found');
       }
 
       const originalTask = taskData[0];
-      console.log("OriginalTask:", originalTask.jsonjob);
+      console.log('Task details loaded on-demand for regeneration');
+      console.log("OriginalTask jsonjob:", originalTask.jsonjob);
 
-      // Step 3: Parse the JSON job data
+      // Parse the JSON job data
       const jsonjob = JSON.parse(originalTask.jsonjob);
       console.log("Parsed JSON job:", jsonjob);
-      if (jsonjob.seed === -1) {
-        jsonjob.seed = null;
+      
+      // Build URL parameters and reload page for regeneration
+      const params = new URLSearchParams();
+      params.set('regenerate', 'true');
+      params.set('regenerated_from', image.system_filename);
+      
+      // Core generation parameters
+      if (jsonjob.prompt) {
+        console.log('Original prompt:', jsonjob.prompt);
+        params.set('prompt', encodeURIComponent(jsonjob.prompt));
+        console.log('Encoded prompt:', encodeURIComponent(jsonjob.prompt));
       }
-
-      // Step 4: Set the regenerated_from field to the original image ID
-      jsonjob.regenerated_from = image.id || '12345678-1111-2222-3333-caffebabe0123';
-
-      // Step 5: Navigate to ContentCreate with the JSON job data
-              navigate('/create/images', {
+      if (jsonjob.negative_prompt) params.set('negative_prompt', jsonjob.negative_prompt);
+      if (jsonjob.model?.id) params.set('influencer_id', jsonjob.model.id.toString());
+      if (jsonjob.format) params.set('format', jsonjob.format);
+      if (jsonjob.quality) params.set('quality', jsonjob.quality);
+      if (jsonjob.engine) params.set('engine', jsonjob.engine);
+      if (jsonjob.guidance) params.set('guidance', jsonjob.guidance.toString());
+      if (jsonjob.lora_strength) params.set('lora_strength', jsonjob.lora_strength.toString());
+      if (jsonjob.nsfw_strength) params.set('nsfw_strength', jsonjob.nsfw_strength.toString());
+      if (jsonjob.number_of_images) params.set('number_of_images', jsonjob.number_of_images.toString());
+      
+      // Scene components for Component Picker
+      if (jsonjob.scene) {
+        const scene = jsonjob.scene;
+        if (scene.framing) params.set('framing', scene.framing);
+        if (scene.rotation) params.set('rotation', scene.rotation);
+        if (scene.lighting_preset) params.set('lighting_preset', scene.lighting_preset);
+        if (scene.scene_setting) params.set('scene_setting', scene.scene_setting);
+        if (scene.pose) params.set('pose', scene.pose);
+        if (scene.clothes) params.set('clothes', scene.clothes);
+      }
+      
+      console.log('NAVIGATE with params:', params.toString());
+      console.log('Prompt being set:', jsonjob.prompt);
+      
+      // Use React Router navigation instead of window.location
+      navigate(`/create/images?${params.toString()}`, {
         state: {
-          jsonjobData: jsonjob,
-          isRegeneration: true,
-          originalImage: image
+          regenerateData: {
+            prompt: jsonjob.prompt,
+            negative_prompt: jsonjob.negative_prompt,
+            influencer_id: jsonjob.model?.id?.toString(),
+            format: jsonjob.format,
+            quality: jsonjob.quality,
+            engine: jsonjob.engine,
+            guidance: jsonjob.guidance,
+            lora_strength: jsonjob.lora_strength,
+            nsfw_strength: jsonjob.nsfw_strength,
+            number_of_images: jsonjob.number_of_images,
+            scene: jsonjob.scene
+          },
+          regenerateFrom: image.system_filename
         }
-      });
-
-      toast({
-        title: 'Success!',
-        description: 'Redirecting to ContentCreate for regeneration',
-        variant: 'default'
       });
 
     } catch (error) {
@@ -472,194 +491,351 @@ export default function HistoryCard({ userId }: { userId: string }) {
     }
   };
 
+  const clearFilters = () => {
+    setSearchTerm('');
+    setDateRange(undefined);
+    setStatusFilter('all');
+    setActiveFilters([]);
+  };
+
+  const handleDateRangeChange = (newDateRange: DateRange | undefined) => {
+    setDateRange(newDateRange);
+    
+    // Update active filters
+    if (newDateRange?.from && newDateRange?.to) {
+      const today = new Date();
+      const isToday = 
+        newDateRange.from.toDateString() === today.toDateString() &&
+        newDateRange.to.toDateString() === today.toDateString();
+      
+      if (isToday) {
+        setActiveFilters(['today']);
+      } else {
+        setActiveFilters(['custom-date']);
+      }
+    } else {
+      setActiveFilters([]);
+    }
+  };
+
   return (
-    <div className="mt-12 mb-8 w-full mx-auto bg-gradient-to-br from-slate-900/90 to-slate-800/90 rounded-2xl shadow-2xl p-6">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
-        <div className="flex items-center gap-3">
-          <h3 className="text-xl font-bold text-white">Generation History</h3>
-          <Button variant="ghost" size="icon" onClick={handleRefresh} aria-label="Refresh history">
-            <RefreshCw className="w-5 h-5 text-blue-400" />
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+        <div>
+          <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            Image History
+          </h2>
+          <p className="text-slate-600 dark:text-slate-400 mt-1">
+            Manage your generated images • {sortedImages.length} images
+          </p>
+        </div>
+        
+        <div className="flex flex-wrap gap-2">
+          <Button
+            onClick={() => setRefreshKey(prev => prev + 1)}
+            variant="outline"
+            size="sm"
+            className="bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm hover:bg-white dark:hover:bg-slate-800"
+          >
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Refresh
+          </Button>
+          
+          <Button
+            onClick={() => setShowFilters(!showFilters)}
+            variant="outline"
+            size="sm"
+            className="bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm hover:bg-white dark:hover:bg-slate-800"
+          >
+            <Filter className="w-4 h-4 mr-2" />
+            Filters
           </Button>
         </div>
-        <div className="flex flex-wrap items-center gap-2 md:gap-4">
-          <label className="text-sm text-slate-300 mr-2">Show per page:</label>
-          <select
-            value={pageSize}
-            onChange={e => { setPageSize(Number(e.target.value)); setPage(1); }}
-            className="rounded-md px-2 py-1 bg-slate-800 text-white border border-slate-700 focus:outline-none"
-          >
-            <option value={10}>10</option>
-            <option value={20}>20</option>
-            <option value={50}>50</option>
-            <option value={100}>100</option>
-            <option value={-1}>ALL</option>
-          </select>
-          {pageCount > 1 && (
-            <>
-              <Button variant="ghost" size="sm" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}>Prev</Button>
-              <span className="text-slate-300">Page {page} / {pageCount}</span>
-              <Button variant="ghost" size="sm" onClick={() => setPage(p => Math.min(pageCount, p + 1))} disabled={page === pageCount}>Next</Button>
-              <form onSubmit={handleJump} className="inline-flex items-center gap-1">
-                <input
-                  type="number"
-                  min={1}
-                  max={pageCount}
-                  value={jumpPage}
-                  onChange={e => setJumpPage(e.target.value)}
-                  className="w-14 rounded-md px-2 py-1 bg-slate-800 text-white border border-slate-700 focus:outline-none"
-                  placeholder="Go to"
-                  aria-label="Jump to page"
+      </div>
+
+      {/* Filters */}
+      {showFilters && (
+        <div className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl p-4 mb-6 border border-slate-200/50 dark:border-slate-700/50">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Search */}
+            <div>
+              <Label htmlFor="search" className="text-sm font-medium mb-2 block">Search</Label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
+                <Input
+                  id="search"
+                  placeholder="Search filenames..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
                 />
-                <Button type="submit" size="sm" variant="outline" className="px-2 py-1">Go</Button>
-              </form>
-            </>
+              </div>
+            </div>
+
+            {/* Date Range */}
+            <div>
+              <Label className="text-sm font-medium mb-2 block">Date Range</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start text-left font-normal"
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {dateRange?.from ? (
+                      dateRange.to ? (
+                        <>
+                          {format(dateRange.from, "LLL dd")} -{" "}
+                          {format(dateRange.to, "LLL dd")}
+                        </>
+                      ) : (
+                        format(dateRange.from, "LLL dd, y")
+                      )
+                    ) : (
+                      <span>Pick a date range</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    initialFocus
+                    mode="range"
+                    defaultMonth={dateRange?.from}
+                    selected={dateRange}
+                    onSelect={handleDateRangeChange}
+                    numberOfMonths={2}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            {/* Status Filter */}
+            <div>
+              <Label htmlFor="status" className="text-sm font-medium mb-2 block">Status</Label>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Filter by status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
+                  <SelectItem value="failed">Failed</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Sort */}
+            <div>
+              <Label htmlFor="sort" className="text-sm font-medium mb-2 block">Sort</Label>
+              <div className="flex gap-2">
+                <Select value={sortBy} onValueChange={(value: 'newest' | 'oldest' | 'filename') => setSortBy(value)}>
+                  <SelectTrigger className="flex-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="newest">Newest</SelectItem>
+                    <SelectItem value="oldest">Oldest</SelectItem>
+                    <SelectItem value="filename">Filename</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                  className="px-3"
+                >
+                  {sortOrder === 'asc' ? <SortAsc className="w-4 h-4" /> : <SortDesc className="w-4 h-4" />}
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {/* Active Filters */}
+          {activeFilters.length > 0 && (
+            <div className="flex flex-wrap gap-2 mt-4">
+              <span className="text-sm text-slate-600 dark:text-slate-400">Active filters:</span>
+              {activeFilters.map((filter, index) => (
+                <Badge key={index} variant="secondary" className="text-xs">
+                  {filter}
+                  <X 
+                    className="w-3 h-3 ml-1 cursor-pointer hover:text-red-500" 
+                    onClick={() => {
+                      if (filter === 'today' || filter === 'custom-date') {
+                        setDateRange(undefined);
+                      }
+                      setActiveFilters(prev => prev.filter(f => f !== filter));
+                    }}
+                  />
+                </Badge>
+              ))}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearFilters}
+                className="text-xs h-6 px-2"
+              >
+                Clear All
+              </Button>
+            </div>
           )}
         </div>
-      </div>
+      )}
 
-      {/* Search and Filter Section */}
-      <div className="mb-6 space-y-4">
-        {/* Search Bar */}
-        <div className="flex flex-col sm:flex-row gap-3">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
-            <Input
-              placeholder="Search by filename..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 bg-slate-800 border-slate-700 text-white placeholder:text-slate-400"
-            />
-            {searchTerm && (
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => setSearchTerm('')}
-                className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
-              >
-                <X className="w-3 h-3" />
-              </Button>
-            )}
-          </div>
-          
-          <div className="flex gap-2">
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" className="bg-slate-800 border-slate-700 text-white hover:bg-slate-700">
-                  <CalendarIcon className="w-4 h-4 mr-2" />
-                  Date Range
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  initialFocus
-                  mode="range"
-                  selected={dateRange}
-                  onSelect={setDateRange}
-                  numberOfMonths={2}
-                />
-              </PopoverContent>
-            </Popover>
-
-            <Button
-              variant="outline"
-              onClick={() => setSortOrder(order => order === 'asc' ? 'desc' : 'asc')}
-              className="bg-slate-800 border-slate-700 text-white hover:bg-slate-700"
-            >
-              {sortOrder === 'asc' ? <SortAsc className="w-4 h-4" /> : <SortDesc className="w-4 h-4" />}
-            </Button>
-
-            <Button
-              variant="outline"
-              onClick={clearFilters}
-              className="bg-slate-800 border-slate-700 text-white hover:bg-slate-700"
-            >
-              Clear All
-            </Button>
-          </div>
+      {/* Loading */}
+      {isLoading && (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+          <span className="ml-2 text-slate-600 dark:text-slate-400">Loading images...</span>
         </div>
+      )}
 
-        {/* Active Filters */}
-        {activeFilters.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {activeFilters.map((filter, index) => (
-              <Badge
-                key={index}
-                variant="secondary"
-                className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
-              >
-                {filter}
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => removeFilter(filter.toLowerCase().includes('search') ? 'search' : filter.toLowerCase().includes('date') ? 'date' : 'status')}
-                  className="ml-1 h-4 w-4 p-0 hover:bg-blue-200 dark:hover:bg-blue-800"
-                >
-                  <X className="w-2 h-2" />
-                </Button>
-              </Badge>
-            ))}
-          </div>
-        )}
+      {/* Error */}
+      {error && (
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-6">
+          <p className="text-red-600 dark:text-red-400">{error}</p>
+        </div>
+      )}
 
-        {/* Results Summary */}
-        <div className="text-sm text-slate-400">
-          Showing {pageImages.length} of {sortedImages.length} images
-          {searchTerm && ` matching "${searchTerm}"`}
-        </div>
-      </div>
-
-      {error && <div className="text-center py-8 text-red-400">{error}</div>}
-      {isLoading ? (
-        <div className="flex flex-col items-center justify-center py-12">
-          <Loader2 className="w-10 h-10 animate-spin text-blue-400 mb-2" />
-          <div className="text-slate-400">Loading history...</div>
-        </div>
-      ) : tasks.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-12">
-          <div className="text-slate-400 text-lg mb-2">No generation history found.</div>
-          <div className="text-slate-500 text-sm">Your generated images will appear here.</div>
-        </div>
-      ) : sortedImages.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-12">
-          <div className="text-slate-400 text-lg mb-2">No images match your filters.</div>
-          <div className="text-slate-500 text-sm">Try adjusting your search criteria.</div>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
-          {pageImages.map(image => (
+      {/* Results */}
+      {!isLoading && !error && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+          {sortedImages.map((image) => (
             <Card
               key={image.id}
               className="group hover:shadow-xl transition-all duration-300 border-border/50 hover:border-blue-500/50 backdrop-blur-sm bg-gradient-to-br from-yellow-50/20 to-orange-50/20 dark:from-yellow-950/5 dark:to-orange-950/5 hover:from-blue-50/30 hover:to-purple-50/30 dark:hover:from-blue-950/10 dark:hover:to-purple-950/10 cursor-pointer"
             >
               <CardContent className="p-4">
-                {/* Top Row: File Type, Static Stars, Static Heart */}
+                {/* Top Row: Discrete Info, Clickable Stars, Clickable Heart */}
                 <div className="flex items-center justify-between mb-3">
-                  {/* File Type Icon */}
-                  <div className="rounded-full w-8 h-8 flex items-center justify-center shadow-md bg-gradient-to-br from-blue-500 to-purple-600">
-                    <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z" />
-                      <circle cx="8.5" cy="8.5" r="1.5" opacity="0.8" />
-                    </svg>
+                  {/* Discrete Info Icon */}
+                  <div 
+                    className="opacity-60 hover:opacity-100 cursor-pointer transition-opacity duration-200"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      // Load the most up-to-date data immediately
+                      const currentImage = images.find(img => img.id === image.id) || image;
+                      
+                      setEditingImageData({
+                        user_filename: currentImage.user_filename || '',
+                        user_notes: currentImage.user_notes || '',
+                        user_tags: Array.isArray(currentImage.user_tags) ? currentImage.user_tags.join(', ') : (currentImage.user_tags || ''),
+                        rating: currentImage.rating || 0,
+                        favorite: currentImage.favorite || false
+                      });
+                      setTempRating(currentImage.rating || 0);
+                      
+                      setImageInfoModal({ open: true, image: currentImage });
+                    }}
+                    title="Image Details"
+                  >
+                    <Info className="w-4 h-4 text-slate-600 dark:text-slate-400" />
                   </div>
-                  {/* Static 5 gray stars */}
-                  <div className="flex gap-1">
+                  {/* Clickable rating stars */}
+                  <div className="flex gap-0.5">
                     {[1, 2, 3, 4, 5].map((star) => (
                       <svg
                         key={star}
-                        className="w-4 h-4 text-gray-300"
+                        className={`w-4 h-4 cursor-pointer transition-all duration-150 hover:scale-110 ${
+                          star <= (image.rating || 0)
+                            ? 'text-yellow-400 fill-yellow-400'
+                            : 'text-white fill-white stroke-slate-300 stroke-1'
+                        }`}
                         viewBox="0 0 24 24"
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          // Toggle logic: first star can go from 1 to 0, others always set the rating
+                          const currentRating = image.rating || 0;
+                          const newRating = (star === 1 && currentRating === 1) ? 0 : star;
+                          
+                          // Update immediately in local state
+                          setImages(prev => prev.map(img => 
+                            img.id === image.id 
+                              ? { ...img, rating: newRating }
+                              : img
+                          ));
+                          
+                          // Save to backend
+                          try {
+                            const response = await fetch(`${config.supabase_server_url}/generated_images?id=eq.${image.id}`, {
+                              method: 'PATCH',
+                              headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': 'Bearer WeInfl3nc3withAI',
+                              },
+                              body: JSON.stringify({
+                                user_filename: image.user_filename || '',
+                                user_notes: image.user_notes || '',
+                                user_tags: image.user_tags || [],
+                                rating: newRating,
+                                favorite: image.favorite || false
+                              })
+                            });
+                            if (!response.ok) {
+                              throw new Error('Failed to save rating');
+                            }
+                          } catch (error) {
+                            console.error('Failed to save rating:', error);
+                          }
+                        }}
                       >
                         <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
                       </svg>
                     ))}
                   </div>
-                  {/* Static gray heart */}
-                  <div>
-                    <div className="bg-black/50 rounded-full w-8 h-8 flex items-center justify-center">
-                      <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-                      </svg>
-                    </div>
+                  {/* Clickable favorite heart - old style */}
+                  <div
+                    className="cursor-pointer transition-all duration-200 hover:scale-110"
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      const newFavorite = !image.favorite;
+                      
+                      // Update immediately in local state
+                      setImages(prev => prev.map(img => 
+                        img.id === image.id 
+                          ? { ...img, favorite: newFavorite }
+                          : img
+                      ));
+                      
+                      // Save to backend
+                      try {
+                        const response = await fetch(`${config.supabase_server_url}/generated_images?id=eq.${image.id}`, {
+                          method: 'PATCH',
+                          headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': 'Bearer WeInfl3nc3withAI',
+                          },
+                          body: JSON.stringify({
+                            user_filename: image.user_filename || '',
+                            user_notes: image.user_notes || '',
+                            user_tags: image.user_tags || [],
+                            rating: image.rating || 0,
+                            favorite: newFavorite
+                          })
+                        });
+                        if (!response.ok) {
+                          throw new Error('Failed to save favorite');
+                        }
+                      } catch (error) {
+                        console.error('Failed to save favorite:', error);
+                      }
+                    }}
+                    title={image.favorite ? "Remove from favorites" : "Add to favorites"}
+                  >
+                    <svg 
+                      className={`w-5 h-5 transition-colors duration-200 ${
+                        image.favorite
+                          ? 'text-red-500 fill-red-500'
+                          : 'text-slate-400 fill-none stroke-slate-400'
+                      }`} 
+                      viewBox="0 0 24 24" 
+                      fill={image.favorite ? "currentColor" : "none"} 
+                      stroke="currentColor" 
+                      strokeWidth="2"
+                    >
+                      <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                    </svg>
                   </div>
                 </div>
                 {/* Image */}
@@ -688,78 +864,53 @@ export default function HistoryCard({ userId }: { userId: string }) {
                     </div>
                   </div>
                 </div>
-                {/* Filename and Date */}
-                <div className="space-y-2 mb-2">
-                  <h3 className="font-medium text-sm text-gray-800 dark:text-gray-200 truncate">
-                    {image.system_filename}
-                  </h3>
-                </div>
-                {/* Prompt and Task ID */}
-                <div className="space-y-1 mb-3">
-                  <div className="text-xs text-slate-500 dark:text-slate-400">
-                    <span className="font-semibold">Task ID:</span> {image.task.id}
-                  </div>
-                </div>
-                {/* Action Buttons */}
+                {/* Action Buttons - Single Row */}
                 <div className="flex gap-1.5 mt-3">
                   <Button
                     size="sm"
                     variant="outline"
-                    className="flex-1 h-8 text-xs font-medium hover:bg-purple-700 hover:border-purple-500 transition-colors"
+                    className="h-8 w-8 p-0 bg-gradient-to-r from-purple-500 to-indigo-600 text-white border-purple-500 hover:from-purple-600 hover:to-indigo-700 hover:border-purple-600 transition-all duration-200 shadow-sm"
                     onClick={() => handleDownload(image)}
+                    title="Download"
                   >
-                    <Download className="w-3 h-3 mr-1.5" />
-                    <span className="hidden sm:inline">Download</span>
+                    <Download className="w-3 h-3" />
                   </Button>
                   <Button
                     size="sm"
                     variant="outline"
-                    className="h-8 w-8 p-0 hover:bg-green-50 hover:bg-green-700 hover:border-green-500 transition-colors"
-                    onClick={() => handleShare(image.system_filename)}
+                    className="h-8 w-8 p-0 bg-gradient-to-r from-blue-500 to-purple-600 text-white border-blue-500 hover:from-blue-600 hover:to-purple-700 hover:border-blue-600 transition-all duration-200 shadow-sm"
+                    onClick={() => handleEdit(image)}
+                    title="Edit this image with professional tools"
+                  >
+                    <Edit3 className="w-3 h-3" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 w-8 p-0 bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:from-green-600 hover:to-emerald-700 border-0 shadow-md hover:shadow-lg transition-all duration-300"
+                    onClick={() => handleRegenerate(image)}
+                    disabled={regeneratingImages.has(image.system_filename)}
+                    title={regeneratingImages.has(image.system_filename) ? "Regenerating..." : "Regenerate"}
+                  >
+                    <RotateCcw className={`w-3 h-3 ${regeneratingImages.has(image.system_filename) ? 'animate-spin' : ''}`} />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 w-8 p-0 bg-gradient-to-r from-teal-500 to-cyan-600 text-white border-teal-500 hover:from-teal-600 hover:to-cyan-700 hover:border-teal-600 transition-all duration-200 shadow-sm"
+                    onClick={() => handleShare(image)}
+                    title="Share"
                   >
                     <Share className="w-3 h-3" />
                   </Button>
                   <Button
                     size="sm"
                     variant="outline"
-                    className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-amber-500 hover:border-amber-300 transition-colors"
+                    className="h-8 w-8 p-0 bg-gradient-to-r from-red-600 to-red-800 text-white border-red-600 hover:from-red-700 hover:to-red-900 hover:border-red-700 transition-all duration-200 shadow-sm"
                     onClick={() => handleDelete(image)}
+                    title="Delete"
                   >
                     <Trash2 className="w-3 h-3" />
-                  </Button>
-                </div>
-                <div className="flex gap-1.5 mt-3">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="flex-1 h-8 text-xs font-medium bg-gradient-to-r from-blue-500 to-purple-600 text-white border-blue-500 hover:from-blue-600 hover:to-purple-700 hover:border-blue-600 transition-all duration-200 shadow-sm"
-                    onClick={() => handleEdit(image)}
-                    title="Edit this image with professional tools"
-                  >
-                    <Edit3 className="w-3 h-3 mr-1.5" />
-                    <span className="hidden sm:inline">Edit</span>
-                  </Button>
-                </div>
-                {/* Regenerate Button */}
-                <div className="mt-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="w-full h-8 text-xs font-medium bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white border-0 shadow-md hover:shadow-lg transition-all duration-300"
-                    onClick={() => handleRegenerate(image)}
-                    disabled={regeneratingImages.has(image.system_filename)}
-                  >
-                    {regeneratingImages.has(image.system_filename) ? (
-                      <div className="flex items-center gap-2">
-                        <RotateCcw className="w-3 h-3 animate-spin" />
-                        <span>Regenerating...</span>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        <RotateCcw className="w-3 h-3" />
-                        <span>Regenerate</span>
-                      </div>
-                    )}
                   </Button>
                 </div>
               </CardContent>
@@ -767,6 +918,7 @@ export default function HistoryCard({ userId }: { userId: string }) {
           ))}
         </div>
       )}
+
       {/* Zoom Modal */}
       {zoomModal.open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80" onClick={() => setZoomModal({ open: false, imageUrl: '', imageName: '' })}>
@@ -780,127 +932,347 @@ export default function HistoryCard({ userId }: { userId: string }) {
       )}
 
       {/* Share Modal */}
-      <Dialog open={shareModal.open} onOpenChange={() => setShareModal({ open: false, itemId: null, itemPath: null })}>
-        <DialogContent className="max-w-md">
-          <div className="space-y-4">
-            <div className="text-center">
-              <h3 className="text-lg font-semibold">Share Content</h3>
-              <p className="text-sm text-muted-foreground">Choose how you'd like to share this content</p>
+      <Dialog open={shareModal.open} onOpenChange={(open) => setShareModal({ ...shareModal, open })}>
+        <DialogContent className="sm:max-w-md">
+          <div className="flex flex-col items-center space-y-4 py-4">
+            <h3 className="text-lg font-semibold">Share Image</h3>
+            
+            {qrCodeDataUrl && (
+              <div className="bg-white p-4 rounded-lg">
+                <img src={qrCodeDataUrl} alt="QR Code" className="w-64 h-64" />
+              </div>
+            )}
+            
+            <div className="w-full space-y-2">
+              <Label htmlFor="share-url" className="text-sm font-medium">
+                Image URL
+              </Label>
+              <div className="flex space-x-2">
+                <Input
+                  id="share-url"
+                  value={shareModal.itemPath ? `${config.data_url}/${shareModal.itemPath}` : ''}
+                  readOnly
+                  className="flex-1"
+                />
+                <Button
+                  size="sm"
+                  onClick={() => shareModal.itemPath && copyToClipboard(`${config.data_url}/${shareModal.itemPath}`)}
+                >
+                  Copy
+                </Button>
+              </div>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
-            {shareModal.itemId && (
-              <>
-                {/* Copy Link Section */}
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">Direct Link</Label>
-                  <div className="flex gap-2">
+      {/* Image Info Modal */}
+      <Dialog open={imageInfoModal.open} onOpenChange={(open) => {
+        if (!open) {
+          setImageInfoModal({ open: false, image: null });
+          setEditingImageData(null);
+          setTempRating(0);
+          setNewTag('');
+        } else if (imageInfoModal.image) {
+          // Find the current image data from the images state (most up-to-date)
+          const currentImage = images.find(img => img.id === imageInfoModal.image.id) || imageInfoModal.image;
+          
+          setEditingImageData({
+            user_filename: currentImage.user_filename || '',
+            user_notes: currentImage.user_notes || '',
+            user_tags: Array.isArray(currentImage.user_tags) ? currentImage.user_tags.join(', ') : (currentImage.user_tags || ''),
+            rating: currentImage.rating || 0,
+            favorite: currentImage.favorite || false
+          });
+          setTempRating(currentImage.rating || 0);
+        }
+      }}>
+        <DialogContent className="sm:max-w-5xl max-h-[90vh] overflow-y-auto">
+          {imageInfoModal.image && (
+            <div className="space-y-6 py-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xl font-semibold">Image Details</h3>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={`p-1 ${editingImageData?.favorite ? 'text-red-500' : 'text-gray-400'}`}
+                    onClick={() => setEditingImageData((prev: any) => ({ ...(prev || {}), favorite: !(prev?.favorite || false) }))}
+                  >
+                    <Heart className={`w-5 h-5 ${editingImageData?.favorite ? 'fill-current' : ''}`} />
+                  </Button>
+                </div>
+              </div>
+
+              {/* Image Preview - Smaller */}
+              <div className="flex justify-center">
+                <img 
+                  src={`${config.data_url}/${imageInfoModal.image.file_path}`}
+                  alt={imageInfoModal.image.system_filename}
+                  className="max-w-[150px] w-full h-auto rounded-lg shadow-lg"
+                />
+              </div>
+
+              {/* Editable Fields */}
+              <div className="space-y-4">
+                <h4 className="font-semibold text-lg border-b pb-2">Editable Information</h4>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="user-filename" className="text-sm font-medium">User Filename</Label>
                     <Input
-                      value={`${config.data_url}/${userData.id}/${shareModal.itemPath}/${shareModal.itemId}`}
-                      readOnly
-                      className="text-xs"
+                      id="user-filename"
+                      value={editingImageData?.user_filename || ''}
+                      onChange={(e) => setEditingImageData((prev: any) => ({ ...(prev || {}), user_filename: e.target.value }))}
+                      placeholder="Enter custom filename"
+                      className="mt-1"
                     />
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => copyToClipboard(`${config.data_url}/${userData.id}/${shareModal.itemPath}/${shareModal.itemId}`)}
-                    >
-                      Copy
-                    </Button>
+                  </div>
+
+                  <div>
+                    <Label className="text-sm font-medium">Rating</Label>
+                    <div className="flex gap-1 mt-2">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <button
+                          key={star}
+                          type="button"
+                          onClick={() => {
+                            const newRating = tempRating === star ? 0 : star;
+                            setTempRating(newRating);
+                            setEditingImageData((prev: any) => ({ ...(prev || {}), rating: newRating }));
+                          }}
+                          className="focus:outline-none transition-colors"
+                        >
+                          <Star 
+                            className={`w-6 h-6 ${
+                              star <= tempRating 
+                                ? 'fill-yellow-400 text-yellow-400' 
+                                : 'text-gray-300'
+                            }`}
+                          />
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
 
-                {/* QR Code Section */}
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">QR Code</Label>
-                  <div className="flex flex-col items-center space-y-3 p-4 bg-gray-50 rounded-lg border">
-                    {qrCodeDataUrl ? (
-                      <>
-                        <img 
-                          src={qrCodeDataUrl} 
-                          alt="QR Code" 
-                          className="w-32 h-32 border border-gray-200 rounded-lg"
-                        />
-                        <div className="text-xs text-gray-600 text-center">
-                          Scan to access content directly
-                        </div>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => {
-                            const link = document.createElement('a');
-                            link.href = qrCodeDataUrl;
-                            link.download = 'qr-code.png';
-                            link.click();
-                          }}
-                          className="flex items-center gap-2"
-                        >
-                          <Download className="w-4 h-4" />
-                          Download QR Code
-                        </Button>
-                      </>
-                    ) : (
-                      <div className="flex items-center justify-center w-32 h-32">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-400"></div>
+                <div>
+                  <Label htmlFor="user-notes" className="text-sm font-medium">Notes</Label>
+                  <textarea
+                    id="user-notes"
+                    value={editingImageData?.user_notes || ''}
+                    onChange={(e) => setEditingImageData((prev: any) => ({ ...(prev || {}), user_notes: e.target.value }))}
+                    placeholder="Add your notes..."
+                    className="mt-1 w-full min-h-[60px] px-3 py-2 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring resize-vertical bg-background text-foreground"
+                  />
+                </div>
+
+                <div>
+                  <Label className="text-sm font-medium">Tags</Label>
+                  <div className="mt-2 space-y-2">
+                    {/* Tag Input */}
+                    <div className="flex gap-2">
+                      <Input
+                        value={newTag}
+                        onChange={(e) => setNewTag(e.target.value)}
+                        placeholder="Add a tag"
+                        className="flex-1"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            if (newTag.trim()) {
+                              setEditingImageData((prev: any) => ({
+                                ...(prev || {}),
+                                user_tags: (prev?.user_tags || '') ? `${prev.user_tags}, ${newTag.trim()}` : newTag.trim()
+                              }));
+                              setNewTag('');
+                            }
+                          }
+                        }}
+                      />
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={() => {
+                          if (newTag.trim()) {
+                            setEditingImageData((prev: any) => ({
+                              ...(prev || {}),
+                              user_tags: (prev?.user_tags || '') ? `${prev.user_tags}, ${newTag.trim()}` : newTag.trim()
+                            }));
+                            setNewTag('');
+                          }
+                        }}
+                        className="px-3"
+                      >
+                        Add
+                      </Button>
+                    </div>
+                    {/* Tag Display */}
+                    {editingImageData?.user_tags && (
+                      <div className="flex flex-wrap gap-2">
+                        {editingImageData.user_tags.split(',').map((tag: string) => tag.trim()).filter((tag: string) => tag).map((tag: string, index: number) => (
+                          <Badge 
+                            key={index} 
+                            variant="secondary" 
+                            className="flex items-center gap-1 px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 hover:bg-blue-200 dark:hover:bg-blue-800"
+                          >
+                            {tag}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (editingImageData?.user_tags) {
+                                  const tags = editingImageData.user_tags.split(',').map((t: string) => t.trim()).filter((t: string) => t !== tag);
+                                  setEditingImageData((prev: any) => ({
+                                    ...(prev || {}),
+                                    user_tags: tags.join(', ')
+                                  }));
+                                }
+                              }}
+                              className="ml-1 text-blue-600 dark:text-blue-300 hover:text-blue-800 dark:hover:text-blue-100"
+                            >
+                              ×
+                            </button>
+                          </Badge>
+                        ))}
                       </div>
                     )}
                   </div>
                 </div>
+              </div>
 
-                {/* Social Media Section */}
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">Share on Social Media</Label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="flex items-center gap-2"
-                      onClick={() => shareToSocialMedia('twitter', shareModal.itemId)}
-                    >
-                      <svg className="w-4 h-4 text-blue-400" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z" />
-                      </svg>
-                      Twitter
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="flex items-center gap-2"
-                      onClick={() => shareToSocialMedia('facebook', shareModal.itemId)}
-                    >
-                      <svg className="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-                      </svg>
-                      Facebook
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="flex items-center gap-2"
-                      onClick={() => shareToSocialMedia('linkedin', shareModal.itemId)}
-                    >
-                      <svg className="w-4 h-4 text-blue-700" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
-                      </svg>
-                      LinkedIn
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="flex items-center gap-2"
-                      onClick={() => shareToSocialMedia('pinterest', shareModal.itemId)}
-                    >
-                      <svg className="w-4 h-4 text-red-600" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M12.017 0C5.396 0 .029 5.367.029 11.987c0 5.079 3.158 9.417 7.618 11.174-.105-.949-.199-2.403.041-3.439.219-.937 1.406-5.957 1.406-5.957s-.359-.72-.359-1.781c0-1.663.967-2.911 2.168-2.911 1.024 0 1.518.769 1.518 1.688 0 1.029-.653 2.567-.992 3.992-.285 1.193.6 2.165 1.775 2.165 2.128 0 3.768-2.245 3.768-5.487 0-2.861-2.063-4.869-5.008-4.869-3.41 0-5.409 2.562-5.409 5.199 0 1.033.394 2.143.889 2.741.099.12.112.225.085.345-.09.375-.293 1.199-.334 1.363-.053.225-.172.271-.402.165-1.495-.69-2.433-2.878-2.433-4.646 0-3.776 2.748-7.252 7.92-7.252 4.158 0 7.392 2.967 7.392 6.923 0 4.135-2.607 7.462-6.233 7.462-1.214 0-2.357-.629-2.746-1.378l-.748 2.853c-.271 1.043-1.002 2.35-1.492 3.146C9.57 23.812 10.763 24.009 12.017 24.009c6.624 0 11.99-5.367 11.99-11.988C24.007 5.367 18.641.001 12.017.001z" />
-                      </svg>
-                      Pinterest
-                    </Button>
+              {/* Read-only Fields */}
+              <div className="space-y-4">
+                <h4 className="font-semibold text-lg border-b pb-2">System Information</h4>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400">System Filename</Label>
+                    <p className="text-sm break-all bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 p-2 rounded mt-1">{imageInfoModal.image.system_filename}</p>
+                  </div>
+
+                  <div>
+                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400">Generation Status</Label>
+                    <div className="mt-1">
+                      <Badge variant={imageInfoModal.image.generation_status === 'completed' ? 'default' : 'secondary'}>
+                        {imageInfoModal.image.generation_status}
+                      </Badge>
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400">Created</Label>
+                    <p className="text-sm bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 p-2 rounded mt-1">
+                      {new Date(imageInfoModal.image.created_at).toLocaleString()}
+                    </p>
+                  </div>
+
+                  <div>
+                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400">Model Version</Label>
+                    <p className="text-sm bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 p-2 rounded mt-1">{imageInfoModal.image.model_version}</p>
+                  </div>
+
+                  <div>
+                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400">NSFW Strength</Label>
+                    <p className="text-sm bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 p-2 rounded mt-1">{imageInfoModal.image.nsfw_strength}</p>
+                  </div>
+                  
+                  <div>
+                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400">LoRA Strength</Label>
+                    <p className="text-sm bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 p-2 rounded mt-1">{imageInfoModal.image.lora_strength}</p>
                   </div>
                 </div>
-              </>
-            )}
-          </div>
+
+                <div>
+                  <Label className="text-sm font-medium text-gray-600 dark:text-gray-400">Optimized Prompt</Label>
+                  <p className="text-sm bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 p-2 rounded mt-1 max-h-20 overflow-y-auto">
+                    {imageInfoModal.image.t5xxl_prompt || 'No prompt available'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-3 pt-4 border-t">
+                <Button 
+                  onClick={() => {
+                    setImageInfoModal({ open: false, image: null });
+                    setEditingImageData(null);
+                    setTempRating(0);
+                    setNewTag('');
+                  }}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={async () => {
+                    if (!editingImageData || !imageInfoModal.image) return;
+                    
+                    try {
+                      const updateData = {
+                        user_filename: editingImageData.user_filename || '',
+                        user_notes: editingImageData.user_notes || '',
+                        user_tags: editingImageData.user_tags ? editingImageData.user_tags.split(',').map((tag: string) => tag.trim()).filter((tag: string) => tag) : [],
+                        rating: editingImageData.rating || 0,
+                        favorite: editingImageData.favorite || false
+                      };
+
+                      const response = await fetch(`${config.supabase_server_url}/generated_images?id=eq.${imageInfoModal.image.id}`, {
+                        method: 'PATCH',
+                        headers: {
+                          'Content-Type': 'application/json',
+                          'Authorization': 'Bearer WeInfl3nc3withAI'
+                        },
+                        body: JSON.stringify(updateData)
+                      });
+
+                      if (response.ok) {
+                        // Update local state with correct data structure
+                        setImages(prev => prev.map(img => 
+                          img.id === imageInfoModal.image.id 
+                            ? { 
+                                ...img, 
+                                user_filename: updateData.user_filename,
+                                user_notes: updateData.user_notes,
+                                user_tags: updateData.user_tags,
+                                rating: updateData.rating,
+                                favorite: updateData.favorite
+                              }
+                            : img
+                        ));
+                        
+                        toast({
+                          title: 'Success!',
+                          description: 'Image information updated successfully',
+                          variant: 'default'
+                        });
+                        
+                        setImageInfoModal({ open: false, image: null });
+                        setEditingImageData(null);
+                        setTempRating(0);
+                        setNewTag('');
+                      } else {
+                        const errorText = await response.text();
+                        throw new Error(`Failed to update: ${response.status} - ${errorText}`);
+                      }
+                    } catch (error) {
+                      console.error('Save error:', error);
+                      toast({
+                        title: 'Error',
+                        description: `Failed to update: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                        variant: 'destructive'
+                      });
+                    }
+                  }}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700"
+                >
+                  Save Changes
+                </Button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
   );
-} 
+}

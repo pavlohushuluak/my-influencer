@@ -1,58 +1,71 @@
-import { useSelector, useDispatch } from 'react-redux';
-import { useLocation } from 'react-router-dom';
-import { RootState } from '@/store/store';
-import { toggleTheme } from '@/store/slices/uiSlice';
-import config from '@/config/config';
-import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
-import { Moon, Sun, User, Settings, LogOut, Star } from 'lucide-react';
-import { UserLevelBadge } from '@/components/ui/user-level-badge';
+import { CreditPurchaseDialog } from "@/components/Payment/CreditPurchaseDialog";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { SidebarTrigger } from "@/components/ui/sidebar";
-import { useNavigate } from 'react-router-dom';
-import { CreditPurchaseDialog } from '@/components/Payment/CreditPurchaseDialog';
-import { useState } from 'react';
-import { toast } from 'sonner';
+import config from "@/config/config";
+import { toggleTheme } from "@/store/slices/uiSlice";
+import { RootState } from "@/store/store";
+import { LogOut, Moon, Settings, Star, Sun, User } from "lucide-react";
+import { useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { useLocation, useNavigate } from "react-router-dom";
 export function Header() {
   const dispatch = useDispatch();
   const location = useLocation();
   const { theme } = useSelector((state: RootState) => state.ui);
-  const { firstName, lastName, email, credits, subscription, free_purchase } = useSelector((state: RootState) => state.user);
+  const { firstName, lastName, email, credits, subscription, free_purchase } =
+    useSelector((state: RootState) => state.user);
   const name = `${firstName} ${lastName}`;
   const navigate = useNavigate();
   const [showCreditPurchase, setShowCreditPurchase] = useState(false);
 
   // Generate breadcrumbs based on current path
   const generateBreadcrumbs = () => {
-    const pathSegments = location.pathname.split('/').filter(Boolean);
-    const breadcrumbs: Array<{ label: string; href: string; isLast?: boolean }> = [
-      { label: 'Nymia', href: '/start' }
-    ];
+    const pathSegments = location.pathname.split("/").filter(Boolean);
+    const breadcrumbs: Array<{
+      label: string;
+      href: string;
+      isLast?: boolean;
+    }> = [{ label: "Nymia", href: "/start" }];
 
-    let currentPath = '';
+    let currentPath = "";
     pathSegments.forEach((segment, index) => {
       currentPath += `/${segment}`;
       let label = segment.charAt(0).toUpperCase() + segment.slice(1);
 
       // Custom labels for specific routes
       const customLabels: { [key: string]: string } = {
-        'create': 'Create New',
-        'use': 'Use Influencer',
-        'content': 'Content Library',
-        'presets': 'Templates',
-        'vault': 'Vault',
-        'settings': 'Settings',
-        'catalog': 'Catalog',
-        'clothing': 'Clothing',
-        'location': 'Location',
-        'poses': 'Poses',
-        'accessories': 'Accessories',
-        'enhance': 'Enhance',
-        'edit': 'Edit',
-        'story': 'Story',
-        'schedule': 'Schedule',
-        'batch': 'Batch'
+        create: "Create New",
+        use: "Use Influencer",
+        content: "Content Library",
+        presets: "Templates",
+        vault: "Vault",
+        settings: "Settings",
+        catalog: "Catalog",
+        clothing: "Clothing",
+        location: "Location",
+        poses: "Poses",
+        accessories: "Accessories",
+        enhance: "Enhance",
+        edit: "Edit",
+        story: "Story",
+        schedule: "Schedule",
+        batch: "Batch",
       };
 
       if (customLabels[segment]) {
@@ -62,7 +75,7 @@ export function Header() {
       breadcrumbs.push({
         label,
         href: currentPath,
-        isLast: index === pathSegments.length - 1
+        isLast: index === pathSegments.length - 1,
       });
     });
 
@@ -70,33 +83,33 @@ export function Header() {
   };
 
   const handleLogout = async () => {
-    const accessToken = sessionStorage.getItem('access_token');
+    const accessToken = sessionStorage.getItem("access_token");
 
     if (accessToken) {
       try {
         const response = await fetch(`${config.backend_url}/logout`, {
-          method: 'POST',
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer WeInfl3nc3withAI'
+            "Content-Type": "application/json",
+            Authorization: "Bearer WeInfl3nc3withAI",
           },
           body: JSON.stringify({
-            access_token: accessToken
-          })
+            access_token: accessToken,
+          }),
         });
 
         if (!response.ok) {
-          throw new Error('Failed to logout');
+          throw new Error("Failed to logout");
         }
       } catch (error) {
-        console.error('Error during logout:', error);
+        console.error("Error during logout:", error);
       }
     }
 
     // Remove tokens and navigate regardless of API call success
-    sessionStorage.removeItem('access_token');
-    sessionStorage.removeItem('refresh_token');
-    navigate('/signin');
+    sessionStorage.removeItem("access_token");
+    sessionStorage.removeItem("refresh_token");
+    navigate("/signin");
   };
 
   const breadcrumbs = generateBreadcrumbs();
@@ -112,7 +125,7 @@ export function Header() {
     //   setShowCreditPurchase(true);
     //   return;
     // }
-    
+
     // If user is on free plan, check if they can still purchase
     // if (subscription === 'free' && free_purchase) {
     //   setShowCreditPurchase(true);
@@ -120,7 +133,7 @@ export function Header() {
     //   toast.error('You can purchase credits only once on a free plan. Please upgrade to continue.');
     //   navigate('/pricing');
     // }
-  }
+  };
 
   return (
     <>
@@ -132,9 +145,9 @@ export function Header() {
             <SidebarTrigger className="h-8 w-8 hover:bg-accent transition-colors" />
           </div>
 
-          {/* Right side - Credits, Theme toggle and User menu */}
+          {/* Right side - Gems, Theme toggle and User menu */}
           <div className="flex items-center gap-3">
-            {/* Credits display */}
+            {/* Gems display */}
             <div
               className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500/15 via-blue-500/10 to-cyan-500/15 rounded-full border border-purple-300/30 dark:border-purple-700/30 hover:from-purple-500/25 hover:via-blue-500/20 hover:to-cyan-500/25 cursor-pointer transition-all duration-300 ease-in-out hover:scale-105 hover:shadow-lg hover:shadow-purple-500/20 backdrop-blur-sm relative overflow-hidden group"
               onClick={() => handleCreditPurchase()}
@@ -146,15 +159,15 @@ export function Header() {
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out" />
 
               <Star className="w-4 h-4 text-purple-600 dark:text-purple-400 drop-shadow-sm group-hover:scale-110 transition-transform duration-300" />
-              <div className='flex'>
+              <div className="flex">
                 <span className="text-sm font-semibold text-foreground relative z-10 tracking-wide">
-                  {credits.toLocaleString()}
+                  {credits.toLocaleString()} &nbsp;
                 </span>
                 <span className="hidden md:flex text-sm font-semibold text-foreground relative z-10 tracking-wide">
-                  credits
+                  Gems
                 </span>
               </div>
-              {/* Pulse indicator for low credits */}
+              {/* Pulse indicator for low gems */}
               {credits < 10 && (
                 <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
               )}
@@ -180,7 +193,7 @@ export function Header() {
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out" />
 
               <div className="relative z-10 flex items-center justify-center w-full h-full">
-                {theme === 'dark' ? (
+                {theme === "dark" ? (
                   <Sun className="w-5 h-5 text-amber-500 drop-shadow-sm group-hover:scale-110 transition-transform duration-300 group-hover:rotate-12" />
                 ) : (
                   <Moon className="w-5 h-5 text-slate-600 dark:text-slate-300 drop-shadow-sm group-hover:scale-110 transition-transform duration-300 group-hover:-rotate-12" />
@@ -191,9 +204,12 @@ export function Header() {
             {/* User menu */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-9 w-9 rounded-full">
+                <Button
+                  variant="ghost"
+                  className="relative h-9 w-9 rounded-full"
+                >
                   <Avatar className="h-9 w-9">
-                    <AvatarImage src="" alt={name || ''} />
+                    <AvatarImage src="" alt={name || ""} />
                     <AvatarFallback className="bg-gradient-to-br from-purple-500 to-blue-500 text-white">
                       <User className="w-4 h-4" />
                     </AvatarFallback>
@@ -206,12 +222,18 @@ export function Header() {
                   <p className="text-xs text-muted-foreground">{email}</p>
                 </div>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem className="hover:bg-accent cursor-pointer" onClick={() => navigate('/settings')}>
+                <DropdownMenuItem
+                  className="hover:bg-accent cursor-pointer"
+                  onClick={() => navigate("/settings")}
+                >
                   <Settings className="mr-2 h-4 w-4" />
                   Settings
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem className="hover:bg-accent cursor-pointer" onClick={handleLogout}>
+                <DropdownMenuItem
+                  className="hover:bg-accent cursor-pointer"
+                  onClick={handleLogout}
+                >
                   <LogOut className="mr-2 h-4 w-4" />
                   Sign out
                 </DropdownMenuItem>
@@ -227,11 +249,18 @@ export function Header() {
           <Breadcrumb>
             <BreadcrumbList>
               {breadcrumbs.map((crumb, index) => (
-                <div key={`${crumb.href}-${index}`} className="flex items-center">
-                  {index > 0 && <BreadcrumbSeparator className="text-muted-foreground/50" />}
+                <div
+                  key={`${crumb.href}-${index}`}
+                  className="flex items-center"
+                >
+                  {index > 0 && (
+                    <BreadcrumbSeparator className="text-muted-foreground/50" />
+                  )}
                   <BreadcrumbItem>
                     {crumb.isLast ? (
-                      <BreadcrumbPage className="text-foreground font-medium">{crumb.label}</BreadcrumbPage>
+                      <BreadcrumbPage className="text-foreground font-medium">
+                        {crumb.label}
+                      </BreadcrumbPage>
                     ) : (
                       <BreadcrumbLink
                         href={crumb.href}

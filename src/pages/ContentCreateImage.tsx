@@ -1,126 +1,470 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { useSelector, useDispatch } from 'react-redux';
-import { RootState } from '@/store/store';
-import config from '@/config/config';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Command, CommandItem, CommandList } from '@/components/ui/command';
-import { Slider } from '@/components/ui/slider';
-import { Switch } from '@/components/ui/switch';
-import { Textarea } from '@/components/ui/textarea';
-import { Separator } from '@/components/ui/separator';
-import { Influencer } from '@/store/slices/influencersSlice';
-import { setInfluencers, setLoading, setError } from '@/store/slices/influencersSlice';
-import { setUser } from '@/store/slices/userSlice';
-import { toast } from 'sonner';
-import { LoraStatusIndicator } from '@/components/Influencers/LoraStatusIndicator';
-import { useDebounce } from '@/hooks/useDebounce';
-import { DialogZoom, DialogContentZoom } from '@/components/ui/zoomdialog';
-import VaultSelector from '@/components/VaultSelector';
-import PresetsManager from '@/components/PresetsManager';
-import LibraryManager from '@/components/LibraryManager';
-import { Image, Wand2, Settings, Image as ImageIcon, Sparkles, Loader2, Camera, Search, X, Filter, Plus, RotateCcw, Download, Trash2, Calendar, Share, Pencil, Edit3, BookOpen, Save, FolderOpen, Upload, Edit, AlertTriangle, Eye, User, Monitor, ZoomIn, SortAsc, SortDesc, QrCode, Lock, Home, ChevronRight, Folder, ArrowLeft } from 'lucide-react';
-import QRCode from 'qrcode';
-import HistoryCard from '@/components/HistoryCard';
-import { CreditConfirmationModal } from '@/components/CreditConfirmationModal';
-
-const TASK_OPTIONS = [
-  { value: 'generate_image', label: 'Generate Image', description: 'Generate a single image' },
-  { value: 'generate_series', label: 'Generate Image Series', description: 'Generate multiple images in a series' }
-];
+import { CreditConfirmationModal } from "@/components/CreditConfirmationModal";
+import HistoryCard from "@/components/HistoryCard";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import { Command, CommandItem, CommandList } from "@/components/ui/command";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
+import { Slider } from "@/components/ui/slider";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
+import VaultSelector from "@/components/VaultSelector";
+import config from "@/config/config";
+import { useDebounce } from "@/hooks/useDebounce";
+import { cleanImageUrl, cn } from "@/lib/utils";
+import {
+  Influencer,
+  setError,
+  setInfluencers,
+  setLoading,
+} from "@/store/slices/influencersSlice";
+import { RootState } from "@/store/store";
+import {
+  AlertTriangle,
+  Archive,
+  ArrowLeft,
+  BookOpen,
+  Brain,
+  Camera,
+  Check,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  Crown,
+  Download,
+  Edit,
+  Edit3,
+  Eye,
+  Filter,
+  Folder,
+  FolderOpen,
+  Heart,
+  History,
+  ImageIcon,
+  Info,
+  Loader2,
+  Monitor,
+  Palette,
+  Play,
+  Plus,
+  RotateCcw,
+  Save,
+  Search,
+  Share,
+  Shirt,
+  Sparkles,
+  Star,
+  Sun,
+  Target,
+  Trash2,
+  Upload,
+  User,
+  Users,
+  Wand2,
+  X,
+  Zap,
+  ZoomIn,
+} from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { toast } from "sonner";
 
 const SEARCH_FIELDS = [
-  { id: 'all', label: 'All Fields' },
-  { id: 'name', label: 'Name' },
-  { id: 'age_lifestyle', label: 'Age/Lifestyle' },
-  { id: 'influencer_type', label: 'Type' }
+  { id: "all", label: "All Fields" },
+  { id: "name", label: "Name" },
+  { id: "age_lifestyle", label: "Age/Lifestyle" },
+  { id: "influencer_type", label: "Type" },
 ];
 
-interface Option {
-  label: string;
-  image: string;
-  description: string;
-}
-
-interface PoseOption {
+interface ComponentPickerItem {
+  id: string;
   label: string;
   description: string;
   image: string;
-  no_framing: boolean;
-  no_scene: boolean;
-  max_lora_strength: number;
-  license: string;
+  category: string;
 }
 
-interface PoseCategory {
-  property_category: string;
-  data: PoseOption[];
+interface ImageSettings {
+  format: string;
+  images: number;
+  promptAdherence: number;
+  engine: string;
+  nsfwStrength: number;
+  seed: string;
 }
 
-interface SceneOption {
-  label: string;
-  description: string;
-  image: string;
-  no_framing: boolean;
-  no_scene: boolean;
-  max_lora_strength: number;
-  license: string;
+interface LoraSettings {
+  influencerConsistency: boolean;
+  influencerStrength: number;
+  optionalLora1: string;
+  optionalLora1Strength: number;
+  optionalLora2: string;
+  optionalLora2Strength: number;
 }
 
-interface SceneCategory {
-  property_category: string;
-  data: SceneOption[];
+interface ComponentPickerState {
+  scene: ComponentPickerItem | null;
+  pose: ComponentPickerItem | null;
+  outfit: ComponentPickerItem | null;
+  framing: ComponentPickerItem | null;
+  lighting: ComponentPickerItem | null;
+  rotation: ComponentPickerItem | null;
+  makeup: ComponentPickerItem | null;
+  accessory: ComponentPickerItem | null;
 }
 
-interface OutfitOption {
-  label: string;
-  description: string;
-  image: string;
-  no_framing: boolean;
-  no_scene: boolean;
-  max_lora_strength: number;
-  license: string;
-}
-
-interface OutfitCategory {
-  property_category: string;
-  data: OutfitOption[];
-}
-
-interface ContentCreateImageProps {
-  influencerData?: any;
-}
-
-function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
-  const location = useLocation();
+function ContentCreateImageNew() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const [searchParams] = useSearchParams();
   const userData = useSelector((state: RootState) => state.user);
-  const influencers = useSelector((state: RootState) => state.influencers.influencers);
-  const [activeTab, setActiveTab] = useState('scene');
+  const influencers = useSelector(
+    (state: RootState) => state.influencers.influencers
+  );
+
+  // Core states
+  const [prompt, setPrompt] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
-
-  // Model data state to store influencer information
   const [modelData, setModelData] = useState<Influencer | null>(null);
+  const [generatedImages, setGeneratedImages] = useState<any[]>([]);
+  const [generatedTaskIds, setGeneratedTaskIds] = useState<string[]>([]);
+  const [isLoadingGeneratedImages, setIsLoadingGeneratedImages] =
+    useState(false);
+  const [showInspirationHub, setShowInspirationHub] = useState(false);
+  const [showInfluencerDialog, setShowInfluencerDialog] = useState(false);
+  const [influencerDialogData, setInfluencerDialogData] = useState<{
+    templateName: string;
+    influencerName: string;
+  } | null>(null);
 
-  // Search state for influencer selection
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedSearchField, setSelectedSearchField] = useState(SEARCH_FIELDS[0]);
-  const [openFilter, setOpenFilter] = useState(false);
-  const debouncedSearchTerm = useDebounce(searchTerm, 300);
+  // Modal states for generated images
+  const [zoomModal, setZoomModal] = useState<{
+    open: boolean;
+    imageUrl: string;
+    imageName: string;
+  }>({ open: false, imageUrl: "", imageName: "" });
+  const [imageInfoModal, setImageInfoModal] = useState<{
+    open: boolean;
+    image: any;
+  }>({ open: false, image: null });
+  const [editingImageData, setEditingImageData] = useState<any>(null);
+  const [tempRating, setTempRating] = useState(0);
+  const [newTag, setNewTag] = useState("");
+
+  // Modal for failed image details
+  const [failedImageModal, setFailedImageModal] = useState<{
+    open: boolean;
+    taskId: string;
+    userNotes: string;
+  }>({ open: false, taskId: "", userNotes: "" });
+
+  // Placeholder images for immediate display during generation
+  const [placeholderImages, setPlaceholderImages] = useState<any[]>([]);
+  const [failedTasks, setFailedTasks] = useState<Set<string>>(new Set());
+  const [regeneratingImages, setRegeneratingImages] = useState<Set<string>>(
+    new Set()
+  );
+
+  // Preset management states
+  const [showPresetModal, setShowPresetModal] = useState(false);
+  const [showPresetBrowserModal, setShowPresetBrowserModal] = useState(false);
+  const [presetData, setPresetData] = useState({
+    name: "",
+    description: "",
+    mainFolder: "",
+    subFolder: "",
+    subSubFolder: "",
+    rating: 0,
+    favorite: false,
+    tags: [] as string[],
+    selectedImage: null as string | null,
+  });
+  const [existingFolders, setExistingFolders] = useState({
+    mainFolders: [] as string[],
+    subFolders: [] as string[],
+    subSubFolders: [] as string[],
+  });
+  const [isSavingPreset, setIsSavingPreset] = useState(false);
+  const [availablePresets, setAvailablePresets] = useState<any[]>([]);
+  const [presetsLoading, setPresetsLoading] = useState(false);
+  const [editingPreset, setEditingPreset] = useState<any>(null);
+  const [showVaultSelector, setShowVaultSelector] = useState(false);
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [browseFolderView, setBrowseFolderView] = useState<
+    "folders" | "details"
+  >("folders");
+  const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
+  const [selectedFolderPresets, setSelectedFolderPresets] = useState<any[]>([]);
+  const [currentFolderPath, setCurrentFolderPath] = useState<string[]>([]);
+  const [folderHierarchy, setFolderHierarchy] = useState<any>({});
+
+  // Inspiration Hub states
+  const [templatePresets, setTemplatePresets] = useState<any[]>([]);
+  const [templatesLoading, setTemplatesLoading] = useState(false);
+  const [templateSearchTerm, setTemplateSearchTerm] = useState("");
+  const [selectedTemplateCategory, setSelectedTemplateCategory] =
+    useState<string>("all");
+  const [selectedTemplateTag, setSelectedTemplateTag] = useState<string>("all");
+  const [templateFolderView, setTemplateFolderView] = useState<
+    "folders" | "details"
+  >("folders");
+  const [selectedTemplateFolder, setSelectedTemplateFolder] = useState<
+    string | null
+  >(null);
+  const [selectedTemplateFolderPresets, setSelectedTemplateFolderPresets] =
+    useState<any[]>([]);
+  const [currentTemplateFolderPath, setCurrentTemplateFolderPath] = useState<
+    string[]
+  >([]);
+  const [featuredTemplateIndex, setFeaturedTemplateIndex] = useState(0);
+
+  // Get location for state data
+  const reactLocation = useLocation();
+
+  // Load regeneration data from location.state only
+  useEffect(() => {
+    const regenerateData = reactLocation.state?.regenerateData;
+    if (!regenerateData) return;
+
+    // Set prompt
+    if (regenerateData.prompt) {
+      setPrompt(regenerateData.prompt);
+    }
+
+    // Load influencer
+    if (regenerateData.influencer_id && influencers.length > 0) {
+      const influencer = influencers.find(
+        (inf) => inf.id.toString() === regenerateData.influencer_id
+      );
+      if (influencer) {
+        setModelData(influencer);
+      }
+    }
+
+    // Load settings
+    if (regenerateData.format) {
+      setImageSettings((prev) => ({ ...prev, format: regenerateData.format }));
+    }
+    if (regenerateData.engine) {
+      setImageSettings((prev) => ({ ...prev, engine: regenerateData.engine }));
+    }
+    if (regenerateData.guidance) {
+      setImageSettings((prev) => ({
+        ...prev,
+        promptAdherence: parseFloat(regenerateData.guidance.toString()),
+      }));
+    }
+    if (regenerateData.number_of_images) {
+      setImageSettings((prev) => ({
+        ...prev,
+        images: parseInt(regenerateData.number_of_images.toString()),
+      }));
+    }
+    if (regenerateData.lora_strength) {
+      setLoraSettings((prev) => ({
+        ...prev,
+        influencerStrength: parseFloat(regenerateData.lora_strength.toString()),
+      }));
+    }
+
+    toast.success("Regeneration loaded");
+  }, [reactLocation.state, influencers]);
+
+  // Handle influencer selection from URL query parameter
+  useEffect(() => {
+    const influencerId = searchParams.get("influencer");
+    if (influencerId && influencers.length > 0) {
+      const influencer = influencers.find(
+        (inf) => inf.id.toString() === influencerId
+      );
+      if (influencer) {
+        setModelData(influencer);
+        console.log(
+          "Automatically selected influencer from URL:",
+          influencer.name_first,
+          influencer.name_last
+        );
+        toast.success(
+          `Automatically selected: ${influencer.name_first} ${influencer.name_last}`
+        );
+      } else {
+        // Influencer ID from URL not found in the list
+        console.warn(
+          `Influencer with ID ${influencerId} not found in the list`
+        );
+        toast.error(
+          `Influencer not found. Please select a different influencer.`
+        );
+      }
+    }
+  }, [searchParams, influencers]);
+
+  // Component picker restoration will be handled after options are loaded
+
+  // Separate effect to monitor prompt state changes
+  useEffect(() => {
+    console.log("Prompt state changed to:", prompt);
+  }, [prompt]);
+
+  // File management states
+  const [renamingFile, setRenamingFile] = useState<string | null>(null);
+  const [fileContextMenu, setFileContextMenu] = useState<{
+    x: number;
+    y: number;
+    image: any;
+  } | null>(null);
+  const [shareModal, setShareModal] = useState<{
+    open: boolean;
+    itemId: string | null;
+    itemPath: string | null;
+  }>({ open: false, itemId: null, itemPath: null });
+  const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>("");
+  const [fullSizeImageModal, setFullSizeImageModal] = useState<{
+    isOpen: boolean;
+    imageUrl: string;
+    imageName: string;
+  }>({
+    isOpen: false,
+    imageUrl: "",
+    imageName: "",
+  });
   const [showHistory, setShowHistory] = useState(false);
 
-  // Gem cost checking state
-  const [showGemWarning, setShowGemWarning] = useState(false);
+  // LoRA Training Modal state
+  const [showLoraTrainingModal, setShowLoraTrainingModal] = useState(false);
+
+  // Influencer selection states
+  const [showInfluencerSelector, setShowInfluencerSelector] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedSearchField, setSelectedSearchField] = useState(
+    SEARCH_FIELDS[0]
+  );
+  const [openFilter, setOpenFilter] = useState(false);
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
+
+  // Format labels mapping for display
+  const formatLabels: Record<string, string> = {
+    "1:1": "Square 1:1",
+    "4:5": "Portrait 4:5",
+    "3:4": "Portrait 3:4",
+    "9:16": "Portrait 9:16",
+    "16:9": "Landscape 16:9",
+    "5:4": "Landscape 5:4",
+    "4:3": "Landscape 4:3",
+  };
+  // Settings states
+  const [imageSettings, setImageSettings] = useState<ImageSettings>({
+    format: "1:1",
+    images: 1,
+    promptAdherence: 3.5,
+    engine: "Nymia General",
+    nsfwStrength: 0,
+    seed: "",
+  });
+
+  const [loraSettings, setLoraSettings] = useState<LoraSettings>({
+    influencerConsistency: true,
+    influencerStrength: 0.8,
+    optionalLora1: "nymia default",
+    optionalLora1Strength: 0.3,
+    optionalLora2: "Realism",
+    optionalLora2Strength: 1.0,
+  });
+
+  const [componentPicker, setComponentPicker] = useState<ComponentPickerState>({
+    scene: null,
+    pose: null,
+    outfit: null,
+    framing: null,
+    lighting: null,
+    rotation: null,
+    makeup: null,
+    accessory: null,
+  });
+
+  // UI states
+  const [isComponentPickerOpen, setIsComponentPickerOpen] = useState(false);
+  const [isPresetsOpen, setIsPresetsOpen] = useState(false);
+  const [isAiConsistencyOpen, setIsAiConsistencyOpen] = useState(false);
+  const [isInfluencerOpen, setIsInfluencerOpen] = useState(true);
+  const [selectedComponentCategory, setSelectedComponentCategory] = useState<
+    string | null
+  >(null);
+  const [currentFolder, setCurrentFolder] = useState<any | null>(null);
+  const [componentSearchTerm, setComponentSearchTerm] = useState<string>("");
+
+  // Individual folder paths for each component category
+  const [componentFolderPaths, setComponentFolderPaths] = useState<{}>({
+    scene: [],
+    pose: [],
+    outfit: [],
+    framing: [],
+    lighting: [],
+    rotation: [],
+    makeup: [],
+    accessory: [],
+  });
+
+  // Function to open component picker with category-specific folder restoration
+  const openComponentPicker = (categoryKey: string) => {
+    setSelectedComponentCategory(categoryKey);
+
+    // Restore saved folder path for this category if it exists
+    const savedPath = componentFolderPaths[categoryKey];
+    if (savedPath && savedPath.length > 0) {
+      // Restore folder navigation state for this category
+      // This would restore the folder hierarchy navigation
+      console.log(`Restoring folder path for ${categoryKey}:`, savedPath);
+
+      // For now, we'll reset to root since the folder navigation structure
+      // needs more complex restoration logic
+      setCurrentFolder(null);
+    } else {
+      // Start fresh for this category
+      setCurrentFolder(null);
+    }
+  };
+  const [editingSetting, setEditingSetting] = useState<{
+    type: string;
+    field: string;
+    value: any;
+    inputType: string;
+    options?: any[];
+  } | null>(null);
+
+  // Credit system states
   const [gemCostData, setGemCostData] = useState<{
     id: number;
     item: string;
@@ -128,570 +472,715 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
     gems: number;
     originalGemsPerImage?: number;
   } | null>(null);
-  const [isCheckingGems, setIsCheckingGems] = useState(false);
+  const [showCreditWarning, setShowCreditWarning] = useState(false);
+  const [isCheckingCredits, setIsCheckingCredits] = useState(false);
 
-  // Form state
-  const [formData, setFormData] = useState({
-    model: '',
-    scene: '',
-    task: 'generate_image',
-    lora: false,
-    noAI: true,
-    prompt: '',
-    format: 'Portrait 4:5',
-    numberOfImages: 1,
-    seed: '',
-    guidance: 3.5,
-    negative_prompt: '',
-    nsfw_strength: 0,
-    lora_strength: 0.8,
-    quality: 'Quality',
-    engine: 'Nymia General',
-    usePromptOnly: false,
-    regenerated_from: ''
-  });
+  // API Options states
+  const [sceneOptions, setSceneOptions] = useState<any[]>([]);
+  const [poseOptions, setPoseOptions] = useState<any[]>([]);
+  const [outfitOptions, setOutfitOptions] = useState<any[]>([]);
+  const [framingOptions, setFramingOptions] = useState<any[]>([]);
+  const [lightingOptions, setLightingOptions] = useState<any[]>([]);
+  const [rotationOptions, setRotationOptions] = useState<any[]>([]);
+  const [makeupOptions, setMakeupOptions] = useState<any[]>([]);
+  const [accessoriesOptions, setAccessoriesOptions] = useState<any[]>([]);
+  const [engineOptions, setEngineOptions] = useState<any[]>([]);
+  const [formatOptions, setFormatOptions] = useState<any[]>([]);
 
-  // Scene specifications
-  const [sceneSpecs, setSceneSpecs] = useState({
-    framing: '',
-    rotation: '',
-    lighting_preset: '',
-    scene_setting: '',
-    pose: '',
-    clothes: ''
-  });
-
-  // Model description sections
-  const [modelDescription, setModelDescription] = useState({
-    appearance: '',
-    culturalBackground: '',
-    bodyType: '',
-    facialFeatures: '',
-    hairColor: '',
-    hairLength: '',
-    hairStyle: '',
-    skin: '',
-    lips: '',
-    eyes: '',
-    nose: '',
-    makeup: 'Natural / No-Makeup Look',
-    bust: '',
-    clothing: '',
-    sex: '',
-    eyebrowStyle: '',
-    faceShape: '',
-    colorPalette: '',
-    age: '',
-    lifestyle: '',
-  });
-
-  // Makeup options and modal state
-  const [makeupOptions, setMakeupOptions] = useState<Option[]>([]);
-  const [showMakeupSelector, setShowMakeupSelector] = useState(false);
-  const [previewImage, setPreviewImage] = useState<string | null>(null);
-
-  // Framing options and modal state
-  const [framingOptions, setFramingOptions] = useState<Option[]>([]);
-  const [showFramingSelector, setShowFramingSelector] = useState(false);
-
-  // Clothes options and modal state
-  const [clothesOptions, setClothesOptions] = useState<Option[]>([]);
-  const [outfitCategories, setOutfitCategories] = useState<OutfitCategory[]>([]);
-  const [showClothesSelector, setShowClothesSelector] = useState(false);
-  const [selectedOutfit, setSelectedOutfit] = useState<OutfitOption | null>(null);
-  const [currentOutfitCategory, setCurrentOutfitCategory] = useState<OutfitCategory | null>(null);
-
-  // Rotation options and modal state
-  const [rotationOptions, setRotationOptions] = useState<Option[]>([]);
-  const [showRotationSelector, setShowRotationSelector] = useState(false);
-
-  // Lighting options and modal state
-  const [lightingOptions, setLightingOptions] = useState<Option[]>([]);
-  const [showLightingSelector, setShowLightingSelector] = useState(false);
-
-  // Pose options and modal state
-  const [poseOptions, setPoseOptions] = useState<Option[]>([]);
-  const [poseCategories, setPoseCategories] = useState<PoseCategory[]>([]);
-  const [showPoseSelector, setShowPoseSelector] = useState(false);
-  const [selectedPose, setSelectedPose] = useState<PoseOption | null>(null);
-  const [currentPoseCategory, setCurrentPoseCategory] = useState<PoseCategory | null>(null);
-
-  // Scene settings options and modal state
-  const [sceneSettingsOptions, setSceneSettingsOptions] = useState<Option[]>([]);
-  const [sceneCategories, setSceneCategories] = useState<SceneCategory[]>([]);
-  const [showSceneSettingsSelector, setShowSceneSettingsSelector] = useState(false);
-  const [selectedScene, setSelectedScene] = useState<SceneOption | null>(null);
-  const [currentSceneCategory, setCurrentSceneCategory] = useState<SceneCategory | null>(null);
-
-  // Format options and modal state
-  const [formatOptions, setFormatOptions] = useState<Option[]>([]);
-  const [showFormatSelector, setShowFormatSelector] = useState(false);
-
-  // Influencer selector dialog state
-  const [showInfluencerSelector, setShowInfluencerSelector] = useState(false);
-  const [generatedTaskIds, setGeneratedTaskIds] = useState<string[]>([]);
-  const [generatedImages, setGeneratedImages] = useState<any[]>([]);
-  const [isLoadingGeneratedImages, setIsLoadingGeneratedImages] = useState(false);
-  const [fullSizeImageModal, setFullSizeImageModal] = useState<{ isOpen: boolean; imageUrl: string; imageName: string }>({
-    isOpen: false,
-    imageUrl: '',
-    imageName: ''
-  });
-
-  // Vault-style image card state
-  const [detailedImageModal, setDetailedImageModal] = useState<{ open: boolean; image: any | null }>({ open: false, image: null });
-  const [editingNotes, setEditingNotes] = useState<string | null>(null);
-  const [editingTags, setEditingTags] = useState<string | null>(null);
-  const [notesInput, setNotesInput] = useState<string>('');
-  const [tagsInput, setTagsInput] = useState<string>('');
-  const [editingFile, setEditingFile] = useState<string | null>(null);
-  const [editingFileName, setEditingFileName] = useState<string>('');
-  const [renamingFile, setRenamingFile] = useState<string | null>(null);
-  const [fileContextMenu, setFileContextMenu] = useState<{ x: number; y: number; image: any } | null>(null);
-  const [regeneratingImages, setRegeneratingImages] = useState<Set<string>>(new Set());
-
-  // Share modal state
-  const [shareModal, setShareModal] = useState<{ open: boolean; itemId: string | null; itemPath: string | null }>({ open: false, itemId: null, itemPath: null });
-  const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>('');
-
-  // Status bar edit popup state
-  const [statusEditPopup, setStatusEditPopup] = useState<{
-    isOpen: boolean;
-    field: string;
-    currentValue: any;
-    fieldType: 'number' | 'boolean' | 'select' | 'text' | 'slider';
-    options?: { label: string; value: any }[];
-    position: { x: number; y: number };
-  }>({
-    isOpen: false,
-    field: '',
-    currentValue: null,
-    fieldType: 'text',
-    options: [],
-    position: { x: 0, y: 0 }
-  });
-
-  // Defensive: ensure formatOptions is always an array
-  const safeFormatOptions = Array.isArray(formatOptions) ? formatOptions : [];
+  // Categorized options for dropdowns
+  const [sceneCategories, setSceneCategories] = useState<any[]>([]);
+  const [poseCategories, setPoseCategories] = useState<any[]>([]);
+  const [outfitCategories, setOutfitCategories] = useState<any[]>([]);
+  const [systemLoraOptions, setSystemLoraOptions] = useState<any[]>([]);
 
   // Filtered influencers for search
-  const filteredInfluencers = influencers.filter(influencer => {
-    if (!debouncedSearchTerm) return true;
+  const filteredInfluencers =
+    influencers?.filter((influencer) => {
+      if (!debouncedSearchTerm) return true;
 
-    const searchLower = debouncedSearchTerm.toLowerCase();
+      const searchLower = debouncedSearchTerm.toLowerCase();
 
-    switch (selectedSearchField.id) {
-      case 'name':
-        return `${influencer.name_first} ${influencer.name_last}`.toLowerCase().includes(searchLower);
-      case 'age':
-        return influencer.age.toLowerCase().includes(searchLower);
-      case 'influencer_type':
-        return influencer.influencer_type.toLowerCase().includes(searchLower);
-      default:
-        return (
-          `${influencer.name_first} ${influencer.name_last}`.toLowerCase().includes(searchLower) ||
-          influencer.age.toLowerCase().includes(searchLower) ||
-          influencer.influencer_type.toLowerCase().includes(searchLower)
-        );
+      switch (selectedSearchField?.id) {
+        case "name":
+          return `${influencer.name_first} ${influencer.name_last}`
+            .toLowerCase()
+            .includes(searchLower);
+        case "age_lifestyle":
+          return influencer.age_lifestyle?.toLowerCase().includes(searchLower);
+        case "influencer_type":
+          return influencer.influencer_type
+            ?.toLowerCase()
+            .includes(searchLower);
+        case "all":
+        default:
+          return (
+            `${influencer.name_first} ${influencer.name_last}`
+              .toLowerCase()
+              .includes(searchLower) ||
+            influencer.age_lifestyle?.toLowerCase().includes(searchLower) ||
+            influencer.influencer_type?.toLowerCase().includes(searchLower)
+          );
+      }
+    }) || [];
+
+  // Handler functions
+  const handleUseInfluencer = (influencer: Influencer) => {
+    applyInfluencerWithLoraLogic(influencer);
+    setShowInfluencerSelector(false);
+
+    // Show appropriate toast message
+    if (influencer.lorastatus === 2) {
+      toast.success(
+        `Using ${influencer.name_first} ${influencer.name_last} for content generation - AI Consistency enabled`
+      );
+    } else {
+      toast.success(
+        `Using ${influencer.name_first} ${influencer.name_last} for content generation - AI Training required for consistency`
+      );
     }
-  });
+  };
 
+  // Helper function to apply LoRA status logic when setting modelData
+  const applyInfluencerWithLoraLogic = (influencer: Influencer | null) => {
+    setModelData(influencer);
+
+    if (influencer) {
+      // Check LoRA status and adjust AI Consistency settings accordingly
+      if (influencer.lorastatus === 2) {
+        // LoRA is trained - enable AI Consistency and set strength to 0.8
+        setLoraSettings((prev) => ({
+          ...prev,
+          influencerConsistency: true,
+          influencerStrength: 0.8,
+        }));
+      } else {
+        // LoRA is not trained - disable AI Consistency
+        setLoraSettings((prev) => ({
+          ...prev,
+          influencerConsistency: false,
+        }));
+      }
+    }
+  };
+
+  // Handler for AI Consistency Switch - check LoRA status
+  const handleInfluencerConsistencyToggle = (checked: boolean) => {
+    if (checked && modelData && modelData.lorastatus !== 2) {
+      // User wants to enable AI Consistency but LoRA is not trained
+      setShowLoraTrainingModal(true);
+      return; // Don't change the switch state
+    }
+
+    // Safe to toggle
+    setLoraSettings((prev) => ({ ...prev, influencerConsistency: checked }));
+  };
+
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value);
+  };
+
+  const handleSearchClear = () => {
+    setSearchTerm("");
+  };
+
+  // API Loading Effects
   useEffect(() => {
     const fetchInfluencers = async () => {
       try {
         dispatch(setLoading(true));
-        const response = await fetch(`${config.supabase_server_url}/influencer?user_id=eq.${userData.id}`, {
-          headers: {
-            'Authorization': 'Bearer WeInfl3nc3withAI'
+        const response = await fetch(
+          `${config.supabase_server_url}/influencer?user_id=eq.${userData.id}`,
+          {
+            headers: {
+              Authorization: "Bearer WeInfl3nc3withAI",
+            },
           }
-        });
+        );
 
         if (!response.ok) {
-          throw new Error('Failed to fetch influencers');
+          throw new Error("Failed to fetch influencers");
         }
 
         const data = await response.json();
         dispatch(setInfluencers(data));
       } catch (error) {
-        dispatch(setError(error instanceof Error ? error.message : 'An error occurred'));
+        console.error("Error fetching influencers:", error);
+        dispatch(
+          setError(error instanceof Error ? error.message : "An error occurred")
+        );
       } finally {
         dispatch(setLoading(false));
       }
     };
 
-    fetchInfluencers();
+    if (userData.id) {
+      fetchInfluencers().catch(console.error);
+    }
   }, [userData.id, dispatch]);
 
-  const getCodeforEngine = (engine: string) => {
-    switch (engine) {
-      case 'Nymia General':
-        return 'nymia_image';
-      case 'PPV':
-        return 'ppv_engine_v1';
-      case 'General':
-        return 'ppv_engine_v1';
-      case 'WAN 2.2 Image':
-        return 'wan_2_2_image';
-      case 'Google Imagen4':
-        return 'imagen4';
-      case 'Bytedance Seedream V3':
-        return 'seedream-v3';
-      // case 'Runway Gen4':
-      //   return 'runway_gen4';
-      // case 'DEV01':
-      //   return 'dev01';
-      // case 'DEV02':
-      //   return 'dev02';
-      // case 'DEV03':
-      //   return 'dev03';
-      // case 'DEV04':
-      //   return 'dev04';
-      default:
-        return 'nymia_image';
-    }
-  }
-
   useEffect(() => {
-    if (influencerData) {
-      // Save influencer data to modelData state
-      setModelData(influencerData);
-
-      // Auto-populate model description from influencer data
-      setModelDescription({
-        appearance: `${influencerData.name_first} ${influencerData.name_last}, ${influencerData.age_lifestyle || ''}`,
-        culturalBackground: influencerData.cultural_background || '',
-        bodyType: influencerData.body_type || '',
-        facialFeatures: influencerData.facial_features || '',
-        hairColor: influencerData.hair_color || '',
-        hairLength: influencerData.hair_length || '',
-        hairStyle: influencerData.hair_style || '',
-        skin: influencerData.skin_tone || '',
-        lips: influencerData.lip_style || '',
-        eyes: influencerData.eye_color || '',
-        nose: influencerData.nose_style || '',
-        makeup: 'Natural / No-Makeup Look', // No makeup_style property in Influencer interface
-        clothing: `${influencerData.clothing_style_everyday || ''} ${influencerData.clothing_style_occasional || ''}`.trim(),
-        sex: influencerData.sex || '',
-        bust: influencerData.bust_size || '', // No bust property in Influencer interface
-        eyebrowStyle: '', // No eyebrow_style property in Influencer interface
-        faceShape: influencerData.face_shape || '',
-        colorPalette: influencerData.color_palette ? influencerData.color_palette.join(', ') : '',
-        age: influencerData.age || '',
-        lifestyle: influencerData.lifestyle || ''
-      });
-
-      // Generate the model description automatically
-      const parts = [];
-
-      if (influencerData.name_first && influencerData.name_last) {
-        parts.push(`${influencerData.name_first} ${influencerData.name_last}`);
-      }
-      if (influencerData.age_lifestyle) parts.push(influencerData.age_lifestyle);
-      if (influencerData.cultural_background) parts.push(`Cultural background: ${influencerData.cultural_background}`);
-      if (influencerData.body_type) parts.push(`Body type: ${influencerData.body_type}`);
-      if (influencerData.facial_features) parts.push(`Facial features: ${influencerData.facial_features}`);
-      if (influencerData.hair_color && influencerData.hair_length && influencerData.hair_style) {
-        parts.push(`${influencerData.hair_length} ${influencerData.hair_color} hair, ${influencerData.hair_style} style`);
-      }
-      if (influencerData.skin_tone) parts.push(`Skin: ${influencerData.skin_tone}`);
-      if (influencerData.lip_style) parts.push(`Lips: ${influencerData.lip_style}`);
-      if (influencerData.eye_color) parts.push(`Eyes: ${influencerData.eye_color}`);
-      if (influencerData.nose_style) parts.push(`Nose: ${influencerData.nose_style}`);
-      if (modelDescription.makeup) parts.push(`Makeup: ${modelDescription.makeup}`);
-      if (influencerData.clothing_style_everyday || influencerData.clothing_style_occasional) {
-        parts.push(`Clothing: ${influencerData.clothing_style_everyday || ''} ${influencerData.clothing_style_occasional || ''}`.trim());
-      }
-
-      const fullDescription = parts.join(', ');
-      setFormData(prev => ({
-        ...prev,
-        model: fullDescription,
-        prompt: influencerData.prompt || '' // Automatically populate prompt with influencer's prompt
-      }));
-
-      toast.success(`Using ${influencerData.name_first} ${influencerData.name_last} for content generation`);
-    }
-  }, [influencerData]);
-
-  // Fetch makeup options from API
-  useEffect(() => {
-    const fetchMakeupOptions = async () => {
+    const fetchSceneOptions = async () => {
       try {
-        const response = await fetch(`${config.backend_url}/fieldoptions?fieldtype=makeup`, {
-          headers: {
-            'Authorization': 'Bearer WeInfl3nc3withAI'
+        const response = await fetch(
+          `${config.backend_url}/folderedfieldoptions?fieldtype=scene`,
+          {
+            headers: { Authorization: "Bearer WeInfl3nc3withAI" },
           }
-        });
+        );
         if (response.ok) {
-          const data = await response.json();
-          if (data && data.fieldoptions && Array.isArray(data.fieldoptions)) {
-            const options = data.fieldoptions.map((item: any) => ({
-              label: item.label,
-              image: item.image,
-              description: item.description
-            }));
-            setMakeupOptions(options);
+          const text = await response.text();
+          if (text.trim()) {
+            const data = JSON.parse(text);
+            if (data?.fieldoptions && Array.isArray(data.fieldoptions)) {
+              setSceneCategories(data.fieldoptions);
+              const flatOptions = data.fieldoptions.flatMap(
+                (category: any) =>
+                  category.data?.map((scene: any) => ({
+                    label: scene.label,
+                    image: scene.image,
+                    description: scene.description,
+                  })) || []
+              );
+              setSceneOptions(flatOptions);
+            } else {
+              setSceneOptions([]);
+              setSceneCategories([]);
+            }
+          } else {
+            setSceneOptions([]);
+            setSceneCategories([]);
           }
         } else {
-          console.error('Failed to fetch makeup options:', response.status, response.statusText);
+          setSceneOptions([]);
+          setSceneCategories([]);
         }
       } catch (error) {
-        console.error('Error fetching makeup options:', error);
+        console.error("Error fetching scene options:", error);
+        setSceneOptions([]);
+        setSceneCategories([]);
       }
     };
-    fetchMakeupOptions();
+
+    fetchSceneOptions().catch((error) => {
+      console.error("Unhandled scene fetch error:", error);
+    });
   }, []);
 
-  // Fetch framing options from API
-  useEffect(() => {
-    const fetchFramingOptions = async () => {
-      try {
-        const response = await fetch(`${config.backend_url}/promptoptions?fieldtype=framing`, {
-          headers: {
-            'Authorization': 'Bearer WeInfl3nc3withAI'
-          }
-        });
-        if (response.ok) {
-          const data = await response.json();
-          if (data && data.fieldoptions && Array.isArray(data.fieldoptions)) {
-            const options = data.fieldoptions.map((item: any) => ({
-              label: item.label,
-              image: item.image,
-              description: item.description
-            }));
-            setFramingOptions(options);
-          }
-        } else {
-          console.error('Failed to fetch framing options:', response.status, response.statusText);
-        }
-      } catch (error) {
-        console.error('Error fetching framing options:', error);
-      }
-    };
-    fetchFramingOptions();
-  }, []);
-
-  // Fetch clothes options from API
-  useEffect(() => {
-    const fetchClothesOptions = async () => {
-      try {
-        const response = await fetch('https://api.nymia.ai/v1/folderedfieldoptions?fieldtype=outfit', {
-          headers: {
-            'Authorization': 'Bearer WeInfl3nc3withAI'
-          }
-        });
-        if (response.ok) {
-          const data = await response.json();
-          if (data && data.fieldoptions && Array.isArray(data.fieldoptions)) {
-            // Store the categorized data
-            setOutfitCategories(data.fieldoptions);
-            
-            // Also create flat list for backward compatibility
-            const flatOptions = data.fieldoptions.flatMap((category: OutfitCategory) =>
-              category.data.map((outfit: OutfitOption) => ({
-                label: outfit.label,
-                image: outfit.image,
-                description: outfit.description
-              }))
-            );
-            setClothesOptions(flatOptions);
-          }
-        } else {
-          console.error('Failed to fetch clothes options:', response.status, response.statusText);
-        }
-      } catch (error) {
-        console.error('Error fetching clothes options:', error);
-      }
-    };
-    fetchClothesOptions();
-  }, []);
-
-  // Fetch rotation options from API
-  useEffect(() => {
-    const fetchRotationOptions = async () => {
-      try {
-        const response = await fetch(`${config.backend_url}/promptoptions?fieldtype=rotation`, {
-          headers: {
-            'Authorization': 'Bearer WeInfl3nc3withAI'
-          }
-        });
-        if (response.ok) {
-          const data = await response.json();
-          if (data && data.fieldoptions && Array.isArray(data.fieldoptions)) {
-            const options = data.fieldoptions.map((item: any) => ({
-              label: item.label,
-              image: item.image,
-              description: item.description
-            }));
-            setRotationOptions(options);
-          }
-        } else {
-          console.error('Failed to fetch rotation options:', response.status, response.statusText);
-        }
-      } catch (error) {
-        console.error('Error fetching rotation options:', error);
-      }
-    };
-    fetchRotationOptions();
-  }, []);
-
-  // Fetch lighting options from API
-  useEffect(() => {
-    const fetchLightingOptions = async () => {
-      try {
-        const response = await fetch(`${config.backend_url}/promptoptions?fieldtype=light`, {
-          headers: {
-            'Authorization': 'Bearer WeInfl3nc3withAI'
-          }
-        });
-        if (response.ok) {
-          const data = await response.json();
-          if (data && data.fieldoptions && Array.isArray(data.fieldoptions)) {
-            const options = data.fieldoptions.map((item: any) => ({
-              label: item.label,
-              image: item.image,
-              description: item.description
-            }));
-            setLightingOptions(options);
-          }
-        } else {
-          console.error('Failed to fetch lighting options:', response.status, response.statusText);
-        }
-      } catch (error) {
-        console.error('Error fetching lighting options:', error);
-      }
-    };
-    fetchLightingOptions();
-  }, []);
-
-  // Fetch pose options from API
   useEffect(() => {
     const fetchPoseOptions = async () => {
       try {
-        const response = await fetch('https://api.nymia.ai/v1/folderedfieldoptions?fieldtype=pose', {
-          headers: {
-            'Authorization': 'Bearer WeInfl3nc3withAI'
+        const response = await fetch(
+          `${config.backend_url}/folderedfieldoptions?fieldtype=pose`,
+          {
+            headers: { Authorization: "Bearer WeInfl3nc3withAI" },
           }
-        });
+        );
         if (response.ok) {
-          const data = await response.json();
-          if (data && data.fieldoptions && Array.isArray(data.fieldoptions)) {
-            // Store the categorized data
-            setPoseCategories(data.fieldoptions);
-            
-            // Also create flat list for backward compatibility
-            const flatOptions = data.fieldoptions.flatMap((category: PoseCategory) =>
-              category.data.map((pose: PoseOption) => ({
-                label: pose.label,
-                image: pose.image,
-                description: pose.description
-              }))
-            );
-            setPoseOptions(flatOptions);
+          const text = await response.text();
+          if (text.trim()) {
+            const data = JSON.parse(text);
+            if (data?.fieldoptions && Array.isArray(data.fieldoptions)) {
+              setPoseCategories(data.fieldoptions);
+              const flatOptions = data.fieldoptions.flatMap(
+                (category: any) =>
+                  category.data?.map((pose: any) => ({
+                    label: pose.label,
+                    image: pose.image,
+                    description: pose.description,
+                  })) || []
+              );
+              setPoseOptions(flatOptions);
+            } else {
+              setPoseOptions([]);
+              setPoseCategories([]);
+            }
+          } else {
+            setPoseOptions([]);
+            setPoseCategories([]);
           }
         } else {
-          console.error('Failed to fetch pose options:', response.status, response.statusText);
+          setPoseOptions([]);
+          setPoseCategories([]);
         }
       } catch (error) {
-        console.error('Error fetching pose options:', error);
+        console.error("Error fetching pose options:", error);
+        setPoseOptions([]);
+        setPoseCategories([]);
       }
     };
-    fetchPoseOptions();
+
+    fetchPoseOptions().catch((error) => {
+      console.error("Unhandled pose fetch error:", error);
+    });
   }, []);
 
-  // Fetch scene settings options from API
   useEffect(() => {
-    const fetchSceneSettingsOptions = async () => {
+    const fetchOutfitOptions = async () => {
       try {
-        const response = await fetch('https://api.nymia.ai/v1/folderedfieldoptions?fieldtype=scene', {
-          headers: {
-            'Authorization': 'Bearer WeInfl3nc3withAI'
+        const response = await fetch(
+          `${config.backend_url}/folderedfieldoptions?fieldtype=outfit`,
+          {
+            headers: { Authorization: "Bearer WeInfl3nc3withAI" },
           }
-        });
+        );
         if (response.ok) {
-          const data = await response.json();
-          if (data && data.fieldoptions && Array.isArray(data.fieldoptions)) {
-            // Store the categorized data
-            setSceneCategories(data.fieldoptions);
-            
-            // Also create flat list for backward compatibility
-            const flatOptions = data.fieldoptions.flatMap((category: SceneCategory) =>
-              category.data.map((scene: SceneOption) => ({
-                label: scene.label,
-                image: scene.image,
-                description: scene.description
-              }))
-            );
-            setSceneSettingsOptions(flatOptions);
+          const text = await response.text();
+          if (text.trim()) {
+            const data = JSON.parse(text);
+            if (data?.fieldoptions && Array.isArray(data.fieldoptions)) {
+              setOutfitCategories(data.fieldoptions);
+              const flatOptions = data.fieldoptions.flatMap(
+                (category: any) =>
+                  category.data?.map((outfit: any) => ({
+                    label: outfit.label,
+                    image: outfit.image,
+                    description: outfit.description,
+                  })) || []
+              );
+              setOutfitOptions(flatOptions);
+            } else {
+              setOutfitOptions([]);
+              setOutfitCategories([]);
+            }
+          } else {
+            setOutfitOptions([]);
+            setOutfitCategories([]);
           }
         } else {
-          console.error('Failed to fetch scene settings options:', response.status, response.statusText);
+          setOutfitOptions([]);
+          setOutfitCategories([]);
         }
       } catch (error) {
-        console.error('Error fetching scene settings options:', error);
+        console.error("Error fetching outfit options:", error);
+        setOutfitOptions([]);
+        setOutfitCategories([]);
       }
     };
-    fetchSceneSettingsOptions();
+
+    fetchOutfitOptions().catch((error) => {
+      console.error("Unhandled outfit fetch error:", error);
+    });
   }, []);
 
-  // Fetch format options from API
-  useEffect(() => {
-    const fetchFormatOptions = async () => {
-      try {
-        const response = await fetch(`${config.backend_url}/fieldoptions?fieldtype=format`, {
-          headers: {
-            'Authorization': 'Bearer WeInfl3nc3withAI'
-          }
-        });
-        if (response.ok) {
-          const data = await response.json();
-          if (data && data.fieldoptions && Array.isArray(data.fieldoptions)) {
-            const options = data.fieldoptions.map((item: any) => ({
-              label: item.label,
-              image: item.image,
-              description: item.description
-            }));
-            setFormatOptions(options);
-          }
-        } else {
-          console.error('Failed to fetch format options:', response.status, response.statusText);
-        }
-      } catch (error) {
-        console.error('Error fetching format options:', error);
-      }
-    };
-    fetchFormatOptions();
-  }, []);
-
-  // Fetch engine options from API
   useEffect(() => {
     const fetchEngineOptions = async () => {
       try {
-        const response = await fetch(`${config.backend_url}/fieldoptions?fieldtype=engine`, {
-          headers: {
-            'Authorization': 'Bearer WeInfl3nc3withAI'
+        const response = await fetch(
+          `${config.backend_url}/fieldoptions?fieldtype=engine`,
+          {
+            headers: { Authorization: "Bearer WeInfl3nc3withAI" },
           }
-        });
+        );
         if (response.ok) {
           const data = await response.json();
-          console.log(data);
-          if (data && data.fieldoptions && Array.isArray(data.fieldoptions)) {
+          if (data?.fieldoptions) {
             const options = data.fieldoptions.map((item: any) => ({
               label: item.label,
               image: item.image,
-              description: item.description
+              description: item.description,
             }));
             setEngineOptions(options);
           }
-        } else {
-          console.error('Failed to fetch engine options:', response.status, response.statusText);
         }
       } catch (error) {
-        console.error('Error fetching engine options:', error);
+        console.error("Error fetching engine options:", error);
+        setEngineOptions([]);
       }
     };
-    fetchEngineOptions();
+    fetchEngineOptions().catch(console.error);
   }, []);
+  useEffect(() => {
+    const fetchFormatOptions = async () => {
+      try {
+        const response = await fetch(
+          `${config.backend_url}/fieldoptions?fieldtype=format`,
+          {
+            headers: { Authorization: "Bearer WeInfl3nc3withAI" },
+          }
+        );
+        if (response.ok) {
+          const data = await response.json();
+          if (data?.fieldoptions) {
+            const options = data.fieldoptions.map((item: any) => ({
+              label: item.label,
+              value: item.value || item.label,
+              image: item.image,
+              description: item.description,
+            }));
+            setFormatOptions(options);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching format options:", error);
+        setFormatOptions([]);
+      }
+    };
+    fetchFormatOptions().catch(console.error);
+  }, []);
+
+  useEffect(() => {
+    const fetchFramingOptions = async () => {
+      try {
+        const response = await fetch(
+          `${config.backend_url}/promptoptions?fieldtype=framing`,
+          {
+            headers: { Authorization: "Bearer WeInfl3nc3withAI" },
+          }
+        );
+        if (response.ok) {
+          const data = await response.json();
+          if (data?.fieldoptions) {
+            const options = data.fieldoptions.map((item: any) => ({
+              label: item.label,
+              image: item.image,
+              description: item.description,
+            }));
+            setFramingOptions(options);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching framing options:", error);
+        setFramingOptions([]);
+      }
+    };
+    fetchFramingOptions().catch(console.error);
+  }, []);
+
+  useEffect(() => {
+    const fetchLightingOptions = async () => {
+      try {
+        const response = await fetch(
+          `${config.backend_url}/promptoptions?fieldtype=lighting_preset`,
+          {
+            headers: { Authorization: "Bearer WeInfl3nc3withAI" },
+          }
+        );
+        if (response.ok) {
+          const text = await response.text();
+          if (text.trim()) {
+            const data = JSON.parse(text);
+            if (data?.fieldoptions && Array.isArray(data.fieldoptions)) {
+              const options = data.fieldoptions.map((item: any) => ({
+                label: item.label,
+                image: item.image,
+                description: item.description,
+              }));
+              setLightingOptions(options);
+            } else {
+              setLightingOptions([]);
+            }
+          } else {
+            setLightingOptions([]);
+          }
+        } else {
+          setLightingOptions([]);
+        }
+      } catch (error) {
+        console.error("Error fetching lighting options:", error);
+        setLightingOptions([]);
+      }
+    };
+
+    fetchLightingOptions().catch((error) => {
+      console.error("Unhandled lighting fetch error:", error);
+    });
+  }, []);
+
+  useEffect(() => {
+    const fetchRotationOptions = async () => {
+      try {
+        const response = await fetch(
+          `${config.backend_url}/promptoptions?fieldtype=rotation`,
+          {
+            headers: { Authorization: "Bearer WeInfl3nc3withAI" },
+          }
+        );
+        if (response.ok) {
+          const data = await response.json();
+          if (data?.fieldoptions) {
+            const options = data.fieldoptions.map((item: any) => ({
+              label: item.label,
+              image: item.image,
+              description: item.description,
+            }));
+            setRotationOptions(options);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching rotation options:", error);
+        setRotationOptions([]);
+      }
+    };
+    fetchRotationOptions().catch(console.error);
+  }, []);
+
+  // Component picker restoration effect (runs after options are loaded)
+  useEffect(() => {
+    const regenerateData = reactLocation.state?.regenerateData;
+    if (!regenerateData?.scene) return;
+    if (sceneOptions.length === 0) return; // Wait for options to load
+
+    const newComponentPicker: ComponentPickerState = {
+      scene: null,
+      pose: null,
+      outfit: null,
+      framing: null,
+      lighting: null,
+      rotation: null,
+      makeup: null,
+      accessory: null,
+    };
+
+    const scene = regenerateData.scene;
+    if (scene.scene_setting && sceneOptions.length > 0) {
+      const match = sceneOptions.find(
+        (opt) => opt.label === scene.scene_setting
+      );
+      if (match) newComponentPicker.scene = match;
+    }
+    if (scene.pose && poseOptions.length > 0) {
+      const match = poseOptions.find((opt) => opt.label === scene.pose);
+      if (match) newComponentPicker.pose = match;
+    }
+    if (scene.clothes && outfitOptions.length > 0) {
+      const match = outfitOptions.find((opt) => opt.label === scene.clothes);
+      if (match) newComponentPicker.outfit = match;
+    }
+    if (scene.framing && framingOptions.length > 0) {
+      const match = framingOptions.find((opt) => opt.label === scene.framing);
+      if (match) newComponentPicker.framing = match;
+    }
+    if (scene.lighting_preset && lightingOptions.length > 0) {
+      const match = lightingOptions.find(
+        (opt) => opt.label === scene.lighting_preset
+      );
+      if (match) newComponentPicker.lighting = match;
+    }
+    if (scene.rotation && rotationOptions.length > 0) {
+      const match = rotationOptions.find((opt) => opt.label === scene.rotation);
+      if (match) newComponentPicker.rotation = match;
+    }
+    if (scene.makeup_style && makeupOptions.length > 0) {
+      const match = makeupOptions.find(
+        (opt) => opt.label === scene.makeup_style
+      );
+      if (match) newComponentPicker.makeup = match;
+    }
+    if (scene.accessories && accessoriesOptions.length > 0) {
+      const match = accessoriesOptions.find(
+        (opt) => opt.label === scene.accessories
+      );
+      if (match) newComponentPicker.accessory = match;
+    }
+
+    setComponentPicker(newComponentPicker);
+  }, [
+    reactLocation.state,
+    sceneOptions,
+    poseOptions,
+    outfitOptions,
+    framingOptions,
+    lightingOptions,
+    rotationOptions,
+    makeupOptions,
+    accessoriesOptions,
+  ]);
+
+  useEffect(() => {
+    const fetchMakeupOptions = async () => {
+      try {
+        const response = await fetch(
+          `${config.backend_url}/fieldoptions?fieldtype=makeup`,
+          {
+            headers: { Authorization: "Bearer WeInfl3nc3withAI" },
+          }
+        );
+        if (response.ok) {
+          const data = await response.json();
+          if (data?.fieldoptions) {
+            const options = data.fieldoptions.map((item: any) => ({
+              label: item.label,
+              image: item.image,
+              description: item.description,
+            }));
+            setMakeupOptions(options);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching makeup options:", error);
+        setMakeupOptions([]);
+      }
+    };
+    fetchMakeupOptions().catch(console.error);
+  }, []);
+
+  // Fetch system LoRA options
+  useEffect(() => {
+    const fetchSystemLoraOptions = async () => {
+      try {
+        const response = await fetch(
+          `${config.backend_url}/fieldoptions?fieldtype=system_lora`,
+          {
+            headers: { Authorization: "Bearer WeInfl3nc3withAI" },
+          }
+        );
+        if (response.ok) {
+          const data = await response.json();
+          if (data?.fieldoptions) {
+            setSystemLoraOptions(data.fieldoptions);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching system LoRA options:", error);
+        setSystemLoraOptions([]);
+      }
+    };
+    fetchSystemLoraOptions().catch(console.error);
+  }, []);
+
+  // Set default LORA values after systemLoraOptions are loaded
+  useEffect(() => {
+    if (systemLoraOptions.length > 0) {
+      // Only set defaults if currently 'none' or initial values
+      setLoraSettings((prev) => {
+        let updates: any = {};
+
+        // Set First Optional Lora to nymia default if available
+        if (
+          (prev.optionalLora1 === "none" ||
+            prev.optionalLora1 === "nymia default") &&
+          systemLoraOptions.find((lora) => lora.label === "nymia default")
+        ) {
+          updates.optionalLora1 = "nymia default";
+          updates.optionalLora1Strength = 0.3;
+        }
+
+        // Set Second Optional Lora to Realism if available
+        if (
+          (prev.optionalLora2 === "none" || prev.optionalLora2 === "Realism") &&
+          systemLoraOptions.find((lora) => lora.label === "Realism")
+        ) {
+          updates.optionalLora2 = "Realism";
+          updates.optionalLora2Strength = 1.0;
+        }
+
+        return Object.keys(updates).length > 0 ? { ...prev, ...updates } : prev;
+      });
+    }
+  }, [systemLoraOptions]);
+
+  // Fetch accessories options
+  useEffect(() => {
+    const fetchAccessoriesOptions = async () => {
+      try {
+        const response = await fetch(
+          `${config.backend_url}/fieldoptions?fieldtype=accessories`,
+          {
+            headers: { Authorization: "Bearer WeInfl3nc3withAI" },
+          }
+        );
+        if (response.ok) {
+          const data = await response.json();
+          if (data?.fieldoptions) {
+            const options = data.fieldoptions.map((item: any) => ({
+              label: item.label,
+              image: item.image,
+              description: item.description,
+            }));
+            setAccessoriesOptions(options);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching accessories options:", error);
+        setAccessoriesOptions([]);
+      }
+    };
+    fetchAccessoriesOptions().catch(console.error);
+  }, []);
+
+  // Fetch generated images based on task IDs
+  useEffect(() => {
+    const fetchGeneratedImages = async () => {
+      if (!generatedTaskIds || generatedTaskIds.length === 0) return;
+
+      setIsLoadingGeneratedImages(true);
+      try {
+        const allImages: any[] = [];
+        const newFailedTasks = new Set<string>();
+        const failedImagesWithNotes: any[] = [];
+
+        for (const taskId of generatedTaskIds) {
+          // Fetch ALL images for this task_id (including pending, failed, and completed)
+          const response = await fetch(
+            `${config.supabase_server_url}/generated_images?task_id=eq.${taskId}&order=image_sequence_number.asc`,
+            {
+              headers: {
+                Authorization: "Bearer WeInfl3nc3withAI",
+              },
+            }
+          );
+
+          if (response.ok) {
+            const data = await response.json();
+            
+            if (data && data.length > 0) {
+              // Add ALL images regardless of status - we'll handle display based on status
+              data.forEach((img: any) => {
+                allImages.push(img);
+                
+                // Track failed tasks for placeholder management
+                if (img.generation_status === "failed") {
+                  newFailedTasks.add(taskId.toString());
+                }
+              });
+            }
+          }
+        }
+
+        console.log("Fetched images from API:", allImages);
+        console.log("Failed tasks:", newFailedTasks);
+        console.log("Failed images with notes:", failedImagesWithNotes);
+
+        setFailedTasks(newFailedTasks);
+
+        // Clear placeholders for tasks that have any images in the database
+        if (allImages.length > 0) {
+          setPlaceholderImages((prev) =>
+            prev.filter(
+              (placeholder) =>
+                !allImages.some((img) => img.task_id === placeholder.task_id)
+            )
+          );
+        }
+
+        // Sort images by task_id, then by image_sequence_number
+        const sortedImages = allImages.sort((a, b) => {
+          // First sort by task_id (as string for consistency)
+          const taskIdA = String(a.task_id);
+          const taskIdB = String(b.task_id);
+
+          if (taskIdA !== taskIdB) {
+            return taskIdA.localeCompare(taskIdB);
+          }
+
+          // If task_id is the same, sort by image_sequence_number
+          return (
+            (a.image_sequence_number || 0) - (b.image_sequence_number || 0)
+          );
+        });
+
+        setGeneratedImages(sortedImages);
+      } catch (error) {
+        console.error("Error fetching generated images:", error);
+      } finally {
+        setIsLoadingGeneratedImages(false);
+      }
+    };
+
+    fetchGeneratedImages();
+    const interval = setInterval(fetchGeneratedImages, 30000); // Check every 30 seconds
+    return () => clearInterval(interval);
+  }, [generatedTaskIds]);
 
   // Generate QR code when share modal opens
   useEffect(() => {
@@ -701,1221 +1190,87 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
     }
   }, [shareModal.open, shareModal.itemId, shareModal.itemPath, userData.id]);
 
+  // File management functions
   const handleDownload = async (image: any) => {
     try {
-      toast.info('Downloading image...', {
-        description: 'This may take a moment'
+      toast.info("Downloading image...", {
+        description: "This may take a moment",
       });
 
-      const filename = image.file_path.split('/').pop();
-      console.log(filename);
-
+      const filename = image.file_path.split("/").pop();
       const response = await fetch(`${config.backend_url}/downloadfile`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer WeInfl3nc3withAI'
+          "Content-Type": "application/json",
+          Authorization: "Bearer WeInfl3nc3withAI",
         },
         body: JSON.stringify({
           user: userData.id,
-          filename: 'output/' + filename
-        })
+          filename: "output/" + filename,
+        }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to download file');
+        throw new Error("Failed to download file");
       }
 
       const blob = await response.blob();
-
-      // Create a download link
       const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
+      const link = document.createElement("a");
       link.href = url;
-      link.download = image.system_filename || `generated-image-${Date.now()}.png`;
-
-      // Trigger download
+      link.download =
+        image.system_filename || `generated-image-${Date.now()}.png`;
       document.body.appendChild(link);
       link.click();
-
-      // Cleanup
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
 
-      toast.success('Image downloaded successfully!');
+      toast.success("Image downloaded successfully!");
     } catch (error) {
-      console.error('Error downloading image:', error);
-      toast.error('Failed to download image. Please try again.');
+      console.error("Error downloading image:", error);
+      toast.error("Failed to download image. Please try again.");
     }
   };
 
-  const handleDelete = async (image: any) => {
+  const handleFileDelete = async (image: any) => {
     try {
-      toast.info('Deleting image...', {
-        description: 'This may take a moment'
+      toast.info("Deleting image...", {
+        description: "This may take a moment",
       });
 
-      const filename = image.file_path.split('/').pop();
-
+      const filename = image.file_path.split("/").pop();
       await fetch(`${config.backend_url}/deletefile`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer WeInfl3nc3withAI'
+          "Content-Type": "application/json",
+          Authorization: "Bearer WeInfl3nc3withAI",
         },
         body: JSON.stringify({
           user: userData.id,
-          filename: 'output/' + filename
-        })
+          filename: "output/" + filename,
+        }),
       });
 
-      await fetch(`${config.supabase_server_url}/generated_images?id=eq.${image.id}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer WeInfl3nc3withAI'
+      await fetch(
+        `${config.supabase_server_url}/generated_images?id=eq.${image.id}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: "Bearer WeInfl3nc3withAI",
+          },
         }
-      });
+      );
 
-      setGeneratedImages(prev => prev.filter(img => img.id !== image.id));
+      setGeneratedImages((prev) => prev.filter((img) => img.id !== image.id));
       toast.success(`Image "${filename}" deleted successfully`);
     } catch (error) {
-      console.error('Error deleting image:', error);
-      toast.error('Failed to delete image. Please try again.');
+      console.error("Error deleting image:", error);
+      toast.error("Failed to delete image. Please try again.");
     }
   };
 
-  const handleViewFullSize = (image: any) => {
-          const imageUrl = `${config.data_url}/${image.file_path}`;
-    const imageName = image.system_filename || 'Generated Image';
-    setFullSizeImageModal({
-      isOpen: true,
-      imageUrl,
-      imageName
-    });
-  };
-
-  const handleInputChange = (field: string, value: any) => {
-    setFormData(prev => {
-      const newFormData = {
-        ...prev,
-        [field]: value
-      };
-
-      // If usePromptOnly is being enabled, reset all form data to initial state
-      // if (field === 'usePromptOnly' && value === true) {
-      //   return {
-      //     model: '',
-      //     scene: '',
-      //     task: 'generate_image',
-      //     lora: false,
-      //     noAI: true,
-      //     prompt: prev.prompt, // Keep the current prompt
-      //     format: 'Portrait 4:5',
-      //     numberOfImages: 1,
-      //     seed: '',
-      //     guidance: 3.5,
-      //     negative_prompt: '',
-      //     nsfw_strength: 0,
-      //     lora_strength: 1.0,
-      //     quality: 'Quality',
-      //     engine: 'General',
-      //     usePromptOnly: true
-      //   };
-      // }
-
-      return newFormData;
-    });
-
-    // If usePromptOnly is being enabled, also reset scene specifications
-    if (field === 'usePromptOnly' && value === true) {
-      setSceneSpecs({
-        framing: '',
-        rotation: '',
-        lighting_preset: '',
-        scene_setting: '',
-        pose: '',
-        clothes: ''
-      });
-
-      // Reset model description makeup to default
-      setModelDescription(prev => ({
-        ...prev,
-        makeup: 'Natural / No-Makeup Look'
-      }));
-    }
-  };
-
-  const handleSceneSpecChange = (field: string, value: any) => {
-    setSceneSpecs(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
-
-  const handlePoseSelection = (pose: PoseOption) => {
-    // Check if user has access to this pose
-    if (pose.license !== 'free' && userData.subscription === 'free') {
-      toast.error(`This pose requires a ${pose.license} license. Please upgrade your subscription.`);
-      return;
-    }
-
-    // Show warnings for no_framing and no_scene
-    let warningMessage = '';
-    if (pose.no_framing) {
-      warningMessage += 'Framing will be ignored when using this pose. ';
-    }
-    if (pose.no_scene) {
-      warningMessage += 'Scene will be ignored when using this pose. ';
-    }
-    
-    if (warningMessage) {
-      toast.warning(warningMessage.trim());
-    }
-
-    // Set the pose
-    setSelectedPose(pose);
-    handleSceneSpecChange('pose', pose.label);
-    setShowPoseSelector(false);
-    setCurrentPoseCategory(null); // Reset category when closing
-  };
-
-  const handlePoseModalClose = () => {
-    setShowPoseSelector(false);
-    setCurrentPoseCategory(null); // Reset category when closing
-  };
-
-  const handleSceneSelection = (scene: SceneOption) => {
-    // Check if user has access to this scene
-    if (scene.license !== 'free' && userData.subscription === 'free') {
-      toast.error(`This scene requires a ${scene.license} license. Please upgrade your subscription.`);
-      return;
-    }
-
-    // Show warnings for no_framing and no_scene
-    let warningMessage = '';
-    if (scene.no_framing) {
-      warningMessage += 'Framing will be ignored when using this scene. ';
-    }
-    if (scene.no_scene) {
-      warningMessage += 'Scene will be ignored when using this scene. ';
-    }
-    
-    if (warningMessage) {
-      toast.warning(warningMessage.trim());
-    }
-
-    // Set the scene
-    setSelectedScene(scene);
-    handleSceneSpecChange('scene_setting', scene.label);
-    setShowSceneSettingsSelector(false);
-    setCurrentSceneCategory(null); // Reset category when closing
-  };
-
-  const isSceneAccessible = (scene: SceneOption) => {
-    return scene.license === 'free' || userData.subscription !== 'free';
-  };
-
-  const handleSceneModalClose = () => {
-    setShowSceneSettingsSelector(false);
-    setCurrentSceneCategory(null); // Reset category when closing
-  };
-
-  const handleOutfitSelection = (outfit: OutfitOption) => {
-    // Check if user has access to this outfit
-    if (outfit.license !== 'free' && userData.subscription === 'free') {
-      toast.error(`This outfit requires a ${outfit.license} license. Please upgrade your subscription.`);
-      return;
-    }
-
-    // Show warnings for no_framing and no_scene
-    let warningMessage = '';
-    if (outfit.no_framing) {
-      warningMessage += 'Framing will be ignored when using this outfit. ';
-    }
-    if (outfit.no_scene) {
-      warningMessage += 'Scene will be ignored when using this outfit. ';
-    }
-    
-    if (warningMessage) {
-      toast.warning(warningMessage.trim());
-    }
-
-    // Set the outfit
-    setSelectedOutfit(outfit);
-    handleSceneSpecChange('clothes', outfit.label);
-    setShowClothesSelector(false);
-    setCurrentOutfitCategory(null); // Reset category when closing
-  };
-
-  const isOutfitAccessible = (outfit: OutfitOption) => {
-    return outfit.license === 'free' || userData.subscription !== 'free';
-  };
-
-  const handleOutfitModalClose = () => {
-    setShowClothesSelector(false);
-    setCurrentOutfitCategory(null); // Reset category when closing
-  };
-
-  const isPoseAccessible = (pose: PoseOption) => {
-    return pose.license === 'free' || userData.subscription !== 'free';
-  };
-
-  // Update selectedPose when sceneSpecs.pose changes
-  useEffect(() => {
-    if (sceneSpecs.pose && poseCategories.length > 0) {
-      const foundPose = poseCategories
-        .flatMap(category => category.data)
-        .find(pose => pose.label === sceneSpecs.pose);
-      
-      if (foundPose) {
-        setSelectedPose(foundPose);
-      }
-    } else if (!sceneSpecs.pose) {
-      setSelectedPose(null);
-    }
-  }, [sceneSpecs.pose, poseCategories]);
-
-  // Update selectedScene when sceneSpecs.scene_setting changes
-  useEffect(() => {
-    if (sceneSpecs.scene_setting && sceneCategories.length > 0) {
-      const foundScene = sceneCategories
-        .flatMap(category => category.data)
-        .find(scene => scene.label === sceneSpecs.scene_setting);
-      
-      if (foundScene) {
-        setSelectedScene(foundScene);
-      }
-    } else if (!sceneSpecs.scene_setting) {
-      setSelectedScene(null);
-    }
-  }, [sceneSpecs.scene_setting, sceneCategories]);
-
-  // Update selectedOutfit when sceneSpecs.clothes changes
-  useEffect(() => {
-    if (sceneSpecs.clothes && outfitCategories.length > 0) {
-      const foundOutfit = outfitCategories
-        .flatMap(category => category.data)
-        .find(outfit => outfit.label === sceneSpecs.clothes);
-      
-      if (foundOutfit) {
-        setSelectedOutfit(foundOutfit);
-      }
-    } else if (!sceneSpecs.clothes) {
-      setSelectedOutfit(null);
-    }
-  }, [sceneSpecs.clothes, outfitCategories]);
-
-  const handleModelDescriptionChange = (field: string, value: string) => {
-    setModelDescription(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
-
-  const handleUseInfluencer = (influencer: Influencer) => {
-    // Save selected influencer to modelData state
-    setModelData(influencer);
-
-    // Populate model description from selected influencer
-    setModelDescription({
-      appearance: `${influencer.name_first} ${influencer.name_last}, ${influencer.age || ''}`,
-      culturalBackground: influencer.cultural_background || '',
-      bodyType: influencer.body_type || '',
-      facialFeatures: influencer.facial_features || '',
-      hairColor: influencer.hair_color || '',
-      hairLength: influencer.hair_length || '',
-      hairStyle: influencer.hair_style || '',
-      skin: influencer.skin_tone || '',
-      lips: influencer.lip_style || '',
-      eyes: influencer.eye_color || '',
-      nose: influencer.nose_style || '',
-      makeup: 'Natural / No-Makeup Look', // No makeup_style property in Influencer interface
-      clothing: `${influencer.clothing_style_everyday || ''} ${influencer.clothing_style_occasional || ''}`.trim(),
-      sex: influencer.sex || '',
-      bust: influencer.bust_size || '', // No bust property in Influencer interface
-      eyebrowStyle: '', // No eyebrow_style property in Influencer interface
-      faceShape: influencer.face_shape || '',
-      colorPalette: influencer.color_palette ? influencer.color_palette.join(', ') : '',
-      age: influencer.age || '',
-      lifestyle: influencer.lifestyle || ''
-    });
-
-    // Generate the model description automatically
-    const parts = [];
-
-    if (influencer.name_first && influencer.name_last) {
-      parts.push(`${influencer.name_first} ${influencer.name_last}`);
-    }
-    if (influencer.age) parts.push(influencer.age);
-    if (influencer.lifestyle) parts.push(influencer.lifestyle);
-    if (influencer.cultural_background) parts.push(`Cultural background: ${influencer.cultural_background}`);
-    if (influencer.body_type) parts.push(`Body type: ${influencer.body_type}`);
-    if (influencer.facial_features) parts.push(`Facial features: ${influencer.facial_features}`);
-    if (influencer.hair_color && influencer.hair_length && influencer.hair_style) {
-      parts.push(`${influencer.hair_length} ${influencer.hair_color} hair, ${influencer.hair_style} style`);
-    }
-    if (influencer.skin_tone) parts.push(`Skin: ${influencer.skin_tone}`);
-    if (influencer.lip_style) parts.push(`Lips: ${influencer.lip_style}`);
-    if (influencer.eye_color) parts.push(`Eyes: ${influencer.eye_color}`);
-    if (influencer.nose_style) parts.push(`Nose: ${influencer.nose_style}`);
-    if (modelDescription.makeup) parts.push(`Makeup: ${modelDescription.makeup}`);
-    if (influencer.clothing_style_everyday || influencer.clothing_style_occasional) {
-      parts.push(`Clothing: ${influencer.clothing_style_everyday || ''} ${influencer.clothing_style_occasional || ''}`.trim());
-    }
-
-    const fullDescription = parts.join(', ');
-
-    // Check if influencer has LoRA status 2 (Ready) and automatically enable model consistency
-    const shouldEnableModelConsistency = influencer.lorastatus === 2;
-
-    setFormData(prev => ({
-      ...prev,
-      model: fullDescription,
-      prompt: influencer.prompt || '', // Automatically populate prompt with influencer's prompt
-      lora: shouldEnableModelConsistency // Enable model consistency if LoRA is ready
-    }));
-
-    // Show toast message about model consistency if enabled
-    if (shouldEnableModelConsistency) {
-      toast.success(`Using ${influencer.name_first} ${influencer.name_last} for content generation - Model Consistency enabled (AI Consistency ready)`);
-    } else {
-      toast.success(`Using ${influencer.name_first} ${influencer.name_last} for content generation`);
-    }
-  };
-
-  const handleSearchChange = (value: string) => {
-    setSearchTerm(value);
-  };
-
-  const handleSearchClear = () => {
-    setSearchTerm('');
-  };
-
-  // Function to check gem cost for the selected engine
-  const checkGemCost = async (engineName: string) => {
-    try {
-      setIsCheckingGems(true);
-      const response = await fetch('https://api.nymia.ai/v1/getgems', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer WeInfl3nc3withAI'
-        },
-        body: JSON.stringify({
-          item: engineName
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch gem cost: ${response.status}`);
-      }
-
-      const gemData = await response.json();
-      return gemData;
-    } catch (error) {
-      console.error('Error checking gem cost:', error);
-      toast.error('Failed to check gem cost. Proceeding without verification.');
-      return null;
-    } finally {
-      setIsCheckingGems(false);
-    }
-  };
-
-  // Function to proceed with generation after gem confirmation
-  const proceedWithGeneration = async () => {
-    try {
-      setShowGemWarning(false);
-      console.log('Starting generation after credit confirmation...');
-      await executeGeneration();
-    } catch (error) {
-      console.error('Error in proceedWithGeneration:', error);
-      toast.error('Failed to start generation. Please try again.');
-      setIsGenerating(false);
-    }
-  };
-
-  // Main generation function that includes gem checking
-  const handleGenerate = async () => {
-    if (!formData.model && !formData.prompt) {
-      toast.error('Please provide either a model description or a prompt');
-      return;
-    }
-
-    // Check gem cost before proceeding
-    if (formData.engine) {
-      const engineName = getCodeforEngine(formData.engine);
-      const gemData = await checkGemCost(engineName);
-      if (gemData) {
-        // Calculate total required credits: gems per image * number of images
-        const totalRequiredCredits = gemData.gems * formData.numberOfImages;
-        
-        // Update gem data with calculated total
-        const updatedGemData = {
-          ...gemData,
-          gems: totalRequiredCredits,
-          originalGemsPerImage: gemData.gems // Store original per-image cost
-        };
-        
-        setGemCostData(updatedGemData);
-        
-        // Check if user has enough credits
-        if (userData.credits < totalRequiredCredits) {
-          setShowGemWarning(true);
-          return;
-        } else {
-          // Show confirmation for gem cost
-          setShowGemWarning(true);
-          return;
-        }
-      }
-    }
-
-    // If no gem checking needed or failed, show error and don't proceed
-    toast.error('Unable to verify credit cost. Please try again.');
-    return;
-  };
-
-  // Separated generation execution function
-  const executeGeneration = async () => {
-    console.log('executeGeneration called');
-    console.log('Form data:', formData);
-    console.log('Model data:', modelData);
-    
-    if (!formData.model && !formData.prompt) {
-      console.log('Validation failed: no model or prompt');
-      toast.error('Please provide either a model description or a prompt');
-      return;
-    }
-
-    if (!modelData || !modelData.id) {
-      console.log('Validation failed: no model data');
-      toast.error('Please select an influencer before generating');
-      return;
-    }
-
-    console.log('Starting generation process...');
-    setIsGenerating(true);
-
-    const response = await fetch(`${config.supabase_server_url}/influencer?id=eq.${modelData.id}`, {
-      method: 'GET',
-      headers: {
-        'Authorization': 'Bearer WeInfl3nc3withAI'
-      }
-    });
-
-    const data = await response.json();
-
-    try {
-      // Create the JSON data structure
-      const requestData = {
-        task: formData.task,
-        lora: formData.lora,
-        noAI: formData.noAI,
-        prompt: formData.prompt,
-        negative_prompt: formData.negative_prompt,
-        nsfw_strength: formData.nsfw_strength,
-        lora_strength: formData.lora_strength,
-        quality: formData.quality,
-        seed: formData.seed ? parseInt(formData.seed) : -1,
-        guidance: formData.guidance,
-        number_of_images: formData.numberOfImages,
-        format: safeFormatOptions.find(opt => opt.label === formData.format)?.label || formData.format,
-        engine: formData.engine,
-        usePromptOnly: formData.usePromptOnly,
-        regenerated_from: formData.regenerated_from || '12345678-1111-2222-3333-caffebabe0123',
-        model: data[0] ? {
-          id: data[0].id,
-          influencer_type: data[0].influencer_type,
-          sex: data[0].sex,
-          cultural_background: data[0].cultural_background,
-          hair_length: data[0].hair_length,
-          hair_color: data[0].hair_color,
-          hair_style: data[0].hair_style,
-          eye_color: data[0].eye_color,
-          lip_style: data[0].lip_style,
-          nose_style: data[0].nose_style,
-          face_shape: data[0].face_shape,
-          facial_features: data[0].facial_features,
-          skin_tone: data[0].skin_tone,
-          bust: data[0].bust_size,
-          body_type: data[0].body_type,
-          color_palette: data[0].color_palette || [],
-          clothing_style_everyday: data[0].clothing_style_everyday,
-          eyebrow_style: data[0].eyebrow_style,
-          makeup_style: modelDescription.makeup,
-          name_first: data[0].name_first,
-          name_last: data[0].name_last,
-          visual_only: data[0].visual_only,
-          age: data[0].age,
-          lifestyle: data[0].lifestyle
-        } : null,
-        scene: {
-          framing: sceneSpecs.framing,
-          rotation: sceneSpecs.rotation,
-          lighting_preset: sceneSpecs.lighting_preset,
-          scene_setting: sceneSpecs.scene_setting,
-          pose: sceneSpecs.pose,
-          clothes: sceneSpecs.clothes
-        }
-      };
-
-      const useridResponse = await fetch(`${config.supabase_server_url}/user?uuid=eq.${userData.id}`, {
-        method: 'GET',
-        headers: {
-          'Authorization': 'Bearer WeInfl3nc3withAI'
-        }
-      });
-
-      const useridData = await useridResponse.json();
-
-      console.log(requestData);
-      const response = await fetch(`${config.backend_url}/createtask?userid=${useridData[0].userid}&type=createimage`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer WeInfl3nc3withAI'
-        },
-        body: JSON.stringify(requestData)
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const result = await response.json();
-
-      // Add new task ID to the list
-      setGeneratedTaskIds(prev => [...prev, result.id]);
-      console.log('Generation completed successfully, task ID:', result.id);
-      toast.success('Content generation started successfully');
-
-      // Update guide_step if it's currently 3
-      if (userData.guide_step === 3) {
-        try {
-          const guideStepResponse = await fetch(`${config.supabase_server_url}/user?uuid=eq.${userData.id}`, {
-            method: 'PATCH',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': 'Bearer WeInfl3nc3withAI'
-            },
-            body: JSON.stringify({
-              guide_step: 4
-            })
-          });
-
-          if (guideStepResponse.ok) {
-            dispatch(setUser({ guide_step: 4 }));
-            toast.success('Content generation started! Progress updated to Phase 4.');
-          }
-        } catch (error) {
-          console.error('Failed to update guide_step:', error);
-        }
-      }
-
-      setActiveTab('scene');
-
-    } catch (error) {
-      console.error('Generation error:', error);
-      toast.error('Failed to start content generation');
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
-  const validateForm = () => {
-    if (!formData.model && !formData.prompt) {
-      return false;
-    }
-    if (formData.numberOfImages < 1 || formData.numberOfImages > 20) {
-      return false;
-    }
-    if (formData.guidance < 1.0 || formData.guidance > 8.0) {
-      return false;
-    }
-    return true;
-  };
-
-  // OptionSelector for makeup (copied from InfluencerEdit)
-  const OptionSelector = ({ options, onSelect, onClose, title }: {
-    options: Option[],
-    onSelect: (label: string) => void,
-    onClose: () => void,
-    title: string
-  }) => {
-    const [localPreview, setLocalPreview] = useState<string | null>(null);
-    const [isTouchDevice, setIsTouchDevice] = useState(false);
-
-    useEffect(() => {
-      // Detect touch device
-      setIsTouchDevice('ontouchstart' in window || navigator.maxTouchPoints > 0);
-    }, []);
-
-    const handleImageClick = (e: React.MouseEvent, imageUrl: string) => {
-      e.stopPropagation();
-      setLocalPreview(imageUrl);
-    };
-
-    const handleImageHover = (imageUrl: string) => {
-      if (!isTouchDevice) {
-        setLocalPreview(imageUrl);
-      }
-    };
-
-    const handleMouseLeave = () => {
-      if (!isTouchDevice) {
-        setLocalPreview(null);
-      }
-    };
-
-    const handleSelect = (label: string) => {
-      onSelect(label);
-      onClose();
-    };
-
-    return (
-      <>
-        <Dialog open={true} onOpenChange={onClose}>
-          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>{title}</DialogTitle>
-            </DialogHeader>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 p-4">
-              {options.map((option, index) => (
-                <Card
-                  key={index}
-                  className="cursor-pointer hover:shadow-lg transition-all duration-300"
-                  onClick={() => handleSelect(option.label)}
-                >
-                  <CardContent className="p-4">
-                    <div 
-                      className="relative w-full group" 
-                      style={{ paddingBottom: '100%' }}
-                      onMouseEnter={() => handleImageHover(`${config.data_url}/wizard/mappings800/${option.image}`)}
-                      onMouseLeave={handleMouseLeave}
-                    >
-                      <img
-                        src={`${config.data_url}/wizard/mappings250/${option.image}`}
-                        alt={option.label}
-                        className="absolute inset-0 w-full h-full object-cover rounded-md transition-transform duration-200 hover:scale-105"
-                        data-testid={`img-option-${option.label.toLowerCase()}`}
-                      />
-                      {/* Touch device magnifier overlay */}
-                      {isTouchDevice && (
-                        <div
-                          className="absolute right-2 top-2 bg-black/70 rounded-full w-10 h-10 flex items-center justify-center cursor-zoom-in backdrop-blur-sm"
-                          onClick={(e) => handleImageClick(e, `${config.data_url}/wizard/mappings800/${option.image}`)}
-                          data-testid={`button-zoom-${option.label.toLowerCase()}`}
-                        >
-                          <ZoomIn className="w-5 h-5 text-white" />
-                        </div>
-                      )}
-                      {/* Desktop hover magnifier */}
-                      {!isTouchDevice && (
-                        <div
-                          className="absolute right-2 top-2 bg-black/50 rounded-full w-8 h-8 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in"
-                          onClick={(e) => handleImageClick(e, `${config.data_url}/wizard/mappings800/${option.image}`)}
-                          data-testid={`button-zoom-hover-${option.label.toLowerCase()}`}
-                        >
-                          <ZoomIn className="w-4 h-4 text-white" />
-                        </div>
-                      )}
-                    </div>
-                    <div className="mt-3 space-y-1">
-                      <p className="text-sm font-medium text-center" data-testid={`text-label-${option.label.toLowerCase()}`}>
-                        {option.label}
-                      </p>
-                      {option.description && (
-                        <p className="text-xs text-muted-foreground text-center leading-tight" data-testid={`text-description-${option.label.toLowerCase()}`}>
-                          {option.description}
-                        </p>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </DialogContent>
-        </Dialog>
-        {localPreview && (
-          <Dialog open={true} onOpenChange={() => setLocalPreview(null)}>
-            <DialogContent className="max-w-4xl max-h-[90vh] p-2">
-              <div className="relative">
-                <img 
-                  src={localPreview} 
-                  alt="Vergrößerte Ansicht" 
-                  className="w-full h-auto rounded-lg max-h-[85vh] object-contain"
-                  data-testid="img-zoomed-preview"
-                />
-                <button
-                  onClick={() => setLocalPreview(null)}
-                  className="absolute top-2 right-2 bg-black/70 hover:bg-black/90 text-white rounded-full p-2 transition-colors"
-                  data-testid="button-close-zoom"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-            </DialogContent>
-          </Dialog>
-        )}
-      </>
-    );
-  };
-
-  const handleClear = () => {
-    setFormData({
-      model: '',
-      scene: '',
-      task: 'generate_image',
-      lora: false,
-      noAI: true,
-      prompt: '',
-      format: 'Portrait 4:5',
-      numberOfImages: 1,
-      seed: '',
-      guidance: 3.5,
-      negative_prompt: '',
-      nsfw_strength: 0,
-      lora_strength: 0.8,
-      quality: 'Quality',
-      engine: 'Nymia General',
-      usePromptOnly: false,
-      regenerated_from: ''
-    });
-    setModelData(null);
-    setSceneSpecs({
-      framing: '',
-      rotation: '',
-      lighting_preset: '',
-      scene_setting: '',
-      pose: '',
-      clothes: ''
-    });
-  }
-
-  useEffect(() => {
-    const fetchGeneratedImages = async () => {
-      console.log(generatedTaskIds);
-      if (!generatedImages || generatedTaskIds.length === 0) return;
-
-      setIsLoadingGeneratedImages(true);
-      try {
-        // Fetch images for all task IDs
-        const allImages: any[] = [];
-
-        for (const taskId of generatedTaskIds) {
-          const response = await fetch(`${config.supabase_server_url}/generated_images?task_id=eq.${taskId}`, {
-            headers: {
-              'Authorization': 'Bearer WeInfl3nc3withAI'
-            }
-          });
-
-          if (response.ok) {
-            const data = await response.json();
-            allImages.push(...data);
-          }
-        }
-
-        setGeneratedImages(allImages);
-        console.log(generatedImages);
-      } catch (error) {
-        console.error('Error fetching generated images:', error);
-      } finally {
-        setIsLoadingGeneratedImages(false);
-      }
-    }
-
-    fetchGeneratedImages();
-
-    const interval = setInterval(fetchGeneratedImages, 30000);
-    return () => clearInterval(interval);
-  }, [generatedTaskIds]);
-
-  // Handle regeneration data from Vault.tsx
-  useEffect(() => {
-    const regenerationData = location.state?.jsonjobData;
-    const isRegeneration = location.state?.isRegeneration;
-    const originalImage = location.state?.originalImage;
-
-    if (isRegeneration && regenerationData) {
-      console.log('🔄 REGENERATION PROCESS STARTED');
-      console.log('📍 Location State:', location.state);
-      console.log('📊 Regeneration Data:', regenerationData);
-      console.log('🖼️ Original Image:', originalImage);
-
-      // Step 1: Populate form data from the JSON job
-      console.log('📝 Step 1: Populating form data from JSON job');
-
-      if (regenerationData.task) {
-        console.log('✅ Setting task type:', regenerationData.task);
-        setFormData(prev => ({
-          ...prev,
-          task: regenerationData.task
-        }));
-      }
-
-      if (regenerationData.prompt) {
-        console.log('✅ Setting prompt:', regenerationData.prompt);
-        setFormData(prev => ({
-          ...prev,
-          prompt: regenerationData.prompt
-        }));
-      }
-
-      if (regenerationData.negative_prompt) {
-        console.log('✅ Setting negative prompt:', regenerationData.negative_prompt);
-        setFormData(prev => ({
-          ...prev,
-          negative_prompt: regenerationData.negative_prompt
-        }));
-      }
-
-      if (regenerationData.number_of_images) {
-        console.log('✅ Setting number of images:', regenerationData.number_of_images);
-        setFormData(prev => ({
-          ...prev,
-          numberOfImages: regenerationData.number_of_images
-        }));
-      }
-
-      if (regenerationData.guidance) {
-        console.log('✅ Setting guidance:', regenerationData.guidance);
-        setFormData(prev => ({
-          ...prev,
-          guidance: regenerationData.guidance
-        }));
-      }
-
-      if (regenerationData.seed) {
-        console.log('✅ Setting seed:', regenerationData.seed);
-        setFormData(prev => ({
-          ...prev,
-          seed: regenerationData.seed.toString()
-        }));
-      }
-
-      if (regenerationData.nsfw_strength) {
-        console.log('✅ Setting NSFW strength:', regenerationData.nsfw_strength);
-        setFormData(prev => ({
-          ...prev,
-          nsfw_strength: regenerationData.nsfw_strength
-        }));
-      }
-
-      if (regenerationData.lora_strength) {
-        console.log('✅ Setting LORA strength:', regenerationData.lora_strength);
-        setFormData(prev => ({
-          ...prev,
-          lora_strength: regenerationData.lora_strength
-        }));
-      }
-
-      if (regenerationData.quality) {
-        console.log('✅ Setting quality:', regenerationData.quality);
-        setFormData(prev => ({
-          ...prev,
-          quality: regenerationData.quality
-        }));
-      }
-
-      if (regenerationData.format) {
-        console.log('✅ Setting format:', regenerationData.format);
-        setFormData(prev => ({
-          ...prev,
-          format: regenerationData.format
-        }));
-      }
-
-      if (regenerationData.engine) {
-        console.log('✅ Setting engine:', regenerationData.engine);
-        setFormData(prev => ({
-          ...prev,
-          engine: regenerationData.engine
-        }));
-      }
-
-      if (regenerationData.lora !== undefined) {
-        console.log('✅ Setting LORA:', regenerationData.lora);
-        setFormData(prev => ({
-          ...prev,
-          lora: regenerationData.lora
-        }));
-      }
-
-      if (regenerationData.noAI !== undefined) {
-        console.log('✅ Setting noAI:', regenerationData.noAI);
-        setFormData(prev => ({
-          ...prev,
-          noAI: regenerationData.noAI
-        }));
-      }
-
-      if (regenerationData.usePromptOnly !== undefined) {
-        console.log('✅ Setting usePromptOnly:', regenerationData.usePromptOnly);
-        setFormData(prev => ({
-          ...prev,
-          usePromptOnly: regenerationData.usePromptOnly
-        }));
-      }
-
-      if (regenerationData.regenerated_from !== undefined) {
-        console.log('✅ Setting regenerated_from:', regenerationData.regenerated_from);
-        setFormData(prev => ({
-          ...prev,
-          regenerated_from: regenerationData.regenerated_from
-        }));
-      }
-
-      // Step 2: Populate scene specifications
-      console.log(' Step 2: Populating scene specifications');
-      if (regenerationData.scene) {
-        console.log('📽️ Scene data:', regenerationData.scene);
-        const sceneData = {
-          framing: regenerationData.scene.framing || '',
-          rotation: regenerationData.scene.rotation || '',
-          lighting_preset: regenerationData.scene.lighting_preset || '',
-          scene_setting: regenerationData.scene.scene_setting || '',
-          pose: regenerationData.scene.pose || '',
-          clothes: regenerationData.scene.clothes || ''
-        };
-        console.log('✅ Setting scene specs:', sceneData);
-        setSceneSpecs(sceneData);
-      }
-
-      // Step 3: Handle model/influencer data professionally
-      console.log('👤 Step 3: Processing model/influencer data');
-      if (regenerationData.model) {
-        console.log('🎭 Model data from JSON job:', regenerationData.model);
-
-        // Check if we have a model ID to fetch from database
-        if (regenerationData.model.id) {
-          console.log('🔍 Fetching influencer data from database with ID:', regenerationData.model.id);
-
-          // Fetch the influencer data from the database
-          const fetchInfluencerData = async () => {
-            try {
-              const response = await fetch(`${config.supabase_server_url}/influencer?id=eq.${regenerationData.model.id}`, {
-                headers: {
-                  'Authorization': 'Bearer WeInfl3nc3withAI'
-                }
-              });
-
-              if (!response.ok) {
-                throw new Error('Failed to fetch influencer data');
-              }
-
-              const influencerData = await response.json();
-              console.log('📊 Fetched influencer data from database:', influencerData);
-
-              if (influencerData && influencerData.length > 0) {
-                const influencer = influencerData[0];
-                console.log('✅ Found influencer in database:', influencer);
-
-                // Set the model data with the complete influencer information
-                setModelData(influencer);
-
-                // Populate model description with complete data
-                const modelDesc = {
-                  appearance: `${influencer.name_first || ''} ${influencer.name_last || ''}, ${influencer.age_lifestyle || ''}`,
-                  culturalBackground: influencer.cultural_background || '',
-                  bodyType: influencer.body_type || '',
-                  facialFeatures: influencer.facial_features || '',
-                  hairColor: influencer.hair_color || '',
-                  hairLength: influencer.hair_length || '',
-                  hairStyle: influencer.hair_style || '',
-                  skin: influencer.skin_tone || '',
-                  lips: influencer.lip_style || '',
-                  eyes: influencer.eye_color || '',
-                  nose: influencer.nose_style || '',
-                  makeup: 'Natural / No-Makeup Look',
-                  clothing: `${influencer.clothing_style_everyday || ''} ${influencer.clothing_style_occasional || ''}`.trim(),
-                  sex: influencer.sex || '',
-                  bust: influencer.bust_size || '',
-                  eyebrowStyle: influencer.eyebrow_style || '',
-                  faceShape: influencer.face_shape || '',
-                  colorPalette: influencer.color_palette ? influencer.color_palette.join(', ') : '',
-                  age: influencer.age || '',
-                  lifestyle: influencer.lifestyle || ''
-                };
-
-                console.log('📝 Setting model description:', modelDesc);
-                setModelDescription(modelDesc);
-
-                // Generate the model description automatically
-                const parts = [];
-                if (influencer.name_first && influencer.name_last) {
-                  parts.push(`${influencer.name_first} ${influencer.name_last}`);
-                }
-                if (influencer.age_lifestyle) parts.push(influencer.age_lifestyle);
-                if (influencer.cultural_background) parts.push(`Cultural background: ${influencer.cultural_background}`);
-                if (influencer.body_type) parts.push(`Body type: ${influencer.body_type}`);
-                if (influencer.facial_features) parts.push(`Facial features: ${influencer.facial_features}`);
-                if (influencer.hair_color && influencer.hair_length && influencer.hair_style) {
-                  parts.push(`${influencer.hair_length} ${influencer.hair_color} hair, ${influencer.hair_style} style`);
-                }
-                if (influencer.skin_tone) parts.push(`Skin: ${influencer.skin_tone}`);
-                if (influencer.lip_style) parts.push(`Lips: ${influencer.lip_style}`);
-                if (influencer.eye_color) parts.push(`Eyes: ${influencer.eye_color}`);
-                if (influencer.nose_style) parts.push(`Nose: ${influencer.nose_style}`);
-                if (modelDesc.makeup) parts.push(`Makeup: ${modelDesc.makeup}`);
-                if (influencer.clothing_style_everyday || influencer.clothing_style_occasional) {
-                  parts.push(`Clothing: ${influencer.clothing_style_everyday || ''} ${influencer.clothing_style_occasional || ''}`.trim());
-                }
-
-                const fullDescription = parts.join(', ');
-                console.log('📄 Generated full description:', fullDescription);
-                setFormData(prev => ({
-                  ...prev,
-                  model: fullDescription
-                }));
-
-                toast.success(`Regeneration data loaded for ${influencer.name_first} ${influencer.name_last}`);
-              } else {
-                console.warn('⚠️ No influencer found in database, using JSON job data');
-                // Fallback to JSON job data
-                setModelData(regenerationData.model);
-                setModelDescription({
-                  appearance: `${regenerationData.model.name_first || ''} ${regenerationData.model.name_last || ''}, ${regenerationData.model.age || ''}`,
-                  culturalBackground: regenerationData.model.cultural_background || '',
-                  bodyType: regenerationData.model.body_type || '',
-                  facialFeatures: regenerationData.model.facial_features || '',
-                  hairColor: regenerationData.model.hair_color || '',
-                  hairLength: regenerationData.model.hair_length || '',
-                  hairStyle: regenerationData.model.hair_style || '',
-                  skin: regenerationData.model.skin_tone || '',
-                  lips: regenerationData.model.lip_style || '',
-                  eyes: regenerationData.model.eye_color || '',
-                  nose: regenerationData.model.nose_style || '',
-                  makeup: regenerationData.model.makeup_style || 'Natural / No-Makeup Look',
-                  clothing: `${regenerationData.model.clothing_style_everyday || ''} ${regenerationData.model.clothing_style_occasional || ''}`.trim(),
-                  sex: regenerationData.model.sex || '',
-                  bust: regenerationData.model.bust || '',
-                  eyebrowStyle: regenerationData.model.eyebrow_style || '',
-                  faceShape: regenerationData.model.face_shape || '',
-                  colorPalette: regenerationData.model.color_palette ? regenerationData.model.color_palette.join(', ') : '',
-                  age: regenerationData.model.age || '',
-                  lifestyle: regenerationData.model.lifestyle || ''
-                });
-              }
-            } catch (error) {
-              console.error('❌ Error fetching influencer data:', error);
-              console.warn('⚠️ Falling back to JSON job model data');
-              setModelData(regenerationData.model);
-            }
-          };
-
-          fetchInfluencerData();
-        } else {
-          console.log('⚠️ No model ID found, using JSON job model data directly');
-          setModelData(regenerationData.model);
-        }
-      } else {
-        console.log('⚠️ No model data found in regeneration data');
-      }
-
-      console.log('✅ REGENERATION PROCESS COMPLETED');
-    }
-  }, [location.state]);
-
-  // Vault-style functions
-  const updateFavorite = async (systemFilename: string, favorite: boolean) => {
-    try {
-      const response = await fetch(`${config.supabase_server_url}/generated_images?system_filename=eq.${systemFilename}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer WeInfl3nc3withAI'
-        },
-        body: JSON.stringify({ favorite })
-      });
-
-      if (response.ok) {
-        setGeneratedImages(prev =>
-          prev.map(img =>
-            img.system_filename === systemFilename
-              ? { ...img, favorite }
-              : img
-          )
-        );
-      }
-    } catch (error) {
-      console.error('Error updating favorite:', error);
-    }
-  };
-
-  const updateRating = async (systemFilename: string, rating: number) => {
-    try {
-      const response = await fetch(`${config.supabase_server_url}/generated_images?system_filename=eq.${systemFilename}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer WeInfl3nc3withAI'
-        },
-        body: JSON.stringify({ rating })
-      });
-
-      if (response.ok) {
-        setGeneratedImages(prev =>
-          prev.map(img =>
-            img.system_filename === systemFilename
-              ? { ...img, rating }
-              : img
-          )
-        );
-      }
-    } catch (error) {
-      console.error('Error updating rating:', error);
-    }
-  };
-
-  const updateUserNotes = async (systemFilename: string, userNotes: string) => {
-    try {
-      const response = await fetch(`${config.supabase_server_url}/generated_images?system_filename=eq.${systemFilename}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer WeInfl3nc3withAI'
-        },
-        body: JSON.stringify({ user_notes: userNotes })
-      });
-
-      if (response.ok) {
-        setGeneratedImages(prev =>
-          prev.map(img =>
-            img.system_filename === systemFilename
-              ? { ...img, user_notes: userNotes }
-              : img
-          )
-        );
-      }
-    } catch (error) {
-      console.error('Error updating user notes:', error);
-    }
-  };
-
-  const updateUserTags = async (systemFilename: string, userTags: string[]) => {
-    try {
-      const response = await fetch(`${config.supabase_server_url}/generated_images?system_filename=eq.${systemFilename}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer WeInfl3nc3withAI'
-        },
-        body: JSON.stringify({ user_tags: userTags })
-      });
-
-      if (response.ok) {
-        setGeneratedImages(prev =>
-          prev.map(img =>
-            img.system_filename === systemFilename
-              ? { ...img, user_tags: userTags }
-              : img
-          )
-        );
-      }
-    } catch (error) {
-      console.error('Error updating user tags:', error);
-    }
+  const handleShare = (systemFilename: string) => {
+    setShareModal({ open: true, itemId: systemFilename, itemPath: "output" });
   };
 
   const handleFileContextMenu = (e: React.MouseEvent, image: any) => {
@@ -1923,213 +1278,142 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
     setFileContextMenu({ x: e.clientX, y: e.clientY, image });
   };
 
-  const handleFileRename = async (oldFilename: string, newName: string) => {
-    try {
-      const response = await fetch(`${config.supabase_server_url}/generated_images?system_filename=eq.${oldFilename}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer WeInfl3nc3withAI'
-        },
-        body: JSON.stringify({ user_filename: newName })
-      });
-
-      if (response.ok) {
-        setGeneratedImages(prev =>
-          prev.map(img =>
-            img.system_filename === oldFilename
-              ? { ...img, user_filename: newName }
-              : img
-          )
-        );
-        setEditingFile(null);
-        setEditingFileName('');
-        setRenamingFile(null);
-      }
-    } catch (error) {
-      console.error('Error renaming file:', error);
-    }
-  };
-
-  const handleFileDelete = async (image: any) => {
-    try {
-      toast.info('Deleting image...', {
-        description: 'This may take a moment'
-      });
-
-      const filename = image.file_path.split('/').pop();
-
-      await fetch(`${config.backend_url}/deletefile`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer WeInfl3nc3withAI'
-        },
-        body: JSON.stringify({
-          user: userData.id,
-          filename: 'output/' + filename
-        })
-      });
-
-      await fetch(`${config.supabase_server_url}/generated_images?id=eq.${image.id}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer WeInfl3nc3withAI'
-        }
-      });
-
-      setGeneratedImages(prev => prev.filter(img => img.id !== image.id));
-      toast.success(`Image "${filename}" deleted successfully`);
-    } catch (error) {
-      console.error('Error deleting image:', error);
-      toast.error('Failed to delete image. Please try again.');
-    }
-  };
-
-  const handleShare = (systemFilename: string) => {
-    setShareModal({ open: true, itemId: systemFilename, itemPath: 'output' });
-  };
-
-  const copyToClipboard = async (text: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      toast.success('Link copied to clipboard');
-    } catch (error) {
-      console.error('Failed to copy to clipboard:', error);
-    }
-  };
-
-  const generateQRCode = async (url: string) => {
-    try {
-      const qrCodeDataUrl = await QRCode.toDataURL(url, {
-        width: 200,
-        margin: 2,
-        color: {
-          dark: '#000000',
-          light: '#FFFFFF'
-        }
-      });
-      setQrCodeDataUrl(qrCodeDataUrl);
-    } catch (error) {
-      console.error('Failed to generate QR code:', error);
-      toast.error('Failed to generate QR code');
-    }
-  };
-
-  const shareToSocialMedia = (platform: string, itemId: string) => {
-    const imageUrl = `${config.data_url}/${userData.id}/output/${itemId}`;
-    const shareText = `Check out this amazing content!`;
-
-    let shareUrl = '';
-
-    switch (platform) {
-      case 'twitter':
-        shareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(imageUrl)}`;
-        break;
-      case 'facebook':
-        shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(imageUrl)}`;
-        break;
-      case 'linkedin':
-        shareUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(imageUrl)}`;
-        break;
-      case 'pinterest':
-        shareUrl = `https://pinterest.com/pin/create/button/?url=${encodeURIComponent(imageUrl)}&description=${encodeURIComponent(shareText)}`;
-        break;
-      default:
-        return;
-    }
-
-    window.open(shareUrl, '_blank', 'width=600,height=400');
-  };
-
   const handleEdit = (image: any) => {
-            navigate('/create/edit', {
+    navigate("/create/edit", {
       state: {
-        imageData: image
-      }
+        imageData: image,
+      },
     });
   };
 
   const handleRegenerate = async (image: any) => {
     // Only allow regeneration for non-uploaded and non-edited images
-    if (image.model_version === 'edited' || image.quality_setting === 'edited' || image.task_id?.startsWith('upload_')) {
-      toast.error('Cannot regenerate uploaded or edited images');
+    if (
+      image.model_version === "edited" ||
+      image.quality_setting === "edited" ||
+      image.task_id?.startsWith("upload_")
+    ) {
+      toast.error("Cannot regenerate uploaded or edited images");
       return;
     }
 
-    setRegeneratingImages(prev => new Set(prev).add(image.system_filename));
+    setRegeneratingImages((prev) => new Set(prev).add(image.system_filename));
 
     try {
-      toast.info('Regenerating image...', {
-        description: 'Fetching original task data and creating new generation'
+      toast.info("Regenerating image...", {
+        description: "Fetching original task data and creating new generation",
       });
 
-      // Step 1: Get the task_id from the generated image
-      const imageResponse = await fetch(`${config.supabase_server_url}/generated_images?file_path=eq.${image.file_path}`, {
-        headers: {
-          'Authorization': 'Bearer WeInfl3nc3withAI'
-        }
-      });
+      // Convert task_id (VARCHAR) to BIGINT and query tasks table for jsonjob
+      const taskIdAsInt = parseInt(image.task_id, 10);
+      console.log(
+        "Converting task_id to integer:",
+        image.task_id,
+        "->",
+        taskIdAsInt
+      );
 
-      if (!imageResponse.ok) {
-        throw new Error('Failed to fetch image data');
+      if (isNaN(taskIdAsInt)) {
+        throw new Error(
+          `Invalid task_id: ${image.task_id} cannot be converted to integer`
+        );
       }
 
-      const imageData = await imageResponse.json();
-      if (!imageData || imageData.length === 0) {
-        throw new Error('Image data not found');
-      }
-
-      const taskId = imageData[0].task_id;
-
-      // Step 2: Get the original task data
-      const taskResponse = await fetch(`${config.supabase_server_url}/tasks?id=eq.${taskId}`, {
-        headers: {
-          'Authorization': 'Bearer WeInfl3nc3withAI'
+      const taskResponse = await fetch(
+        `${config.supabase_server_url}/tasks?id=eq.${taskIdAsInt}`,
+        {
+          headers: {
+            Authorization: "Bearer WeInfl3nc3withAI",
+          },
         }
-      });
+      );
 
       if (!taskResponse.ok) {
-        throw new Error('Failed to fetch task data');
+        throw new Error("Failed to fetch original task");
       }
 
       const taskData = await taskResponse.json();
       if (!taskData || taskData.length === 0) {
-        throw new Error('Task data not found');
+        throw new Error("Original task not found");
       }
 
       const originalTask = taskData[0];
-      console.log("OriginalTask:", originalTask.jsonjob);
+      console.log("Task details loaded on-demand for regeneration");
+      console.log("OriginalTask jsonjob:", originalTask.jsonjob);
 
-      // Step 3: Parse the JSON job data
+      // Parse the JSON job data
       const jsonjob = JSON.parse(originalTask.jsonjob);
       console.log("Parsed JSON job:", jsonjob);
-      if (jsonjob.seed === -1) {
-        jsonjob.seed = null;
+
+      // Build URL parameters and reload page for regeneration
+      const params = new URLSearchParams();
+      params.set("regenerate", "true");
+      params.set("regenerated_from", image.system_filename);
+
+      // Core generation parameters
+      if (jsonjob.prompt) {
+        console.log("Original prompt:", jsonjob.prompt);
+        params.set("prompt", encodeURIComponent(jsonjob.prompt));
+        console.log("Encoded prompt:", encodeURIComponent(jsonjob.prompt));
+      }
+      if (jsonjob.negative_prompt)
+        params.set("negative_prompt", jsonjob.negative_prompt);
+      if (jsonjob.model?.id)
+        params.set("influencer_id", jsonjob.model.id.toString());
+      if (jsonjob.format) params.set("format", jsonjob.format);
+      if (jsonjob.quality) params.set("quality", jsonjob.quality);
+      if (jsonjob.engine) params.set("engine", jsonjob.engine);
+      if (jsonjob.guidance) params.set("guidance", jsonjob.guidance.toString());
+      if (jsonjob.lora_strength)
+        params.set("lora_strength", jsonjob.lora_strength.toString());
+      if (jsonjob.nsfw_strength)
+        params.set("nsfw_strength", jsonjob.nsfw_strength.toString());
+      if (jsonjob.number_of_images)
+        params.set("number_of_images", jsonjob.number_of_images.toString());
+
+      // Scene components for Component Picker
+      if (jsonjob.scene) {
+        const scene = jsonjob.scene;
+        if (scene.framing) params.set("framing", scene.framing);
+        if (scene.rotation) params.set("rotation", scene.rotation);
+        if (scene.lighting_preset)
+          params.set("lighting_preset", scene.lighting_preset);
+        if (scene.scene_setting)
+          params.set("scene_setting", scene.scene_setting);
+        if (scene.pose) params.set("pose", scene.pose);
+        if (scene.clothes) params.set("clothes", scene.clothes);
       }
 
-      // Step 4: Set the regenerated_from field to the original image ID
-      jsonjob.regenerated_from = image.id || '12345678-1111-2222-3333-caffebabe0123';
+      console.log("NAVIGATE with params:", params.toString());
+      console.log("Prompt being set:", jsonjob.prompt);
 
-      // Step 5: Navigate to ContentCreate with the JSON job data
-      navigate('/content/create', {
+      // Use React Router navigation instead of window.location
+      navigate(`/create/images?${params.toString()}`, {
         state: {
-          jsonjobData: jsonjob,
-          isRegeneration: true,
-          originalImage: image
-        }
+          regenerateData: {
+            prompt: jsonjob.prompt,
+            negative_prompt: jsonjob.negative_prompt,
+            influencer_id: jsonjob.model?.id?.toString(),
+            format: jsonjob.format,
+            quality: jsonjob.quality,
+            engine: jsonjob.engine,
+            guidance: jsonjob.guidance,
+            lora_strength: jsonjob.lora_strength,
+            nsfw_strength: jsonjob.nsfw_strength,
+            number_of_images: jsonjob.number_of_images,
+            scene: jsonjob.scene,
+          },
+          regenerateFrom: image.system_filename,
+        },
       });
-
-      toast.success('Redirecting to ContentCreate for regeneration');
-
     } catch (error) {
-      console.error('Regeneration error:', error);
-      toast.error('Failed to regenerate image', {
-        description: error instanceof Error ? error.message : 'Unknown error occurred'
+      console.error("Regeneration error:", error);
+      toast.error("Regeneration failed", {
+        description:
+          error instanceof Error ? error.message : "Unknown error occurred",
       });
     } finally {
-      setRegeneratingImages(prev => {
+      setRegeneratingImages((prev) => {
         const newSet = new Set(prev);
         newSet.delete(image.system_filename);
         return newSet;
@@ -2137,3246 +1421,1967 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
     }
   };
 
-  const decodeName = (name: string): string => {
-    return decodeURIComponent(name.replace(/\+/g, ' '));
-  };
-
-  // Engine options and modal state
-  const [engineOptions, setEngineOptions] = useState<Option[]>([]);
-  const [showEngineSelector, setShowEngineSelector] = useState(false);
-
-  // Vault selector state
-  const [showVaultSelector, setShowVaultSelector] = useState(false);
-  const [selectedVaultImage, setSelectedVaultImage] = useState<any>(null);
-
-  const handleVaultImageSelect = (image: any) => {
-    setSelectedVaultImage(image);
-    // You can use the selected image data here
-    // For example, you could set it as a reference image or use it in some way
-    toast.success(`Selected image from library: ${image.system_filename}`);
-  };
-
-  const handleVaultImageSelectForPreset = (image: any) => {
-    setSelectedPresetImage(image);
-    setPresetImageSource('vault');
-    setShowVaultSelectorForPreset(false);
-    toast.success(`Selected image from library for preset: ${image.system_filename}`);
-  };
-
-  // Add new state for preset functionality
-  const [showLibraryModal, setShowLibraryModal] = useState(false);
-  const [presetName, setPresetName] = useState('');
-  const [presetDescription, setPresetDescription] = useState('');
-  const [presets, setPresets] = useState<any[]>([]);
-  const [isLoadingPresets, setIsLoadingPresets] = useState(false);
-  const [presetSearchTerm, setPresetSearchTerm] = useState('');
-  const [selectedPreset, setSelectedPreset] = useState<any>(null);
-  const [showPresetDetails, setShowPresetDetails] = useState(false);
-
-  // Save as Preset functionality
-  const [showSavePresetModal, setShowSavePresetModal] = useState(false);
-  const [selectedPresetImage, setSelectedPresetImage] = useState<any>(null);
-  const [presetImageSource, setPresetImageSource] = useState<'vault' | 'upload' | 'recent'>('vault');
-  const [showVaultSelectorForPreset, setShowVaultSelectorForPreset] = useState(false);
-  const [showImageSelector, setShowImageSelector] = useState(false);
-  const [isSavingPreset, setIsSavingPreset] = useState(false);
-
-  // File conflict resolution state
-  const [showOverwriteDialog, setShowOverwriteDialog] = useState(false);
-  const [conflictFilename, setConflictFilename] = useState('');
-  const [finalFilename, setFinalFilename] = useState('');
-  const [pendingPresetData, setPendingPresetData] = useState<any>(null);
-
-  // Upload functionality for preset images
-  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
-  const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
-
-  // Recent renders functionality
-  const [showRecentRendersModal, setShowRecentRendersModal] = useState(false);
-
-  const handlePresetImageSelect = (image: any, source: 'vault' | 'upload' | 'recent') => {
-    setSelectedPresetImage(image);
-    setPresetImageSource(source);
-    setShowImageSelector(false);
-    toast.success(`Selected image from ${source}`);
-  };
-
-  // Helper function to generate unique filename
-  const generateUniqueFilename = (originalFilename: string, existingFilenames: string[]): string => {
-    const baseName = originalFilename.substring(0, originalFilename.lastIndexOf('.'));
-    const extension = originalFilename.substring(originalFilename.lastIndexOf('.'));
-
-    let counter = 1;
-    let testFilename = `${baseName}(${counter})${extension}`;
-
-    while (existingFilenames.includes(testFilename)) {
-      counter++;
-      testFilename = `${baseName}(${counter})${extension}`;
-    }
-
-    return testFilename;
-  };
-
-  // Helper function to check for file conflicts
-  const checkFileConflict = async (filename: string): Promise<{ hasConflict: boolean; existingFilenames: string[] }> => {
+  const copyToClipboard = async (text: string) => {
     try {
-      const getFilesResponse = await fetch(`${config.backend_url}/getfilenames`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer WeInfl3nc3withAI'
-        },
-        body: JSON.stringify({
-          user: userData.id,
-          folder: 'presets'
-        })
-      });
-
-      if (getFilesResponse.ok) {
-        const files = await getFilesResponse.json();
-        console.log('Files in presets folder:', files);
-
-        if (files && files.length > 0 && files[0].Key) {
-          // Extract existing filenames from the presets folder
-          const existingFilenames = files.map((file: any) => {
-            const fileKey = file.Key;
-            const re = new RegExp(`^.*?presets/`);
-            const fileName = fileKey.replace(re, "");
-            console.log("Existing File Name:", fileName);
-            return fileName;
-          });
-
-          return {
-            hasConflict: existingFilenames.includes(filename),
-            existingFilenames
-          };
-        }
-      }
-
-      return { hasConflict: false, existingFilenames: [] };
+      await navigator.clipboard.writeText(text);
+      toast.success("Link copied to clipboard");
     } catch (error) {
-      console.error('Error checking file conflict:', error);
-      return { hasConflict: false, existingFilenames: [] };
+      console.error("Failed to copy to clipboard:", error);
     }
   };
 
-  // Handle overwrite confirmation
-  const handleOverwriteConfirm = async () => {
-    setShowOverwriteDialog(false);
-    if (pendingPresetData) {
-      await savePresetWithFilename(conflictFilename, true, pendingPresetData);
+  // Preset management functions
+  const getCurrentSettingsAsJSON = () => {
+    return {
+      lora: false,
+      noAI: true,
+      seed: imageSettings.seed || -1,
+      task: "generate_image",
+      model: modelData
+        ? {
+            id: modelData.id,
+            age: modelData.age,
+            sex: modelData.sex,
+            body_type: modelData.body_type,
+            eye_color: modelData.eye_color,
+            lifestyle: modelData.lifestyle,
+            lip_style: modelData.lip_style,
+            name_last: modelData.name_last,
+            skin_tone: modelData.skin_tone,
+            face_shape: modelData.face_shape,
+            hair_color: modelData.hair_color,
+            hair_style: modelData.hair_style,
+            name_first: modelData.name_first,
+          }
+        : null,
+      scene: {
+        pose: componentPicker.pose?.label || "",
+        clothes: componentPicker.outfit?.label || "",
+        framing: componentPicker.framing?.label || "",
+        rotation: componentPicker.rotation?.label || "",
+        scene_setting: componentPicker.scene?.label || "",
+        lighting_preset: componentPicker.lighting?.label || "",
+        makeup_style: componentPicker.makeup?.label || "",
+        accessories: componentPicker.accessory?.label || "",
+      },
+      engine: imageSettings.engine || "",
+      format: imageSettings.format || "Portrait (4:5)",
+      prompt: prompt || "",
+      quality: "Quality",
+      guidance: imageSettings.promptAdherence,
+      lora_strength: loraSettings.influencerStrength,
+      first_lora: loraSettings.optionalLora1 || "",
+      second_lora: loraSettings.optionalLora2 || "",
+      nsfw_strength: imageSettings.nsfwStrength,
+      usePromptOnly: false,
+      negative_prompt: "",
+      number_of_images: imageSettings.images,
+    };
+  };
+
+  const fetchExistingFolders = async () => {
+    try {
+      const response = await fetch(
+        `${config.supabase_server_url}/presets?user_id=eq.${userData.id}&select=mainfolder,subfolder,subsubfolder`,
+        {
+          headers: {
+            Authorization: "Bearer WeInfl3nc3withAI",
+          },
+        }
+      );
+
+      if (response.ok) {
+        const presets = await response.json();
+        const mainFolders: string[] = Array.from(
+          new Set(presets.map((p: any) => p.mainfolder).filter(Boolean))
+        );
+        const subFolders: string[] = Array.from(
+          new Set(presets.map((p: any) => p.subfolder).filter(Boolean))
+        );
+        const subSubFolders: string[] = Array.from(
+          new Set(presets.map((p: any) => p.subsubfolder).filter(Boolean))
+        );
+
+        setExistingFolders({ mainFolders, subFolders, subSubFolders });
+      }
+    } catch (error) {
+      console.error("Error fetching existing folders:", error);
     }
   };
 
-  // Handle new filename confirmation
-  const handleNewFilenameConfirm = async () => {
-    setShowOverwriteDialog(false);
-    if (pendingPresetData) {
-      await savePresetWithFilename(finalFilename, false, pendingPresetData);
-    }
-  };
-
-  const savePresetWithFilename = async (filename: string, isOverwrite: boolean = false, data?: any) => {
-    // Use passed data or fall back to pendingPresetData state
-    const presetDataToUse = data || pendingPresetData;
-
-    if (!presetDataToUse) {
-      console.error('No data available for saving preset');
+  const handleSavePreset = async () => {
+    if (!presetData.name.trim()) {
+      toast.error("Please enter a preset name");
       return;
     }
 
+    setIsSavingPreset(true);
     try {
-      const { presetData, isUpload } = presetDataToUse;
-      console.log('Saving preset with data:', presetData);
+      const jsonJob = getCurrentSettingsAsJSON();
+      const response = await fetch(`${config.supabase_server_url}/presets`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer WeInfl3nc3withAI",
+        },
+        body: JSON.stringify({
+          user_id: userData.id,
+          name: presetData.name,
+          description: presetData.description,
+          jsonjob: jsonJob,
+          mainfolder: presetData.mainFolder || null,
+          subfolder: presetData.subFolder || null,
+          subsubfolder: presetData.subSubFolder || null,
+          rating: presetData.rating,
+          favorite: presetData.favorite,
+          tags: presetData.tags,
+          image_name: presetData.selectedImage
+            ? presetData.selectedImage.split("/").pop()
+            : null,
+          route: "content-create-image",
+        }),
+      });
 
-      if (isUpload && uploadedFile) {
-        // Create a new file with the unique filename
-        const file = new File([uploadedFile], filename, { type: uploadedFile.type });
-
-        console.log('Uploading file:', filename, 'Size:', file.size, 'Type:', file.type);
-
-        const uploadResponse = await fetch(`${config.backend_url}/uploadfile?user=${userData.id}&filename=presets/${filename}`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/octet-stream',
-            'Authorization': 'Bearer WeInfl3nc3withAI'
-          },
-          body: file
+      if (response.ok) {
+        toast.success("Preset saved successfully!");
+        setShowPresetModal(false);
+        setPresetData({
+          name: "",
+          description: "",
+          mainFolder: "",
+          subFolder: "",
+          subSubFolder: "",
+          rating: 0,
+          favorite: false,
+          tags: [],
+          selectedImage: null,
         });
-
-        if (!uploadResponse.ok) {
-          const errorText = await uploadResponse.text();
-          console.error('Upload failed:', uploadResponse.status, errorText);
-          throw new Error(`Failed to upload file: ${uploadResponse.status} ${errorText}`);
-        }
-
-        console.log('File upload successful');
+        setEditingPreset(null);
       } else {
-        const oldPath = selectedPresetImage.user_filename === "" ? "output" : `vault/${selectedPresetImage.user_filename}`;
-        const copyRequest = {
-          user: userData.id,
-          sourcefilename: `${oldPath}/${selectedPresetImage.system_filename}`,
-          destinationfilename: `presets/${filename}`
-        };
-
-        console.log('Copying file:', copyRequest);
-
-        const copyResponse = await fetch(`${config.backend_url}/copyfile`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer WeInfl3nc3withAI'
-          },
-          body: JSON.stringify(copyRequest)
-        });
-
-        if (!copyResponse.ok) {
-          const errorText = await copyResponse.text();
-          console.error('Copy failed:', copyResponse.status, errorText);
-          throw new Error(`Failed to copy file: ${copyResponse.status} ${errorText}`);
-        }
-
-        console.log('File copy successful');
+        throw new Error("Failed to save preset");
       }
-
-      // Update preset data with the final filename
-      presetData.image_name = filename;
-
-      // Validate preset data before saving
-      if (!presetData.user_id) {
-        throw new Error('User ID is required');
-      }
-      if (!presetData.name || presetData.name.trim() === '') {
-        throw new Error('Preset name is required');
-      }
-      if (!presetData.jsonjob) {
-        throw new Error('Preset configuration is required');
-      }
-
-      // Ensure all required fields are present
-      const requiredFields = ['user_id', 'name', 'jsonjob', 'image_name'];
-      const missingFields = requiredFields.filter(field => !presetData[field]);
-      if (missingFields.length > 0) {
-        throw new Error(`Missing required fields: ${missingFields.join(', ')}`);
-      }
-
-      // Ensure jsonjob has all required fields
-      const requiredJsonJobFields = ['task', 'lora', 'noAI', 'prompt', 'negative_prompt', 'nsfw_strength', 'lora_strength', 'quality', 'seed', 'guidance', 'number_of_images', 'format', 'engine', 'usePromptOnly'];
-      const missingJsonJobFields = requiredJsonJobFields.filter(field => presetData.jsonjob[field] === undefined);
-      if (missingJsonJobFields.length > 0) {
-        console.warn('Missing jsonjob fields:', missingJsonJobFields);
-        // Set default values for missing fields
-        missingJsonJobFields.forEach(field => {
-          if (field === 'seed') presetData.jsonjob[field] = -1;
-          else if (field === 'guidance') presetData.jsonjob[field] = 3.5;
-          else if (field === 'number_of_images') presetData.jsonjob[field] = 1;
-          else if (field === 'nsfw_strength') presetData.jsonjob[field] = 0;
-          else if (field === 'lora_strength') presetData.jsonjob[field] = 0.8;
-          else if (field === 'lora') presetData.jsonjob[field] = false;
-          else if (field === 'noAI') presetData.jsonjob[field] = true;
-          else if (field === 'usePromptOnly') presetData.jsonjob[field] = false;
-          else presetData.jsonjob[field] = '';
-        });
-      }
-
-      console.log('Saving preset to database:', JSON.stringify(presetData, null, 2));
-      console.log('Database URL:', `${config.supabase_server_url}/presets`);
-      console.log('User ID:', userData.id);
-
-      // Save to database with retry mechanism
-      let response;
-      let retryCount = 0;
-      const maxRetries = 3;
-
-      while (retryCount < maxRetries) {
-        try {
-          response = await fetch(`${config.supabase_server_url}/presets`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': 'Bearer WeInfl3nc3withAI'
-            },
-            body: JSON.stringify(presetData)
-          });
-
-          console.log(`Database response status (attempt ${retryCount + 1}):`, response.status);
-          console.log('Database response headers:', Object.fromEntries(response.headers.entries()));
-
-          if (!response.ok) {
-            const errorText = await response.text();
-            console.error('Database save failed:', response.status, errorText);
-
-            // If it's a server error (5xx), retry
-            if (response.status >= 500 && retryCount < maxRetries - 1) {
-              retryCount++;
-              console.log(`Retrying database save (attempt ${retryCount + 1}/${maxRetries})...`);
-              await new Promise(resolve => setTimeout(resolve, 1000 * retryCount)); // Exponential backoff
-              continue;
-            }
-
-            throw new Error(`Failed to save preset to database: ${response.status} ${errorText}`);
-          }
-
-          break; // Success, exit retry loop
-        } catch (error) {
-          if (retryCount < maxRetries - 1) {
-            retryCount++;
-            console.log(`Retrying database save due to error (attempt ${retryCount + 1}/${maxRetries}):`, error);
-            await new Promise(resolve => setTimeout(resolve, 1000 * retryCount)); // Exponential backoff
-            continue;
-          }
-          throw error; // Re-throw if all retries failed
-        }
-      }
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Database save failed:', response.status, errorText);
-        throw new Error(`Failed to save preset to database: ${response.status} ${errorText}`);
-      }
-
-      // Check if response has content before parsing JSON
-      const responseText = await response.text();
-      console.log('Database response text:', responseText);
-
-      let savedPreset;
-      try {
-        // If response is empty, consider it a success (some APIs return empty responses on success)
-        if (!responseText || responseText.trim() === '') {
-          console.log('Empty response from database - considering success');
-          savedPreset = { success: true, id: Date.now() }; // Generate a temporary ID
-        } else {
-          savedPreset = JSON.parse(responseText);
-          console.log('Preset saved successfully:', savedPreset);
-        }
-      } catch (parseError) {
-        console.error('Failed to parse database response:', parseError);
-        console.log('Raw response text:', responseText);
-        // If the response is empty or invalid JSON, but the status was OK, 
-        // we can still consider it a success
-        if (response.ok) {
-          console.log('Database operation succeeded despite invalid JSON response');
-          savedPreset = { success: true, id: Date.now() }; // Generate a temporary ID
-        } else {
-          throw new Error(`Invalid response from database: ${responseText}`);
-        }
-      }
-
-      // Show appropriate success message
-      if (isOverwrite) {
-        toast.success(`Preset "${presetName}" saved successfully! (Overwrote existing file)`);
-      } else if (filename !== (presetImageSource === 'upload' && uploadedFile ? uploadedFile.name : selectedPresetImage.system_filename)) {
-        toast.success(`Preset "${presetName}" saved successfully! (Saved as "${decodeName(filename)}")`);
-      } else {
-        toast.success(`Preset "${presetName}" saved successfully!`);
-      }
-
-      // Reset form
-      setPresetName('');
-      setSelectedPresetImage(null);
-      setPresetImageSource(null);
-      setShowSavePresetModal(false);
-
-      // Reset upload state if it was an upload
-      if (presetImageSource === 'upload') {
-        if (uploadedImageUrl) {
-          URL.revokeObjectURL(uploadedImageUrl);
-        }
-        setUploadedFile(null);
-        setUploadedImageUrl(null);
-      }
-
     } catch (error) {
-      console.error('Error saving preset:', error);
-      toast.error(`Failed to save preset: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error("Error saving preset:", error);
+      toast.error("Failed to save preset. Please try again.");
     } finally {
-      setPendingPresetData(null);
-      setConflictFilename('');
-      setFinalFilename('');
       setIsSavingPreset(false);
     }
   };
 
-  const resetPresetForm = () => {
-    setPresetName('');
-    setPresetDescription('');
-    setSelectedPresetImage(null);
-    setPresetImageSource(null);
-    setShowSavePresetModal(false);
+  // Load existing folders when modal opens
+  useEffect(() => {
+    if (showPresetModal) {
+      fetchExistingFolders();
+    }
+  }, [showPresetModal]);
+
+  // Load available presets when browser modal opens
+  useEffect(() => {
+    if (showPresetBrowserModal) {
+      fetchAvailablePresets();
+    }
+  }, [showPresetBrowserModal]);
+
+  useEffect(() => {
+    if (showInspirationHub) {
+      fetchTemplatePresets();
+    }
+  }, [showInspirationHub]);
+
+  // Fetch all available presets with images
+  const fetchAvailablePresets = async () => {
+    try {
+      setPresetsLoading(true);
+      const response = await fetch(
+        `${config.supabase_server_url}/presets?user_id=eq.${userData.id}&order=created_at.desc`,
+        {
+          headers: {
+            Authorization: "Bearer WeInfl3nc3withAI",
+          },
+        }
+      );
+
+      if (response.ok) {
+        const presets = await response.json();
+
+        // Add image URLs to presets
+        const presetsWithImages = presets.map((preset: any) => ({
+          ...preset,
+          imageUrl: preset.image_name
+            ? `${config.data_url}/${userData.id}/presets/${preset.image_name}`
+            : null,
+        }));
+
+        setAvailablePresets(presetsWithImages);
+      }
+    } catch (error) {
+      console.error("Error fetching presets:", error);
+      toast.error("Failed to load presets");
+    } finally {
+      setPresetsLoading(false);
+    }
   };
 
-  // Upload handlers
+  // Load a preset into the current settings
+  const loadPreset = async (preset: any) => {
+    try {
+      const jsonJob = preset.jsonjob;
+      console.log("Loading preset:", preset.name, "JSON Job:", jsonJob);
+
+      // Set model data - ensure we have the full influencer object and apply LoRA logic
+      if (jsonJob.model && jsonJob.model.id !== "preview") {
+        // Find the full influencer data from our loaded influencers
+        const influencer = influencers.find(
+          (inf) => inf.id === jsonJob.model.id
+        );
+        if (influencer) {
+          applyInfluencerWithLoraLogic(influencer);
+          console.log(
+            "Set model data to influencer with LoRA logic:",
+            influencer.name_first,
+            influencer.name_last
+          );
+        } else {
+          // Fallback to stored model data (no LoRA logic for non-user influencers)
+          setModelData(jsonJob.model);
+          console.log("Set model data to stored data:", jsonJob.model);
+        }
+      }
+
+      // Set prompt
+      if (jsonJob.prompt) {
+        setPrompt(jsonJob.prompt);
+        console.log("Set prompt:", jsonJob.prompt);
+      }
+
+      // Set image settings
+      setImageSettings((prev) => ({
+        ...prev,
+        seed: jsonJob.seed || prev.seed,
+        engine: jsonJob.engine || prev.engine,
+        format: jsonJob.format || prev.format,
+        promptAdherence: jsonJob.guidance || prev.promptAdherence,
+        nsfwStrength: jsonJob.nsfw_strength || prev.nsfwStrength,
+        images: jsonJob.number_of_images || prev.images,
+      }));
+      console.log("Set image settings");
+
+      // Set LORA settings
+      setLoraSettings((prev) => ({
+        ...prev,
+        influencerStrength: jsonJob.lora_strength || prev.influencerStrength,
+        optionalLora1: jsonJob.first_lora || prev.optionalLora1,
+        optionalLora2: jsonJob.second_lora || prev.optionalLora2,
+        optionalLora1Strength:
+          jsonJob.first_lora_strength || prev.optionalLora1Strength,
+        optionalLora2Strength:
+          jsonJob.second_lora_strength || prev.optionalLora2Strength,
+      }));
+      console.log("Set LORA settings");
+
+      // Set component picker (scene settings) - Load options first to match components properly
+      if (jsonJob.scene) {
+        // For each component category, find matching options
+        const newComponentPicker: ComponentPickerState = {
+          pose: null,
+          outfit: null,
+          framing: null,
+          rotation: null,
+          scene: null,
+          lighting: null,
+          makeup: null,
+          accessory: null,
+        };
+
+        // Load and match pose
+        if (jsonJob.scene.pose) {
+          const poseOptions = getOptionsForCategory("pose");
+          const matchedPose = poseOptions.find(
+            (option) => option.label === jsonJob.scene.pose
+          );
+          newComponentPicker.pose = matchedPose || {
+            label: jsonJob.scene.pose,
+            id: "loaded",
+            description: `Loaded from preset: ${jsonJob.scene.pose}`,
+            image: "",
+            category: "pose",
+          };
+        }
+
+        // Load and match outfit
+        if (jsonJob.scene.clothes) {
+          const outfitOptions = getOptionsForCategory("outfit");
+          const matchedOutfit = outfitOptions.find(
+            (option) => option.label === jsonJob.scene.clothes
+          );
+          newComponentPicker.outfit = matchedOutfit || {
+            label: jsonJob.scene.clothes,
+            id: "loaded",
+            description: `Loaded from preset: ${jsonJob.scene.clothes}`,
+            image: "",
+            category: "outfit",
+          };
+        }
+
+        // Load and match framing
+        if (jsonJob.scene.framing) {
+          const framingOptions = getOptionsForCategory("framing");
+          const matchedFraming = framingOptions.find(
+            (option) => option.label === jsonJob.scene.framing
+          );
+          newComponentPicker.framing = matchedFraming || {
+            label: jsonJob.scene.framing,
+            id: "loaded",
+            description: `Loaded from preset: ${jsonJob.scene.framing}`,
+            image: "",
+            category: "framing",
+          };
+        }
+
+        // Load and match rotation
+        if (jsonJob.scene.rotation) {
+          const rotationOptions = getOptionsForCategory("rotation");
+          const matchedRotation = rotationOptions.find(
+            (option) => option.label === jsonJob.scene.rotation
+          );
+          newComponentPicker.rotation = matchedRotation || {
+            label: jsonJob.scene.rotation,
+            id: "loaded",
+            description: `Loaded from preset: ${jsonJob.scene.rotation}`,
+            image: "",
+            category: "rotation",
+          };
+        }
+
+        // Load and match scene
+        if (jsonJob.scene.scene_setting) {
+          const sceneOptions = getOptionsForCategory("scene");
+          const matchedScene = sceneOptions.find(
+            (option) => option.label === jsonJob.scene.scene_setting
+          );
+          newComponentPicker.scene = matchedScene || {
+            label: jsonJob.scene.scene_setting,
+            id: "loaded",
+            description: `Loaded from preset: ${jsonJob.scene.scene_setting}`,
+            image: "",
+            category: "scene",
+          };
+        }
+
+        // Load and match lighting
+        if (jsonJob.scene.lighting_preset) {
+          const lightingOptions = getOptionsForCategory("lighting");
+          const matchedLighting = lightingOptions.find(
+            (option) => option.label === jsonJob.scene.lighting_preset
+          );
+          newComponentPicker.lighting = matchedLighting || {
+            label: jsonJob.scene.lighting_preset,
+            id: "loaded",
+            description: `Loaded from preset: ${jsonJob.scene.lighting_preset}`,
+            image: "",
+            category: "lighting",
+          };
+        }
+
+        setComponentPicker(newComponentPicker);
+        console.log("Set component picker:", newComponentPicker);
+      }
+
+      setShowPresetBrowserModal(false);
+      toast.success(`Preset "${preset.name}" loaded successfully!`);
+    } catch (error) {
+      console.error("Error loading preset:", error);
+      toast.error("Failed to load preset");
+    }
+  };
+
+  // Fetch template presets from template user
+  const fetchTemplatePresets = async () => {
+    try {
+      setTemplatesLoading(true);
+      const templateUserId = "21df831a-4ed7-4b40-abd0-bf568b132134";
+      const response = await fetch(
+        `${config.supabase_server_url}/presets?user_id=eq.${templateUserId}&order=created_at.desc`,
+        {
+          headers: {
+            Authorization: "Bearer WeInfl3nc3withAI",
+          },
+        }
+      );
+
+      if (response.ok) {
+        const presets = await response.json();
+
+        // Add image URLs to presets
+        const presetsWithImages = presets.map((preset: any) => ({
+          ...preset,
+          imageUrl: preset.image_name
+            ? `${config.data_url}/${templateUserId}/presets/${preset.image_name}`
+            : null,
+        }));
+
+        setTemplatePresets(presetsWithImages);
+      }
+    } catch (error) {
+      console.error("Error fetching template presets:", error);
+      toast.error("Failed to load template presets");
+    } finally {
+      setTemplatesLoading(false);
+    }
+  };
+
+  // Adopt a template preset (load into current settings)
+  const adoptTemplate = async (preset: any) => {
+    try {
+      const jsonJob = preset.jsonjob;
+      console.log("=== ADOPTING TEMPLATE ===");
+      console.log("Template Name:", preset.name);
+      console.log("Complete JSON Job:", JSON.stringify(jsonJob, null, 2));
+      console.log("Scene Object:", JSON.stringify(jsonJob.scene, null, 2));
+
+      // Set model data - check if user has influencer with same name
+      if (jsonJob.model && jsonJob.model.id !== "preview") {
+        // Try to find influencer by name (not ID, since template user has different IDs)
+        const templateInfluencerName = `${jsonJob.model.name_first || ""} ${
+          jsonJob.model.name_last || ""
+        }`.trim();
+        const matchingInfluencer = influencers.find(
+          (inf) =>
+            `${inf.name_first} ${inf.name_last}`.trim().toLowerCase() ===
+            templateInfluencerName.toLowerCase()
+        );
+
+        if (matchingInfluencer) {
+          applyInfluencerWithLoraLogic(matchingInfluencer);
+          console.log(
+            "Found matching influencer with LoRA logic:",
+            matchingInfluencer.name_first,
+            matchingInfluencer.name_last
+          );
+
+          // Show appropriate toast message based on LoRA status
+          if (matchingInfluencer.lorastatus === 2) {
+            toast.success(
+              `✅ Using your influencer: ${matchingInfluencer.name_first} ${matchingInfluencer.name_last} - AI Consistency enabled`
+            );
+          } else {
+            toast.success(
+              `✅ Using your influencer: ${matchingInfluencer.name_first} ${matchingInfluencer.name_last} - AI Training required for consistency`
+            );
+          }
+        } else {
+          // No matching influencer found, show popup
+          setModelData(null);
+          console.log(
+            "No matching influencer found for:",
+            templateInfluencerName
+          );
+          if (templateInfluencerName) {
+            setInfluencerDialogData({
+              templateName: preset.name,
+              influencerName: templateInfluencerName,
+            });
+            setShowInfluencerDialog(true);
+          }
+        }
+      } else {
+        // Template has no influencer
+        setModelData(null);
+      }
+
+      // Set prompt
+      if (jsonJob.prompt) {
+        setPrompt(jsonJob.prompt);
+        console.log("Set prompt:", jsonJob.prompt);
+      }
+
+      // Set image settings
+      setImageSettings((prev) => ({
+        ...prev,
+        seed: jsonJob.seed || prev.seed,
+        engine: jsonJob.engine || prev.engine,
+        format: jsonJob.format || prev.format,
+        promptAdherence: jsonJob.guidance || prev.promptAdherence,
+        nsfwStrength: jsonJob.nsfw_strength || prev.nsfwStrength,
+        images: jsonJob.number_of_images || prev.images,
+      }));
+      console.log("Set image settings");
+
+      // Set LORA settings
+      setLoraSettings((prev) => ({
+        ...prev,
+        influencerStrength: jsonJob.lora_strength || prev.influencerStrength,
+        optionalLora1: jsonJob.first_lora || prev.optionalLora1,
+        optionalLora2: jsonJob.second_lora || prev.optionalLora2,
+        optionalLora1Strength:
+          jsonJob.first_lora_strength || prev.optionalLora1Strength,
+        optionalLora2Strength:
+          jsonJob.second_lora_strength || prev.optionalLora2Strength,
+      }));
+      console.log("Set LORA settings");
+
+      // Set component picker (scene settings) - Use the same logic as loadPreset
+      if (jsonJob.scene) {
+        const newComponentPicker: ComponentPickerState = {
+          pose: null,
+          outfit: null,
+          framing: null,
+          rotation: null,
+          scene: null,
+          lighting: null,
+          makeup: null,
+          accessory: null,
+        };
+
+        // Helper function to find option (new format only with .label)
+        const findOption = (options: any[], value: string) => {
+          // Try exact match first
+          let match = options.find((opt) => opt.label === value);
+          if (match) return match;
+
+          // Try case-insensitive match
+          match = options.find(
+            (opt) => opt.label?.toLowerCase() === value.toLowerCase()
+          );
+          if (match) return match;
+
+          // Create fallback option if not found
+          return {
+            label: value,
+            id: "loaded",
+          };
+        };
+
+        // Load and match pose (new format)
+        const poseValue = jsonJob.scene.pose;
+        if (poseValue) {
+          const poseOptionsData = getOptionsForCategory("pose");
+          newComponentPicker.pose = findOption(poseOptionsData, poseValue);
+          console.log("Matched pose:", poseValue);
+        }
+
+        // Load and match outfit (from scene.clothes)
+        const outfitValue = jsonJob.scene.clothes;
+        if (outfitValue) {
+          const outfitOptionsData = getOptionsForCategory("outfit");
+          newComponentPicker.outfit = findOption(
+            outfitOptionsData,
+            outfitValue
+          );
+          console.log("Matched outfit:", outfitValue);
+        }
+
+        // Load and match other components (correct property mapping)
+        const componentMappings = [
+          { key: "framing", sceneProp: "framing" },
+          { key: "rotation", sceneProp: "rotation" },
+          { key: "scene", sceneProp: "scene_setting" },
+          { key: "lighting", sceneProp: "lighting_preset" },
+          { key: "makeup", sceneProp: "makeup_style" },
+          { key: "accessory", sceneProp: "accessories" },
+        ];
+
+        componentMappings.forEach(({ key, sceneProp }) => {
+          const value = jsonJob.scene[sceneProp];
+          console.log(`\n--- Processing ${key} (from scene.${sceneProp}) ---`);
+          console.log(`Value from template:`, value);
+
+          if (value) {
+            const optionsData = getOptionsForCategory(key);
+            console.log(
+              `Available options for ${key}:`,
+              optionsData.map((opt) => opt.label)
+            );
+            const foundOption = findOption(optionsData, value);
+            (newComponentPicker as any)[key] = foundOption;
+            console.log(`✅ Matched ${key}:`, value, "→", foundOption);
+          } else {
+            console.log(`❌ No value found for ${key} in scene.${sceneProp}`);
+          }
+        });
+
+        setComponentPicker(newComponentPicker);
+        console.log("=== FINAL COMPONENT PICKER ===");
+        console.log(
+          "New Component Picker:",
+          JSON.stringify(newComponentPicker, null, 2)
+        );
+      }
+
+      setShowInspirationHub(false);
+      toast.success(`Template "${preset.name}" adopted successfully!`);
+    } catch (error) {
+      console.error("Error adopting template:", error);
+      toast.error("Failed to adopt template");
+    }
+  };
+
+  // Edit a preset by opening the save modal with preset data
+  const editPreset = (preset: any) => {
+    setEditingPreset(preset);
+    setPresetData({
+      name: preset.name,
+      description: preset.description || "",
+      mainFolder: preset.mainfolder || "",
+      subFolder: preset.subfolder || "",
+      subSubFolder: preset.subsubfolder || "",
+      rating: preset.rating || 0,
+      favorite: preset.favorite || false,
+      tags: preset.tags || [],
+      selectedImage: preset.imageUrl,
+    });
+    setShowPresetBrowserModal(false);
+    setShowPresetModal(true);
+  };
+
+  // Upload image to server
+  const uploadImageToServer = async (file: File): Promise<string | null> => {
+    if (!userData.id) {
+      toast.error("User not authenticated");
+      return null;
+    }
+
+    try {
+      setUploadingImage(true);
+
+      // Generate a unique filename
+      const timestamp = Date.now();
+      const fileExtension = file.name.split(".").pop() || "jpg";
+      const filename = `preset_${timestamp}.${fileExtension}`;
+
+      // Upload file using the correct API
+      const uploadResponse = await fetch(
+        `${config.backend_url}/uploadfile?user=${userData.id}&filename=presets/${filename}`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: "Bearer WeInfl3nc3withAI",
+          },
+          body: file,
+        }
+      );
+
+      if (!uploadResponse.ok) {
+        throw new Error("Failed to upload image");
+      }
+
+      // Return the uploaded image URL
+      const imageUrl = `${config.data_url}/${userData.id}/presets/${filename}`;
+      return imageUrl;
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      toast.error("Failed to upload image");
+      return null;
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  // Copy image to presets folder
+  const copyImageToPresets = async (sourceImage: any, filename: string) => {
+    try {
+      // Determine the source path based on image location
+      let sourcePath = "";
+      if (sourceImage.user_filename && sourceImage.user_filename !== "") {
+        sourcePath = `vault/${sourceImage.user_filename}/${sourceImage.system_filename}`;
+      } else {
+        sourcePath = `output/${sourceImage.system_filename}`;
+      }
+
+      const response = await fetch(`${config.backend_url}/copyfile`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer WeInfl3nc3withAI",
+        },
+        body: JSON.stringify({
+          user: userData.id,
+          sourcefilename: sourcePath,
+          destinationfilename: `presets/${filename}`,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to copy image");
+      }
+
+      return `${config.data_url}/${userData.id}/presets/${filename}`;
+    } catch (error) {
+      console.error("Error copying image:", error);
+      throw error;
+    }
+  };
+
+  // Handle file upload
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
     // Validate file type
-    if (!file.type.startsWith('image/')) {
-      toast.error('Please select an image file');
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select an image file");
       return;
     }
 
     // Validate file size (max 10MB)
     if (file.size > 10 * 1024 * 1024) {
-      toast.error('File size must be less than 10MB');
+      toast.error("File size must be less than 10MB");
       return;
     }
 
-    setUploadedFile(file);
+    uploadImageToServer(file).then((imageUrl) => {
+      if (imageUrl) {
+        setPresetData((prev) => ({ ...prev, selectedImage: imageUrl }));
+        toast.success("Image uploaded successfully");
+      }
+    });
 
-    // Create preview URL
-    const imageUrl = URL.createObjectURL(file);
-    setUploadedImageUrl(imageUrl);
-
-    // Set default filename
-    const filename = file.name.replace(/\.[^/.]+$/, ''); // Remove extension
-    const systemFilename = `${filename}_${Date.now()}.${file.name.split('.').pop() || 'jpg'}`;
-
-    // Create a temporary image object that looks like a vault image
-    const uploadedImage = {
-      id: `upload_${Date.now()}`,
-      task_id: `upload_${Date.now()}`,
-      user_filename: '',
-      system_filename: systemFilename,
-      created_at: new Date().toISOString(),
-      user_notes: '',
-      user_tags: [],
-      file_path: `vault/${systemFilename}`,
-      file_size_bytes: file.size,
-      image_format: file.name.split('.').pop() || 'jpg',
-      seed: 0,
-      guidance: 0,
-      steps: 0,
-      nsfw_strength: 0,
-      lora_strength: 0,
-      model_version: 'uploaded',
-      t5xxl_prompt: '',
-      clip_l_prompt: '',
-      negative_prompt: '',
-      actual_seed_used: 0,
-      actual_guidance_used: 0,
-      actual_steps_used: 0,
-      quality_setting: 'uploaded',
-      rating: 0,
-      favorite: false,
-      file_type: 'image',
-      // Add preview URL for display
-      preview_url: imageUrl
-    };
-
-    // Select the uploaded image for preset
-    setSelectedPresetImage(uploadedImage);
-    setPresetImageSource('upload');
-
-    toast.success('Image uploaded successfully');
+    // Clear the file input
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  // Recent renders handlers
-  const handleRecentRendersSelect = (image: any) => {
-    setSelectedPresetImage(image);
-    setPresetImageSource('recent');
-    setShowRecentRendersModal(false);
-    toast.success(`Selected recent render: ${decodeName(image.system_filename)}`);
+  // Trigger file upload
+  const triggerFileUpload = () => {
+    fileInputRef.current?.click();
   };
 
-  const handleSavePresetToDatabase = async () => {
-    if (!presetName.trim() || !selectedPresetImage) {
-      toast.error('Please provide a preset name and select an image');
+  // Update handleSavePreset to handle image copying
+  const handleSavePresetWithImage = async () => {
+    if (!presetData.name.trim()) {
+      toast.error("Please enter a preset name");
       return;
     }
-
-    console.log('Starting preset save process...');
-    console.log('Preset name:', presetName);
-    console.log('Selected image:', selectedPresetImage);
-    console.log('Image source:', presetImageSource);
 
     setIsSavingPreset(true);
-
     try {
-      // Determine the filename to use
-      const originalFilename = presetImageSource === 'upload' && uploadedFile
-        ? uploadedFile.name
-        : selectedPresetImage.system_filename;
+      let imageName = null;
 
-      console.log('Original filename:', originalFilename);
+      // Handle image copying/uploading
+      if (presetData.selectedImage) {
+        if (presetData.selectedImage.includes("/presets/")) {
+          // Image is already in presets folder
+          imageName = presetData.selectedImage.split("/").pop();
+        } else if (presetData.selectedImage.startsWith("blob:")) {
+          // Image is uploaded file (blob URL) - shouldn't happen with new system
+          toast.error("Please re-upload your image");
+          return;
+        } else {
+          // Image needs to be copied from vault or output
+          const filename = `preset_${Date.now()}.jpg`;
 
-      // Check for file conflicts
-      const { hasConflict, existingFilenames } = await checkFileConflict(originalFilename);
-      console.log('File conflict check:', { hasConflict, existingFilenames });
-
-      if (hasConflict) {
-        // Generate unique filename
-        const uniqueFilename = generateUniqueFilename(originalFilename, existingFilenames);
-        console.log('Generated unique filename:', uniqueFilename);
-
-        // Store conflict info and show dialog
-        setConflictFilename(originalFilename);
-        setFinalFilename(uniqueFilename);
-        setShowOverwriteDialog(true);
-
-        // Prepare preset data for later use
-        const jsonjob = {
-          task: formData.task,
-          lora: formData.lora,
-          noAI: formData.noAI,
-          prompt: formData.prompt,
-          negative_prompt: formData.negative_prompt,
-          nsfw_strength: formData.nsfw_strength,
-          lora_strength: formData.lora_strength,
-          quality: formData.quality,
-          seed: formData.seed ? parseInt(formData.seed) : -1,
-          guidance: formData.guidance,
-          number_of_images: formData.numberOfImages,
-          format: safeFormatOptions.find(opt => opt.label === formData.format)?.label || formData.format,
-          engine: formData.engine,
-          usePromptOnly: formData.usePromptOnly,
-          regenerated_from: formData.regenerated_from || '12345678-1111-2222-3333-caffebabe0123',
-          model: modelData ? {
-            id: modelData.id,
-            influencer_type: modelData.influencer_type,
-            sex: modelData.sex,
-            cultural_background: modelData.cultural_background,
-            hair_length: modelData.hair_length,
-            hair_color: modelData.hair_color,
-            hair_style: modelData.hair_style,
-            eye_color: modelData.eye_color,
-            lip_style: modelData.lip_style,
-            nose_style: modelData.nose_style,
-            face_shape: modelData.face_shape,
-            facial_features: modelData.facial_features,
-            skin_tone: modelData.skin_tone,
-            bust: modelData.bust_size,
-            body_type: modelData.body_type,
-            color_palette: modelData.color_palette || [],
-            clothing_style_everyday: modelData.clothing_style_everyday,
-            eyebrow_style: modelData.eyebrow_style,
-            makeup_style: modelDescription.makeup,
-            name_first: modelData.name_first,
-            name_last: modelData.name_last,
-            visual_only: modelData.visual_only,
-            age: modelData.age,
-            lifestyle: modelData.lifestyle
-          } : null,
-          scene: {
-            framing: sceneSpecs.framing,
-            rotation: sceneSpecs.rotation,
-            lighting_preset: sceneSpecs.lighting_preset,
-            scene_setting: sceneSpecs.scene_setting,
-            pose: sceneSpecs.pose,
-            clothes: sceneSpecs.clothes
+          // We need the image object to determine the source path
+          if (
+            generatedImages.length > 0 &&
+            presetData.selectedImage.includes("/output/")
+          ) {
+            // It's from current images
+            const imageFilename = presetData.selectedImage.split("/").pop();
+            const sourceImage = generatedImages.find(
+              (img) => img.system_filename === imageFilename
+            );
+            if (sourceImage) {
+              await copyImageToPresets(sourceImage, filename);
+              imageName = filename;
+            }
           }
-        };
-
-        const presetData = {
-          user_id: userData.id,
-          jsonjob: jsonjob,
-          name: presetName.trim(),
-          description: presetDescription.trim(),
-          image_name: originalFilename,
-          route: '',
-          rating: 0,
-          favorite: false,
-          created_at: new Date().toISOString()
-        };
-
-        console.log('Prepared preset data for conflict resolution:', presetData);
-
-        setPendingPresetData({
-          presetData,
-          isUpload: presetImageSource === 'upload'
-        });
-
-        console.log('Set pendingPresetData for conflict resolution');
-
-        return; // Wait for user decision
+          // If it's from vault, we handle it differently in the VaultSelector callback
+        }
       }
 
-      // No conflict, proceed with original filename
-      const jsonjob = {
-        task: formData.task,
-        lora: formData.lora,
-        noAI: formData.noAI,
-        prompt: formData.prompt,
-        negative_prompt: formData.negative_prompt,
-        nsfw_strength: formData.nsfw_strength,
-        lora_strength: formData.lora_strength,
-        quality: formData.quality,
-        seed: formData.seed ? parseInt(formData.seed) : -1,
-        guidance: formData.guidance,
-        number_of_images: formData.numberOfImages,
-        format: safeFormatOptions.find(opt => opt.label === formData.format)?.label || formData.format,
-        engine: formData.engine,
-        usePromptOnly: formData.usePromptOnly,
-        regenerated_from: formData.regenerated_from || '12345678-1111-2222-3333-caffebabe0123',
-        model: modelData ? {
-          id: modelData.id,
-          influencer_type: modelData.influencer_type,
-          sex: modelData.sex,
-          cultural_background: modelData.cultural_background,
-          hair_length: modelData.hair_length,
-          hair_color: modelData.hair_color,
-          hair_style: modelData.hair_style,
-          eye_color: modelData.eye_color,
-          lip_style: modelData.lip_style,
-          nose_style: modelData.nose_style,
-          face_shape: modelData.face_shape,
-          facial_features: modelData.facial_features,
-          skin_tone: modelData.skin_tone,
-          bust: modelData.bust_size,
-          body_type: modelData.body_type,
-          color_palette: modelData.color_palette || [],
-          clothing_style_everyday: modelData.clothing_style_everyday,
-          eyebrow_style: modelData.eyebrow_style,
-          makeup_style: modelDescription.makeup,
-          name_first: modelData.name_first,
-          name_last: modelData.name_last,
-          visual_only: modelData.visual_only,
-          age: modelData.age,
-          lifestyle: modelData.lifestyle
-        } : null,
-        scene: {
-          framing: sceneSpecs.framing,
-          rotation: sceneSpecs.rotation,
-          lighting_preset: sceneSpecs.lighting_preset,
-          scene_setting: sceneSpecs.scene_setting,
-          pose: sceneSpecs.pose,
-          clothes: sceneSpecs.clothes
-        }
-      };
+      const jsonJob = getCurrentSettingsAsJSON();
 
-      const presetData = {
+      const requestData = {
         user_id: userData.id,
-        jsonjob: jsonjob,
-        name: presetName.trim(),
-        description: presetDescription.trim(),
-        image_name: originalFilename,
-        route: '',
-        rating: 0,
-        favorite: false,
-        created_at: new Date().toISOString()
+        name: presetData.name,
+        description: presetData.description,
+        jsonjob: jsonJob,
+        mainfolder: presetData.mainFolder || null,
+        subfolder: presetData.subFolder || null,
+        subsubfolder: presetData.subSubFolder || null,
+        rating: presetData.rating,
+        favorite: presetData.favorite,
+        tags: presetData.tags,
+        image_name: imageName,
+        route: "content-create-image",
       };
 
-      console.log('Prepared preset data for direct save:', presetData);
+      let response;
+      if (editingPreset) {
+        // Update existing preset
+        response = await fetch(
+          `${config.supabase_server_url}/presets?id=eq.${editingPreset.id}`,
+          {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer WeInfl3nc3withAI",
+            },
+            body: JSON.stringify(requestData),
+          }
+        );
+      } else {
+        // Create new preset
+        response = await fetch(`${config.supabase_server_url}/presets`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: "Bearer WeInfl3nc3withAI",
+          },
+          body: JSON.stringify(requestData),
+        });
+      }
 
-      // Set pending data for potential conflict resolution
-      setPendingPresetData({
-        presetData,
-        isUpload: presetImageSource === 'upload'
-      });
-
-      console.log('Set pendingPresetData for direct save');
-
-      // Save with original filename - pass data directly instead of relying on state
-      await savePresetWithFilename(originalFilename, false, {
-        presetData,
-        isUpload: presetImageSource === 'upload'
-      });
-
+      if (response.ok) {
+        toast.success(
+          editingPreset
+            ? "Preset updated successfully!"
+            : "Preset saved successfully!"
+        );
+        setShowPresetModal(false);
+        setPresetData({
+          name: "",
+          description: "",
+          mainFolder: "",
+          subFolder: "",
+          subSubFolder: "",
+          rating: 0,
+          favorite: false,
+          tags: [],
+          selectedImage: null,
+        });
+        setEditingPreset(null);
+      } else {
+        throw new Error("Failed to save preset");
+      }
     } catch (error) {
-      console.error('Error in handleSavePresetToDatabase:', error);
-      toast.error(`Failed to save preset: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error("Error saving preset:", error);
+      toast.error("Failed to save preset. Please try again.");
     } finally {
       setIsSavingPreset(false);
     }
   };
 
-  // Save as Preset functions
-  const handleSavePreset = () => {
-    setShowSavePresetModal(true);
-  };
-
-  // Fetch presets from database
-  const fetchPresets = async () => {
-    if (!userData?.id) return;
-
-    setIsLoadingPresets(true);
+  const generateQRCode = async (url: string) => {
     try {
-      console.log('Fetching presets for user:', userData.id);
-
-      const response = await fetch(`${config.supabase_server_url}/presets?user_id=eq.${userData.id}`, {
-        headers: {
-          'Authorization': 'Bearer WeInfl3nc3withAI',
-          'Content-Type': 'application/json'
-        }
+      const QRCode = await import("qrcode");
+      const qrCodeDataUrl = await QRCode.toDataURL(url, {
+        width: 256,
+        margin: 2,
+        color: {
+          dark: "#000000",
+          light: "#FFFFFF",
+        },
       });
-
-      if (response.ok) {
-        const presetsData = await response.json();
-        console.log('Presets fetched successfully:', presetsData);
-
-        // Transform the data to include additional computed fields
-        const transformedPresets = presetsData.map((preset: any) => ({
-          ...preset,
-          // Add computed fields for easier display
-          hasModel: !!preset.jsonjob?.model,
-          hasScene: !!preset.jsonjob?.scene,
-          sceneCount: preset.jsonjob?.scene ? Object.keys(preset.jsonjob.scene).filter(key => preset.jsonjob.scene[key]).length : 0,
-          createdDate: new Date(preset.created_at).toLocaleDateString(),
-          createdTime: new Date(preset.created_at).toLocaleTimeString(),
-          // Generate image URL if image_name exists
-          imageUrl: preset.image_name ? `https://storage.nymia.ai/generated_images/${preset.image_name}` : null
-        }));
-
-        setPresets(transformedPresets);
-        console.log('Transformed presets:', transformedPresets);
-      } else {
-        console.error('Failed to fetch presets:', response.status, response.statusText);
-        toast.error('Failed to load presets');
-      }
+      setQrCodeDataUrl(qrCodeDataUrl);
     } catch (error) {
-      console.error('Error fetching presets:', error);
-      toast.error('Failed to load presets');
-    } finally {
-      setIsLoadingPresets(false);
+      console.error("Error generating QR code:", error);
     }
   };
 
-  // Load presets when modal opens
-  const handleOpenPresetModal = () => {
-    setShowPresetsManager(true);
-    fetchPresets();
+  const componentCategories = [
+    { key: "scene", label: "Scene", icon: Monitor },
+    { key: "pose", label: "Pose", icon: User },
+    { key: "outfit", label: "Outfit", icon: Palette },
+    { key: "framing", label: "Framing", icon: Camera },
+    { key: "lighting", label: "Lighting", icon: Zap },
+    { key: "rotation", label: "Rotation", icon: RotateCcw },
+    { key: "makeup", label: "Makeup", icon: Sparkles },
+    { key: "accessory", label: "Accessories", icon: Crown },
+  ];
+
+  // Check gem cost before generation
+  const checkGemCost = async () => {
+    try {
+      const response = await fetch("https://api.nymia.ai/v1/getgemslookup", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer WeInfl3nc3withAI",
+        },
+        body: JSON.stringify({
+          user_id: userData.id,
+          item: "nymia_image",
+          lookup: imageSettings.engine,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch credit cost");
+      }
+
+      const data = await response.json();
+      console.log("Credit cost API response:", data);
+      console.log(
+        `Credit cost for ${imageSettings.engine}:`,
+        data.gems,
+        "gems per image"
+      );
+      return data;
+    } catch (error) {
+      console.error("Error checking credit cost:", error);
+      throw error;
+    }
   };
 
-  // Apply preset to current form
-  const handleApplyPreset = (preset: any) => {
-    console.log(preset);
+  // Proceed with generation after credit check
+  const proceedWithGeneration = async () => {
+    setIsGenerating(true);
+    try {
+      // Get user ID from Redux state
+      if (!userData?.id) {
+        toast.error("User data not found. Please log in again.");
+        return;
+      }
+
+      const useridResponse = await fetch(
+        `${config.supabase_server_url}/user?uuid=eq.${userData.id}`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: "Bearer WeInfl3nc3withAI",
+          },
+        }
+      );
+
+      const useridData = await useridResponse.json();
+      if (!useridData[0]?.userid) {
+        toast.error("User ID not found in database");
+        return;
+      }
+
+      // Convert format to the expected string format
+      const formatLabels = {
+        "1:1": "Square 1:1",
+        "4:5": "Portrait 4:5",
+        "3:4": "Portrait 3:4",
+        "9:16": "Portrait 9:16",
+        "16:9": "Landscape 16:9",
+        "5:4": "Landscape 5:4",
+        "4:3": "Landscape 4:3",
+      };
+
+      const requestData = {
+        task: "generate_image",
+        lora: loraSettings.influencerConsistency,
+        noAI: false,
+        prompt: prompt,
+        negative_prompt: "",
+        nsfw_strength: imageSettings.nsfwStrength,
+        lora_strength: loraSettings.influencerStrength,
+        first_lora: (() => {
+          if (loraSettings.optionalLora1 === "none") return "";
+          const selectedLora = systemLoraOptions.find(
+            (lora) => lora.label === loraSettings.optionalLora1
+          );
+          return selectedLora?.filename || "";
+        })(),
+        first_lora_strength: loraSettings.optionalLora1Strength,
+        second_lora: (() => {
+          if (loraSettings.optionalLora2 === "none") return "";
+          const selectedLora = systemLoraOptions.find(
+            (lora) => lora.label === loraSettings.optionalLora2
+          );
+          return selectedLora?.filename || "";
+        })(),
+        second_lora_strength: loraSettings.optionalLora2Strength,
+        quality: "Quality",
+        seed: imageSettings.seed ? parseInt(imageSettings.seed) : -1,
+        guidance: imageSettings.promptAdherence,
+        number_of_images: imageSettings.images,
+        format:
+          formatLabels[imageSettings.format as keyof typeof formatLabels] ||
+          "Portrait 4:5",
+        engine: imageSettings.engine,
+        usePromptOnly: false,
+        model: modelData || {
+          id: "preview",
+        },
+        scene: {
+          framing: componentPicker.framing?.label || "",
+          rotation: componentPicker.rotation?.label || "",
+          lighting_preset: componentPicker.lighting?.label || "",
+          scene_setting: componentPicker.scene?.label || "",
+          pose: componentPicker.pose?.label || "",
+          clothes: componentPicker.outfit?.label || "",
+          makeup_style: componentPicker.makeup?.label || "",
+          accessories: componentPicker.accessory?.label || "",
+        },
+      };
+
+      console.log("Generating with data:", requestData);
+
+      console.log("Sending request with data:", requestData);
+      const response = await fetch(
+        `${config.backend_url}/createtask?userid=${useridData[0].userid}&type=createimage`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: "Bearer WeInfl3nc3withAI",
+          },
+          body: JSON.stringify(requestData),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      const newTaskId = result.id;
+
+      // Add task ID for polling
+      setGeneratedTaskIds((prev) => [...prev, newTaskId]);
+
+      // Create immediate placeholders for each image
+      const numberOfImages = imageSettings.images;
+      const newPlaceholders = Array.from(
+        { length: numberOfImages },
+        (_, index) => ({
+          id: `placeholder-${newTaskId}-${index}`,
+          task_id: newTaskId,
+          placeholder_index: index,
+          system_filename: `Generating image ${index + 1}...`,
+          file_path: null,
+          isPlaceholder: true,
+          created_at: new Date().toISOString(),
+          rating: 0,
+          favorite: false,
+        })
+      );
+
+      // Add placeholders to the display immediately
+      setPlaceholderImages((prev) => [...prev, ...newPlaceholders]);
+
+      console.log("Generation started, task ID:", newTaskId);
+      console.log("Added placeholders:", newPlaceholders);
+      toast.success("Content generation started successfully");
+    } catch (error) {
+      console.error("Generation failed:", error);
+      toast.error("Failed to generate images");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  // Modified handleGenerate to check credits first
+  const handleGenerate = async () => {
+    if (!modelData && !prompt.trim()) {
+      toast.error("Please select an influencer or enter a prompt");
+      return;
+    }
+
+    console.log("🚀 handleGenerate: Starting credit check...");
+    setIsCheckingCredits(true);
+    console.log("🚀 isCheckingCredits set to TRUE");
 
     try {
-      console.log(preset);
-      const jsonjob = preset.jsonjob;
+      // Add minimum delay to ensure spinner is visible
+      await new Promise((resolve) => setTimeout(resolve, 500));
 
-      // Apply form data
-      if (jsonjob.task) setFormData(prev => ({ ...prev, task: jsonjob.task }));
-      if (jsonjob.lora) setFormData(prev => ({ ...prev, lora: jsonjob.lora }));
-      if (jsonjob.noAI) setFormData(prev => ({ ...prev, noAI: jsonjob.noAI }));
-      if (jsonjob.prompt) {
-        setFormData(prev => {
-          const currentPrompt = prev.prompt || '';
-          const presetPrompt = jsonjob.prompt || '';
-          
-          // Merge the prompts: current prompt + preset prompt
-          const mergedPrompt = currentPrompt.trim() 
-            ? `${currentPrompt.trim()}, ${presetPrompt.trim()}`
-            : presetPrompt.trim();
+      const costData = await checkGemCost();
+      console.log("🚀 Credit check completed:", costData);
+      setGemCostData(costData);
+      setShowCreditWarning(true);
+    } catch (error) {
+      console.error("Error checking credit cost:", error);
+      toast.error("Unable to verify credit cost. Please try again.");
+    } finally {
+      setIsCheckingCredits(false);
+      console.log("🚀 isCheckingCredits set to FALSE");
+    }
+  };
 
-          console.log("mergedPrompt", mergedPrompt);
-          console.log("currentPrompt", currentPrompt);
-          console.log("presetPrompt", presetPrompt);
-          
-          return { ...prev, prompt: mergedPrompt };
+  const handleReset = () => {
+    setPrompt("");
+    setComponentPicker({
+      scene: null,
+      pose: null,
+      outfit: null,
+      framing: null,
+      lighting: null,
+      rotation: null,
+      makeup: null,
+      accessory: null,
+    });
+    setImageSettings({
+      format: "4:5",
+      images: 4,
+      promptAdherence: 3.5,
+      engine: "Nymia General",
+      nsfwStrength: 0,
+      seed: "",
+    });
+
+    // Clear all generated content but keep history visible
+    setGeneratedImages([]);
+    setGeneratedTaskIds([]);
+    setPlaceholderImages([]);
+    setFailedTasks(new Set());
+    // DON'T set setShowHistory(false) - keep history visible
+  };
+
+  // Component selection handlers
+  const addComponent = (
+    category: keyof ComponentPickerState,
+    component: ComponentPickerItem
+  ) => {
+    setComponentPicker((prev) => ({
+      ...prev,
+      [category]: component,
+    }));
+  };
+
+  const removeComponent = (category: keyof ComponentPickerState) => {
+    setComponentPicker((prev) => ({
+      ...prev,
+      [category]: null,
+    }));
+  };
+
+  const getOptionsForCategory = (category: string) => {
+    switch (category) {
+      case "scene":
+        return sceneOptions;
+      case "pose":
+        return poseOptions;
+      case "outfit":
+        return outfitOptions;
+      case "framing":
+        return framingOptions;
+      case "lighting":
+        return lightingOptions;
+      case "rotation":
+        return rotationOptions;
+      case "makeup":
+        return makeupOptions;
+      case "accessory":
+      case "accessories":
+        return accessoriesOptions;
+      default:
+        return [];
+    }
+  };
+
+  const getCategoriesForType = (categoryKey: string) => {
+    switch (categoryKey) {
+      case "scene":
+        return sceneCategories;
+      case "pose":
+        return poseCategories;
+      case "outfit":
+        return outfitCategories;
+      default:
+        return [];
+    }
+  };
+
+  const hasFolderStructure = (categoryKey: string) => {
+    return ["scene", "pose", "outfit"].includes(categoryKey);
+  };
+
+  // Get the first available image from a folder for preview
+  const getFolderPreviewImage = (folder: any) => {
+    if (folder.data && folder.data.length > 0) {
+      // Find the first item with an image
+      const itemWithImage = folder.data.find((item: any) => item.image);
+      return itemWithImage ? itemWithImage.image : null;
+    }
+    return null;
+  };
+
+  // Search through all items in all folders for a category
+  const searchComponentItems = (categoryKey: string, searchTerm: string) => {
+    if (!searchTerm.trim()) return [];
+
+    const categories = getCategoriesForType(categoryKey);
+    const allItems: any[] = [];
+
+    // Collect all items from all folders
+    categories.forEach((folder) => {
+      if (folder.data && folder.data.length > 0) {
+        folder.data.forEach((item: any) => {
+          allItems.push({
+            ...item,
+            folderName: folder.property_category,
+          });
         });
       }
-      if (jsonjob.negative_prompt) setFormData(prev => ({ ...prev, negative_prompt: jsonjob.negative_prompt }));
-      if (jsonjob.nsfw_strength) setFormData(prev => ({ ...prev, nsfw_strength: jsonjob.nsfw_strength }));
-      if (jsonjob.lora_strength) setFormData(prev => ({ ...prev, lora_strength: jsonjob.lora_strength }));
-      if (jsonjob.quality) setFormData(prev => ({ ...prev, quality: typeof jsonjob.quality === 'string' ? jsonjob.quality : (Array.isArray(jsonjob.quality) ? jsonjob.quality[0] : 'Quality') }));
-      if (jsonjob.seed) setFormData(prev => ({ ...prev, seed: jsonjob.seed.toString() }));
-      if (jsonjob.guidance) setFormData(prev => ({ ...prev, guidance: jsonjob.guidance }));
-      if (jsonjob.number_of_images) setFormData(prev => ({ ...prev, numberOfImages: jsonjob.number_of_images }));
-      if (jsonjob.format) setFormData(prev => ({ ...prev, format: jsonjob.format }));
-      if (jsonjob.engine) setFormData(prev => ({ ...prev, engine: jsonjob.engine }));
-      if (jsonjob.usePromptOnly) setFormData(prev => ({ ...prev, usePromptOnly: jsonjob.usePromptOnly }));
-      if (jsonjob.regenerated_from) setFormData(prev => ({ ...prev, regenerated_from: jsonjob.regenerated_from }));
+    });
 
-      // Apply scene specs
-      if (jsonjob.scene) {
-        if (jsonjob.scene.framing) setSceneSpecs(prev => ({ ...prev, framing: jsonjob.scene.framing }));
-        if (jsonjob.scene.rotation) setSceneSpecs(prev => ({ ...prev, rotation: jsonjob.scene.rotation }));
-        if (jsonjob.scene.lighting_preset) setSceneSpecs(prev => ({ ...prev, lighting_preset: jsonjob.scene.lighting_preset }));
-        if (jsonjob.scene.scene_setting) setSceneSpecs(prev => ({ ...prev, scene_setting: jsonjob.scene.scene_setting }));
-        if (jsonjob.scene.pose) setSceneSpecs(prev => ({ ...prev, pose: jsonjob.scene.pose }));
-        if (jsonjob.scene.clothes) setSceneSpecs(prev => ({ ...prev, clothes: jsonjob.scene.clothes }));
-      }
-
-      // Apply model data if available - DISABLED to prevent changing influencer information
-      // if (jsonjob.model) {
-      //   setModelData(jsonjob.model);
-      // }
-
-      setShowPresetsManager(false);
-      toast.success(`Applied preset: ${preset.name}`);
-    } catch (error) {
-      console.error('Error applying preset:', error);
-      toast.error('Failed to apply preset');
-    }
-  };
-
-  // Delete preset
-  const handleDeletePreset = async (preset: any) => {
-    try {
-      const response = await fetch(`${config.supabase_server_url}/presets?id=eq.${preset.id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': 'Bearer WeInfl3nc3withAI'
-        }
+    // Also include direct options for categories without folder structure
+    const directOptions = getOptionsForCategory(categoryKey);
+    directOptions.forEach((item) => {
+      allItems.push({
+        ...item,
+        folderName: null,
       });
+    });
 
-      if (response.ok) {
-        setPresets(prev => prev.filter(p => p.id !== preset.id));
-        toast.success(`Deleted preset: ${preset.name}`);
-      } else {
-        throw new Error('Failed to delete preset');
-      }
-    } catch (error) {
-      console.error('Error deleting preset:', error);
-      toast.error('Failed to delete preset');
-    }
+    // Filter items based on search term
+    return allItems.filter(
+      (item) =>
+        item.label &&
+        item.label.toLowerCase().includes(searchTerm.toLowerCase())
+    );
   };
 
-  // View preset details
-  const handleViewPresetDetails = (preset: any) => {
-    setSelectedPreset(preset);
-    setShowPresetDetails(true);
-  };
-
-  // Filtered presets based on search
-  const filteredPresets = presets.filter(preset =>
-    preset.name.toLowerCase().includes(presetSearchTerm.toLowerCase())
-  );
-
-  // Preset modal state
-  const [showPresetsManager, setShowPresetsManager] = useState(false);
-
-  // Mode toggle state
-  const [isAdvancedMode, setIsAdvancedMode] = useState(false);
-
-  // Handle mode toggle
-  const handleModeToggle = () => {
-    if (isAdvancedMode) {
-      // Switching to Easy mode - reset scene specifications
-      setSceneSpecs({
-        framing: '',
-        rotation: '',
-        lighting_preset: '',
-        scene_setting: '',
-        pose: '',
-        clothes: ''
-      });
-    }
-    setIsAdvancedMode(!isAdvancedMode);
-  };
-
-  // Status bar edit handlers
-  const handleStatusBarEdit = (field: string, currentValue: any, fieldType: 'number' | 'boolean' | 'select' | 'text' | 'slider', event: React.MouseEvent, options?: { label: string; value: any }[]) => {
-    const rect = event.currentTarget.getBoundingClientRect();
-    setStatusEditPopup({
-      isOpen: true,
+  const handleSettingEdit = (
+    field: string,
+    currentValue: any,
+    inputType: string,
+    options?: any[]
+  ) => {
+    setEditingSetting({
+      type: "imageSettings",
       field,
-      currentValue,
-      fieldType,
+      value: currentValue,
+      inputType,
       options,
-      position: {
-        x: rect.left + rect.width / 2,
-        y: rect.bottom + 8
-      }
     });
   };
 
-  // Editable popup states
-  const [editingField, setEditingField] = useState<string | null>(null);
-  const [editingValue, setEditingValue] = useState<string>('');
-  const [showEditPopup, setShowEditPopup] = useState(false);
+  const saveSettingEdit = (newValue: any) => {
+    if (editingSetting && editingSetting.type === "imageSettings") {
+      setImageSettings((prev) => ({
+        ...prev,
+        [editingSetting.field]: newValue,
+      }));
+    }
+    setEditingSetting(null);
+  };
+
+  const getAdherenceLabel = (value: number) => {
+    if (value >= 1 && value < 2) return "Very Creative";
+    if (value >= 2 && value < 3.5) return "Creative";
+    if (value >= 3.5 && value <= 4.5) return "Balanced";
+    if (value > 4.5 && value < 6) return "More Adherence";
+    if (value >= 6 && value < 7) return "Strong Adherence";
+    if (value >= 7 && value <= 8) return "Strict Adherence";
+    return "Balanced";
+  };
+
+  const getNsfwLabel = (value: number) => {
+    if (value < 0) return "Safe and Clean";
+    if (value === 0) return "Sexy but Still Safe";
+    if (value > 0 && value <= 0.3) return "Slowly Getting Hot";
+    if (value > 0.3 && value <= 0.6) return "Getting Spicy";
+    if (value > 0.6 && value < 1) return "Very Hot";
+    if (value === 1) return "No Limits";
+    return "Safe";
+  };
+
+  const getCategoriesForField = (category: string) => {
+    switch (category) {
+      case "scene":
+        return sceneCategories;
+      case "pose":
+        return poseCategories;
+      case "outfit":
+        return outfitCategories;
+      default:
+        return [];
+    }
+  };
+
+  const hasSelectedComponents = Object.values(componentPicker).some(
+    (item) => item !== null
+  );
 
   return (
-    <div className="px-6 space-y-4">
+    <div className="min-h-screen">
       {/* Header */}
-      <div className="flex flex-col md:flex-row items-center justify-between gap-5">
-        <div className="flex items-center gap-4">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight bg-ai-gradient bg-clip-text text-transparent">
-              Create Image
-            </h1>
-            <p className="text-muted-foreground">
-              {modelData ? `Creating content for ${modelData.name_first} ${modelData.name_last}` : 'Generate new content'}
-            </p>
-          </div>
-        </div>
-
-        {/* Professional Preset and Library Buttons */}
-        <div className="flex items-center gap-3">
-          <div className="items-center gap-2 hidden xl:grid xl:grid-cols-2 2xl:grid-cols-4">
-
-            <Button
-              onClick={() => setShowLibraryModal(true)}
-              variant="outline"
-              size="sm"
-              className="h-10 px-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-blue-200 dark:border-blue-700 hover:from-blue-100 hover:to-indigo-100 dark:hover:from-blue-800/30 dark:hover:to-indigo-800/30 text-blue-700 dark:text-blue-300 font-medium shadow-sm hover:shadow-md transition-all duration-200"
-            >
-              <FolderOpen className="w-4 h-4 mr-2" />
-              Library
-            </Button>
-
-            <Button
-              onClick={handleOpenPresetModal}
-              variant="outline"
-              size="sm"
-              className="h-10 px-4 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border-amber-200 dark:border-amber-700 hover:from-amber-100 hover:to-orange-100 dark:hover:from-amber-800/30 dark:hover:to-orange-800/30 text-amber-700 dark:text-amber-300 font-medium shadow-sm hover:shadow-md transition-all duration-200"
-            >
-              <BookOpen className="w-4 h-4 mr-2" />
-              My Presets
-            </Button>
-
-            <Button
-              onClick={handleSavePreset}
-              variant="outline"
-              size="sm"
-              className="h-10 px-4 bg-gradient-to-r from-emerald-50 to-green-50 dark:from-emerald-900/20 dark:to-green-900/20 border-emerald-200 dark:border-emerald-700 hover:from-emerald-100 hover:to-green-100 dark:hover:from-emerald-800/30 dark:hover:to-green-800/30 text-emerald-700 dark:text-emerald-300 font-medium shadow-sm hover:shadow-md transition-all duration-200"
-            >
-              <Save className="w-4 h-4 mr-2" />
-              Save as Preset
-            </Button>
-
-            <Button
-              onClick={handleModeToggle}
-              variant="outline"
-              size="sm"
-              className={`h-10 px-4 font-medium shadow-sm hover:shadow-md transition-all duration-200 ${isAdvancedMode
-                ? 'bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 border-blue-200 dark:border-blue-700 hover:from-blue-100 hover:to-cyan-100 dark:hover:from-blue-800/30 dark:hover:to-cyan-800/30 text-blue-700 dark:text-blue-300'
-                : 'bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 border-purple-200 dark:border-purple-700 hover:from-purple-100 hover:to-pink-100 dark:hover:from-purple-800/30 dark:hover:to-pink-800/30 text-purple-700 dark:text-purple-300'
-                }`}
-            >
-              <Settings className="w-4 h-4 mr-2" />
-              {isAdvancedMode ? 'Easy Mode' : 'Advanced Mode'}
-            </Button>
-          </div>
-        </div>
-        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-1 gap-2">
-          <Button
-            onClick={handleGenerate}
-            disabled={!validateForm() || isGenerating || isCheckingGems}
-            className="bg-gradient-to-r from-purple-600 to-blue-600"
-            size="lg"
-          >
-            {isCheckingGems ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Checking Cost...
-              </>
-            ) : isGenerating ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Generating...
-              </>
-            ) : (
-              <>
-                <Wand2 className="w-4 h-4 mr-2" />
-                Generate Image
-              </>
-            )}
-          </Button>
-          <Button
-            onClick={handleClear}
-            variant="outline"
-            className="bg-gradient-to-r from-red-600 to-orange-600"
-          >
-            <RotateCcw className="w-4 h-4 mr-2" />
-            Reset Form
-          </Button>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 sm:p-6 border-b border-border/50 bg-gradient-to-r from-purple-50/50 to-blue-50/50 dark:from-purple-950/20 dark:to-blue-950/20 space-y-4 sm:space-y-0">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+            Create Images
+          </h1>
+          <p className="text-muted-foreground mt-1 text-sm sm:text-base">
+            Advanced AI image generation with influencer consistency
+          </p>
         </div>
       </div>
 
-      {/* Professional Preset and Library Buttons */}
-      <div className="flex w-full items-center gap-3 xl:hidden">
-        <div className="items-center gap-2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 w-full">
-          <Button
-            onClick={() => setShowLibraryModal(true)}
-            variant="outline"
-            className="h-10 px-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-blue-200 dark:border-blue-700 hover:from-blue-100 hover:to-indigo-100 dark:hover:from-blue-800/30 dark:hover:to-indigo-800/30 text-blue-700 dark:text-blue-300 font-medium shadow-sm hover:shadow-md transition-all duration-200"
-          >
-            <FolderOpen className="w-4 h-4 mr-2" />
-            Library
-          </Button>
-
-          <Button
-            onClick={() => setShowPresetsManager(true)}
-            variant="outline"
-            className="w-full h-10 px-4 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border-amber-200 dark:border-amber-700 hover:from-amber-100 hover:to-orange-100 dark:hover:from-amber-800/30 dark:hover:to-orange-800/30 text-amber-700 dark:text-amber-300 font-medium shadow-sm hover:shadow-md transition-all duration-200"
-          >
-            <BookOpen className="w-4 h-4 mr-2" />
-            My Presets
-          </Button>
-
-          <Button
-            onClick={handleSavePreset}
-            variant="outline"
-            className="h-10 px-4 bg-gradient-to-r from-emerald-50 to-green-50 dark:from-emerald-900/20 dark:to-green-900/20 border-emerald-200 dark:border-emerald-700 hover:from-emerald-100 hover:to-green-100 dark:hover:from-emerald-800/30 dark:hover:to-green-800/30 text-emerald-700 dark:text-emerald-300 font-medium shadow-sm hover:shadow-md transition-all duration-200"
-          >
-            <Save className="w-4 h-4 mr-2" />
-            Save as Preset
-          </Button>
-
-          <Button
-            onClick={handleModeToggle}
-            variant="outline"
-            size="sm"
-            className={`h-10 px-4 font-medium shadow-sm hover:shadow-md transition-all duration-200 ${isAdvancedMode
-              ? 'bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 border-purple-200 dark:border-purple-700 hover:from-purple-100 hover:to-pink-100 dark:hover:from-purple-800/30 dark:hover:to-pink-800/30 text-purple-700 dark:text-purple-300'
-              : 'bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 border-blue-200 dark:border-blue-700 hover:from-blue-100 hover:to-cyan-100 dark:hover:from-blue-800/30 dark:hover:to-cyan-800/30 text-blue-700 dark:text-blue-300'
-              }`}
-          >
-            <Settings className="w-4 h-4 mr-2" />
-            {isAdvancedMode ? 'Advanced Mode' : 'Easy Mode'}
-          </Button>
-        </div>
-      </div>
-
-      <div className="bg-gradient-to-r from-slate-50 to-blue-50 dark:from-slate-900/50 dark:to-blue-900/20 rounded-xl p-6 shadow-sm border border-slate-200/50 dark:border-slate-700/50">
-        <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-4">
-          <div className="flex flex-col space-y-2 group">
-            <span className="text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wide">
-              Format
-            </span>
-            <Badge
-              variant="secondary"
-              className="w-fit bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 cursor-pointer hover:shadow-md hover:scale-105 transition-all duration-200 group-hover:border-blue-300 dark:group-hover:border-blue-600"
-              onClick={(e) => handleStatusBarEdit('format', formData.format, 'select', e, safeFormatOptions.map(opt => ({ label: opt.label, value: opt.label })))}
-            >
-              <div className="flex items-center gap-1">
-                {safeFormatOptions.find(opt => opt.label === formData.format)?.label || formData.format}
-                <Edit3 className="w-3 h-3 opacity-60 group-hover:opacity-100" />
-              </div>
-            </Badge>
-          </div>
-
-          <div className="flex flex-col space-y-2 group">
-            <span className="text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wide">
-              Images
-            </span>
-            <Badge
-              variant="secondary"
-              className="w-fit bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 cursor-pointer hover:shadow-md hover:scale-105 transition-all duration-200 group-hover:border-blue-300 dark:group-hover:border-blue-600"
-              onClick={(e) => handleStatusBarEdit('numberOfImages', formData.numberOfImages, 'slider', e)}
-            >
-              <div className="flex items-center gap-1">
-                {formData.numberOfImages}
-                <Edit3 className="w-3 h-3 opacity-60 group-hover:opacity-100" />
-              </div>
-            </Badge>
-          </div>
-
-          <div className="flex flex-col space-y-2 group">
-            <span className="text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wide">
-              Guidance
-            </span>
-            <Badge
-              variant="secondary"
-              className="w-fit bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 cursor-pointer hover:shadow-md hover:scale-105 transition-all duration-200 group-hover:border-blue-300 dark:group-hover:border-blue-600"
-              onClick={(e) => handleStatusBarEdit('guidance', formData.guidance, 'slider', e)}
-            >
-              <div className="flex items-center gap-1">
-                {formData.guidance}
-                <Edit3 className="w-3 h-3 opacity-60 group-hover:opacity-100" />
-              </div>
-            </Badge>
-          </div>
-
-          <div className="flex flex-col space-y-2 group">
-            <span className="text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wide">
-              ENGINE
-            </span>
-            <Badge
-              variant="secondary"
-              className="w-fit bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 cursor-pointer hover:shadow-md hover:scale-105 transition-all duration-200 group-hover:border-blue-300 dark:group-hover:border-blue-600"
-              onClick={(e) => handleStatusBarEdit('engine', formData.engine, 'select', e, engineOptions.map(opt => ({ label: opt.label, value: opt.label })))}
-            >
-              <div className="flex items-center gap-1">
-                {formData.engine || 'Select Engine'}
-                <Edit3 className="w-3 h-3 opacity-60 group-hover:opacity-100" />
-              </div>
-            </Badge>
-          </div>
-
-          <div className="flex flex-col space-y-2 group">
-            <span className="text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wide">
-              CONSISTENCY
-            </span>
-            <Badge
-              variant={formData.lora ? "default" : "secondary"}
-              className={`w-fit cursor-pointer hover:shadow-md hover:scale-105 transition-all duration-200 group-hover:border-purple-300 dark:group-hover:border-purple-600 ${formData.lora ? 'bg-gradient-to-r from-purple-500 to-blue-500 text-white' : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300'}`}
-              onClick={(e) => handleStatusBarEdit('lora', formData.lora, 'boolean', e)}
-            >
-              <div className="flex items-center gap-1">
-                {formData.lora ? "Enabled" : "Disabled"}
-                <Edit3 className="w-3 h-3 opacity-60 group-hover:opacity-100" />
-              </div>
-            </Badge>
-          </div>
-
-          <div className="flex flex-col space-y-2 group">
-            <span className="text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wide">
-              AI Strength
-            </span>
-            <Badge
-              variant="secondary"
-              className="w-fit bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 cursor-pointer hover:shadow-md hover:scale-105 transition-all duration-200 group-hover:border-blue-300 dark:group-hover:border-blue-600"
-              onClick={(e) => handleStatusBarEdit('lora_strength', formData.lora_strength, 'slider', e)}
-            >
-              <div className="flex items-center gap-1">
-                {formData.lora_strength}
-                <Edit3 className="w-3 h-3 opacity-60 group-hover:opacity-100" />
-              </div>
-            </Badge>
-          </div>
-
-          <div className="flex flex-col space-y-2 group">
-            <span className="text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wide">
-              NSFW Strength
-            </span>
-            <Badge
-              variant="secondary"
-              className="w-fit bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 cursor-pointer hover:shadow-md hover:scale-105 transition-all duration-200 group-hover:border-blue-300 dark:group-hover:border-blue-600"
-              onClick={(e) => handleStatusBarEdit('nsfw_strength', formData.nsfw_strength || 0, 'slider', e)}
-            >
-              <div className="flex items-center gap-1">
-                {formData.nsfw_strength || 0}
-                <Edit3 className="w-3 h-3 opacity-60 group-hover:opacity-100" />
-              </div>
-            </Badge>
-          </div>
-
-          <div className="flex flex-col space-y-2 group">
-            <span className="text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wide">
-              PROMPT ONLY
-            </span>
-            <Badge
-              variant={formData.usePromptOnly ? "default" : "secondary"}
-              className={`w-fit cursor-pointer hover:shadow-md hover:scale-105 transition-all duration-200 group-hover:border-green-300 dark:group-hover:border-green-600 ${formData.usePromptOnly ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white' : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300'}`}
-              onClick={(e) => handleStatusBarEdit('usePromptOnly', formData.usePromptOnly, 'boolean', e)}
-            >
-              <div className="flex items-center gap-1">
-                {formData.usePromptOnly ? "Enabled" : "Disabled"}
-                <Edit3 className="w-3 h-3 opacity-60 group-hover:opacity-100" />
-              </div>
-            </Badge>
-          </div>
-        </div>
-      </div>
-
-      <div className="space-y-6 lg:hidden">
-        {/* Influencer Info */}
-        <Card>
-          <CardHeader className='flex flex-col items-center'>
-            <CardTitle className="flex items-center gap-2">
-              <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg">
-                <ImageIcon className="w-5 h-5 text-white" />
-              </div>
-              {modelData ? `${modelData.name_first} ${modelData.name_last}` : "Influencer"}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {modelData ? (
-              <>
-                <div className="grid gap-4 items-start">
-                  <div className="flex flex-col items-center gap-4">
-                    <div className="w-48 h-48 bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg overflow-hidden flex-shrink-0">
-                      <img
-                        src={modelData.image_url}
-                        alt={`${modelData.name_first} ${modelData.name_last}`}
-                        className="w-full h-full object-cover"
-                      />
+      <div className="flex h-[calc(100vh-80px)]">
+        {/* Main Content Area */}
+        <div className="flex-1 flex flex-col">
+          {/* Image Settings Bar */}
+          <div className="border-b p-4">
+            <div className="space-y-4">
+              <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                Image Settings
+              </h4>
+              <div className="grid grid-cols-6 gap-4">
+                {/* Format Setting */}
+                <div className="flex flex-col space-y-2 group">
+                  <span className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
+                    Format
+                  </span>
+                  <Badge
+                    variant="secondary"
+                    className="w-fit bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 cursor-pointer hover:shadow-lg transition-all duration-300 group-hover:border-blue-300 dark:group-hover:border-blue-600"
+                    onClick={() =>
+                      handleSettingEdit(
+                        "format",
+                        imageSettings.format,
+                        "select",
+                        formatOptions.map((opt) => ({
+                          label: opt.label,
+                          value: opt.value,
+                        }))
+                      )
+                    }
+                  >
+                    <div className="flex items-center gap-1">
+                      {formatLabels[imageSettings.format] ||
+                        formatOptions.find(
+                          (opt) => opt.value === imageSettings.format
+                        )?.label ||
+                        imageSettings.format}
+                      <Edit3 className="w-3 h-3 opacity-60 group-hover:opacity-100" />
                     </div>
-                  </div>
+                  </Badge>
                 </div>
 
-                {/* Select Another Influencer Button */}
-                {modelData && (
-                  <Button
-                    variant="outline"
-                    onClick={() => setShowInfluencerSelector(true)}
-                    className="w-full gap-2 mt-4"
+                {/* Prompt Adherence Setting */}
+                <div className="flex flex-col space-y-2 group">
+                  <span className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
+                    Prompt Adherence
+                  </span>
+                  <Badge
+                    variant="secondary"
+                    className="w-fit bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 cursor-pointer hover:shadow-lg transition-all duration-300 group-hover:border-blue-300 dark:group-hover:border-blue-600"
+                    onClick={() =>
+                      handleSettingEdit(
+                        "promptAdherence",
+                        imageSettings.promptAdherence,
+                        "slider"
+                      )
+                    }
                   >
-                    <Plus className="w-4 h-4" />
-                    Select Another Influencer
-                  </Button>
-                )}
-
-                {/* Influencer Selection */}
-                {!modelData && (
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-lg font-semibold">Select Influencer</h3>
-                      <Badge variant="secondary" className="text-xs">
-                        {filteredInfluencers.length} available
-                      </Badge>
+                    <div className="flex items-center gap-1">
+                      {imageSettings.promptAdherence} (
+                      {getAdherenceLabel(imageSettings.promptAdherence)})
+                      <Edit3 className="w-3 h-3 opacity-60 group-hover:opacity-100" />
                     </div>
+                  </Badge>
+                </div>
 
-                    {/* Search Section */}
-                    <div className="space-y-2">
-                      <div className="relative">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                        <Input
-                          type="text"
-                          placeholder="Search influencers..."
-                          value={searchTerm}
-                          onChange={(e) => handleSearchChange(e.target.value)}
-                          className="pl-10 pr-10"
-                        />
-                        {searchTerm && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
-                            onClick={handleSearchClear}
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        )}
-                      </div>
-
-                      <Popover open={openFilter} onOpenChange={setOpenFilter}>
-                        <PopoverTrigger asChild>
-                          <Button variant="outline" className="gap-2 w-full">
-                            <Filter className="h-4 w-4" />
-                            {selectedSearchField.label}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-[200px] p-0">
-                          <Command>
-                            <CommandList>
-                              {SEARCH_FIELDS.map((field) => (
-                                <CommandItem
-                                  key={field.id}
-                                  onSelect={() => {
-                                    setSelectedSearchField(field);
-                                    setOpenFilter(false);
-                                  }}
-                                >
-                                  {field.label}
-                                </CommandItem>
-                              ))}
-                            </CommandList>
-                          </Command>
-                        </PopoverContent>
-                      </Popover>
+                {/* Images Count Setting */}
+                <div className="flex flex-col space-y-2 group">
+                  <span className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
+                    Images
+                  </span>
+                  <Badge
+                    variant="secondary"
+                    className="w-fit bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 cursor-pointer hover:shadow-lg transition-all duration-300 group-hover:border-blue-300 dark:group-hover:border-blue-600"
+                    onClick={() =>
+                      handleSettingEdit(
+                        "images",
+                        imageSettings.images,
+                        "slider"
+                      )
+                    }
+                  >
+                    <div className="flex items-center gap-1">
+                      {imageSettings.images}
+                      <Edit3 className="w-3 h-3 opacity-60 group-hover:opacity-100" />
                     </div>
+                  </Badge>
+                </div>
 
-                    {/* Influencers List */}
-                    <ScrollArea className="h-64">
-                      <div className="space-y-2">
-                        {filteredInfluencers.map((influencer) => (
-                          <Card key={influencer.id} className="group hover:shadow-lg transition-all duration-300 border-border/50 hover:border-ai-purple-500/20 cursor-pointer" onClick={() => handleUseInfluencer(influencer)}>
-                            <CardContent className="p-3">
-                              <div className="flex items-center space-x-3">
-                                <div className="w-12 h-12 bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg overflow-hidden flex-shrink-0">
-                                  <img
-                                    src={influencer.image_url}
-                                    alt={`${influencer.name_first} ${influencer.name_last}`}
-                                    className="w-full h-full object-cover"
-                                  />
+                {/* NSFW Strength Setting */}
+                <div className="flex flex-col space-y-2 group">
+                  <span className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
+                    NSFW
+                  </span>
+                  <Badge
+                    variant="secondary"
+                    className="w-fit bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 cursor-pointer hover:shadow-lg transition-all duration-300 group-hover:border-blue-300 dark:group-hover:border-blue-600"
+                    onClick={() =>
+                      handleSettingEdit(
+                        "nsfwStrength",
+                        imageSettings.nsfwStrength,
+                        "slider"
+                      )
+                    }
+                  >
+                    <div className="flex items-center gap-1">
+                      {imageSettings.nsfwStrength} (
+                      {getNsfwLabel(imageSettings.nsfwStrength)})
+                      <Edit3 className="w-3 h-3 opacity-60 group-hover:opacity-100" />
+                    </div>
+                  </Badge>
+                </div>
+
+                {/* AI Image Engine Setting */}
+                <div className="flex flex-col space-y-2 group">
+                  <span className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
+                    AI Image Engine
+                  </span>
+                  <Badge
+                    variant="secondary"
+                    className="w-fit bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 cursor-pointer hover:shadow-lg transition-all duration-300 group-hover:border-blue-300 dark:group-hover:border-blue-600"
+                    onClick={() =>
+                      handleSettingEdit(
+                        "engine",
+                        imageSettings.engine,
+                        "select",
+                        engineOptions.map((opt) => ({
+                          label: opt.label,
+                          value: opt.label,
+                        }))
+                      )
+                    }
+                  >
+                    <div className="flex items-center gap-1">
+                      {imageSettings.engine}
+                      <Edit3 className="w-3 h-3 opacity-60 group-hover:opacity-100" />
+                    </div>
+                  </Badge>
+                </div>
+
+                {/* Seed Setting */}
+                <div className="flex flex-col space-y-2 group">
+                  <span className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
+                    Seed
+                  </span>
+                  <Badge
+                    variant="secondary"
+                    className="w-fit bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 cursor-pointer hover:shadow-lg transition-all duration-300 group-hover:border-blue-300 dark:group-hover:border-blue-600"
+                    onClick={() =>
+                      handleSettingEdit("seed", imageSettings.seed, "input")
+                    }
+                  >
+                    <div className="flex items-center gap-1">
+                      {imageSettings.seed || "Random"}
+                      <Edit3 className="w-3 h-3 opacity-60 group-hover:opacity-100" />
+                    </div>
+                  </Badge>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Prompt Input */}
+          <div className="p-4 border-b border-gray-800">
+            <div className="space-y-3">
+              <Label className="text-sm font-medium">Prompt</Label>
+              <Textarea
+                placeholder="Describe the image you want to generate..."
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                className="min-h-[100px] bg-background border-input text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-purple-500"
+              />
+            </div>
+          </div>
+
+          {/* Quick Component Selection */}
+          <div className="p-4 border-b border-gray-800">
+            <div className="space-y-3">
+              <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Quick Component Selection
+              </h4>
+              <div className="flex flex-wrap gap-2">
+                {componentCategories.map((category) => {
+                  const Icon = category.icon;
+                  const selectedComponent =
+                    componentPicker[category.key as keyof ComponentPickerState];
+                  return (
+                    <Badge
+                      key={category.key}
+                      variant={selectedComponent ? "default" : "secondary"}
+                      className="cursor-pointer px-3 py-2 text-xs font-medium transition-all duration-200 hover:scale-105 hover:shadow-md flex items-center"
+                      onClick={() => openComponentPicker(category.key)}
+                      data-testid={`button-component-${category.key}`}
+                    >
+                      <Icon className="w-3 h-3 mr-1" />
+                      {selectedComponent
+                        ? selectedComponent.label
+                        : `Add ${category.label}`}
+                    </Badge>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          {/* Actions Bar */}
+          <div className="p-4 border-b border-gray-800">
+            <div className="flex items-center justify-between">
+              {/* Left Group */}
+              <div className="flex items-center gap-3">
+                <Button
+                  onClick={handleReset}
+                  variant="outline"
+                  className="border-gray-600 hover:bg-gray-800"
+                >
+                  <RotateCcw className="w-4 h-4 mr-2" />
+                  Reset Form
+                </Button>
+
+                <Button
+                  variant="outline"
+                  className="border-gray-600 hover:bg-gray-800"
+                  onClick={() => setShowHistory((v) => !v)}
+                >
+                  <History className="w-4 h-4 mr-2" />
+                  {showHistory ? "Hide History" : "Show History"}
+                </Button>
+              </div>
+
+              {/* Right Group */}
+              <div className="flex items-center gap-3">
+                <Button
+                  onClick={() => setShowInspirationHub(true)}
+                  variant="outline"
+                  className="border-purple-500/50 hover:bg-purple-500/10 text-purple-300"
+                >
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  Inspiration Hub
+                </Button>
+
+                <Button
+                  onClick={handleGenerate}
+                  disabled={isGenerating || isCheckingCredits}
+                  className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                >
+                  {isGenerating ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : isCheckingCredits ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Wand2 className="w-4 h-4 mr-2" />
+                  )}
+                  {isGenerating
+                    ? "Generating..."
+                    : isCheckingCredits
+                    ? "Checking Credits..."
+                    : "Generate Images"}
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {/* Results Grid */}
+          <div className="flex-1 p-4 overflow-y-auto">
+            {generatedImages.length > 0 || placeholderImages.length > 0 ? (
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+                  {/* Display all images from generated_images table with proper status handling */}
+                  {(() => {
+                    // Combine database images with active placeholders
+                    const activePlaceholders = placeholderImages.filter(
+                      (placeholder) => {
+                        // Keep placeholders for tasks that don't have any database entries yet
+                        return !generatedImages.some(
+                          (img) => img.task_id === placeholder.task_id
+                        );
+                      }
+                    );
+
+                    // Return all items: active placeholders first, then all database images
+                    return [...activePlaceholders, ...generatedImages];
+                  })().map((image, index) => (
+                    <div key={image.isPlaceholder ? image.id : image.id}>
+                      {image.isPlaceholder ? (
+                        // Placeholder card (for tasks not yet in database)
+                        image.isFailed ? (
+                          // Failed placeholder card
+                          <Card className="group transition-all duration-300 border-border/50 backdrop-blur-sm bg-gradient-to-br from-red-50/20 to-orange-50/20 dark:from-red-950/5 dark:to-orange-950/5">
+                            <CardContent className="p-4">
+                              <div className="flex items-center justify-between mb-3">
+                                <AlertTriangle className="w-4 h-4 text-red-500" />
+                                <div className="text-xs text-red-500 font-medium">
+                                  Task #{image.task_id}
                                 </div>
-                                <div className="flex-1 min-w-0">
-                                  <h4 className="font-semibold text-sm group-hover:text-ai-purple-500 transition-colors truncate">
-                                    {influencer.name_first} {influencer.name_last}
-                                  </h4>
-                                  <p className="text-xs text-muted-foreground truncate">
-                                    {influencer.age_lifestyle}
-                                  </p>
-                                  <p className="text-xs text-muted-foreground truncate">
-                                    {influencer.influencer_type}
-                                  </p>
+                              </div>
+                              <div className="relative w-full group mb-4 aspect-square">
+                                <div className="absolute inset-0 bg-gradient-to-br from-red-100 to-orange-200 dark:from-red-900 dark:to-orange-800 rounded-md flex items-center justify-center">
+                                  <div className="flex flex-col items-center justify-center space-y-3">
+                                    <AlertTriangle className="w-8 h-8 text-red-500" />
+                                    <div className="text-xs text-center text-red-600 dark:text-red-400 px-4">
+                                      <p className="font-medium">Generation Failed</p>
+                                      <p>Please check your parameters</p>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <div className="text-xs text-gray-400">Failed</div>
+                                <div className="text-xs text-red-500">Error</div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ) : (
+                        // Normal Placeholder Card - eigenständig
+                        <Card className="group transition-all duration-300 border-border/50 backdrop-blur-sm bg-gradient-to-br from-blue-50/20 to-purple-50/20 dark:from-blue-950/5 dark:to-purple-950/5">
+                          <CardContent className="p-4">
+                            {/* Top Row: Loading indicator */}
+                            <div className="flex items-center justify-between mb-3">
+                              <div className="opacity-60">
+                                <div className="w-4 h-4 bg-gray-300 rounded"></div>
+                              </div>
+                              {/* Empty stars and heart placeholders */}
+                              <div className="flex gap-0.5">
+                                {[1, 2, 3, 4, 5].map((star) => (
+                                  <svg
+                                    key={star}
+                                    className="w-4 h-4 text-gray-200 fill-gray-200"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                                  </svg>
+                                ))}
+                              </div>
+                              <div>
+                                <svg
+                                  className="w-5 h-5 text-gray-200 fill-none stroke-gray-200"
+                                  viewBox="0 0 24 24"
+                                  strokeWidth="2"
+                                >
+                                  <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                                </svg>
+                              </div>
+                            </div>
+
+                            {/* Placeholder Image Area with Spinner - EXACT same structure as real images */}
+                            <div className="relative w-full group mb-4 aspect-square">
+                              <div className="absolute inset-0 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 rounded-md flex items-center justify-center">
+                                <div className="flex flex-col items-center justify-center space-y-3">
+                                  <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+                                  <div className="text-xs text-center text-gray-500 px-4">
+                                    <p className="font-medium">
+                                      AI is creating
+                                    </p>
+                                    <p>your image...</p>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Action Buttons - EXACT same structure as real images */}
+                            <div className="flex gap-1.5 mt-3">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-8 w-8 p-0 bg-gray-200 dark:bg-gray-700 border-gray-300 dark:border-gray-600 cursor-not-allowed opacity-50"
+                                disabled
+                              >
+                                <Download className="w-3 h-3 text-gray-400" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-8 w-8 p-0 bg-gray-200 dark:bg-gray-700 border-gray-300 dark:border-gray-600 cursor-not-allowed opacity-50"
+                                disabled
+                              >
+                                <Edit3 className="w-3 h-3 text-gray-400" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-8 w-8 p-0 bg-gray-200 dark:bg-gray-700 border-gray-300 dark:border-gray-600 cursor-not-allowed opacity-50"
+                                disabled
+                              >
+                                <RotateCcw className="w-3 h-3 text-gray-400" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-8 w-8 p-0 bg-gray-200 dark:bg-gray-700 border-gray-300 dark:border-gray-600 cursor-not-allowed opacity-50"
+                                disabled
+                              >
+                                <Share className="w-3 h-3 text-gray-400" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-8 w-8 p-0 bg-gray-200 dark:bg-gray-700 border-gray-300 dark:border-gray-600 cursor-not-allowed opacity-50"
+                                disabled
+                              >
+                                <Trash2 className="w-3 h-3 text-gray-400" />
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </Card>
+                        )
+                      ) : (
+                        // Database images - handle based on generation_status
+                        image.generation_status === "failed" ? (
+                          // Failed Database Image Card - clickable to show user_notes
+                          <Card
+                            className="group transition-all duration-300 border-border/50 backdrop-blur-sm bg-gradient-to-br from-red-50/20 to-orange-50/20 dark:from-red-950/5 dark:to-orange-950/5 cursor-pointer hover:from-red-50/30 hover:to-orange-50/30 dark:hover:from-red-950/10 dark:hover:to-orange-950/10"
+                            onClick={() => {
+                              setFailedImageModal({
+                                open: true,
+                                taskId: image.task_id,
+                                userNotes: image.user_notes || "No additional information available",
+                              });
+                            }}
+                          >
+                            <CardContent className="p-4">
+                              <div className="flex items-center justify-between mb-3">
+                                <AlertTriangle className="w-4 h-4 text-red-500" />
+                                <div className="text-xs text-red-500 font-medium">
+                                  Task #{image.task_id} - Image #{image.image_sequence_number || 1}
+                                </div>
+                              </div>
+                              <div className="relative w-full group mb-4 aspect-square">
+                                <div className="absolute inset-0 bg-gradient-to-br from-red-100 to-orange-200 dark:from-red-900 dark:to-orange-800 rounded-md flex items-center justify-center">
+                                  <div className="flex flex-col items-center justify-center space-y-3">
+                                    <AlertTriangle className="w-8 h-8 text-red-500" />
+                                    <div className="text-xs text-center text-red-600 dark:text-red-400 px-4">
+                                      <p className="font-medium">Generation Failed</p>
+                                      <p>Click to view details</p>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <div className="text-xs text-gray-400">Failed</div>
+                                <div className="text-xs text-blue-500 hover:text-blue-400">
+                                  View Details →
                                 </div>
                               </div>
                             </CardContent>
                           </Card>
-                        ))}
-                      </div>
-                    </ScrollArea>
-                  </div>
-                )}
-              </>
-            ) : (
-              <div className="w-full from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-700 rounded-lg flex items-center justify-center">
-                <div className="text-center space-y-2">
-                  <ImageIcon className="w-12 h-12 text-slate-400 mx-auto" />
-                  <p className="text-slate-600 dark:text-slate-400 font-medium">
-                    Please select influencer below
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* Select Influencer Button - shown when no influencer is selected */}
-            {!modelData && (
-              <Button
-                variant="outline"
-                onClick={() => setShowInfluencerSelector(true)}
-                className="w-full gap-2"
-              >
-                <Plus className="w-4 h-4" />
-                Select Influencer
-              </Button>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Main Layout - 2 Columns */}
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_250px] gap-6">
-        <div className="space-y-6">
-          {isAdvancedMode ? (
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="scene">Scene</TabsTrigger>
-                <TabsTrigger value="basic">Basic Settings</TabsTrigger>
-                <TabsTrigger value="advanced">Advanced Settings</TabsTrigger>
-              </TabsList>
-
-              {/* Basic Tab */}
-              <TabsContent value="basic" className="space-y-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg">
-                        <Sparkles className="w-5 h-5 text-white" />
-                      </div>
-                      Basic Settings
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    {/* First Row: Task Type, Number of Images, Guidance */}
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                      <div className="space-y-2">
-                        <Label>Task Type</Label>
-                        <Select
-                          value={formData.task}
-                          onValueChange={(value) => handleInputChange('task', value)}
-                        >
-                          <SelectTrigger>
-                            <div className='pl-10'>
-                              {TASK_OPTIONS.find(opt => opt.value === formData.task)?.label}
-                            </div>
-                          </SelectTrigger>
-                          <SelectContent>
-                            {TASK_OPTIONS.map((option) => (
-                              <SelectItem key={option.value} value={option.value}>
-                                <div>
-                                  <div className="font-medium">{option.label}</div>
-                                  <div className="text-sm text-muted-foreground">{option.description}</div>
+                        ) : (image.generation_status === "pending" || image.generation_status === "processing") ? (
+                          // Pending/Processing Database Image Card
+                          <Card className="group transition-all duration-300 border-border/50 backdrop-blur-sm bg-gradient-to-br from-blue-50/20 to-purple-50/20 dark:from-blue-950/5 dark:to-purple-950/5">
+                            <CardContent className="p-4">
+                              <div className="flex items-center justify-between mb-3">
+                                <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
+                                <div className="text-xs text-blue-500 font-medium">
+                                  Task #{image.task_id} - Image #{image.image_sequence_number || 1}
                                 </div>
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="space-y-6">
-                        <Label>Number of Images: {formData.numberOfImages}</Label>
-                        <Slider
-                          value={[formData.numberOfImages]}
-                          onValueChange={([value]) => handleInputChange('numberOfImages', value)}
-                          max={20}
-                          min={1}
-                          step={1}
-                          className="w-full"
-                        />
-                      </div>
-
-                      <div className="space-y-6">
-                        <Label>Guidance: {formData.guidance}</Label>
-                        <Slider
-                          value={[formData.guidance]}
-                          onValueChange={([value]) => handleInputChange('guidance', value)}
-                          max={8.0}
-                          min={1.0}
-                          step={0.1}
-                          className="w-full"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Second Row: Format and Makeup Style */}
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                      <div className="space-y-2">
-                        <Label>Format</Label>
-                        <Select
-                          value={formData.format}
-                          onValueChange={(value) => handleInputChange('format', value)}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select format" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {safeFormatOptions.map((option) => (
-                              <SelectItem key={option.label} value={option.label}>{option.label}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <div
-                          onClick={() => setShowFormatSelector(true)}
-                          className="flex items-center justify-center w-full cursor-pointer"
-                        >
-                          {formData.format && safeFormatOptions.find(option => option.label === formData.format)?.image ? (
-                            <Card className="relative w-full max-w-[250px]">
-                              <CardContent className="p-4">
-                                <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
-                                  <img
-                                    src={`${config.data_url}/wizard/mappings250/${safeFormatOptions.find(option => option.label === formData.format)?.image}`}
-                                    className="absolute inset-0 w-full h-full object-cover rounded-md transition-transform duration-200 hover:scale-105"
-                                  />
-                                  <Button
-                                    variant="destructive"
-                                    size="sm"
-                                    className="absolute bottom-2 right-2 w-8 h-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleInputChange('format', '');
-                                    }}
-                                  >
-                                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                    </svg>
-                                  </Button>
-                                </div>
-                                <p className="text-sm text-center font-medium mt-2">{safeFormatOptions.find(option => option.label === formData.format)?.label}</p>
-                              </CardContent>
-                            </Card>
-                          ) : (
-                            <Card className="relative w-full border max-w-[250px]">
-                              <CardContent className="p-4">
-                                <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
-                                  <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
-                                    Select format style
-                                  </div>
-                                </div>
-                              </CardContent>
-                            </Card>
-                          )}
-                        </div>
-                        {showFormatSelector && (
-                          <OptionSelector
-                            options={safeFormatOptions}
-                            onSelect={(label) => handleInputChange('format', label)}
-                            onClose={() => setShowFormatSelector(false)}
-                            title="Select Format Style"
-                          />
-                        )}
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label>Makeup Style</Label>
-                        <Select
-                          value={modelDescription.makeup}
-                          onValueChange={(value) => handleModelDescriptionChange('makeup', value)}
-                        >
-                          <SelectTrigger>
-                            <div className='pl-10'>
-                              {makeupOptions.find(opt => opt.label === modelDescription.makeup)?.label}
-                            </div>
-                          </SelectTrigger>
-                          <SelectContent>
-                            {makeupOptions.map((option) => (
-                              <SelectItem key={option.label} value={option.label}>{option.label}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <div
-                          onClick={() => setShowMakeupSelector(true)}
-                          className="flex items-center justify-center w-full cursor-pointer"
-                        >
-                          {modelDescription.makeup && makeupOptions.find(option => option.label === modelDescription.makeup)?.image ? (
-                            <Card className="relative w-full max-w-[250px]">
-                              <CardContent className="p-4">
-                                <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
-                                  <img
-                                    src={`${config.data_url}/wizard/mappings400/${makeupOptions.find(option => option.label === modelDescription.makeup)?.image}`}
-                                    className="absolute inset-0 w-full h-full object-cover rounded-md"
-                                  />
-                                  <Button
-                                    variant="destructive"
-                                    size="sm"
-                                    className="absolute bottom-2 right-2 w-8 h-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleModelDescriptionChange('makeup', '');
-                                    }}
-                                  >
-                                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                    </svg>
-                                  </Button>
-                                </div>
-                                <p className="text-sm text-center font-medium mt-2">{makeupOptions.find(option => option.label === modelDescription.makeup)?.label}</p>
-                              </CardContent>
-                            </Card>
-                          ) : (
-                            <Card className="relative w-full border max-w-[250px]">
-                              <CardContent className="p-4">
-                                <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
-                                  <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
-                                    Select makeup style
-                                  </div>
-                                </div>
-                              </CardContent>
-                            </Card>
-                          )}
-                        </div>
-                        {showMakeupSelector && (
-                          <OptionSelector
-                            options={makeupOptions}
-                            onSelect={(label) => handleModelDescriptionChange('makeup', label)}
-                            onClose={() => setShowMakeupSelector(false)}
-                            title="Select Makeup Style"
-                          />
-                        )}
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Engine</Label>
-                        <Select
-                          value={formData.engine}
-                          onValueChange={(value) => handleInputChange('engine', value)}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select engine" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {engineOptions.map((option) => (
-                              <SelectItem key={option.label} value={option.label}>{option.label}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <div
-                          onClick={() => setShowEngineSelector(true)}
-                          className="flex items-center justify-center w-full cursor-pointer"
-                        >
-                          {formData.engine && engineOptions.find(option => option.label === formData.engine)?.image ? (
-                            <Card className="relative w-full max-w-[250px]">
-                              <CardContent className="p-4">
-                                <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
-                                  <img
-                                    src={`${config.data_url}/wizard/mappings400/${engineOptions.find(option => option.label === formData.engine)?.image}`}
-                                    className="absolute inset-0 w-full h-full object-cover rounded-md"
-                                  />
-                                  <Button
-                                    variant="destructive"
-                                    size="sm"
-                                    className="absolute bottom-2 right-2 w-8 h-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleInputChange('engine', '');
-                                    }}
-                                  >
-                                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                    </svg>
-                                  </Button>
-                                </div>
-                                <p className="text-sm text-center font-medium mt-2">{engineOptions.find(option => option.label === formData.engine)?.label}</p>
-                              </CardContent>
-                            </Card>
-                          ) : (
-                            <Card className="relative w-full border max-w-[250px]">
-                              <CardContent className="p-4">
-                                <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
-                                  <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
-                                    Select engine
-                                  </div>
-                                </div>
-                              </CardContent>
-                            </Card>
-                          )}
-                        </div>
-                        {showEngineSelector && (
-                          <OptionSelector
-                            options={engineOptions}
-                            onSelect={(label) => handleInputChange('engine', label)}
-                            onClose={() => setShowEngineSelector(false)}
-                            title="Select Engine"
-                          />
-                        )}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              {/* Scene Tab */}
-              <TabsContent value="scene" className="space-y-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg">
-                        <Camera className="w-5 h-5 text-white" />
-                      </div>
-                      Scene Specifications
-                      <Badge variant={isAdvancedMode ? "default" : "secondary"} className={`ml-2 ${isAdvancedMode
-                        ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white'
-                        : 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white'
-                        }`}>
-                        {isAdvancedMode ? 'Advanced' : 'Easy'}
-                      </Badge>
-                    </CardTitle>
-                    <p className="text-sm text-muted-foreground">
-                      {isAdvancedMode
-                        ? "Combine your image generation instructions by selecting from the presets and by describing in the Prompt input below what you want to see."
-                        : "Easy mode: Choose from the Presets above or use your own Prompt to describe the scene your influencer is in."
-                      }
-                    </p>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {/* Text Input - First Option */}
-                    <div className="space-y-2">
-                      <Label className="flex items-center gap-2">
-                        <div className="p-1.5 bg-gradient-to-br from-green-500 to-emerald-600 rounded-md">
-                          <Sparkles className="w-3.5 h-3.5 text-white" />
-                        </div>
-                        Prompt
-                      </Label>
-                      <div className="relative">
-                        <Textarea
-                          value={formData.prompt}
-                          onChange={(e) => handleInputChange('prompt', e.target.value)}
-                          placeholder="Describe what you want to see... (e.g., 'Model is sitting at the beach and enjoys the sun' or 'white shirt and blue jeans')"
-                          rows={3}
-                          className="pl-10 pr-4 border-2 focus:border-green-500/50 focus:ring-green-500/20 transition-all duration-200"
-                        />
-                        <div className="absolute left-3 top-3 text-muted-foreground">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                          </svg>
-                        </div>
-                      </div>
-
-                      {/* Use Prompt Only Toggle */}
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                          <Label>Use Prompt Only</Label>
-                          <p className="text-sm text-muted-foreground">
-                            System will follow the prompt and ignore all other selections.
-                          </p>
-                        </div>
-                        <Switch
-                          checked={formData.usePromptOnly}
-                          onCheckedChange={(checked) => handleInputChange('usePromptOnly', checked)}
-                        />
-                      </div>
-
-                      {/* Scene Specifications - Only show in Advanced Mode */}
-                      {isAdvancedMode && (
-                        <>
-                          <div className="lg:hidden grid grid-cols-1 sm:grid-cols-3 md:grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                              <Label>Framing</Label>
-                              <Select
-                                value={sceneSpecs.framing}
-                                onValueChange={(value) => handleSceneSpecChange('framing', value)}
-                              >
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select framing" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {framingOptions.map((option) => (
-                                    <SelectItem key={option.label} value={option.label}>{option.label}</SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                              <div
-                                onClick={() => setShowFramingSelector(true)}
-                                className="flex items-center justify-center w-full cursor-pointer"
-                              >
-                                {sceneSpecs.framing && framingOptions.find(option => option.label === sceneSpecs.framing)?.image ? (
-                                  <Card className="relative w-full max-w-[250px]">
-                                    <CardContent className="p-4">
-                                      <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
-                                        <img
-                                          src={`${config.data_url}/wizard/mappings400/${framingOptions.find(option => option.label === sceneSpecs.framing)?.image}`}
-                                          className="absolute inset-0 w-full h-full object-cover rounded-md"
-                                        />
-                                        <Button
-                                          variant="destructive"
-                                          size="sm"
-                                          className="absolute bottom-2 right-2 w-8 h-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleSceneSpecChange('framing', '');
-                                          }}
-                                        >
-                                          <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                          </svg>
-                                        </Button>
-                                      </div>
-                                      <p className="text-sm text-center font-medium mt-2">{framingOptions.find(option => option.label === sceneSpecs.framing)?.label}</p>
-                                    </CardContent>
-                                  </Card>
-                                ) : (
-                                  <Card className="relative w-full border max-w-[250px]">
-                                    <CardContent className="p-4">
-                                      <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
-                                        <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
-                                          Select framing style
-                                        </div>
-                                      </div>
-                                    </CardContent>
-                                  </Card>
-                                )}
                               </div>
-                              {showFramingSelector && (
-                                <OptionSelector
-                                  options={framingOptions}
-                                  onSelect={(label) => handleSceneSpecChange('framing', label)}
-                                  onClose={() => setShowFramingSelector(false)}
-                                  title="Select Framing Style"
-                                />
-                              )}
-                            </div>
-
-                            <div className="space-y-2">
-                              <Label>Rotation</Label>
-                              <Select
-                                value={sceneSpecs.rotation}
-                                onValueChange={(value) => handleSceneSpecChange('rotation', value)}
-                              >
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select rotation" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {rotationOptions.map((option) => (
-                                    <SelectItem key={option.label} value={option.label}>{option.label}</SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                              <div
-                                onClick={() => setShowRotationSelector(true)}
-                                className="flex items-center justify-center w-full cursor-pointer"
-                              >
-                                {sceneSpecs.rotation && rotationOptions.find(option => option.label === sceneSpecs.rotation)?.image ? (
-                                  <Card className="relative w-full max-w-[250px]">
-                                    <CardContent className="p-4">
-                                      <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
-                                        <img
-                                          src={`${config.data_url}/wizard/mappings250/${rotationOptions.find(option => option.label === sceneSpecs.rotation)?.image}`}
-                                          className="absolute inset-0 w-full h-full object-cover rounded-md transition-transform duration-200 hover:scale-105"
-                                        />
-                                        <Button
-                                          variant="destructive"
-                                          size="sm"
-                                          className="absolute bottom-2 right-2 w-8 h-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleSceneSpecChange('rotation', '');
-                                          }}
-                                        >
-                                          <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                          </svg>
-                                        </Button>
-                                      </div>
-                                      <p className="text-sm text-center font-medium mt-2">{rotationOptions.find(option => option.label === sceneSpecs.rotation)?.label}</p>
-                                    </CardContent>
-                                  </Card>
-                                ) : (
-                                  <Card className="relative w-full border max-w-[250px]">
-                                    <CardContent className="p-4">
-                                      <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
-                                        <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
-                                          Select rotation style
-                                        </div>
-                                      </div>
-                                    </CardContent>
-                                  </Card>
-                                )}
-                              </div>
-                              {showRotationSelector && (
-                                <OptionSelector
-                                  options={rotationOptions}
-                                  onSelect={(label) => handleSceneSpecChange('rotation', label)}
-                                  onClose={() => setShowRotationSelector(false)}
-                                  title="Select Rotation Style"
-                                />
-                              )}
-                            </div>
-
-                            <div className="space-y-2">
-                              <Label>Lighting Preset</Label>
-                              <Select
-                                value={sceneSpecs.lighting_preset}
-                                onValueChange={(value) => handleSceneSpecChange('lighting_preset', value)}
-                              >
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select lighting preset" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {lightingOptions.map((option) => (
-                                    <SelectItem key={option.label} value={option.label}>{option.label}</SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                              <div
-                                onClick={() => setShowLightingSelector(true)}
-                                className="flex items-center justify-center w-full cursor-pointer"
-                              >
-                                {sceneSpecs.lighting_preset && lightingOptions.find(option => option.label === sceneSpecs.lighting_preset)?.image ? (
-                                  <Card className="relative w-full max-w-[250px]">
-                                    <CardContent className="p-4">
-                                      <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
-                                        <img
-                                          src={`${config.data_url}/wizard/mappings400/${lightingOptions.find(option => option.label === sceneSpecs.lighting_preset)?.image}`}
-                                          className="absolute inset-0 w-full h-full object-cover rounded-md"
-                                        />
-                                        <Button
-                                          variant="destructive"
-                                          size="sm"
-                                          className="absolute bottom-2 right-2 w-8 h-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleSceneSpecChange('lighting_preset', '');
-                                          }}
-                                        >
-                                          <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                          </svg>
-                                        </Button>
-                                      </div>
-                                      <p className="text-sm text-center font-medium mt-2">{lightingOptions.find(option => option.label === sceneSpecs.lighting_preset)?.label}</p>
-                                    </CardContent>
-                                  </Card>
-                                ) : (
-                                  <Card className="relative w-full border max-w-[250px]">
-                                    <CardContent className="p-4">
-                                      <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
-                                        <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
-                                          Select lighting style
-                                        </div>
-                                      </div>
-                                    </CardContent>
-                                  </Card>
-                                )}
-                              </div>
-                              {showLightingSelector && (
-                                <OptionSelector
-                                  options={lightingOptions}
-                                  onSelect={(label) => handleSceneSpecChange('lighting_preset', label)}
-                                  onClose={() => setShowLightingSelector(false)}
-                                  title="Select Lighting Style"
-                                />
-                              )}
-                            </div>
-
-                            <div className="space-y-2">
-                              <Label>Scene Setting</Label>
-                              <div
-                                onClick={() => setShowSceneSettingsSelector(true)}
-                                className="flex items-center justify-center w-full cursor-pointer"
-                              >
-                                {sceneSpecs.scene_setting && selectedScene?.image ? (
-                                  <Card className="relative w-full max-w-[250px]">
-                                    <CardContent className="p-4">
-                                      <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
-                                        <img
-                                          src={`${config.data_url}/wizard/mappings400/${selectedScene.image}`}
-                                          className="absolute inset-0 w-full h-full object-cover rounded-md"
-                                          alt={selectedScene.label}
-                                        />
-                                        <Button
-                                          variant="destructive"
-                                          size="sm"
-                                          className="absolute bottom-2 right-2 w-8 h-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleSceneSpecChange('scene_setting', '');
-                                            setSelectedScene(null);
-                                          }}
-                                        >
-                                          <X className="w-4 h-4 text-white" />
-                                        </Button>
-                                        {selectedScene.license !== 'free' && (
-                                          <div className="absolute top-2 right-2 bg-gradient-to-r from-yellow-500 to-orange-500 text-white text-xs px-2 py-1 rounded-full font-semibold shadow-lg">
-                                            {selectedScene.license === 'pro' ? 'PRO' : selectedScene.license === 'enterprise' ? 'ENTERPRISE' : selectedScene.license.toUpperCase()}
-                                      </div>
-                                        )}
-                                      </div>
-                                      <p className="text-sm text-center font-medium mt-2">{selectedScene.label}</p>
-                                      <p className="text-xs text-center text-muted-foreground">{selectedScene.description}</p>
-                                    </CardContent>
-                                  </Card>
-                                ) : (
-                                  <Card className="relative w-full border max-w-[250px]">
-                                    <CardContent className="p-4">
-                                      <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
-                                        <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
-                                          Select scene setting
-                                        </div>
-                                      </div>
-                                    </CardContent>
-                                  </Card>
-                                )}
-                              </div>
-                              {showSceneSettingsSelector && (
-                                <Dialog open={showSceneSettingsSelector} onOpenChange={handleSceneModalClose}>
-                                  <DialogContent className="max-w-6xl max-h-[80vh] overflow-hidden">
-                                    <DialogHeader>
-                                      <DialogTitle>Select Scene Setting</DialogTitle>
-                                      <DialogDescription>
-                                        Browse scenes by category. Some scenes may require a license.
-                                      </DialogDescription>
-                                    </DialogHeader>
-                                    
-                                    {/* Breadcrumb Navigation */}
-                                    <div className="flex items-center gap-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => setCurrentSceneCategory(null)}
-                                        className="h-8 px-2 text-sm font-medium"
-                                      >
-                                        <Home className="w-4 h-4 mr-1" />
-                                        All Categories
-                                      </Button>
-                                      {currentSceneCategory && (
-                                        <>
-                                          <div className="flex items-center gap-2">
-                                            <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                                              {currentSceneCategory.property_category}
-                                            </span>
-                                          </div>
-                                          <div className="ml-auto">
-                                            <Button
-                                              variant="outline"
-                                              size="sm"
-                                              onClick={() => setCurrentSceneCategory(null)}
-                                              className="h-8 px-3 text-sm"
-                                            >
-                                              <ArrowLeft className="w-4 h-4 mr-1" />
-                                              Back
-                                            </Button>
-                                          </div>
-                                        </>
-                                      )}
+                              <div className="relative w-full group mb-4 aspect-square">
+                                <div className="absolute inset-0 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 rounded-md flex items-center justify-center">
+                                  <div className="flex flex-col items-center justify-center space-y-3">
+                                    <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+                                    <div className="text-xs text-center text-gray-500 px-4">
+                                      <p className="font-medium">AI is creating</p>
+                                      <p>your image...</p>
                                     </div>
-
-                                    <ScrollArea className="h-[60vh]">
-                                      <div className="p-4">
-                                        {!currentSceneCategory ? (
-                                          // Show category folders
-                                          <div className="space-y-4">
-                                            <div className="flex items-center justify-between">
-                                              <h3 className="text-lg font-semibold">Scene Categories</h3>
-                                              <Badge variant="secondary">{sceneCategories.length} categories</Badge>
-                                            </div>
-                                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3">
-                                              {sceneCategories.map((category) => (
-                                                <div
-                                                  key={category.property_category}
-                                                  className="group cursor-pointer"
-                                                  onDoubleClick={() => setCurrentSceneCategory(category)}
-                                                >
-                                                  <div className="flex flex-col items-center p-3 rounded-lg border-2 border-transparent transition-all duration-200 hover:border-blue-300 hover:bg-blue-50 dark:hover:bg-blue-950/20">
-                                                    <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-teal-600 rounded-lg flex items-center justify-center mb-2 transition-transform duration-200 group-hover:scale-110">
-                                                      <Folder className="w-6 h-6 text-white" />
-                                                    </div>
-                                                    <span className="text-xs font-medium text-center text-gray-700 dark:text-gray-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                                                      {category.property_category}
-                                                    </span>
-                                                    <span className="text-xs text-muted-foreground mt-1">
-                                                      {category.data.length} scenes
-                                                    </span>
-                                                    <span className="text-xs text-muted-foreground">
-                                                      {category.data.filter(scene => scene.license === 'free').length} free
-                                                    </span>
-                                                  </div>
-                                                </div>
-                                              ))}
-                                            </div>
-                                          </div>
-                                        ) : (
-                                          // Show scenes in selected category
-                                          <div className="space-y-4">
-                                            <div className="flex items-center justify-between">
-                                              <div className="flex items-center gap-3">
-                                                <Button
-                                                  variant="ghost"
-                                                  size="sm"
-                                                  onClick={() => setCurrentSceneCategory(null)}
-                                                  className="h-8 px-2"
-                                                >
-                                                  <ArrowLeft className="w-4 h-4 mr-1" />
-                                                  Back
-                                                </Button>
-                                                <h3 className="text-lg font-semibold">Scenes in {currentSceneCategory.property_category}</h3>
-                                              </div>
-                                              <Badge variant="secondary">{currentSceneCategory.data.length} scenes</Badge>
-                                            </div>
-                                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                                              {currentSceneCategory.data.map((scene) => (
-                                                <div
-                                                  key={scene.label}
-                                                  className={`relative group cursor-pointer rounded-lg overflow-hidden border-2 transition-all duration-200 ${
-                                                    isSceneAccessible(scene)
-                                                      ? 'hover:border-blue-500 hover:shadow-lg'
-                                                      : 'opacity-60 cursor-not-allowed'
-                                                  }`}
-                                                  onClick={() => isSceneAccessible(scene) && handleSceneSelection(scene)}
-                                                >
-                                                  <div className="relative" style={{ paddingBottom: '100%' }}>
-                                                    <img
-                                                      src={`${config.data_url}/wizard/mappings400/${scene.image}`}
-                                                      className="absolute inset-0 w-full h-full object-cover"
-                                                      alt={scene.label}
-                                                    />
-                                                    {!isSceneAccessible(scene) && (
-                                                      <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                                                        <Lock className="w-8 h-8 text-white" />
-                                                      </div>
-                                                    )}
-                                                    {scene.license !== 'free' && (
-                                                      <div className="absolute top-2 right-2 bg-gradient-to-r from-yellow-500 to-orange-500 text-white text-xs px-2 py-1 rounded-full font-semibold shadow-lg">
-                                                        {scene.license === 'pro' ? 'PRO' : scene.license === 'enterprise' ? 'ENTERPRISE' : scene.license.toUpperCase()}
-                                                      </div>
-                                                    )}
-                                                  </div>
-                                                  <div className="p-3 bg-white dark:bg-gray-800">
-                                                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
-                                                      {scene.label}
-                                                    </p>
-                                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">
-                                                      {scene.description}
-                                                    </p>
-                                                    {(scene.no_framing || scene.no_scene) && (
-                                                      <div className="mt-2 space-y-1">
-                                                        {scene.no_framing && (
-                                                          <p className="text-xs text-orange-600 dark:text-orange-400">
-                                                            ⚠️ Framing ignored
-                                                          </p>
-                                                        )}
-                                                        {scene.no_scene && (
-                                                          <p className="text-xs text-orange-600 dark:text-orange-400">
-                                                            ⚠️ Scene ignored
-                                                          </p>
-                                                        )}
-                                                      </div>
-                                                    )}
-                                                  </div>
-                                                </div>
-                                              ))}
-                                            </div>
-                                          </div>
-                                        )}
-                                      </div>
-                                    </ScrollArea>
-                                  </DialogContent>
-                                </Dialog>
-                              )}
-                            </div>
-
-                            <div className="space-y-2">
-                              <Label>Pose</Label>
-                              <div
-                                onClick={() => setShowPoseSelector(true)}
-                                className="flex items-center justify-center w-full cursor-pointer"
-                              >
-                                {sceneSpecs.pose && selectedPose?.image ? (
-                                  <Card className="relative w-full max-w-[250px]">
-                                    <CardContent className="p-4">
-                                      <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
-                                        <img
-                                          src={`${config.data_url}/wizard/mappings400/${selectedPose.image}`}
-                                          className="absolute inset-0 w-full h-full object-cover rounded-md"
-                                          alt={selectedPose.label}
-                                        />
-                                        <Button
-                                          variant="destructive"
-                                          size="sm"
-                                          className="absolute bottom-2 right-2 w-8 h-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleSceneSpecChange('pose', '');
-                                            setSelectedPose(null);
-                                          }}
-                                        >
-                                          <X className="w-4 h-4 text-white" />
-                                        </Button>
-                                        {selectedPose.license !== 'free' && (
-                                          <div className="absolute top-2 right-2 bg-gradient-to-r from-yellow-500 to-orange-500 text-white text-xs px-2 py-1 rounded-full font-semibold shadow-lg">
-                                            {selectedPose.license === 'pro' ? 'PRO' : selectedPose.license === 'enterprise' ? 'ENTERPRISE' : selectedPose.license.toUpperCase()}
-                                      </div>
-                                        )}
-                                      </div>
-                                      <p className="text-sm text-center font-medium mt-2">{selectedPose.label}</p>
-                                      <p className="text-xs text-center text-muted-foreground">{selectedPose.description}</p>
-                                    </CardContent>
-                                  </Card>
-                                ) : (
-                                  <Card className="relative w-full border max-w-[250px]">
-                                    <CardContent className="p-4">
-                                      <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
-                                        <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
-                                          Select pose style
-                                        </div>
-                                      </div>
-                                    </CardContent>
-                                  </Card>
-                                )}
-                              </div>
-                              {showPoseSelector && (
-                                <Dialog open={showPoseSelector} onOpenChange={handlePoseModalClose}>
-                                  <DialogContent className="max-w-6xl max-h-[80vh] overflow-hidden">
-                                    <DialogHeader>
-                                      <DialogTitle>Select Pose Style</DialogTitle>
-                                      <DialogDescription>
-                                        Browse poses by category. Some poses may require a license.
-                                      </DialogDescription>
-                                    </DialogHeader>
-                                    
-                                    {/* Breadcrumb Navigation */}
-                                    <div className="flex items-center gap-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => setCurrentPoseCategory(null)}
-                                        className="h-8 px-2 text-sm font-medium"
-                                      >
-                                        <Home className="w-4 h-4 mr-1" />
-                                        All Categories
-                                      </Button>
-                                      {currentPoseCategory && (
-                                        <>
-                                          <div className="flex items-center gap-2">
-                                            <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                                              {currentPoseCategory.property_category}
-                                            </span>
-                                          </div>
-                                          <div className="ml-auto">
-                                            <Button
-                                              variant="outline"
-                                              size="sm"
-                                              onClick={() => setCurrentPoseCategory(null)}
-                                              className="h-8 px-3 text-sm"
-                                            >
-                                              <ArrowLeft className="w-4 h-4 mr-1" />
-                                              Back
-                                            </Button>
-                                          </div>
-                                        </>
-                                      )}
-                                    </div>
-
-                                    <ScrollArea className="h-[60vh]">
-                                      <div className="p-4">
-                                        {!currentPoseCategory ? (
-                                          // Show category folders
-                                          <div className="space-y-4">
-                                            <div className="flex items-center justify-between">
-                                              <h3 className="text-lg font-semibold">Pose Categories</h3>
-                                              <Badge variant="secondary">{poseCategories.length} categories</Badge>
-                                            </div>
-                                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3">
-                                              {poseCategories.map((category) => (
-                                                <div
-                                                  key={category.property_category}
-                                                  className="group cursor-pointer"
-                                                  onDoubleClick={() => setCurrentPoseCategory(category)}
-                                                >
-                                                  <div className="flex flex-col items-center p-3 rounded-lg border-2 border-transparent transition-all duration-200 hover:border-blue-300 hover:bg-blue-50 dark:hover:bg-blue-950/20">
-                                                    <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center mb-2 transition-transform duration-200 group-hover:scale-110">
-                                                      <Folder className="w-6 h-6 text-white" />
-                                                    </div>
-                                                    <span className="text-xs font-medium text-center text-gray-700 dark:text-gray-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                                                      {category.property_category}
-                                                    </span>
-                                                    <span className="text-xs text-muted-foreground mt-1">
-                                                      {category.data.length} poses
-                                                    </span>
-                                                    <span className="text-xs text-muted-foreground">
-                                                      {category.data.filter(pose => pose.license === 'free').length} free
-                                                    </span>
-                                                  </div>
-                                                </div>
-                                              ))}
-                                            </div>
-                                          </div>
-                                        ) : (
-                                          // Show poses in selected category
-                                          <div className="space-y-4">
-                                            <div className="flex items-center justify-between">
-                                              <div className="flex items-center gap-3">
-                                                <h3 className="text-lg font-semibold">Poses in {currentPoseCategory.property_category}</h3>
-                                              </div>
-                                              <Badge variant="secondary">{currentPoseCategory.data.length} poses</Badge>
-                                            </div>
-                                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                                              {currentPoseCategory.data.map((pose) => (
-                                                <div
-                                                  key={pose.label}
-                                                  className={`relative group cursor-pointer rounded-lg overflow-hidden border-2 transition-all duration-200 ${
-                                                    isPoseAccessible(pose)
-                                                      ? 'hover:border-blue-500 hover:shadow-lg'
-                                                      : 'opacity-60 cursor-not-allowed'
-                                                  }`}
-                                                  onClick={() => isPoseAccessible(pose) && handlePoseSelection(pose)}
-                                                >
-                                                  <div className="relative" style={{ paddingBottom: '100%' }}>
-                                                    <img
-                                                      src={`${config.data_url}/wizard/mappings400/${pose.image}`}
-                                                      className="absolute inset-0 w-full h-full object-cover"
-                                                      alt={pose.label}
-                                                    />
-                                                    {!isPoseAccessible(pose) && (
-                                                      <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                                                        <Lock className="w-8 h-8 text-white" />
-                                                      </div>
-                                                    )}
-                                                    {pose.license !== 'free' && (
-                                                      <div className="absolute top-2 right-2 bg-gradient-to-r from-yellow-500 to-orange-500 text-white text-xs px-2 py-1 rounded-full font-semibold shadow-lg">
-                                                        {pose.license === 'pro' ? 'PRO' : pose.license === 'enterprise' ? 'ENTERPRISE' : pose.license.toUpperCase()}
-                                                      </div>
-                                                    )}
-                                                  </div>
-                                                  <div className="p-3 bg-white dark:bg-gray-800">
-                                                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
-                                                      {pose.label}
-                                                    </p>
-                                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">
-                                                      {pose.description}
-                                                    </p>
-                                                    {(pose.no_framing || pose.no_scene) && (
-                                                      <div className="mt-2 space-y-1">
-                                                        {pose.no_framing && (
-                                                          <p className="text-xs text-orange-600 dark:text-orange-400">
-                                                            ⚠️ Framing ignored
-                                                          </p>
-                                                        )}
-                                                        {pose.no_scene && (
-                                                          <p className="text-xs text-orange-600 dark:text-orange-400">
-                                                            ⚠️ Scene ignored
-                                                          </p>
-                                                        )}
-                                                      </div>
-                                                    )}
-                                                  </div>
-                                                </div>
-                                              ))}
-                                            </div>
-                                          </div>
-                                        )}
-                                      </div>
-                                    </ScrollArea>
-                                  </DialogContent>
-                                </Dialog>
-                              )}
-                            </div>
-
-                            <div className="space-y-2">
-                              <Label>Outfits</Label>
-                              <div
-                                onClick={() => setShowClothesSelector(true)}
-                                className="flex items-center justify-center w-full cursor-pointer"
-                              >
-                                {sceneSpecs.clothes && selectedOutfit?.image ? (
-                                  <Card className="relative w-full max-w-[250px]">
-                                    <CardContent className="p-4">
-                                      <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
-                                        <img
-                                          src={`${config.data_url}/wizard/mappings400/${selectedOutfit.image}`}
-                                          className="absolute inset-0 w-full h-full object-cover rounded-md"
-                                          alt={selectedOutfit.label}
-                                        />
-                                        <Button
-                                          variant="destructive"
-                                          size="sm"
-                                          className="absolute bottom-2 right-2 w-8 h-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleSceneSpecChange('clothes', '');
-                                            setSelectedOutfit(null);
-                                          }}
-                                        >
-                                          <X className="w-4 h-4 text-white" />
-                                        </Button>
-                                        {selectedOutfit.license !== 'free' && (
-                                          <div className="absolute top-2 right-2 bg-gradient-to-r from-yellow-500 to-orange-500 text-white text-xs px-2 py-1 rounded-full font-semibold shadow-lg">
-                                            {selectedOutfit.license === 'pro' ? 'PRO' : selectedOutfit.license === 'enterprise' ? 'ENTERPRISE' : selectedOutfit.license.toUpperCase()}
-                                      </div>
-                                        )}
-                                      </div>
-                                      <p className="text-sm text-center font-medium mt-2">{selectedOutfit.label}</p>
-                                      <p className="text-xs text-center text-muted-foreground">{selectedOutfit.description}</p>
-                                    </CardContent>
-                                  </Card>
-                                ) : (
-                                  <Card className="relative w-full border max-w-[250px]">
-                                    <CardContent className="p-4">
-                                      <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
-                                        <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
-                                          Select outfits style
-                                        </div>
-                                      </div>
-                                    </CardContent>
-                                  </Card>
-                                )}
-                              </div>
-                              {showClothesSelector && (
-                                <Dialog open={showClothesSelector} onOpenChange={handleOutfitModalClose}>
-                                  <DialogContent className="max-w-6xl max-h-[80vh] overflow-hidden">
-                                    <DialogHeader>
-                                      <DialogTitle>Select Outfit Style</DialogTitle>
-                                      <DialogDescription>
-                                        Browse outfits by category. Some outfits may require a license.
-                                      </DialogDescription>
-                                    </DialogHeader>
-                                    
-                                    {/* Breadcrumb Navigation */}
-                                    <div className="flex items-center gap-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => setCurrentOutfitCategory(null)}
-                                        className="h-8 px-2 text-sm font-medium"
-                                      >
-                                        <Home className="w-4 h-4 mr-1" />
-                                        All Categories
-                                      </Button>
-                                      {currentOutfitCategory && (
-                                        <>
-                                          <div className="flex items-center gap-2">
-                                            <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                                              {currentOutfitCategory.property_category}
-                                            </span>
-                                          </div>
-                                          <div className="ml-auto">
-                                            <Button
-                                              variant="outline"
-                                              size="sm"
-                                              onClick={() => setCurrentOutfitCategory(null)}
-                                              className="h-8 px-3 text-sm"
-                                            >
-                                              <ArrowLeft className="w-4 h-4 mr-1" />
-                                              Back
-                                            </Button>
-                                          </div>
-                                        </>
-                                      )}
-                                    </div>
-
-                                    <ScrollArea className="h-[60vh]">
-                                      <div className="p-4">
-                                        {!currentOutfitCategory ? (
-                                          // Show category folders
-                                          <div className="space-y-4">
-                                            <div className="flex items-center justify-between">
-                                              <h3 className="text-lg font-semibold">Outfit Categories</h3>
-                                              <Badge variant="secondary">{outfitCategories.length} categories</Badge>
-                                            </div>
-                                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3">
-                                              {outfitCategories.map((category) => (
-                                                <div
-                                                  key={category.property_category}
-                                                  className="group cursor-pointer"
-                                                  onDoubleClick={() => setCurrentOutfitCategory(category)}
-                                                >
-                                                  <div className="flex flex-col items-center p-3 rounded-lg border-2 border-transparent transition-all duration-200 hover:border-purple-300 hover:bg-purple-50 dark:hover:bg-purple-950/20">
-                                                    <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg flex items-center justify-center mb-2 transition-transform duration-200 group-hover:scale-110">
-                                                      <Folder className="w-6 h-6 text-white" />
-                                                    </div>
-                                                    <span className="text-xs font-medium text-center text-gray-700 dark:text-gray-300 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
-                                                      {category.property_category}
-                                                    </span>
-                                                    <span className="text-xs text-muted-foreground mt-1">
-                                                      {category.data.length} outfits
-                                                    </span>
-                                                    <span className="text-xs text-muted-foreground">
-                                                      {category.data.filter(outfit => outfit.license === 'free').length} free
-                                                    </span>
-                                                  </div>
-                                                </div>
-                                              ))}
-                                            </div>
-                                          </div>
-                                        ) : (
-                                          // Show outfits in selected category
-                                          <div className="space-y-4">
-                                            <div className="flex items-center justify-between">
-                                              <div className="flex items-center gap-3">
-                                                <Button
-                                                  variant="ghost"
-                                                  size="sm"
-                                                  onClick={() => setCurrentOutfitCategory(null)}
-                                                  className="h-8 px-2"
-                                                >
-                                                  <ArrowLeft className="w-4 h-4 mr-1" />
-                                                  Back
-                                                </Button>
-                                                <h3 className="text-lg font-semibold">Outfits in {currentOutfitCategory.property_category}</h3>
-                                              </div>
-                                              <Badge variant="secondary">{currentOutfitCategory.data.length} outfits</Badge>
-                                            </div>
-                                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                                              {currentOutfitCategory.data.map((outfit) => (
-                                                <div
-                                                  key={outfit.label}
-                                                  className={`relative group cursor-pointer rounded-lg overflow-hidden border-2 transition-all duration-200 ${
-                                                    isOutfitAccessible(outfit)
-                                                      ? 'hover:border-purple-500 hover:shadow-lg'
-                                                      : 'opacity-60 cursor-not-allowed'
-                                                  }`}
-                                                  onClick={() => isOutfitAccessible(outfit) && handleOutfitSelection(outfit)}
-                                                >
-                                                  <div className="relative" style={{ paddingBottom: '100%' }}>
-                                                    <img
-                                                      src={`${config.data_url}/wizard/mappings400/${outfit.image}`}
-                                                      className="absolute inset-0 w-full h-full object-cover"
-                                                      alt={outfit.label}
-                                                    />
-                                                    {!isOutfitAccessible(outfit) && (
-                                                      <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                                                        <Lock className="w-8 h-8 text-white" />
-                                                      </div>
-                                                    )}
-                                                    {outfit.license !== 'free' && (
-                                                      <div className="absolute top-2 right-2 bg-gradient-to-r from-yellow-500 to-orange-500 text-white text-xs px-2 py-1 rounded-full font-semibold shadow-lg">
-                                                        {outfit.license === 'pro' ? 'PRO' : outfit.license === 'enterprise' ? 'ENTERPRISE' : outfit.license.toUpperCase()}
-                                                      </div>
-                                                    )}
-                                                  </div>
-                                                  <div className="p-3 bg-white dark:bg-gray-800">
-                                                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
-                                                      {outfit.label}
-                                                    </p>
-                                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">
-                                                      {outfit.description}
-                                                    </p>
-                                                    {(outfit.no_framing || outfit.no_scene) && (
-                                                      <div className="mt-2 space-y-1">
-                                                        {outfit.no_framing && (
-                                                          <p className="text-xs text-orange-600 dark:text-orange-400">
-                                                            ⚠️ Framing ignored
-                                                          </p>
-                                                        )}
-                                                        {outfit.no_scene && (
-                                                          <p className="text-xs text-orange-600 dark:text-orange-400">
-                                                            ⚠️ Scene ignored
-                                                          </p>
-                                                        )}
-                                                      </div>
-                                                    )}
-                                                  </div>
-                                                </div>
-                                              ))}
-                                            </div>
-                                          </div>
-                                        )}
-                                      </div>
-                                    </ScrollArea>
-                                  </DialogContent>
-                                </Dialog>
-                              )}
-                            </div>
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              {/* Advanced Tab */}
-              <TabsContent value="advanced" className="space-y-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg">
-                        <Settings className="w-5 h-5 text-white" />
-                      </div>
-                      Advanced Settings
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    <div className="space-y-2">
-                      <Label className="flex items-center gap-2">
-                        <div className="p-1.5 bg-gradient-to-br from-red-500 to-rose-600 rounded-md">
-                          <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728L5.636 5.636m12.728 12.728L18.364 5.636M5.636 18.364l12.728-12.728" />
-                          </svg>
-                        </div>
-                        Negative Prompt
-                      </Label>
-                      <div className="relative">
-                        <Textarea
-                          value={formData.negative_prompt || ''}
-                          onChange={(e) => handleInputChange('negative_prompt', e.target.value)}
-                          placeholder="Describe things you don't want to see. Optional, we take care of the essentials for you anyway."
-                          rows={3}
-                          className="pl-10 pr-4 border-2 focus:border-red-500/50 focus:ring-red-500/20 transition-all duration-200"
-                        />
-                        <div className="absolute left-3 top-3 text-muted-foreground">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                          </svg>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-6">
-                        <Label>SFW &lt;----&gt; NSFW</Label>
-                        <Slider
-                          value={[formData.nsfw_strength || 0]}
-                          onValueChange={([value]) => handleInputChange('nsfw_strength', value)}
-                          max={1}
-                          min={-1}
-                          step={0.1}
-                          className="w-full"
-                        />
-                        <div className="flex justify-between text-xs text-muted-foreground">
-                          <span>SFW (-1)</span>
-                          <span>NSFW (+1)</span>
-                        </div>
-                      </div>
-
-                      <div className="space-y-6">
-                        <Label>AI Consistency Strength</Label>
-                        <Slider
-                          value={[formData.lora_strength || 0.8]}
-                          onValueChange={([value]) => handleInputChange('lora_strength', value)}
-                          max={1.5}
-                          min={-0.5}
-                          step={0.1}
-                          className="w-full"
-                        />
-                        <div className="flex justify-between text-xs text-muted-foreground">
-                          <span>Weak (-0.5)</span>
-                          <span>Strong (+1.5)</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                          <Label>Model Consistency</Label>
-                          <p className="text-sm text-muted-foreground">
-                            If you trained your model for Model Consistency here (insert link to model training, to be done...), you can enable this feature here. Otherwise images are generated based on the description only.
-                          </p>
-                        </div>
-                        <Switch
-                          checked={formData.lora}
-                          onCheckedChange={(checked) => handleInputChange('lora', checked)}
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label>Seed (Optional)</Label>
-                        <Input
-                          value={formData.seed}
-                          onChange={(e) => handleInputChange('seed', e.target.value)}
-                          placeholder="Enter seed value for reproducible results"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label className="flex items-center gap-2">
-                          <div className="p-1.5 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-md">
-                            <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                            </svg>
-                          </div>
-                          Regenerated from
-                        </Label>
-                        <div className="relative">
-                          <Input
-                            value={formData.regenerated_from || '12345678-1111-2222-3333-caffebabe0123'}
-                            disabled
-                            className="pl-10 pr-4 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 cursor-not-allowed"
-                            placeholder="No regeneration source"
-                          />
-                          <div className="absolute left-3 top-3 text-muted-foreground">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                          </div>
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                          Shows the source image ID if this is a regenerated image. Used for maintaining consistency.
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-            </Tabs>
-          ) : (
-            // Easy Mode - Show only Scene content without tabs
-            <div className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg">
-                      <Camera className="w-5 h-5 text-white" />
-                    </div>
-                    Scene Specifications
-                    <Badge variant="secondary" className="ml-2 bg-gradient-to-r from-blue-500 to-cyan-500 text-white">
-                      Easy
-                    </Badge>
-                  </CardTitle>
-                  <p className="text-sm text-muted-foreground">
-                    Easy mode: Choose from the Presets above or use your own Prompt to describe the scene your influencer is in.
-                  </p>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {/* Text Input - First Option */}
-                  <div className="space-y-2">
-                    <Label className="flex items-center gap-2">
-                      <div className="p-1.5 bg-gradient-to-br from-green-500 to-emerald-600 rounded-md">
-                        <Sparkles className="w-3.5 h-3.5 text-white" />
-                      </div>
-                      Prompt
-                    </Label>
-                    <div className="relative">
-                      <Textarea
-                        value={formData.prompt}
-                        onChange={(e) => handleInputChange('prompt', e.target.value)}
-                        placeholder="Describe what you want to see... (e.g., 'Model is sitting at the beach and enjoys the sun' or 'white shirt and blue jeans')"
-                        rows={isAdvancedMode ? 3 : 7}
-                        className="pl-10 pr-4 border-2 focus:border-green-500/50 focus:ring-green-500/20 transition-all duration-200"
-                      />
-                      <div className="absolute left-3 top-3 text-muted-foreground">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                        </svg>
-                      </div>
-                    </div>
-
-                    {/* Use Prompt Only Toggle */}
-                    {
-                      isAdvancedMode && (
-                        <div className="flex items-center justify-between">
-                          <div className="space-y-0.5">
-                            <Label>Use Prompt Only</Label>
-                            <p className="text-sm text-muted-foreground">
-                              System will follow the prompt and ignore all other selections.
-                            </p>
-                          </div>
-                          <Switch
-                            checked={formData.usePromptOnly}
-                            onCheckedChange={(checked) => handleInputChange('usePromptOnly', checked)}
-                          />
-                        </div>
-                      )
-                    }
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-        </div>
-        <div className="space-y-3 hidden lg:block">
-          {/* Influencer Info */}
-          <Card>
-            <CardHeader className='pb-3'>
-              <CardTitle className="flex items-center gap-2 text-lg font-semibold">
-                <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg">
-                  <ImageIcon className="w-5 h-5 text-white" />
-                </div>
-                {modelData ? `${modelData.name_first} ${modelData.name_last}` : "Influencer"}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {modelData ? (
-                <>
-                  <div className="grid gap-4 items-start">
-                    <div className="flex flex-col items-center gap-4">
-                      <div className="w-48 h-48 bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg overflow-hidden flex-shrink-0">
-                        <img
-                          src={modelData.image_url}
-                          alt={`${modelData.name_first} ${modelData.name_last}`}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Select Another Influencer Button */}
-                  {modelData && (
-                    <Button
-                      variant="outline"
-                      onClick={() => setShowInfluencerSelector(true)}
-                      className="w-full gap-2 mt-4"
-                    >
-                      <Plus className="w-4 h-4" />
-                      Select Another Influencer
-                    </Button>
-                  )}
-
-                  {/* Influencer Selection */}
-                  {!modelData && (
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <h3 className="text-lg font-semibold">Select Influencer</h3>
-                        <Badge variant="secondary" className="text-xs">
-                          {filteredInfluencers.length} available
-                        </Badge>
-                      </div>
-
-                      {/* Search Section */}
-                      <div className="space-y-2">
-                        <div className="relative">
-                          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                          <Input
-                            type="text"
-                            placeholder="Search influencers..."
-                            value={searchTerm}
-                            onChange={(e) => handleSearchChange(e.target.value)}
-                            className="pl-10 pr-10"
-                          />
-                          {searchTerm && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
-                              onClick={handleSearchClear}
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
-                          )}
-                        </div>
-
-                        <Popover open={openFilter} onOpenChange={setOpenFilter}>
-                          <PopoverTrigger asChild>
-                            <Button variant="outline" className="gap-2 w-full">
-                              <Filter className="h-4 w-4" />
-                              {selectedSearchField.label}
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-[200px] p-0">
-                            <Command>
-                              <CommandList>
-                                {SEARCH_FIELDS.map((field) => (
-                                  <CommandItem
-                                    key={field.id}
-                                    onSelect={() => {
-                                      setSelectedSearchField(field);
-                                      setOpenFilter(false);
-                                    }}
-                                  >
-                                    {field.label}
-                                  </CommandItem>
-                                ))}
-                              </CommandList>
-                            </Command>
-                          </PopoverContent>
-                        </Popover>
-                      </div>
-
-                      {/* Influencers List */}
-                      <ScrollArea className="h-64">
-                        <div className="space-y-2">
-                          {filteredInfluencers.map((influencer) => (
-                            <Card key={influencer.id} className="group hover:shadow-lg transition-all duration-300 border-border/50 hover:border-ai-purple-500/20 cursor-pointer" onClick={() => handleUseInfluencer(influencer)}>
-                              <CardContent className="p-3">
-                                <div className="flex items-center space-x-3">
-                                  <div className="w-12 h-12 bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg overflow-hidden flex-shrink-0">
-                                    <img
-                                      src={influencer.image_url}
-                                      alt={`${influencer.name_first} ${influencer.name_last}`}
-                                      className="w-full h-full object-cover"
-                                    />
-                                  </div>
-                                  <div className="flex-1 min-w-0">
-                                    <h4 className="font-semibold text-sm group-hover:text-ai-purple-500 transition-colors truncate">
-                                      {influencer.name_first} {influencer.name_last}
-                                    </h4>
-                                    <p className="text-xs text-muted-foreground truncate">
-                                      {influencer.age_lifestyle}
-                                    </p>
-                                    <p className="text-xs text-muted-foreground truncate">
-                                      {influencer.influencer_type}
-                                    </p>
                                   </div>
                                 </div>
-                              </CardContent>
-                            </Card>
-                          ))}
-                        </div>
-                      </ScrollArea>
-                    </div>
-                  )}
-                </>
-              ) : (
-                <div className="w-full from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-700 rounded-lg flex items-center justify-center">
-                  <div className="text-center space-y-2">
-                    <ImageIcon className="w-12 h-12 text-slate-400 mx-auto" />
-                    <p className="text-slate-600 dark:text-slate-400 font-medium">
-                      Please select influencer below
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {/* Select Influencer Button - shown when no influencer is selected */}
-              {!modelData && (
-                <Button
-                  variant="outline"
-                  onClick={() => setShowInfluencerSelector(true)}
-                  className="w-full gap-2"
-                >
-                  <Plus className="w-4 h-4" />
-                  Select Influencer
-                </Button>
-              )}
-            </CardContent>
-          </Card>
-          <Button
-            variant="outline"
-            className="w-full mt-4 mb-8 font-semibold text-md bg-gradient-to-r from-blue-700 to-purple-700 text-white shadow-lg hover:from-blue-800 hover:to-purple-800"
-            onClick={() => setShowHistory(v => !v)}
-          >
-            {showHistory ? 'Hide history' : 'Show history'}
-          </Button>
-        </div>
-      </div>
-      {activeTab === 'scene' && isAdvancedMode && (
-        <Card className='hidden lg:block'>
-          <CardContent className='pt-2'>
-            <div className="hidden lg:grid grid-cols-3 xl:grid-cols-6 gap-4">
-              <div className="space-y-2">
-                <Label>Framing</Label>
-                <Select
-                  value={sceneSpecs.framing}
-                  onValueChange={(value) => handleSceneSpecChange('framing', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select framing" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {framingOptions.map((option) => (
-                      <SelectItem key={option.label} value={option.label}>{option.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <div
-                  onClick={() => setShowFramingSelector(true)}
-                  className="flex items-center justify-center w-full cursor-pointer"
-                >
-                  {sceneSpecs.framing && framingOptions.find(option => option.label === sceneSpecs.framing)?.image ? (
-                    <Card className="relative w-full max-w-[200px]">
-                      <CardContent className="p-4">
-                        <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
-                          <img
-                            src={`${config.data_url}/wizard/mappings400/${framingOptions.find(option => option.label === sceneSpecs.framing)?.image}`}
-                            className="absolute inset-0 w-full h-full object-cover rounded-md"
-                          />
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            className="absolute bottom-2 right-2 w-8 h-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleSceneSpecChange('framing', '');
-                            }}
-                          >
-                            <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                          </Button>
-                        </div>
-                        <p className="text-sm text-center font-medium mt-2">{framingOptions.find(option => option.label === sceneSpecs.framing)?.label}</p>
-                      </CardContent>
-                    </Card>
-                  ) : (
-                    <Card className="relative w-full border max-w-[200px]">
-                      <CardContent className="p-4">
-                        <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
-                          <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
-                            Select framing style
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )}
-                </div>
-                {showFramingSelector && (
-                  <OptionSelector
-                    options={framingOptions}
-                    onSelect={(label) => handleSceneSpecChange('framing', label)}
-                    onClose={() => setShowFramingSelector(false)}
-                    title="Select Framing Style"
-                  />
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label>Rotation</Label>
-                <Select
-                  value={sceneSpecs.rotation}
-                  onValueChange={(value) => handleSceneSpecChange('rotation', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select rotation" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {rotationOptions.map((option) => (
-                      <SelectItem key={option.label} value={option.label}>{option.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <div
-                  onClick={() => setShowRotationSelector(true)}
-                  className="flex items-center justify-center w-full cursor-pointer"
-                >
-                  {sceneSpecs.rotation && rotationOptions.find(option => option.label === sceneSpecs.rotation)?.image ? (
-                    <Card className="relative w-full max-w-[200px]">
-                      <CardContent className="p-4">
-                        <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
-                          <img
-                            src={`${config.data_url}/wizard/mappings400/${rotationOptions.find(option => option.label === sceneSpecs.rotation)?.image}`}
-                            className="absolute inset-0 w-full h-full object-cover rounded-md"
-                          />
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            className="absolute bottom-2 right-2 w-8 h-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleSceneSpecChange('rotation', '');
-                            }}
-                          >
-                            <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                          </Button>
-                        </div>
-                        <p className="text-sm text-center font-medium mt-2">{rotationOptions.find(option => option.label === sceneSpecs.rotation)?.label}</p>
-                      </CardContent>
-                    </Card>
-                  ) : (
-                    <Card className="relative w-full border max-w-[200px]">
-                      <CardContent className="p-4">
-                        <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
-                          <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
-                            Select rotation style
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )}
-                </div>
-                {showRotationSelector && (
-                  <OptionSelector
-                    options={rotationOptions}
-                    onSelect={(label) => handleSceneSpecChange('rotation', label)}
-                    onClose={() => setShowRotationSelector(false)}
-                    title="Select Rotation Style"
-                  />
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label>Lighting Preset</Label>
-                <Select
-                  value={sceneSpecs.lighting_preset}
-                  onValueChange={(value) => handleSceneSpecChange('lighting_preset', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select lighting preset" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {lightingOptions.map((option) => (
-                      <SelectItem key={option.label} value={option.label}>{option.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <div
-                  onClick={() => setShowLightingSelector(true)}
-                  className="flex items-center justify-center w-full cursor-pointer"
-                >
-                  {sceneSpecs.lighting_preset && lightingOptions.find(option => option.label === sceneSpecs.lighting_preset)?.image ? (
-                    <Card className="relative w-full max-w-[200px]">
-                      <CardContent className="p-4">
-                        <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
-                          <img
-                            src={`${config.data_url}/wizard/mappings400/${lightingOptions.find(option => option.label === sceneSpecs.lighting_preset)?.image}`}
-                            className="absolute inset-0 w-full h-full object-cover rounded-md"
-                          />
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            className="absolute bottom-2 right-2 w-8 h-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleSceneSpecChange('lighting_preset', '');
-                            }}
-                          >
-                            <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                          </Button>
-                        </div>
-                        <p className="text-sm text-center font-medium mt-2">{lightingOptions.find(option => option.label === sceneSpecs.lighting_preset)?.label}</p>
-                      </CardContent>
-                    </Card>
-                  ) : (
-                    <Card className="relative w-full border max-w-[200px]">
-                      <CardContent className="p-4">
-                        <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
-                          <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
-                            Select lighting style
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )}
-                </div>
-                {showLightingSelector && (
-                  <OptionSelector
-                    options={lightingOptions}
-                    onSelect={(label) => handleSceneSpecChange('lighting_preset', label)}
-                    onClose={() => setShowLightingSelector(false)}
-                    title="Select Lighting Style"
-                  />
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label>Scene Setting</Label>
-                <div
-                  onClick={() => setShowSceneSettingsSelector(true)}
-                  className="flex items-center justify-center w-full cursor-pointer"
-                >
-                  {sceneSpecs.scene_setting && selectedScene?.image ? (
-                    <Card className="relative w-full max-w-[200px]">
-                      <CardContent className="p-4">
-                        <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
-                          <img
-                            src={`${config.data_url}/wizard/mappings400/${selectedScene.image}`}
-                            className="absolute inset-0 w-full h-full object-cover rounded-md"
-                            alt={selectedScene.label}
-                          />
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            className="absolute bottom-2 right-2 w-8 h-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleSceneSpecChange('scene_setting', '');
-                              setSelectedScene(null);
-                            }}
-                          >
-                            <X className="w-4 h-4 text-white" />
-                          </Button>
-                          {selectedScene.license !== 'free' && (
-                            <div className="absolute top-2 right-2 bg-gradient-to-r from-yellow-500 to-orange-500 text-white text-xs px-2 py-1 rounded-full font-semibold shadow-lg">
-                              {selectedScene.license === 'pro' ? 'PRO' : selectedScene.license === 'enterprise' ? 'ENTERPRISE' : selectedScene.license.toUpperCase()}
-                        </div>
-                          )}
-                        </div>
-                        <p className="text-sm text-center font-medium mt-2">{selectedScene.label}</p>
-                      </CardContent>
-                    </Card>
-                  ) : (
-                    <Card className="relative w-full border max-w-[200px]">
-                      <CardContent className="p-4">
-                        <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
-                          <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
-                            Select scene setting
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )}
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Pose</Label>
-                <div
-                  onClick={() => setShowPoseSelector(true)}
-                  className="flex items-center justify-center w-full cursor-pointer"
-                >
-                  {sceneSpecs.pose && selectedPose?.image ? (
-                    <Card className="relative w-full max-w-[200px]">
-                      <CardContent className="p-4">
-                        <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
-                          <img
-                            src={`${config.data_url}/wizard/mappings400/${selectedPose.image}`}
-                            className="absolute inset-0 w-full h-full object-cover rounded-md"
-                            alt={selectedPose.label}
-                          />
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            className="absolute bottom-2 right-2 w-8 h-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleSceneSpecChange('pose', '');
-                              setSelectedPose(null);
-                            }}
-                          >
-                            <X className="w-4 h-4 text-white" />
-                          </Button>
-                          {selectedPose.license !== 'free' && (
-                            <div className="absolute top-2 right-2 bg-gradient-to-r from-yellow-500 to-orange-500 text-white text-xs px-2 py-1 rounded-full font-semibold shadow-lg">
-                              {selectedPose.license === 'pro' ? 'PRO' : selectedPose.license === 'enterprise' ? 'ENTERPRISE' : selectedPose.license.toUpperCase()}
-                        </div>
-                          )}
-                        </div>
-                        <p className="text-sm text-center font-medium mt-2">{selectedPose.label}</p>
-                      </CardContent>
-                    </Card>
-                  ) : (
-                    <Card className="relative w-full border max-w-[200px]">
-                      <CardContent className="p-4">
-                        <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
-                          <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
-                            Select pose style
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )}
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Outfits</Label>
-                <div
-                  onClick={() => setShowClothesSelector(true)}
-                  className="flex items-center justify-center w-full cursor-pointer"
-                >
-                  {sceneSpecs.clothes && selectedOutfit?.image ? (
-                    <Card className="relative w-full max-w-[200px]">
-                      <CardContent className="p-4">
-                        <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
-                          <img
-                            src={`${config.data_url}/wizard/mappings400/${selectedOutfit.image}`}
-                            className="absolute inset-0 w-full h-full object-cover rounded-md"
-                            alt={selectedOutfit.label}
-                          />
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            className="absolute bottom-2 right-2 w-8 h-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleSceneSpecChange('clothes', '');
-                              setSelectedOutfit(null);
-                            }}
-                          >
-                            <X className="w-4 h-4 text-white" />
-                          </Button>
-                          {selectedOutfit.license !== 'free' && (
-                            <div className="absolute top-2 right-2 bg-gradient-to-r from-yellow-500 to-orange-500 text-white text-xs px-2 py-1 rounded-full font-semibold shadow-lg">
-                              {selectedOutfit.license === 'pro' ? 'PRO' : selectedOutfit.license === 'enterprise' ? 'ENTERPRISE' : selectedOutfit.license.toUpperCase()}
-                        </div>
-                          )}
-                        </div>
-                        <p className="text-sm text-center font-medium mt-2">{selectedOutfit.label}</p>
-                      </CardContent>
-                    </Card>
-                  ) : (
-                    <Card className="relative w-full border max-w-[200px]">
-                      <CardContent className="p-4">
-                        <div className="relative w-full group text-center" style={{ paddingBottom: '100%' }}>
-                          <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
-                            Select outfits style
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )}
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Generated Image Results Card */}
-      {generatedTaskIds.length > 0 && (
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <div className="p-2 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg">
-                  <Image className="w-5 h-5 text-white" />
-                </div>
-                Generated Images
-              </CardTitle>
-              <p className="text-sm text-muted-foreground">
-                Your generated images will appear here once the task is completed.
-              </p>
-            </CardHeader>
-            <CardContent>
-              {
-                generatedImages.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
-                    {generatedImages
-                      .filter(image => image.file_path && image.system_filename === image.file_path.split('/').pop())
-                      .map((image, index) => (
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <div className="text-xs text-gray-400">
+                                  {image.generation_status === "processing" ? "Processing" : "Pending"}
+                                </div>
+                                <div className="text-xs text-blue-500">Generating...</div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ) : (
+                          // Completed Database Image Card with full functionality
                         <Card
                           key={image.id}
-                          className={`group hover:shadow-xl transition-all duration-300 border-border/50 hover:border-blue-500/50 backdrop-blur-sm bg-gradient-to-br from-yellow-50/20 to-orange-50/20 dark:from-yellow-950/5 dark:to-orange-950/5 hover:from-blue-50/30 hover:to-purple-50/30 dark:hover:from-blue-950/10 dark:hover:to-purple-950/10 ${renamingFile === image.system_filename ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}
-                          onContextMenu={(e) => renamingFile !== image.system_filename && handleFileContextMenu(e, image)}
+                          className="group hover:shadow-xl transition-all duration-300 border-border/50 hover:border-blue-500/50 backdrop-blur-sm bg-gradient-to-br from-yellow-50/20 to-orange-50/20 dark:from-yellow-950/5 dark:to-orange-950/5 hover:from-blue-50/30 hover:to-purple-50/30 dark:hover:from-blue-950/10 dark:hover:to-purple-950/10 cursor-pointer"
                         >
                           <CardContent className="p-4">
-                            {/* Top Row: File Type, Ratings, Favorite */}
+                            {/* Top Row: Task Info, Discrete Info, Clickable Stars, Clickable Heart */}
                             <div className="flex items-center justify-between mb-3">
-                              {/* File Type Icon */}
-                              <div className="rounded-full w-8 h-8 flex items-center justify-center shadow-md bg-gradient-to-br from-blue-500 to-purple-600">
-                                <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="currentColor">
-                                  <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z" />
-                                  <circle cx="8.5" cy="8.5" r="1.5" opacity="0.8" />
-                                </svg>
-                              </div>
+                              {/* Task and Image Info */}
+                              <div className="flex items-center gap-2">
+                                <div className="text-xs text-gray-500 font-medium">
+                                  Task #{image.task_id} - Image #{image.image_sequence_number || 1}
+                                </div>
+                                <div
+                                  className="opacity-60 hover:opacity-100 cursor-pointer transition-opacity duration-200"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    // Load the most up-to-date data immediately
+                                    const currentImage =
+                                      generatedImages.find(
+                                        (img) => img.id === image.id
+                                      ) || image;
 
-                              {/* Rating Stars */}
-                              <div className="flex gap-1">
+                                    setEditingImageData({
+                                      user_filename:
+                                        currentImage.user_filename || "",
+                                      user_notes: currentImage.user_notes || "",
+                                      user_tags: Array.isArray(
+                                        currentImage.user_tags
+                                      )
+                                        ? currentImage.user_tags.join(", ")
+                                        : currentImage.user_tags || "",
+                                      rating: currentImage.rating || 0,
+                                      favorite: currentImage.favorite || false,
+                                    });
+                                    setTempRating(currentImage.rating || 0);
+
+                                    setImageInfoModal({
+                                      open: true,
+                                      image: currentImage,
+                                    });
+                                  }}
+                                  title="Image Details"
+                                >
+                                  <Info className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                                </div>
+                              </div>
+                              {/* Clickable rating stars */}
+                              <div className="flex gap-0.5">
                                 {[1, 2, 3, 4, 5].map((star) => (
                                   <svg
                                     key={star}
-                                    className={`w-4 h-4 cursor-pointer hover:scale-110 transition-transform ${star <= (image.rating || 0) ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
+                                    className={`w-4 h-4 cursor-pointer transition-all duration-150 hover:scale-110 ${
+                                      star <= (image.rating || 0)
+                                        ? "text-yellow-400 fill-yellow-400"
+                                        : "text-white fill-white stroke-gray-300 stroke-1"
+                                    }`}
                                     viewBox="0 0 24 24"
-                                    onClick={(e) => {
+                                    onClick={async (e) => {
                                       e.stopPropagation();
-                                      updateRating(image.system_filename, star);
+                                      const currentRating = image.rating || 0;
+                                      const newRating =
+                                        star === 1 && currentRating === 1
+                                          ? 0
+                                          : star;
+
+                                      // Update immediately in local state
+                                      setGeneratedImages((prev) =>
+                                        prev.map((img) =>
+                                          img.id === image.id
+                                            ? { ...img, rating: newRating }
+                                            : img
+                                        )
+                                      );
+
+                                      // Save to backend
+                                      try {
+                                        const response = await fetch(
+                                          `${config.supabase_server_url}/generated_images?id=eq.${image.id}`,
+                                          {
+                                            method: "PATCH",
+                                            headers: {
+                                              "Content-Type":
+                                                "application/json",
+                                              Authorization:
+                                                "Bearer WeInfl3nc3withAI",
+                                            },
+                                            body: JSON.stringify({
+                                              user_filename:
+                                                image.user_filename || "",
+                                              user_notes:
+                                                image.user_notes || "",
+                                              user_tags: image.user_tags || [],
+                                              rating: newRating,
+                                              favorite: image.favorite || false,
+                                            }),
+                                          }
+                                        );
+                                        if (!response.ok) {
+                                          throw new Error(
+                                            "Failed to save rating"
+                                          );
+                                        }
+                                      } catch (error) {
+                                        console.error(
+                                          "Failed to save rating:",
+                                          error
+                                        );
+                                      }
                                     }}
                                   >
                                     <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
                                   </svg>
                                 ))}
                               </div>
+                              {/* Clickable favorite heart - old style */}
+                              <div
+                                className="cursor-pointer transition-all duration-200 hover:scale-110"
+                                onClick={async (e) => {
+                                  e.stopPropagation();
+                                  const newFavorite = !image.favorite;
 
-                              {/* Favorite Heart */}
-                              <div>
-                                {image.favorite ? (
-                                  <div
-                                    className="bg-red-500 rounded-full w-8 h-8 flex items-center justify-center cursor-pointer hover:bg-red-600 transition-colors"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      updateFavorite(image.system_filename, false);
-                                    }}
-                                  >
-                                    <svg className="w-4 h-4 text-white fill-current" viewBox="0 0 24 24">
-                                      <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-                                    </svg>
-                                  </div>
-                                ) : (
-                                  <div
-                                    className="bg-black/50 rounded-full w-8 h-8 flex items-center justify-center cursor-pointer hover:bg-black/70 transition-colors"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      updateFavorite(image.system_filename, true);
-                                    }}
-                                  >
-                                    <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                      <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-                                    </svg>
-                                  </div>
-                                )}
+                                  // Update immediately in local state
+                                  setGeneratedImages((prev) =>
+                                    prev.map((img) =>
+                                      img.id === image.id
+                                        ? { ...img, favorite: newFavorite }
+                                        : img
+                                    )
+                                  );
+
+                                  // Save to backend
+                                  try {
+                                    const response = await fetch(
+                                      `${config.supabase_server_url}/generated_images?id=eq.${image.id}`,
+                                      {
+                                        method: "PATCH",
+                                        headers: {
+                                          "Content-Type": "application/json",
+                                          Authorization:
+                                            "Bearer WeInfl3nc3withAI",
+                                        },
+                                        body: JSON.stringify({
+                                          user_filename:
+                                            image.user_filename || "",
+                                          user_notes: image.user_notes || "",
+                                          user_tags: image.user_tags || [],
+                                          rating: image.rating || 0,
+                                          favorite: newFavorite,
+                                        }),
+                                      }
+                                    );
+                                    if (!response.ok) {
+                                      throw new Error(
+                                        "Failed to save favorite"
+                                      );
+                                    }
+                                  } catch (error) {
+                                    console.error(
+                                      "Failed to save favorite:",
+                                      error
+                                    );
+                                  }
+                                }}
+                                title={
+                                  image.favorite
+                                    ? "Remove from favorites"
+                                    : "Add to favorites"
+                                }
+                              >
+                                <svg
+                                  className={`w-5 h-5 transition-colors duration-200 ${
+                                    image.favorite
+                                      ? "text-red-500 fill-red-500"
+                                      : "text-gray-400 fill-none stroke-gray-400"
+                                  }`}
+                                  viewBox="0 0 24 24"
+                                  fill={
+                                    image.favorite ? "currentColor" : "none"
+                                  }
+                                  stroke="currentColor"
+                                  strokeWidth="2"
+                                >
+                                  <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                                </svg>
                               </div>
                             </div>
-
                             {/* Image */}
-                            <div className="relative w-full group mb-4" style={{ paddingBottom: '100%' }}>
+                            <div
+                              className="relative w-full group mb-4"
+                              style={{ paddingBottom: "100%" }}
+                            >
                               <img
                                 src={`${config.data_url}/${image.file_path}`}
                                 alt={image.system_filename}
                                 className="absolute inset-0 w-full h-full object-cover rounded-md shadow-sm cursor-pointer transition-all duration-200 hover:scale-105"
-                                onClick={() => setDetailedImageModal({ open: true, image })}
+                                onClick={() =>
+                                  setFullSizeImageModal({
+                                    isOpen: true,
+                                    imageUrl: `${config.data_url}/${image.file_path}`,
+                                    imageName: image.system_filename,
+                                  })
+                                }
                                 onError={(e) => {
-                                  const target = e.target as HTMLImageElement;
-                                  target.style.display = 'none';
+                                  (e.target as HTMLImageElement).style.display =
+                                    "none";
                                 }}
                               />
                               {/* Zoom Overlay */}
@@ -5391,7 +3396,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
                                       setFullSizeImageModal({
                                         isOpen: true,
                                         imageUrl: `${config.data_url}/${image.file_path}`,
-                                        imageName: decodeName(image.system_filename)
+                                        imageName: image.system_filename,
                                       });
                                     }}
                                   >
@@ -5400,302 +3405,1186 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
                                 </div>
                               </div>
                             </div>
-
-                            {/* User Notes */}
-                            {editingNotes === image.system_filename ? (
-                              <div className="mb-3 space-y-2">
-                                <Input
-                                  value={notesInput}
-                                  onChange={(e) => setNotesInput(e.target.value)}
-                                  placeholder="Add notes..."
-                                  className="text-sm"
-                                  onKeyDown={(e) => {
-                                    if (e.key === 'Enter') {
-                                      updateUserNotes(image.system_filename, notesInput);
-                                      setEditingNotes(null);
-                                      setNotesInput('');
-                                    } else if (e.key === 'Escape') {
-                                      setEditingNotes(null);
-                                      setNotesInput('');
-                                    }
-                                  }}
-                                  autoFocus
-                                />
-                                <div className="flex gap-1">
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="h-6 text-xs"
-                                    onClick={() => {
-                                      updateUserNotes(image.system_filename, notesInput);
-                                      setEditingNotes(null);
-                                      setNotesInput('');
-                                    }}
-                                  >
-                                    Save
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="h-6 text-xs"
-                                    onClick={() => {
-                                      setEditingNotes(null);
-                                      setNotesInput('');
-                                    }}
-                                  >
-                                    Cancel
-                                  </Button>
-                                </div>
-                              </div>
-                            ) : (
-                              <div className="mb-3">
-                                {image.user_notes ? (
-                                  <p
-                                    className="text-sm text-gray-700 dark:text-gray-300 line-clamp-2 cursor-pointer hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
-                                    onClick={() => {
-                                      setEditingNotes(image.system_filename);
-                                      setNotesInput(image.user_notes || '');
-                                    }}
-                                  >
-                                    {image.user_notes}
-                                  </p>
-                                ) : (
-                                  <div
-                                    className="text-sm text-gray-500 dark:text-gray-400 cursor-pointer hover:text-gray-700 dark:hover:text-gray-300"
-                                    onClick={() => {
-                                      setEditingNotes(image.system_filename);
-                                      setNotesInput('');
-                                    }}
-                                  >
-                                    Add notes
-                                  </div>
-                                )}
-                              </div>
-                            )}
-
-                            {/* User Tags */}
-                            {image.user_tags && image.user_tags.length > 0 && (
-                              <div className="mb-3 flex flex-wrap gap-1">
-                                {image.user_tags.map((tag: string, index: number) => (
-                                  <Badge
-                                    key={index}
-                                    variant="secondary"
-                                    className="text-xs flex items-center gap-1 cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/20 transition-colors"
-                                  >
-                                    {tag.trim()}
-                                    <button
-                                      className="ml-1 hover:text-red-500 transition-colors"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        const updatedTags = image.user_tags?.filter((_: string, i: number) => i !== index) || [];
-                                        updateUserTags(image.system_filename, updatedTags);
-                                      }}
-                                    >
-                                      ×
-                                    </button>
-                                  </Badge>
-                                ))}
-                              </div>
-                            )}
-
-                            {/* Editable User Tags */}
-                            <div className="mb-3">
-                              {editingTags === image.system_filename ? (
-                                <div className="space-y-2">
-                                  <Input
-                                    value={tagsInput}
-                                    onChange={(e) => setTagsInput(e.target.value)}
-                                    placeholder="Add tags (comma separated)..."
-                                    className="text-sm"
-                                    onKeyDown={(e) => {
-                                      if (e.key === 'Enter') {
-                                        const newTags = tagsInput.trim() ? tagsInput.split(',').map(tag => tag.trim()).filter(tag => tag) : [];
-                                        const existingTags = image.user_tags || [];
-                                        const combinedTags = [...existingTags, ...newTags];
-                                        const uniqueTags = [...new Set(combinedTags)];
-                                        updateUserTags(image.system_filename, uniqueTags);
-                                        setEditingTags(null);
-                                        setTagsInput('');
-                                      } else if (e.key === 'Escape') {
-                                        setEditingTags(null);
-                                        setTagsInput('');
-                                      }
-                                    }}
-                                    autoFocus
-                                  />
-                                  <div className="flex gap-1">
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      className="h-6 text-xs"
-                                      onClick={() => {
-                                        const newTags = tagsInput.trim() ? tagsInput.split(',').map(tag => tag.trim()).filter(tag => tag) : [];
-                                        const existingTags = image.user_tags || [];
-                                        const combinedTags = [...existingTags, ...newTags];
-                                        const uniqueTags = [...new Set(combinedTags)];
-                                        updateUserTags(image.system_filename, uniqueTags);
-                                        setEditingTags(null);
-                                        setTagsInput('');
-                                      }}
-                                    >
-                                      Add
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      className="h-6 text-xs"
-                                      onClick={() => {
-                                        setEditingTags(null);
-                                        setTagsInput('');
-                                      }}
-                                    >
-                                      Cancel
-                                    </Button>
-                                  </div>
-                                </div>
-                              ) : (
-                                <div
-                                  className="text-sm text-gray-500 dark:text-gray-400 cursor-pointer hover:text-gray-700 dark:hover:text-gray-300"
-                                  onClick={() => {
-                                    setEditingTags(image.system_filename);
-                                    setTagsInput('');
-                                  }}
-                                >
-                                  Add tags
-                                </div>
-                              )}
-                            </div>
-
-                            {/* Filename and Date */}
-                            <div className="space-y-2">
-                              {editingFile === image.system_filename && renamingFile !== image.system_filename ? (
-                                <div className="w-full">
-                                  <div className="relative">
-                                    <Input
-                                      value={editingFileName}
-                                      onChange={(e) => setEditingFileName(e.target.value)}
-                                      onKeyDown={(e) => {
-                                        if (e.key === 'Enter') {
-                                          handleFileRename(image.system_filename, editingFileName);
-                                        } else if (e.key === 'Escape') {
-                                          setEditingFile(null);
-                                          setEditingFileName('');
-                                        }
-                                      }}
-                                      onBlur={() => handleFileRename(image.system_filename, editingFileName)}
-                                      className="text-sm h-8"
-                                      autoFocus
-                                    />
-                                  </div>
-                                </div>
-                              ) : (
-                                <>
-                                  <h3 className="font-medium text-sm text-gray-800 dark:text-gray-200 truncate">
-                                    {decodeName(image.system_filename)}
-                                  </h3>
-                                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                                    <Calendar className="w-3 h-3" />
-                                    {new Date(image.created_at).toLocaleDateString()}
-                                  </div>
-                                </>
-                              )}
-                            </div>
-
-                            {/* Action Buttons */}
+                            {/* Action Buttons - Single Row */}
                             <div className="flex gap-1.5 mt-3">
                               <Button
                                 size="sm"
                                 variant="outline"
-                                className="flex-1 h-8 text-xs font-medium hover:bg-purple-700 hover:border-purple-500 transition-colors"
+                                className="h-8 w-8 p-0 bg-gradient-to-r from-purple-500 to-indigo-600 text-white border-purple-500 hover:from-purple-600 hover:to-indigo-700 hover:border-purple-600 transition-all duration-200 shadow-sm"
                                 onClick={() => handleDownload(image)}
+                                title="Download"
                               >
-                                <Download className="w-3 h-3 mr-1.5" />
-                                <span className="hidden sm:inline">Download</span>
+                                <Download className="w-3 h-3" />
                               </Button>
                               <Button
                                 size="sm"
                                 variant="outline"
-                                className="h-8 w-8 p-0 hover:bg-green-50 hover:bg-green-700 hover:border-green-500 transition-colors"
-                                onClick={() => handleShare(image.system_filename)}
+                                className="h-8 w-8 p-0 bg-gradient-to-r from-blue-500 to-purple-600 text-white border-blue-500 hover:from-blue-600 hover:to-purple-700 hover:border-blue-600 transition-all duration-200 shadow-sm"
+                                onClick={() => handleEdit(image)}
+                                title="Edit this image with professional tools"
+                              >
+                                <Edit3 className="w-3 h-3" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-8 w-8 p-0 bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:from-green-600 hover:to-emerald-700 border-0 shadow-md hover:shadow-lg transition-all duration-300"
+                                onClick={() => handleRegenerate(image)}
+                                title="Regenerate"
+                              >
+                                <RotateCcw className="w-3 h-3" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-8 w-8 p-0 bg-gradient-to-r from-teal-500 to-cyan-600 text-white border-teal-500 hover:from-teal-600 hover:to-cyan-700 hover:border-teal-600 transition-all duration-200 shadow-sm"
+                                onClick={() =>
+                                  handleShare(image.system_filename)
+                                }
+                                title="Share"
                               >
                                 <Share className="w-3 h-3" />
                               </Button>
                               <Button
                                 size="sm"
                                 variant="outline"
-                                className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-amber-500 hover:border-amber-300 transition-colors"
+                                className="h-8 w-8 p-0 bg-gradient-to-r from-red-600 to-red-800 text-white border-red-600 hover:from-red-700 hover:to-red-900 hover:border-red-700 transition-all duration-200 shadow-sm"
                                 onClick={() => handleFileDelete(image)}
+                                title="Delete"
                               >
                                 <Trash2 className="w-3 h-3" />
                               </Button>
                             </div>
-                            <div className="flex gap-1.5 mt-3">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="flex-1 h-8 text-xs font-medium bg-gradient-to-r from-blue-500 to-purple-600 text-white border-blue-500 hover:from-blue-600 hover:to-purple-700 hover:border-blue-600 transition-all duration-200 shadow-sm"
-                                onClick={() => handleEdit(image)}
-                                title="Edit this image with professional tools"
-                              >
-                                <Edit3 className="w-3 h-3 mr-1.5" />
-                                <span className="hidden sm:inline">Edit</span>
-                              </Button>
-                            </div>
-
-                            {/* Regenerate Button - Only for non-uploaded and non-edited images */}
-                            {!(image.model_version === 'edited' || image.quality_setting === 'edited') && !image.task_id?.startsWith('upload_') && (
-                              <div className="mt-2">
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="w-full h-8 text-xs font-medium bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white border-0 shadow-md hover:shadow-lg transition-all duration-300"
-                                  onClick={() => handleRegenerate(image)}
-                                  disabled={regeneratingImages.has(image.system_filename)}
-                                >
-                                  {regeneratingImages.has(image.system_filename) ? (
-                                    <div className="flex items-center gap-2">
-                                      <RotateCcw className="w-3 h-3 animate-spin" />
-                                      <span>Regenerating...</span>
-                                    </div>
-                                  ) : (
-                                    <div className="flex items-center gap-2">
-                                      <RotateCcw className="w-3 h-3" />
-                                      <span>Regenerate</span>
-                                    </div>
-                                  )}
-                                </Button>
-                              </div>
-                            )}
                           </CardContent>
                         </Card>
-                      ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <Image className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                    <p>No generated images found yet.</p>
-                    <p className="text-sm">Images will appear here once generation is complete.</p>
-                  </div>
-                )
-              }
-            </CardContent>
-          </Card>
-        </div>
-      )}
+                      )}
+                    </div>
+                  ))}
+                </div>
 
-      {/* Influencer Selector Dialog */}
+                {/* History Card - always available when toggled, regardless of generation state */}
+                {showHistory && (
+                  <div className="pt-6">
+                    <HistoryCard userId={userData.id} />
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                <div className="space-y-8">
+                  {/* Show empty state only if no generation is in progress */}
+                  {!isGenerating && placeholderImages.length === 0 && (
+                    <div
+                      className={`flex items-center justify-center text-gray-400 transition-all duration-300 ${
+                        showHistory ? "h-32" : "h-64"
+                      }`}
+                    >
+                      <div className="text-center">
+                        <ImageIcon className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                        <p>No images generated yet</p>
+                        <p className="text-sm">
+                          Your generated images will appear here once you start
+                          generation.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* History Card - positioned after the main content block */}
+                {showHistory && (
+                  <div className="pt-6">
+                    <HistoryCard userId={userData.id} />
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Right Sidebar */}
+        <div className="w-80 border-l flex flex-col">
+          <ScrollArea className="flex-1">
+            <div className="p-4 space-y-6">
+              {/* Influencer Section */}
+              <Card className="border-2 border-purple-500/20 bg-gradient-to-br from-purple-50/30 to-blue-50/30 dark:from-purple-950/10 dark:to-blue-950/10 shadow-xl">
+                <Collapsible
+                  open={isInfluencerOpen}
+                  onOpenChange={setIsInfluencerOpen}
+                >
+                  <CollapsibleTrigger asChild>
+                    <CardHeader className="pb-3 cursor-pointer hover:bg-purple-50/50 dark:hover:bg-purple-950/20 transition-colors">
+                      <CardTitle className="text-sm font-medium flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          {modelData && !isInfluencerOpen ? (
+                            <>
+                              <div className="w-6 h-6 rounded-full overflow-hidden bg-gray-700">
+                                <img
+                                  src={cleanImageUrl(modelData.image_url) || ""}
+                                  alt={`${modelData.name_first} ${modelData.name_last}`}
+                                  className="w-full h-full object-cover"
+                                />
+                              </div>
+                              <span>
+                                {modelData.name_first} {modelData.name_last}
+                              </span>
+                            </>
+                          ) : (
+                            <>
+                              <User className="w-4 h-4" />
+                              <span>
+                                {modelData
+                                  ? `${modelData.name_first} ${modelData.name_last}`
+                                  : "Influencer"}
+                              </span>
+                            </>
+                          )}
+                        </div>
+                        <ChevronDown
+                          className={`w-4 h-4 transition-transform ${
+                            isInfluencerOpen ? "rotate-180" : ""
+                          }`}
+                        />
+                      </CardTitle>
+                    </CardHeader>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <CardContent className="space-y-4">
+                      {modelData ? (
+                        <>
+                          <div className="aspect-square bg-gray-700 rounded-lg overflow-hidden">
+                            <img
+                              src={cleanImageUrl(modelData.image_url) || ""}
+                              alt={`${modelData.name_first} ${modelData.name_last}`}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                          <div className="text-center space-y-2">
+                            <p className="text-sm font-medium text-gray-900 dark:text-white">
+                              {modelData.name_first} {modelData.name_last}
+                            </p>
+                            <div className="space-y-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="w-full text-xs"
+                                onClick={() => setShowInfluencerSelector(true)}
+                              >
+                                Change Influencer
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="w-full text-xs text-red-400 border-red-400/30 hover:bg-red-400/10"
+                                onClick={() => setModelData(null)}
+                              >
+                                <X className="w-3 h-3 mr-1" />
+                                Remove
+                              </Button>
+                            </div>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="aspect-square bg-gray-700 rounded-lg flex items-center justify-center">
+                            <User className="w-8 h-8 text-gray-500" />
+                          </div>
+                          <div className="text-center">
+                            <p className="text-sm font-medium text-gray-900 dark:text-white mb-2">
+                              No influencer selected
+                            </p>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-xs"
+                              onClick={() => setShowInfluencerSelector(true)}
+                            >
+                              Select Influencer
+                            </Button>
+                          </div>
+                        </>
+                      )}
+                    </CardContent>
+                  </CollapsibleContent>
+                </Collapsible>
+              </Card>
+
+              {/* AI Consistency */}
+              <Card className="border-2 border-purple-500/20 bg-gradient-to-br from-purple-50/30 to-blue-50/30 dark:from-purple-950/10 dark:to-blue-950/10 shadow-xl">
+                <CardHeader
+                  className="pb-3 cursor-pointer hover:bg-gray-700/50 transition-colors"
+                  onClick={() => setIsAiConsistencyOpen(!isAiConsistencyOpen)}
+                >
+                  <CardTitle className="text-sm font-medium text-gray-300 flex items-center justify-between">
+                    <span className="flex items-center gap-2">
+                      <Target className="w-4 h-4" />
+                      AI Consistency
+                    </span>
+                    <ChevronDown
+                      className={`w-4 h-4 transition-transform ${
+                        isAiConsistencyOpen ? "rotate-180" : ""
+                      }`}
+                    />
+                  </CardTitle>
+                </CardHeader>
+                {isAiConsistencyOpen && (
+                  <CardContent className="space-y-4">
+                    {/* Influencer AI Consistency */}
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs text-gray-400">
+                        Influencer AI Consistency
+                      </Label>
+                      <Switch
+                        checked={loraSettings.influencerConsistency}
+                        onCheckedChange={handleInfluencerConsistencyToggle}
+                      />
+                    </div>
+
+                    <div>
+                      <div className="flex justify-between items-center mb-2">
+                        <Label className="text-xs text-muted-foreground">
+                          Strength
+                        </Label>
+                        <span className="text-xs text-gray-500">
+                          {loraSettings.influencerStrength}
+                        </span>
+                      </div>
+                      <Slider
+                        value={[loraSettings.influencerStrength]}
+                        onValueChange={([value]) =>
+                          setLoraSettings((prev) => ({
+                            ...prev,
+                            influencerStrength: value,
+                          }))
+                        }
+                        min={-1}
+                        max={2}
+                        step={0.1}
+                      />
+                    </div>
+
+                    <Separator className="bg-gray-700" />
+
+                    {/* First Optional Lora */}
+                    <div className="space-y-3">
+                      <Label className="text-xs text-gray-400">
+                        First Optional Lora
+                      </Label>
+                      <Select
+                        value={loraSettings.optionalLora1}
+                        onValueChange={(value) => {
+                          setLoraSettings((prev) => ({
+                            ...prev,
+                            optionalLora1: value,
+                          }));
+                          // Set default strength when lora is selected
+                          if (value !== "none") {
+                            const selectedLora = systemLoraOptions.find(
+                              (lora) => lora.label === value
+                            );
+                            if (selectedLora) {
+                              setLoraSettings((prev) => ({
+                                ...prev,
+                                optionalLora1Strength:
+                                  selectedLora.default_strength,
+                              }));
+                            }
+                          }
+                        }}
+                      >
+                        <SelectTrigger className="h-8 text-xs">
+                          <SelectValue placeholder="Select LoRA" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">None</SelectItem>
+                          {systemLoraOptions.map((lora) => (
+                            <SelectItem key={lora.label} value={lora.label}>
+                              <div>
+                                <div className="font-medium">{lora.label}</div>
+                                <div className="text-xs text-gray-400">
+                                  {lora.description}
+                                </div>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <div>
+                        <div className="flex justify-between items-center mb-2">
+                          <Label className="text-xs text-muted-foreground">
+                            Strength
+                          </Label>
+                          <span className="text-xs text-gray-500">
+                            {loraSettings.optionalLora1Strength}
+                          </span>
+                        </div>
+                        <Slider
+                          value={[loraSettings.optionalLora1Strength]}
+                          onValueChange={([value]) =>
+                            setLoraSettings((prev) => ({
+                              ...prev,
+                              optionalLora1Strength: value,
+                            }))
+                          }
+                          min={(() => {
+                            const selectedLora = systemLoraOptions.find(
+                              (lora) =>
+                                lora.label === loraSettings.optionalLora1
+                            );
+                            return selectedLora
+                              ? selectedLora.min_strength
+                              : -1;
+                          })()}
+                          max={(() => {
+                            const selectedLora = systemLoraOptions.find(
+                              (lora) =>
+                                lora.label === loraSettings.optionalLora1
+                            );
+                            return selectedLora ? selectedLora.max_strength : 2;
+                          })()}
+                          step={0.05}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Second Optional Lora */}
+                    <div className="space-y-3">
+                      <Label className="text-xs text-gray-400">
+                        Second Optional Lora
+                      </Label>
+                      <Select
+                        value={loraSettings.optionalLora2}
+                        onValueChange={(value) => {
+                          setLoraSettings((prev) => ({
+                            ...prev,
+                            optionalLora2: value,
+                          }));
+                          // Set default strength when lora is selected
+                          if (value !== "none") {
+                            const selectedLora = systemLoraOptions.find(
+                              (lora) => lora.label === value
+                            );
+                            if (selectedLora) {
+                              setLoraSettings((prev) => ({
+                                ...prev,
+                                optionalLora2Strength:
+                                  selectedLora.default_strength,
+                              }));
+                            }
+                          }
+                        }}
+                      >
+                        <SelectTrigger className="h-8 text-xs">
+                          <SelectValue placeholder="Select LoRA" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">None</SelectItem>
+                          {systemLoraOptions.map((lora) => (
+                            <SelectItem key={lora.label} value={lora.label}>
+                              <div>
+                                <div className="font-medium">{lora.label}</div>
+                                <div className="text-xs text-gray-400">
+                                  {lora.description}
+                                </div>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <div>
+                        <div className="flex justify-between items-center mb-2">
+                          <Label className="text-xs text-muted-foreground">
+                            Strength
+                          </Label>
+                          <span className="text-xs text-gray-500">
+                            {loraSettings.optionalLora2Strength}
+                          </span>
+                        </div>
+                        <Slider
+                          value={[loraSettings.optionalLora2Strength]}
+                          onValueChange={([value]) =>
+                            setLoraSettings((prev) => ({
+                              ...prev,
+                              optionalLora2Strength: value,
+                            }))
+                          }
+                          min={(() => {
+                            const selectedLora = systemLoraOptions.find(
+                              (lora) =>
+                                lora.label === loraSettings.optionalLora2
+                            );
+                            return selectedLora
+                              ? selectedLora.min_strength
+                              : -1;
+                          })()}
+                          max={(() => {
+                            const selectedLora = systemLoraOptions.find(
+                              (lora) =>
+                                lora.label === loraSettings.optionalLora2
+                            );
+                            return selectedLora ? selectedLora.max_strength : 2;
+                          })()}
+                          step={0.05}
+                        />
+                      </div>
+                    </div>
+                  </CardContent>
+                )}
+              </Card>
+
+              {/* Component Picker */}
+              <Card className="border-2 border-purple-500/20 bg-gradient-to-br from-purple-50/30 to-blue-50/30 dark:from-purple-950/10 dark:to-blue-950/10 shadow-xl">
+                <Collapsible
+                  open={isComponentPickerOpen}
+                  onOpenChange={setIsComponentPickerOpen}
+                >
+                  <CollapsibleTrigger asChild>
+                    <CardHeader className="pb-3 cursor-pointer hover:bg-purple-50/50 dark:hover:bg-purple-950/20 transition-colors">
+                      <CardTitle className="text-sm font-medium flex items-center justify-between">
+                        <span className="flex items-center gap-2">
+                          <Palette className="w-4 h-4" />
+                          Component Picker
+                        </span>
+                        <ChevronDown
+                          className={`w-4 h-4 transition-transform ${
+                            isComponentPickerOpen ? "rotate-180" : ""
+                          }`}
+                        />
+                      </CardTitle>
+                    </CardHeader>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <CardContent className="pt-3">
+                      <div className="grid grid-cols-2 gap-3">
+                        {componentCategories.map((category) => {
+                          const selectedItem =
+                            componentPicker[
+                              category.key as keyof ComponentPickerState
+                            ];
+                          const Icon = category.icon;
+                          const options = getOptionsForCategory(category.key);
+
+                          return (
+                            <div
+                              key={category.key}
+                              className="group relative border border-gray-600 rounded-lg p-3 cursor-pointer hover:border-purple-500/50 transition-colors"
+                              onClick={() =>
+                                setSelectedComponentCategory(category.key)
+                              }
+                            >
+                              {selectedItem ? (
+                                <>
+                                  <div className="aspect-square bg-gray-700 rounded-md mb-2 flex items-center justify-center overflow-hidden">
+                                    {selectedItem.image ? (
+                                      <img
+                                        src={`${config.data_url}/wizard/mappings250/${selectedItem.image}`}
+                                        alt={selectedItem.label}
+                                        className="w-full h-full object-cover rounded-md"
+                                        onError={(e) => {
+                                          const target =
+                                            e.target as HTMLImageElement;
+                                          target.style.display = "none";
+                                          target.nextElementSibling?.classList.remove(
+                                            "hidden"
+                                          );
+                                        }}
+                                      />
+                                    ) : null}
+                                    <Icon
+                                      className={`w-6 h-6 text-gray-400 ${
+                                        selectedItem.image ? "hidden" : ""
+                                      }`}
+                                    />
+                                  </div>
+                                  <p className="text-xs font-medium text-gray-900 dark:text-white truncate">
+                                    {selectedItem.label}
+                                  </p>
+                                  <p className="text-xs text-gray-500 truncate">
+                                    {selectedItem.description}
+                                  </p>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="absolute top-1 right-1 h-6 w-6 p-0 bg-gray-800/80 hover:bg-red-500/20"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      removeComponent(
+                                        category.key as keyof ComponentPickerState
+                                      );
+                                    }}
+                                  >
+                                    <X className="w-3 h-3 text-red-400" />
+                                  </Button>
+                                </>
+                              ) : (
+                                <div className="aspect-square flex flex-col items-center justify-center">
+                                  <Icon className="w-6 h-6 text-gray-500 mb-1" />
+                                  <p className="text-xs text-gray-500 text-center">
+                                    {category.label}
+                                  </p>
+                                  <p className="text-xs text-gray-400">
+                                    ({options.length})
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </CardContent>
+                  </CollapsibleContent>
+                </Collapsible>
+              </Card>
+
+              {/* My Presets */}
+              <Card className="border-2 border-purple-500/20 bg-gradient-to-br from-purple-50/30 to-blue-50/30 dark:from-purple-950/10 dark:to-blue-950/10 shadow-xl">
+                <Collapsible
+                  open={isPresetsOpen}
+                  onOpenChange={setIsPresetsOpen}
+                >
+                  <CollapsibleTrigger asChild>
+                    <CardHeader className="pb-3 cursor-pointer hover:bg-purple-50/50 dark:hover:bg-purple-950/20 transition-colors">
+                      <CardTitle className="text-sm font-medium flex items-center justify-between">
+                        <span className="flex items-center gap-2">
+                          <BookOpen className="w-4 h-4" />
+                          My Presets
+                        </span>
+                        <ChevronDown
+                          className={`w-4 h-4 transition-transform ${
+                            isPresetsOpen ? "rotate-180" : ""
+                          }`}
+                        />
+                      </CardTitle>
+                    </CardHeader>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <CardContent className="space-y-3">
+                      <div>
+                        <Label className="text-xs text-gray-400 mb-2 block">
+                          Load Preset
+                        </Label>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full h-8 text-xs"
+                          onClick={() => setShowPresetBrowserModal(true)}
+                        >
+                          <FolderOpen className="w-3 h-3 mr-2" />
+                          Browse Presets
+                        </Button>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full text-xs"
+                        onClick={() => setShowPresetModal(true)}
+                      >
+                        <Save className="w-3 h-3 mr-2" />
+                        Save Current as Preset
+                      </Button>
+                    </CardContent>
+                  </CollapsibleContent>
+                </Collapsible>
+              </Card>
+            </div>
+          </ScrollArea>
+        </div>
+      </div>
+
+      {/* Inspiration Hub Modal */}
+      <Dialog
+        open={showInspirationHub}
+        onOpenChange={(open) => {
+          setShowInspirationHub(open);
+          if (!open) {
+            setTemplateFolderView("folders");
+            setSelectedTemplateFolder(null);
+            setSelectedTemplateFolderPresets([]);
+            setCurrentTemplateFolderPath([]);
+            setTemplateSearchTerm("");
+            setSelectedTemplateCategory("all");
+            setSelectedTemplateTag("all");
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-7xl max-h-[95vh] overflow-hidden">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-2xl">
+              <Sparkles className="w-6 h-6 text-purple-500" />
+              Inspiration Hub
+              {templateFolderView === "details" && (
+                <div className="flex items-center gap-1 text-sm text-muted-foreground ml-2">
+                  <ArrowLeft
+                    className="w-4 h-4 cursor-pointer hover:text-purple-500"
+                    onClick={() => {
+                      setTemplateFolderView("folders");
+                      setSelectedTemplateFolder(null);
+                      setSelectedTemplateFolderPresets([]);
+                    }}
+                  />
+                  <span>{selectedTemplateFolder}</span>
+                </div>
+              )}
+            </DialogTitle>
+            <p className="text-muted-foreground">
+              Discover and adopt professional templates from our curated
+              collection
+            </p>
+          </DialogHeader>
+
+          <div className="flex-1 overflow-hidden">
+            {templatesLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="w-8 h-8 animate-spin" />
+                <span className="ml-2">Loading templates...</span>
+              </div>
+            ) : templatePresets.length === 0 ? (
+              <div className="text-center py-12">
+                <Archive className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold mb-2">
+                  No Templates Found
+                </h3>
+                <p className="text-muted-foreground">
+                  Templates are being prepared for you.
+                </p>
+              </div>
+            ) : templateFolderView === "folders" ? (
+              <div className="space-y-6 overflow-y-auto max-h-[70vh] pr-2">
+                {/* Featured Templates Carousel */}
+                {(() => {
+                  const featuredTemplates = templatePresets
+                    .filter((preset) => preset.featured || preset.rating >= 4)
+                    .slice(0, 6);
+                  if (featuredTemplates.length === 0) return null;
+
+                  return (
+                    <div>
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-lg font-semibold">
+                          Featured Templates
+                        </h3>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() =>
+                              setFeaturedTemplateIndex(
+                                Math.max(0, featuredTemplateIndex - 5)
+                              )
+                            }
+                            disabled={featuredTemplateIndex === 0}
+                          >
+                            <ChevronLeft className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() =>
+                              setFeaturedTemplateIndex(
+                                Math.min(
+                                  featuredTemplates.length - 5,
+                                  featuredTemplateIndex + 5
+                                )
+                              )
+                            }
+                            disabled={
+                              featuredTemplateIndex >=
+                              featuredTemplates.length - 5
+                            }
+                          >
+                            <ChevronRight className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
+                        {featuredTemplates
+                          .slice(
+                            featuredTemplateIndex,
+                            featuredTemplateIndex + 5
+                          )
+                          .map((preset) => (
+                            <Card
+                              key={preset.id}
+                              className="overflow-hidden cursor-pointer hover:shadow-lg transition-all border-2 border-purple-500/20 bg-gradient-to-br from-purple-50/30 to-blue-50/30 dark:from-purple-950/10 dark:to-blue-950/10"
+                            >
+                              <div
+                                className="relative aspect-[4/5]"
+                                onClick={() => adoptTemplate(preset)}
+                              >
+                                {preset.imageUrl ? (
+                                  <img
+                                    src={preset.imageUrl}
+                                    alt={preset.name}
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => {
+                                      (e.target as HTMLImageElement).src =
+                                        "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjI1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjI1MCIgZmlsbD0iI2Y3ZjdmNyIvPjx0ZXh0IHg9IjEwMCIgeT0iMTI1IiBmb250LXNpemU9IjE0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iLjNlbSIgZmlsbD0iIzk5OSI+Tm8gSW1hZ2U8L3RleHQ+PC9zdmc+";
+                                    }}
+                                  />
+                                ) : (
+                                  <div className="w-full h-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+                                    <ImageIcon className="w-12 h-12 text-gray-400" />
+                                  </div>
+                                )}
+                                <Crown className="absolute top-2 right-2 w-5 h-5 text-yellow-400 fill-yellow-400" />
+                                {preset.rating > 0 && (
+                                  <div className="absolute top-2 left-2 flex gap-0.5">
+                                    {[1, 2, 3, 4, 5].map((star) => (
+                                      <Star
+                                        key={star}
+                                        className={`w-3 h-3 ${
+                                          star <= preset.rating
+                                            ? "fill-yellow-400 text-yellow-400"
+                                            : "text-gray-300"
+                                        }`}
+                                      />
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                              <CardContent className="p-4">
+                                <h4 className="font-semibold mb-1">
+                                  {preset.name}
+                                </h4>
+                                <p className="text-sm text-muted-foreground mb-3">
+                                  {preset.description ||
+                                    "Professional template"}
+                                </p>
+                                <Button
+                                  className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    adoptTemplate(preset);
+                                  }}
+                                >
+                                  <Download className="w-4 h-4 mr-2" />
+                                  Adopt Template
+                                </Button>
+                              </CardContent>
+                            </Card>
+                          ))}
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* Search and Filter Bar */}
+                <div className="border-b pb-4 mb-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Search templates..."
+                        value={templateSearchTerm}
+                        onChange={(e) => setTemplateSearchTerm(e.target.value)}
+                        className="pl-10"
+                      />
+                    </div>
+                    <Select
+                      value={selectedTemplateCategory}
+                      onValueChange={setSelectedTemplateCategory}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Filter by category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Categories</SelectItem>
+                        {(() => {
+                          const categories = Array.from(
+                            new Set(
+                              templatePresets
+                                .map((p) => p.mainfolder)
+                                .filter(Boolean)
+                            )
+                          );
+                          return categories.map((category) => (
+                            <SelectItem key={category} value={category}>
+                              {category}
+                            </SelectItem>
+                          ));
+                        })()}
+                      </SelectContent>
+                    </Select>
+                    <Select
+                      value={selectedTemplateTag}
+                      onValueChange={setSelectedTemplateTag}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Filter by tag" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Tags</SelectItem>
+                        {(() => {
+                          const allTags = templatePresets.flatMap(
+                            (p) => p.tags || []
+                          );
+                          const uniqueTags = Array.from(new Set(allTags));
+                          return uniqueTags.map((tag) => (
+                            <SelectItem key={tag} value={tag}>
+                              {tag}
+                            </SelectItem>
+                          ));
+                        })()}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {/* Hierarchical Folder Navigation */}
+                {(() => {
+                  // Filter templates based on search and category/tag filters
+                  const filteredTemplates = templatePresets.filter((preset) => {
+                    const matchesSearch =
+                      !templateSearchTerm ||
+                      preset.name
+                        .toLowerCase()
+                        .includes(templateSearchTerm.toLowerCase()) ||
+                      (preset.description &&
+                        preset.description
+                          .toLowerCase()
+                          .includes(templateSearchTerm.toLowerCase()));
+
+                    const matchesCategory =
+                      selectedTemplateCategory === "all" ||
+                      preset.mainfolder === selectedTemplateCategory;
+                    const matchesTag =
+                      selectedTemplateTag === "all" ||
+                      (preset.tags &&
+                        preset.tags.includes(selectedTemplateTag));
+
+                    return matchesSearch && matchesCategory && matchesTag;
+                  });
+
+                  // Build hierarchical folder structure (same as Browse Presets)
+                  const buildTemplateFolderHierarchy = (presets: any[]) => {
+                    const hierarchy: any = {};
+
+                    presets.forEach((preset) => {
+                      const folders = [];
+                      if (preset.mainfolder) folders.push(preset.mainfolder);
+                      if (preset.subfolder) folders.push(preset.subfolder);
+                      if (preset.subsubfolder)
+                        folders.push(preset.subsubfolder);
+
+                      if (folders.length === 0) {
+                        folders.push("Uncategorized");
+                      }
+
+                      let current = hierarchy;
+                      folders.forEach((folder, index) => {
+                        if (!current[folder]) {
+                          current[folder] = {
+                            subfolders: {},
+                            presets: [],
+                            totalPresets: 0,
+                          };
+                        }
+
+                        if (index === folders.length - 1) {
+                          current[folder].presets.push(preset);
+                        }
+                        current[folder].totalPresets++;
+                        current = current[folder].subfolders;
+                      });
+                    });
+
+                    return hierarchy;
+                  };
+
+                  const fullTemplateHierarchy =
+                    buildTemplateFolderHierarchy(filteredTemplates);
+
+                  // Navigate to current path
+                  let currentTemplateLevel = fullTemplateHierarchy;
+                  currentTemplateFolderPath.forEach((folder) => {
+                    if (currentTemplateLevel[folder]) {
+                      currentTemplateLevel =
+                        currentTemplateLevel[folder].subfolders;
+                    }
+                  });
+
+                  return (
+                    <div className="space-y-4">
+                      {/* Back button if we're in a subfolder */}
+                      {currentTemplateFolderPath.length > 0 && (
+                        <div className="flex items-center gap-2 mb-4">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setCurrentTemplateFolderPath(
+                                currentTemplateFolderPath.slice(0, -1)
+                              );
+                            }}
+                          >
+                            <ArrowLeft className="w-4 h-4 mr-2" />
+                            Back to{" "}
+                            {currentTemplateFolderPath.length === 1
+                              ? "Root"
+                              : currentTemplateFolderPath[
+                                  currentTemplateFolderPath.length - 2
+                                ]}
+                          </Button>
+                        </div>
+                      )}
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        {Object.entries(currentTemplateLevel).map(
+                          ([folderName, folderData]) => {
+                            const hasSubfolders =
+                              Object.keys(folderData.subfolders).length > 0;
+                            const hasPresets = folderData.presets.length > 0;
+
+                            return (
+                              <div
+                                key={folderName}
+                                className="border rounded-lg p-6 space-y-4 hover:shadow-md transition-all cursor-pointer hover:bg-purple-50/50 dark:hover:bg-purple-950/20 bg-card"
+                                onClick={() => {
+                                  if (hasSubfolders) {
+                                    // Navigate into subfolder
+                                    setCurrentTemplateFolderPath([
+                                      ...currentTemplateFolderPath,
+                                      folderName,
+                                    ]);
+                                  } else if (hasPresets) {
+                                    // Show presets in this folder
+                                    setSelectedTemplateFolder(
+                                      currentTemplateFolderPath.length > 0
+                                        ? `${currentTemplateFolderPath.join(
+                                            "/"
+                                          )}/${folderName}`
+                                        : folderName
+                                    );
+                                    setSelectedTemplateFolderPresets(
+                                      folderData.presets
+                                    );
+                                    setTemplateFolderView("details");
+                                  }
+                                }}
+                              >
+                                <div className="flex items-center justify-center">
+                                  {hasSubfolders ? (
+                                    <FolderOpen className="w-12 h-12 text-purple-500" />
+                                  ) : (
+                                    <Folder className="w-12 h-12 text-blue-500" />
+                                  )}
+                                </div>
+
+                                <div className="text-center">
+                                  <h3 className="text-lg font-semibold mb-1">
+                                    {folderName}
+                                  </h3>
+                                  <p className="text-sm text-muted-foreground">
+                                    {folderData.totalPresets} template
+                                    {folderData.totalPresets !== 1 ? "s" : ""}
+                                    {hasSubfolders && (
+                                      <span className="block text-xs">
+                                        {
+                                          Object.keys(folderData.subfolders)
+                                            .length
+                                        }{" "}
+                                        subfolder
+                                        {Object.keys(folderData.subfolders)
+                                          .length !== 1
+                                          ? "s"
+                                          : ""}
+                                      </span>
+                                    )}
+                                  </p>
+                                </div>
+
+                                {/* Folder preview - show some images */}
+                                <div className="grid grid-cols-3 gap-1">
+                                  {folderData.presets
+                                    .slice(0, 3)
+                                    .map((preset: any, index: number) => (
+                                      <div
+                                        key={index}
+                                        className="aspect-square"
+                                      >
+                                        {preset.imageUrl ? (
+                                          <img
+                                            src={preset.imageUrl}
+                                            alt="Preview"
+                                            className="w-full h-full object-cover rounded-sm"
+                                            onError={(e) => {
+                                              (
+                                                e.target as HTMLImageElement
+                                              ).src =
+                                                "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjZjdmN2Y3Ii8+PC9zdmc+";
+                                            }}
+                                          />
+                                        ) : (
+                                          <div className="w-full h-full bg-gray-100 dark:bg-gray-800 rounded-sm flex items-center justify-center">
+                                            <ImageIcon className="w-4 h-4 text-gray-400" />
+                                          </div>
+                                        )}
+                                      </div>
+                                    ))}
+                                  {folderData.presets.length < 3 &&
+                                    Array.from({
+                                      length: 3 - folderData.presets.length,
+                                    }).map((_, index) => (
+                                      <div
+                                        key={`empty-${index}`}
+                                        className="aspect-square bg-gray-100 dark:bg-gray-800 rounded-sm"
+                                      />
+                                    ))}
+                                </div>
+                              </div>
+                            );
+                          }
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            ) : (
+              /* Template Details View */
+              <div className="overflow-y-auto max-h-[70vh] pr-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {selectedTemplateFolderPresets.map((preset) => (
+                    <div
+                      key={preset.id}
+                      className="border rounded-lg p-4 space-y-3 hover:shadow-md transition-shadow bg-card"
+                    >
+                      {/* Template Image in 4:5 format */}
+                      <div className="relative aspect-[4/5]">
+                        {preset.imageUrl ? (
+                          <img
+                            src={preset.imageUrl}
+                            alt={preset.name}
+                            className="w-full h-full object-cover rounded-md"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src =
+                                "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI2Y3ZjdmNyIvPjx0ZXh0IHg9IjUwIiB5PSI1MCIgZm9udC1zaXplPSIxNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iIGZpbGw9IiM5OTkiPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg==";
+                            }}
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-gray-100 dark:bg-gray-800 rounded-md flex items-center justify-center">
+                            <ImageIcon className="w-8 h-8 text-gray-400" />
+                          </div>
+                        )}
+
+                        {/* Favorite indicator */}
+                        {preset.favorite && (
+                          <Heart className="absolute top-2 right-2 w-5 h-5 fill-red-500 text-red-500" />
+                        )}
+                      </div>
+
+                      {/* Template Info */}
+                      <div className="space-y-2">
+                        <div className="flex items-start justify-between">
+                          <h4 className="font-semibold truncate text-sm">
+                            {preset.name}
+                          </h4>
+                          {preset.rating > 0 && (
+                            <div className="flex gap-0.5">
+                              {[1, 2, 3, 4, 5].map((star) => (
+                                <Star
+                                  key={star}
+                                  className={`w-3 h-3 ${
+                                    star <= preset.rating
+                                      ? "fill-yellow-400 text-yellow-400"
+                                      : "text-gray-300"
+                                  }`}
+                                />
+                              ))}
+                            </div>
+                          )}
+                        </div>
+
+                        {preset.description && (
+                          <p className="text-xs text-muted-foreground line-clamp-2">
+                            {preset.description}
+                          </p>
+                        )}
+
+                        {preset.tags && preset.tags.length > 0 && (
+                          <div className="flex flex-wrap gap-1">
+                            {preset.tags
+                              .slice(0, 2)
+                              .map((tag: string, index: number) => (
+                                <Badge
+                                  key={index}
+                                  variant="secondary"
+                                  className="text-xs"
+                                >
+                                  {tag}
+                                </Badge>
+                              ))}
+                            {preset.tags.length > 2 && (
+                              <Badge variant="outline" className="text-xs">
+                                +{preset.tags.length - 2}
+                              </Badge>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Action Buttons */}
+                        <div className="flex gap-2 pt-2">
+                          <Button
+                            size="sm"
+                            className="flex-1 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                            onClick={() => adoptTemplate(preset)}
+                          >
+                            <Download className="w-3 h-3 mr-1" />
+                            Adopt
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              // Just show a preview or info
+                              toast.info("Template preview coming soon!");
+                            }}
+                          >
+                            <Eye className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Influencer Selection Dialog */}
       {showInfluencerSelector && (
         <Dialog open={true} onOpenChange={setShowInfluencerSelector}>
-          <DialogContent className="max-w-6xl max-h-[80vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Select Influencer</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
+          <DialogContent className="max-w-6xl max-h-[80vh] overflow-y-auto p-0">
+            {/* Header with gradient background */}
+            <div className="bg-gradient-to-br from-purple-600 via-blue-600 to-purple-700 p-4 sm:p-6 lg:p-8 text-white relative overflow-hidden">
+              {/* Background pattern */}
+              <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent"></div>
+              <div className="absolute top-0 right-0 w-20 sm:w-32 lg:w-40 h-20 sm:h-32 lg:h-40 bg-white/5 rounded-full -translate-y-10 sm:-translate-y-16 lg:-translate-y-20 translate-x-10 sm:translate-x-16 lg:translate-x-20"></div>
+              <div className="absolute bottom-0 left-0 w-16 sm:w-24 lg:w-32 h-16 sm:h-24 lg:h-32 bg-white/5 rounded-full translate-y-8 sm:translate-y-12 lg:translate-y-16 -translate-x-8 sm:-translate-x-12 lg:-translate-x-16"></div>
+
+              <div className="relative z-10 text-center">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-4 sm:mb-6 bg-white/20 rounded-2xl sm:rounded-3xl flex items-center justify-center backdrop-blur-sm border border-white/30 shadow-xl sm:shadow-2xl">
+                  <Users className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
+                </div>
+                <DialogTitle className="text-xl sm:text-2xl lg:text-3xl font-bold mb-3 sm:mb-4 bg-gradient-to-r from-white to-purple-100 bg-clip-text text-transparent">
+                  Select Influencer
+                </DialogTitle>
+                <DialogDescription className="text-sm sm:text-base lg:text-lg text-purple-100 leading-relaxed max-w-2xl mx-auto">
+                  Choose an influencer to generate your content with. Each
+                  influencer has unique characteristics and style.
+                </DialogDescription>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="p-4 sm:p-6 lg:p-8 space-y-4">
               {/* Search Section */}
               <div className="flex gap-4">
                 <div className="relative flex-1">
                   <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                    <Search className="absolute left-3 top-1/2 transform -trangray-y-1/2 text-muted-foreground h-4 w-4" />
                     <Input
                       type="text"
                       placeholder="Search influencers..."
@@ -5707,7 +4596,7 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
+                        className="absolute right-2 top-1/2 transform -trangray-y-1/2 h-6 w-6 p-0"
                         onClick={handleSearchClear}
                       >
                         <X className="h-4 w-4" />
@@ -5744,75 +4633,97 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
               </div>
 
               {/* Influencers Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {filteredInfluencers.map((influencer) => (
-                  <Card key={influencer.id} className="group hover:shadow-lg transition-all duration-300 border-border/50 hover:border-ai-purple-500/20">
-                    <CardContent className="p-6 h-full">
-                      <div className="flex flex-col justify-between h-full space-y-4">
-                        <div className="relative w-full h-full bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg overflow-hidden">
-                          {/* LoraStatusIndicator positioned at top right */}
-                          <div className="absolute right-[-15px] top-[-15px] z-10">
-                            <LoraStatusIndicator
-                              status={influencer.lorastatus || 0}
-                              className="flex-shrink-0"
-                            />
-                          </div>
-                          {
-                            influencer.image_url ? (
-                              <img
-                                src={influencer.image_url}
-                                alt={`${influencer.name_first} ${influencer.name_last}`}
-                                className="w-full h-full object-cover"
-                              />
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+                {filteredInfluencers?.map((influencer) => (
+                  <Card
+                    key={influencer.id}
+                    className={cn(
+                      "group cursor-pointer transition-all duration-300 hover:shadow-xl border-2 transform hover:scale-105",
+                      modelData?.id === influencer.id
+                        ? "border-purple-500 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/20 dark:to-pink-950/20 shadow-xl scale-105"
+                        : "border-gray-200 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-600"
+                    )}
+                    data-testid={`card-influencer-${influencer.id}`}
+                  >
+                    <CardContent className="p-4 sm:p-6 h-full">
+                      <div className="flex flex-col justify-between h-full space-y-3 sm:space-y-4">
+                        <div
+                          className="relative w-full bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg overflow-hidden cursor-pointer"
+                          onDoubleClick={() => {
+                            handleUseInfluencer(influencer);
+                            setShowInfluencerSelector(false);
+                          }}
+                        >
+                          {/* Selection check icon for active influencer */}
+                          {modelData?.id === influencer.id && (
+                            <div className="absolute left-2 top-2 z-20 bg-purple-500 rounded-full w-6 h-6 flex items-center justify-center">
+                              <Check className="w-4 h-4 text-white" />
+                            </div>
+                          )}
+
+                          {/* AI Consistency Status Badge positioned at top right */}
+                          <div className="absolute right-1 top-0.5 z-10">
+                            {(influencer.lorastatus || 0) === 2 ? (
+                              <Badge className="bg-green-600/50 text-white text-[10px] px-1.5 py-0.5 font-medium rounded-sm shadow-sm">
+                                Trained
+                              </Badge>
                             ) : (
-                              <div className="flex flex-col w-full h-full items-center justify-center max-h-48 min-h-40">
-                                <Image className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                                <h3 className="text-lg font-semibold mb-2">No image found</h3>
-                              </div>
-                            )
-                          }
+                              <Badge className="bg-amber-500/50 text-white text-[10px] px-1.5 py-0.5 font-medium rounded-sm shadow-sm">
+                                Pending
+                              </Badge>
+                            )}
+                          </div>
+
+                          {influencer.image_url ? (
+                            <img
+                              src={influencer.image_url}
+                              alt={`${influencer.name_first} ${influencer.name_last}`}
+                              className="w-full h-64 object-cover transition-transform duration-300 group-hover:scale-110"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.src =
+                                  "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0xMDAgNzBDMTA4LjI4NCA3MCA3NyEyMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4=";
+                              }}
+                            />
+                          ) : (
+                            <div className="h-64 flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900">
+                              <User className="w-16 h-16 text-gray-400" />
+                            </div>
+                          )}
                         </div>
 
-                        <div>
-                          <div className="flex items-center justify-between mb-2">
-                            <h3 className="font-semibold text-lg group-hover:text-ai-purple-500 transition-colors">
-                              {influencer.name_first} {influencer.name_last}
-                            </h3>
-                          </div>
+                        <div className="space-y-2 flex-1">
+                          <h4 className="font-bold text-lg text-gray-900 dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors truncate text-center">
+                            {influencer.name_first} {influencer.name_last}
+                          </h4>
+                        </div>
 
-                          <div className="flex flex-col gap-1 mb-3">
-                            <div className="flex text-sm text-muted-foreground flex-col">
-                              {influencer.notes ? (
-                                <span className="font-medium mr-2">Notes:</span>
-                              ) : (
-                                <span className="font-medium mr-2">Details:</span>
-                              )}
-                              {influencer.notes ? (
-                                <span className="text-sm text-muted-foreground">
-                                  {influencer.notes.length > 50
-                                    ? `${influencer.notes.substring(0, 50)}...`
-                                    : influencer.notes
-                                  }
-                                </span>
-                              ) : (
-                                <span className="text-sm text-muted-foreground">
-                                  {influencer.lifestyle || 'No lifestyle'} • {influencer.origin_residence || 'No residence'}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-
+                        <div className="pt-2">
                           <Button
                             size="sm"
-                            variant="outline"
                             onClick={() => {
                               handleUseInfluencer(influencer);
                               setShowInfluencerSelector(false);
                             }}
-                            className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 w-full"
+                            className={cn(
+                              "w-full transition-all duration-300 group-hover:shadow-lg font-medium",
+                              modelData?.id === influencer.id
+                                ? "bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white"
+                                : "bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white"
+                            )}
+                            data-testid={`button-use-influencer-${influencer.id}`}
                           >
-                            <Plus className="w-4 h-4 mr-2" />
-                            Use
+                            {modelData?.id === influencer.id ? (
+                              <>
+                                <Check className="w-4 h-4 mr-2" />
+                                Selected
+                              </>
+                            ) : (
+                              <>
+                                <Plus className="w-4 h-4 mr-2" />
+                                Select
+                              </>
+                            )}
                           </Button>
                         </div>
                       </div>
@@ -5820,1476 +4731,2337 @@ function ContentCreateImage({ influencerData }: ContentCreateImageProps) {
                   </Card>
                 ))}
               </div>
+
+              {(filteredInfluencers?.length === 0 || !filteredInfluencers) && (
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground">
+                    {!influencers || influencers.length === 0
+                      ? "No influencers available. Please check if influencers are loaded."
+                      : "No influencers found matching your search."}
+                  </p>
+                </div>
+              )}
             </div>
           </DialogContent>
         </Dialog>
       )}
 
-      {/* Vault Selector Modal */}
-      <VaultSelector
-        open={showVaultSelector}
-        onOpenChange={setShowVaultSelector}
-        onImageSelect={handleVaultImageSelect}
-        title="Select Image from Library"
-        description="Browse your library and select an image to use as reference"
-      />
-
-      {/* Vault Selector for Presets */}
-      <VaultSelector
-        open={showVaultSelectorForPreset}
-        onOpenChange={setShowVaultSelectorForPreset}
-        onImageSelect={handleVaultImageSelectForPreset}
-        title="Select Image for Preset"
-        description="Browse your library and select an image to represent your preset"
-      />
-
-      {/* My Presets Modal - REMOVED - Now using PresetsManager component */}
-
-      {/* Library Modal */}
-      {showLibraryModal && (
-        <LibraryManager
-          onClose={() => setShowLibraryModal(false)}
-          onApplyPreset={(library) => {
-            try {
-              const jsonjob = library.jsonjob;
-
-              // Apply form data
-              if (jsonjob.task) setFormData(prev => ({ ...prev, task: jsonjob.task }));
-              if (jsonjob.lora !== undefined) setFormData(prev => ({ ...prev, lora: jsonjob.lora }));
-              if (jsonjob.noAI !== undefined) setFormData(prev => ({ ...prev, noAI: jsonjob.noAI }));
-              if (jsonjob.prompt) {
-                setFormData(prev => {
-                  const currentPrompt = prev.prompt || '';
-                  const presetPrompt = jsonjob.prompt || '';
-                  
-                  // Merge the prompts: current prompt + preset prompt
-                  const mergedPrompt = currentPrompt.trim() 
-                    ? `${currentPrompt.trim()}, ${presetPrompt.trim()}`
-                    : presetPrompt.trim();
-                  
-                  return { ...prev, prompt: mergedPrompt };
-                });
+      {/* Component Picker Dialog */}
+      {selectedComponentCategory && (
+        <Dialog
+          open={true}
+          onOpenChange={(open) => {
+            if (!open) {
+              // Save current folder path for this category before closing
+              if (selectedComponentCategory && currentFolder) {
+                setComponentFolderPaths((prev) => ({
+                  [selectedComponentCategory]: currentFolder.path || [],
+                }));
               }
-              if (jsonjob.negative_prompt) setFormData(prev => ({ ...prev, negative_prompt: jsonjob.negative_prompt }));
-              if (jsonjob.nsfw_strength !== undefined) setFormData(prev => ({ ...prev, nsfw_strength: jsonjob.nsfw_strength }));
-              if (jsonjob.lora_strength !== undefined) setFormData(prev => ({ ...prev, lora_strength: jsonjob.lora_strength }));
-              if (jsonjob.quality) setFormData(prev => ({ ...prev, quality: typeof jsonjob.quality === 'string' ? jsonjob.quality : (Array.isArray(jsonjob.quality) ? jsonjob.quality[0] : 'Quality') }));
-              if (jsonjob.seed !== undefined) setFormData(prev => ({ ...prev, seed: jsonjob.seed.toString() }));
-              if (jsonjob.guidance !== undefined) setFormData(prev => ({ ...prev, guidance: jsonjob.guidance }));
-              if (jsonjob.number_of_images !== undefined) setFormData(prev => ({ ...prev, numberOfImages: jsonjob.number_of_images }));
-              if (jsonjob.format) setFormData(prev => ({ ...prev, format: jsonjob.format }));
-              if (jsonjob.engine) setFormData(prev => ({ ...prev, engine: jsonjob.engine }));
-              // if (jsonjob.usePromptOnly !== undefined) setFormData(prev => ({ ...prev, usePromptOnly: jsonjob.usePromptOnly }));
-
-              // Apply scene specs
-              if (jsonjob.scene) {
-                if (jsonjob.scene.framing) setSceneSpecs(prev => ({ ...prev, framing: jsonjob.scene.framing }));
-                if (jsonjob.scene.rotation) setSceneSpecs(prev => ({ ...prev, rotation: jsonjob.scene.rotation }));
-                if (jsonjob.scene.lighting_preset) setSceneSpecs(prev => ({ ...prev, lighting_preset: jsonjob.scene.lighting_preset }));
-                if (jsonjob.scene.scene_setting) setSceneSpecs(prev => ({ ...prev, scene_setting: jsonjob.scene.scene_setting }));
-                if (jsonjob.scene.pose) setSceneSpecs(prev => ({ ...prev, pose: jsonjob.scene.pose }));
-                if (jsonjob.scene.clothes) setSceneSpecs(prev => ({ ...prev, clothes: jsonjob.scene.clothes }));
-              }
-
-              // Apply model data if available - DISABLED to prevent changing influencer information
-              // if (jsonjob.model) {
-              //   setModelData(jsonjob.model);
-              // }
-
-              setShowLibraryModal(false);
-              toast.success(`Applied library item: ${library.name}`);
-            } catch (error) {
-              console.error('Error applying library item:', error);
-              toast.error('Failed to apply library item');
+              setSelectedComponentCategory(null);
+              setCurrentFolder(null);
+              setComponentSearchTerm("");
             }
           }}
-        />
+        >
+          <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden">
+            <DialogHeader>
+              <DialogTitle>
+                Select{" "}
+                {
+                  componentCategories.find(
+                    (cat) => cat.key === selectedComponentCategory
+                  )?.label
+                }
+              </DialogTitle>
+              <DialogDescription>
+                Choose from{" "}
+                {getOptionsForCategory(selectedComponentCategory).length}{" "}
+                available options
+              </DialogDescription>
+            </DialogHeader>
+
+            {/* Search Bar */}
+            <div className="px-4 py-2 border-b border-gray-200 dark:border-gray-700">
+              <div className="flex items-center gap-2">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <Input
+                    placeholder={`Search ${
+                      componentCategories
+                        .find((cat) => cat.key === selectedComponentCategory)
+                        ?.label?.toLowerCase() || "items"
+                    }...`}
+                    value={componentSearchTerm}
+                    onChange={(e) => setComponentSearchTerm(e.target.value)}
+                    className="pl-10 h-8"
+                  />
+                </div>
+                {componentSearchTerm && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setComponentSearchTerm("")}
+                    className="h-8 px-2"
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            <div className="overflow-y-auto max-h-[60vh] p-1">
+              {(() => {
+                const category = componentCategories.find(
+                  (cat) => cat.key === selectedComponentCategory
+                );
+                const Icon = category?.icon;
+                const hasFolder = hasFolderStructure(
+                  selectedComponentCategory!
+                );
+
+                // Show search results if there is a search term
+                if (componentSearchTerm.trim()) {
+                  const searchResults = searchComponentItems(
+                    selectedComponentCategory!,
+                    componentSearchTerm
+                  );
+                  return (
+                    <div className="p-4">
+                      <div className="mb-4">
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                          Found {searchResults.length} result
+                          {searchResults.length !== 1 ? "s" : ""} for "
+                          {componentSearchTerm}"
+                        </p>
+                      </div>
+                      {searchResults.length > 0 ? (
+                        <div className="grid grid-cols-3 gap-4">
+                          {searchResults.map((option: any, index: number) => (
+                            <div
+                              key={`search-${option.label}-${index}`}
+                              className="group relative border border-gray-600 rounded-lg p-4 cursor-pointer hover:border-purple-500/50 transition-colors bg-gray-800/50"
+                              onClick={() => {
+                                addComponent(
+                                  selectedComponentCategory as keyof ComponentPickerState,
+                                  option
+                                );
+                                setSelectedComponentCategory(null);
+                                setCurrentFolder(null);
+                                setComponentSearchTerm("");
+                              }}
+                            >
+                              <div className="aspect-square bg-gray-700 rounded-md mb-3 flex items-center justify-center overflow-hidden">
+                                {option.image && (
+                                  <img
+                                    src={`${config.data_url}/wizard/mappings250/${option.image}`}
+                                    alt={option.label}
+                                    className="w-full h-full object-cover rounded-md"
+                                    onError={(e) => {
+                                      const target =
+                                        e.target as HTMLImageElement;
+                                      target.style.display = "none";
+                                      target.nextElementSibling?.classList.remove(
+                                        "hidden"
+                                      );
+                                    }}
+                                  />
+                                )}
+                                {Icon && (
+                                  <Icon
+                                    className={`w-8 h-8 text-gray-400 ${
+                                      option.image ? "hidden" : ""
+                                    }`}
+                                  />
+                                )}
+                              </div>
+                              <div className="text-center">
+                                <p className="text-sm font-medium text-gray-900 dark:text-white truncate mb-1">
+                                  {option.label}
+                                </p>
+                                {option.folderName && (
+                                  <p className="text-xs text-gray-500">
+                                    from {option.folderName}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-8">
+                          <p className="text-gray-500">
+                            No items found matching "{componentSearchTerm}"
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  );
+                }
+
+                if (hasFolder && !currentFolder) {
+                  // Show folder structure for scene, pose, outfit
+                  const categories = getCategoriesForType(
+                    selectedComponentCategory!
+                  );
+                  return categories.length > 0 ? (
+                    <div className="p-4">
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                        {categories.map((folder, index) => {
+                          const previewImage = getFolderPreviewImage(folder);
+                          return (
+                            <div
+                              key={`${folder.property_category}-${index}`}
+                              className="group cursor-pointer p-4 border border-gray-600 rounded-lg hover:border-purple-500/50 transition-colors bg-gray-800/50"
+                              onClick={() => setCurrentFolder(folder)}
+                            >
+                              <div className="aspect-square bg-gray-700 rounded-md mb-3 flex items-center justify-center relative overflow-hidden">
+                                {previewImage ? (
+                                  <>
+                                    <img
+                                      src={`${config.data_url}/wizard/mappings250/${previewImage}`}
+                                      alt={folder.property_category}
+                                      className="w-full h-full object-cover rounded-md"
+                                      onError={(e) => {
+                                        const target =
+                                          e.target as HTMLImageElement;
+                                        target.style.display = "none";
+                                        target.nextElementSibling?.classList.remove(
+                                          "hidden"
+                                        );
+                                      }}
+                                    />
+                                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center hidden">
+                                      <Folder className="w-8 h-8 text-gray-400" />
+                                    </div>
+                                    {/* Overlay folder icon */}
+                                    <div className="absolute top-2 right-2 bg-black/60 rounded-full p-1.5">
+                                      <Folder className="w-4 h-4 text-white" />
+                                    </div>
+                                  </>
+                                ) : (
+                                  <Folder className="w-8 h-8 text-gray-400" />
+                                )}
+                              </div>
+                              <div className="text-center">
+                                <p className="text-sm font-medium text-gray-900 dark:text-white truncate mb-1">
+                                  {folder.property_category}
+                                </p>
+                                <p className="text-xs text-gray-500">
+                                  {folder.data?.length || 0} items
+                                </p>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center text-gray-400 py-12">
+                      <Folder className="w-16 h-16 mx-auto mb-4 text-gray-600" />
+                      <p className="text-lg">No categories available</p>
+                    </div>
+                  );
+                } else {
+                  // Show items (either from folder or direct options)
+                  const options = currentFolder
+                    ? currentFolder.data
+                    : getOptionsForCategory(selectedComponentCategory!);
+
+                  return (
+                    <div className="p-4">
+                      {currentFolder && (
+                        <div className="flex items-center justify-between mb-4 pb-4 border-b border-gray-700">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setCurrentFolder(null)}
+                            className="h-8 px-2"
+                          >
+                            <ArrowLeft className="w-4 h-4 mr-1" />
+                            Back
+                          </Button>
+                          <div className="text-center">
+                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                              {currentFolder.property_category}
+                            </h3>
+                            <Badge variant="secondary">
+                              {currentFolder.data?.length || 0} items
+                            </Badge>
+                          </div>
+                        </div>
+                      )}
+
+                      {options.length > 0 ? (
+                        <div className="grid grid-cols-3 gap-4">
+                          {options.map((option: any, index: number) => (
+                            <div
+                              key={`${option.label}-${index}`}
+                              className="group relative border border-gray-600 rounded-lg p-4 cursor-pointer hover:border-purple-500/50 transition-colors bg-gray-800/50"
+                              onClick={() => {
+                                addComponent(
+                                  selectedComponentCategory as keyof ComponentPickerState,
+                                  option
+                                );
+                                // Save current folder path for this category before closing
+                                if (
+                                  selectedComponentCategory &&
+                                  currentFolder
+                                ) {
+                                  setComponentFolderPaths((prev) => ({
+                                    ...prev,
+                                    [selectedComponentCategory]:
+                                      currentFolder.path || [],
+                                  }));
+                                }
+                                setSelectedComponentCategory(null);
+                                setCurrentFolder(null);
+                              }}
+                            >
+                              <div className="aspect-square bg-gray-700 rounded-md mb-3 flex items-center justify-center overflow-hidden">
+                                {option.image && (
+                                  <img
+                                    src={`${config.data_url}/wizard/mappings250/${option.image}`}
+                                    alt={option.label}
+                                    className="w-full h-full object-cover rounded-md"
+                                    onError={(e) => {
+                                      const target =
+                                        e.target as HTMLImageElement;
+                                      target.style.display = "none";
+                                      target.nextElementSibling?.classList.remove(
+                                        "hidden"
+                                      );
+                                    }}
+                                  />
+                                )}
+                                {Icon && (
+                                  <Icon
+                                    className={`w-8 h-8 text-gray-400 ${
+                                      option.image ? "hidden" : ""
+                                    }`}
+                                  />
+                                )}
+                              </div>
+                              <div className="text-center">
+                                <p className="text-sm font-medium text-gray-900 dark:text-white truncate mb-1">
+                                  {option.label}
+                                </p>
+                                <p className="text-xs text-gray-500 line-clamp-2">
+                                  {option.description}
+                                </p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center text-gray-400 py-12">
+                          {Icon && (
+                            <Icon className="w-16 h-16 mx-auto mb-4 text-gray-600" />
+                          )}
+                          <p className="text-lg">
+                            No {category?.label.toLowerCase()} options available
+                          </p>
+                          <p className="text-sm text-gray-500 mt-2">
+                            Check back later for new options
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  );
+                }
+              })()}
+            </div>
+          </DialogContent>
+        </Dialog>
       )}
 
-      {/* Save as Preset Modal */}
-      <Dialog open={showSavePresetModal} onOpenChange={setShowSavePresetModal}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <div className="p-2 bg-gradient-to-br from-emerald-500 to-green-600 rounded-lg">
-                <Save className="w-5 h-5 text-white" />
-              </div>
-              Save as Preset
-            </DialogTitle>
-            <p className="text-sm text-muted-foreground">
-              Save your current settings as a reusable preset with an image
-            </p>
-          </DialogHeader>
-
-          <div className="space-y-6">
-            {/* Preset Name Input */}
-            <div className="space-y-2">
-              <Label htmlFor="preset-name" className="text-sm font-medium">
-                Preset Name
-              </Label>
-              <Input
-                id="preset-name"
-                value={presetName}
-                onChange={(e) => setPresetName(e.target.value)}
-                placeholder="Enter a descriptive name for your preset..."
-                className="w-full"
-              />
-            </div>
-
-            {/* Preset Description Input */}
-            <div className="space-y-2">
-              <Label htmlFor="preset-description" className="text-sm font-medium flex items-center gap-2">
-                <div className="p-1 bg-gradient-to-br from-blue-500 to-purple-600 rounded-md">
-                  <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                </div>
-                Preset Description
-              </Label>
-              <Textarea
-                id="preset-description"
-                value={presetDescription}
-                onChange={(e) => setPresetDescription(e.target.value)}
-                placeholder="Describe your preset's purpose, style, or any special notes..."
-                className="w-full min-h-[80px] resize-none border-2 border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200"
-                maxLength={500}
-              />
-              <div className="flex justify-between items-center text-xs text-muted-foreground">
-                <span>Add context to help you remember what this preset is for</span>
-                <span>{presetDescription.length}/500</span>
-              </div>
-            </div>
-
-            {/* Image Selection Section */}
+      {/* Settings Edit Modal */}
+      {editingSetting && (
+        <Dialog
+          open={!!editingSetting}
+          onOpenChange={() => setEditingSetting(null)}
+        >
+          <DialogContent className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
+            <DialogHeader>
+              <DialogTitle>
+                {editingSetting.field === "promptAdherence"
+                  ? "Set Prompt Adherence"
+                  : editingSetting.field === "nsfwStrength"
+                  ? "Edit NSFW Factor"
+                  : editingSetting.field === "format"
+                  ? "Image Aspect Ratio"
+                  : editingSetting.field === "images"
+                  ? "Number of Images"
+                  : editingSetting.field === "engine"
+                  ? "Engine Selection"
+                  : `Edit ${editingSetting.field}`}
+              </DialogTitle>
+            </DialogHeader>
             <div className="space-y-4">
-              <Label className="text-sm font-medium">Preset Image</Label>
-
-              {/* Selected Image Display */}
-              {selectedPresetImage && (
-                <div className="relative">
-                  <Card className={`justify-center flex group hover:shadow-xl transition-all duration-300 border-border/50 hover:border-yellow-500/30 backdrop-blur-sm ${selectedPresetImage.task_id?.startsWith('upload_')
-                    ? 'bg-gradient-to-br from-purple-50/20 to-pink-50/20 dark:from-purple-950/5 dark:to-pink-950/5 hover:border-purple-500/30'
-                    : 'bg-gradient-to-br from-yellow-50/20 to-orange-50/20 dark:from-yellow-950/5 dark:to-orange-950/5'
-                    }`}>
-                    <CardContent className="p-4">
-                      {/* Top Row: File Type, Ratings, Favorite */}
-                      <div className="flex items-center justify-between mb-3">
-                        {/* File Type Icon */}
-                        <div className={`rounded-full w-8 h-8 flex items-center justify-center shadow-md ${selectedPresetImage.task_id?.startsWith('upload_')
-                          ? 'bg-gradient-to-br from-purple-500 to-pink-600'
-                          : 'bg-gradient-to-br from-blue-500 to-purple-600'
-                          }`}>
-                          {selectedPresetImage.task_id?.startsWith('upload_') ? (
-                            <Upload className="w-4 h-4 text-white" />
-                          ) : selectedPresetImage.file_type === 'video' ? (
-                            <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="currentColor">
-                              <path d="M8 5v14l11-7z" />
-                              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15V7l8 5-8 5z" opacity="0.3" />
-                            </svg>
-                          ) : (
-                            <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="currentColor">
-                              <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z" />
-                              <circle cx="8.5" cy="8.5" r="1.5" opacity="0.8" />
-                            </svg>
-                          )}
-                        </div>
-
-                        {/* Rating Stars */}
-                        <div className="flex gap-1">
-                          {[1, 2, 3, 4, 5].map((star) => (
-                            <svg
-                              key={star}
-                              className={`w-4 h-4 ${star <= (selectedPresetImage.rating || 0) ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
-                              viewBox="0 0 24 24"
-                            >
-                              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                            </svg>
-                          ))}
-                        </div>
-
-                        {/* Favorite Heart */}
-                        <div>
-                          {selectedPresetImage.favorite ? (
-                            <div className="bg-red-500 rounded-full w-8 h-8 flex items-center justify-center">
-                              <svg className="w-4 h-4 text-white fill-current" viewBox="0 0 24 24">
-                                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-                              </svg>
-                            </div>
-                          ) : (
-                            <div className="bg-black/50 rounded-full w-8 h-8 flex items-center justify-center">
-                              <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-                              </svg>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Image */}
-                      <div className="relative w-full group mb-4" style={{ paddingBottom: '100%' }}>
-                        {/* Uploaded/Edited Image Indicator */}
-                        {(selectedPresetImage.model_version === 'edited' || selectedPresetImage.quality_setting === 'edited') && (
-                          <div className="absolute top-2 right-2 z-10">
-                            <Badge variant="secondary" className="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs font-medium shadow-lg">
-                              <Edit className="w-3 h-3 mr-1" />
-                              Edited
-                            </Badge>
-                          </div>
-                        )}
-
-                        {/* Source Badge */}
-                        <div className="absolute top-2 left-2 z-10">
-                          <Badge variant="secondary" className="bg-black/70 text-white text-xs font-medium shadow-lg">
-                            {presetImageSource}
-                          </Badge>
-                        </div>
-
-                        <img
-                          src={selectedPresetImage.preview_url || `${config.data_url}/${userData.id}/${selectedPresetImage.user_filename === "" ? "output" : "vault/" + selectedPresetImage.user_filename}/${selectedPresetImage.system_filename}`}
-                          alt="Selected preset image"
-                          className="absolute inset-0 w-full h-full object-cover rounded-md shadow-sm cursor-pointer transition-all duration-200 hover:scale-105"
-                          onError={(e) => {
-                            // Fallback for uploaded files that might not be accessible via CDN
-                            const target = e.target as HTMLImageElement;
-                            target.style.display = 'none';
-                            const fallback = document.createElement('div');
-                            fallback.className = 'absolute inset-0 w-full h-full bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/20 dark:to-pink-900/20 rounded-md flex items-center justify-center';
-                            fallback.innerHTML = `
-                              <div class="text-center">
-                                <Upload class="w-8 h-8 text-purple-500 mx-auto mb-2" />
-                                <p class="text-xs text-purple-600 dark:text-purple-400">Uploaded File</p>
-                                <p class="text-xs text-gray-500 dark:text-gray-400">${selectedPresetImage.system_filename}</p>
-                              </div>
-                            `;
-                            target.parentNode?.appendChild(fallback);
-                          }}
-                        />
-                      </div>
-
-                      {/* User Notes */}
-                      {selectedPresetImage.user_notes && (
-                        <div className="mb-3">
-                          <p className="text-sm text-gray-700 dark:text-gray-300 line-clamp-2">{selectedPresetImage.user_notes}</p>
-                        </div>
-                      )}
-
-                      {/* User Tags */}
-                      {selectedPresetImage.user_tags && selectedPresetImage.user_tags.length > 0 && (
-                        <div className="mb-3 flex flex-wrap gap-1">
-                          {selectedPresetImage.user_tags.slice(0, 3).map((tag, index) => (
-                            <Badge key={index} variant="secondary" className="text-xs">
-                              {tag.trim()}
-                            </Badge>
-                          ))}
-                          {selectedPresetImage.user_tags.length > 3 && (
-                            <Badge variant="secondary" className="text-xs">
-                              +{selectedPresetImage.user_tags.length - 3}
-                            </Badge>
-                          )}
-                        </div>
-                      )}
-
-                      {/* Filename and Date */}
-                      <div className="space-y-2">
-                        <h3 className="font-medium text-sm text-gray-800 dark:text-gray-200 truncate">
-                          {decodeName(selectedPresetImage.system_filename)}
-                        </h3>
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <Calendar className="w-3 h-3" />
-                          {new Date(selectedPresetImage.created_at).toLocaleDateString()}
-                        </div>
-                      </div>
-
-                      {/* Action Button */}
-                      <div className="flex gap-1.5 mt-3">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="flex-1 h-8 text-xs font-medium"
-                          onClick={() => setSelectedPresetImage(null)}
-                        >
-                          <X className="w-3 h-3 mr-1.5" />
-                          Remove Image
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              )}
-
-              {/* Image Source Selection */}
-              {!selectedPresetImage && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <Card
-                    className="group hover:shadow-lg transition-all duration-300 cursor-pointer border-2 border-dashed border-gray-300 hover:border-emerald-500"
-                    onClick={() => setShowVaultSelectorForPreset(true)}
-                  >
-                    <CardContent className="p-6 text-center">
-                      <div className="p-3 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg w-12 h-12 mx-auto mb-3 flex items-center justify-center">
-                        <FolderOpen className="w-6 h-6 text-white" />
-                      </div>
-                      <h3 className="font-semibold mb-2">From Library</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Select from your saved images
-                      </p>
-                    </CardContent>
-                  </Card>
-
-                  <Card
-                    className="group hover:shadow-lg transition-all duration-300 cursor-pointer border-2 border-dashed border-gray-300 hover:border-emerald-500"
-                    onClick={() => {
-                      // Trigger file selection directly
-                      document.getElementById('file-upload-direct')?.click();
-                    }}
-                  >
-                    <CardContent className="p-6 text-center">
-                      <div className="p-3 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg w-12 h-12 mx-auto mb-3 flex items-center justify-center">
-                        <Upload className="w-6 h-6 text-white" />
-                      </div>
-                      <h3 className="font-semibold mb-2">Upload Image</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Upload a new image
-                      </p>
-                      <input
-                        type="file"
-                        id="file-upload-direct"
-                        accept="image/*"
-                        onChange={handleFileUpload}
-                        className="hidden"
-                      />
-                    </CardContent>
-                  </Card>
-
-                  <Card
-                    className="group hover:shadow-lg transition-all duration-300 cursor-pointer border-2 border-dashed border-gray-300 hover:border-emerald-500"
-                    onClick={() => setShowRecentRendersModal(true)}
-                  >
-                    <CardContent className="p-6 text-center">
-                      <div className="p-3 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg w-12 h-12 mx-auto mb-3 flex items-center justify-center">
-                        <Image className="w-6 h-6 text-white" />
-                      </div>
-                      <h3 className="font-semibold mb-2">Recent Renders</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Select from recent generations
-                      </p>
-                    </CardContent>
-                  </Card>
-                </div>
-              )}
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex gap-3 pt-4">
-              <Button
-                onClick={resetPresetForm}
-                variant="outline"
-                className="flex-1"
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={handleSavePresetToDatabase}
-                disabled={!presetName.trim() || !selectedPresetImage || isSavingPreset}
-                className="flex-1 bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600"
-              >
-                {isSavingPreset ? (
+              {editingSetting.inputType === "select" &&
+                editingSetting.options && (
                   <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  <>
-                    <Save className="w-4 h-4 mr-2" />
-                    Save Preset
+                    <Label>
+                      {editingSetting.field === "format"
+                        ? "Select Aspect Ratio"
+                        : editingSetting.field === "engine"
+                        ? "Which Engine to choose for image generation?"
+                        : `Select ${editingSetting.field}`}
+                    </Label>
+                    <Select
+                      value={editingSetting.value}
+                      onValueChange={saveSettingEdit}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {editingSetting.options.map((option: any) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </>
                 )}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
 
-      {/* Image Selector Modal */}
-      <Dialog open={showImageSelector} onOpenChange={setShowImageSelector}>
-        <DialogContent className="max-w-6xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <div className="p-2 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg">
-                <Image className="w-5 h-5 text-white" />
-              </div>
-              Select Image for Preset
-            </DialogTitle>
-            <p className="text-sm text-muted-foreground">
-              Choose an image to represent your preset
-            </p>
-          </DialogHeader>
-
-          <div className="space-y-6">
-            {/* Image Source Tabs */}
-            <div className="flex space-x-1 bg-muted p-1 rounded-lg">
-              <Button
-                variant={presetImageSource === 'vault' ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => setPresetImageSource('vault')}
-                className="flex-1"
-              >
-                <FolderOpen className="w-4 h-4 mr-2" />
-                Library
-              </Button>
-              <Button
-                variant={presetImageSource === 'recent' ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => setPresetImageSource('recent')}
-                className="flex-1"
-              >
-                <Image className="w-4 h-4 mr-2" />
-                Recent Renders
-              </Button>
-            </div>
-
-            {/* Image Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {presetImageSource === 'vault' && (
-                // Vault images would be fetched here
-                <div className="text-center py-8 col-span-full">
-                  <FolderOpen className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">Library images would be displayed here</p>
-                </div>
-              )}
-
-              {presetImageSource === 'recent' && generatedImages.length > 0 && (
-                generatedImages.map((image) => (
-                  <Card
-                    key={image.id}
-                    className="group hover:shadow-lg transition-all duration-300 cursor-pointer"
-                    onClick={() => handlePresetImageSelect(image, 'recent')}
-                  >
-                    <CardContent className="p-4">
-                      <div className="relative w-full" style={{ paddingBottom: '100%' }}>
-                        <img
-                          src={`${config.data_url}/${image.file_path}`}
-                          alt={image.system_filename}
-                          className="absolute inset-0 w-full h-full object-cover rounded-md"
-                        />
+              {editingSetting.inputType === "slider" && (
+                <>
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <div className="flex flex-col">
+                        <span className="text-xs text-gray-400 mt-1">
+                          {editingSetting.field === "promptAdherence"
+                            ? "Select between creativity and strict Prompt adherence"
+                            : editingSetting.field === "nsfwStrength"
+                            ? "How naughty shall it get?"
+                            : editingSetting.field === "images"
+                            ? "How many images do you want to generate?"
+                            : ""}
+                        </span>
                       </div>
-                      <p className="text-sm font-medium mt-2 truncate">
-                        {decodeName(image.system_filename)}
-                      </p>
-                    </CardContent>
-                  </Card>
-                ))
+                      <span className="text-sm text-gray-400">
+                        {editingSetting.value}
+                        {editingSetting.field === "promptAdherence" &&
+                          ` (${getAdherenceLabel(editingSetting.value)})`}
+                        {editingSetting.field === "nsfwStrength" &&
+                          ` (${getNsfwLabel(editingSetting.value)})`}
+                      </span>
+                    </div>
+                  </div>
+                  {(editingSetting.field === "promptAdherence" ||
+                    editingSetting.field === "nsfwStrength") && (
+                    <div className="flex justify-between text-xs text-gray-500 mb-2">
+                      <span>
+                        {editingSetting.field === "promptAdherence"
+                          ? "Maximum Creativity"
+                          : "Safe at Work"}
+                      </span>
+                      <span>
+                        {editingSetting.field === "promptAdherence"
+                          ? "Strictly follow the Prompt"
+                          : "Let's get HOT"}
+                      </span>
+                    </div>
+                  )}
+                  <Slider
+                    value={[editingSetting.value]}
+                    onValueChange={([value]) =>
+                      setEditingSetting((prev) =>
+                        prev ? { ...prev, value } : null
+                      )
+                    }
+                    min={(() => {
+                      switch (editingSetting.field) {
+                        case "images":
+                          return 1;
+                        case "promptAdherence":
+                          return 1;
+                        case "nsfwStrength":
+                          return -1;
+                        default:
+                          return 0;
+                      }
+                    })()}
+                    max={(() => {
+                      switch (editingSetting.field) {
+                        case "images":
+                          return 8;
+                        case "promptAdherence":
+                          return 8;
+                        case "nsfwStrength":
+                          return 1;
+                        default:
+                          return 10;
+                      }
+                    })()}
+                    step={editingSetting.field === "images" ? 1 : 0.1}
+                  />
+                  <div className="flex justify-end space-x-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setEditingSetting(null)}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => saveSettingEdit(editingSetting.value)}
+                    >
+                      Save
+                    </Button>
+                  </div>
+                </>
               )}
 
-              {presetImageSource === 'recent' && generatedImages.length === 0 && (
-                <div className="text-center py-8 col-span-full">
-                  <Image className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">No recent renders available</p>
-                </div>
+              {editingSetting.inputType === "input" && (
+                <>
+                  <Label>
+                    Seed (optional) - same value allows for same result
+                  </Label>
+                  <Input
+                    value={editingSetting.value}
+                    onChange={(e) =>
+                      setEditingSetting((prev) =>
+                        prev ? { ...prev, value: e.target.value } : null
+                      )
+                    }
+                    placeholder="Enter seed or leave empty for random"
+                  />
+                  <div className="flex justify-end space-x-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setEditingSetting(null)}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => saveSettingEdit(editingSetting.value)}
+                    >
+                      Save
+                    </Button>
+                  </div>
+                </>
               )}
             </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+          </DialogContent>
+        </Dialog>
+      )}
 
-      {/* Recent Renders Modal */}
-      <Dialog open={showRecentRendersModal} onOpenChange={setShowRecentRendersModal}>
-        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+      {/* Share Modal */}
+      <Dialog
+        open={shareModal.open}
+        onOpenChange={(open) => setShareModal((prev) => ({ ...prev, open }))}
+      >
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <div className="p-2 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg">
-                <Image className="w-5 h-5 text-white" />
-              </div>
-              Select Recent Render
-            </DialogTitle>
-            <p className="text-sm text-muted-foreground">
-              Choose from your recent generated images
-            </p>
-          </DialogHeader>
-
-          <div className="space-y-6">
-            {/* Recent Renders Grid */}
-            {generatedImages.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
-                {generatedImages
-                  .filter(image => image.file_path && image.system_filename === image.file_path.split('/').pop())
-                  .map((image, index) => (
-                    <Card
-                      key={image.id}
-                      className={`group hover:shadow-xl transition-all duration-300 border-border/50 hover:border-blue-500/50 backdrop-blur-sm bg-gradient-to-br from-yellow-50/20 to-orange-50/20 dark:from-yellow-950/5 dark:to-orange-950/5 hover:from-blue-50/30 hover:to-purple-50/30 dark:hover:from-blue-950/10 dark:hover:to-purple-950/10 cursor-pointer`}
-                      onClick={() => handleRecentRendersSelect(image)}
-                    >
-                      <CardContent className="p-4">
-                        {/* Top Row: File Type, Ratings, Favorite */}
-                        <div className="flex items-center justify-between mb-3">
-                          {/* File Type Icon */}
-                          <div className="rounded-full w-8 h-8 flex items-center justify-center shadow-md bg-gradient-to-br from-blue-500 to-purple-600">
-                            <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="currentColor">
-                              <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z" />
-                              <circle cx="8.5" cy="8.5" r="1.5" opacity="0.8" />
-                            </svg>
-                          </div>
-
-                          {/* Rating Stars */}
-                          <div className="flex gap-1">
-                            {[1, 2, 3, 4, 5].map((star) => (
-                              <svg
-                                key={star}
-                                className={`w-4 h-4 ${star <= (image.rating || 0) ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
-                                viewBox="0 0 24 24"
-                              >
-                                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                              </svg>
-                            ))}
-                          </div>
-
-                          {/* Favorite Heart */}
-                          <div>
-                            {image.favorite ? (
-                              <div className="bg-red-500 rounded-full w-8 h-8 flex items-center justify-center">
-                                <svg className="w-4 h-4 text-white fill-current" viewBox="0 0 24 24">
-                                  <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-                                </svg>
-                              </div>
-                            ) : (
-                              <div className="bg-black/50 rounded-full w-8 h-8 flex items-center justify-center">
-                                <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                  <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-                                </svg>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Image */}
-                        <div className="relative w-full group mb-4" style={{ paddingBottom: '100%' }}>
-                          <img
-                            src={`${config.data_url}/${image.file_path}`}
-                            alt={image.system_filename}
-                            className="absolute inset-0 w-full h-full object-cover rounded-md shadow-sm cursor-pointer transition-all duration-200 hover:scale-105"
-                            onError={(e) => {
-                              const target = e.target as HTMLImageElement;
-                              target.style.display = 'none';
-                            }}
-                          />
-                          {/* Zoom Overlay */}
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded-md flex items-end justify-end p-2">
-                            <div className="flex gap-1">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="h-8 w-8 p-0 bg-white/90 dark:bg-black/90 hover:bg-white dark:hover:bg-black shadow-lg hover:shadow-xl transition-all duration-200"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setFullSizeImageModal({
-                                    isOpen: true,
-                                    imageUrl: `${config.data_url}/${image.file_path}`,
-                                    imageName: decodeName(image.system_filename)
-                                  });
-                                }}
-                              >
-                                <ZoomIn className="w-3 h-3 text-gray-700 dark:text-gray-300" />
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* User Notes */}
-                        {image.user_notes && (
-                          <div className="mb-3">
-                            <p className="text-sm text-gray-700 dark:text-gray-300 line-clamp-2">
-                              {image.user_notes}
-                            </p>
-                          </div>
-                        )}
-
-                        {/* User Tags */}
-                        {image.user_tags && image.user_tags.length > 0 && (
-                          <div className="mb-3 flex flex-wrap gap-1">
-                            {image.user_tags.slice(0, 3).map((tag: string, index: number) => (
-                              <Badge
-                                key={index}
-                                variant="secondary"
-                                className="text-xs"
-                              >
-                                {tag.trim()}
-                              </Badge>
-                            ))}
-                            {image.user_tags.length > 3 && (
-                              <Badge variant="secondary" className="text-xs">
-                                +{image.user_tags.length - 3}
-                              </Badge>
-                            )}
-                          </div>
-                        )}
-
-                        {/* Filename and Date */}
-                        <div className="space-y-2">
-                          <h3 className="font-medium text-sm text-gray-800 dark:text-gray-200 truncate">
-                            {decodeName(image.system_filename)}
-                          </h3>
-                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                            <Calendar className="w-3 h-3" />
-                            {new Date(image.created_at).toLocaleDateString()}
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-              </div>
-            ) : (
-              <div className="text-center py-12">
-                <Image className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-semibold mb-2">No recent renders available</h3>
-                <p className="text-muted-foreground mb-4">
-                  Generate some images first to see them here
-                </p>
-              </div>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* File Conflict Overwrite Dialog */}
-      <Dialog open={showOverwriteDialog} onOpenChange={setShowOverwriteDialog}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <div className="p-2 bg-gradient-to-br from-orange-500 to-red-600 rounded-lg">
-                <AlertTriangle className="w-5 h-5 text-white" />
-              </div>
-              File Already Exists
-            </DialogTitle>
-            <p className="text-sm text-muted-foreground">
-              A file with the same name already exists in the presets folder.
-            </p>
+            <DialogTitle>Share Image</DialogTitle>
+            <DialogDescription>
+              Share this image with others using the direct link or QR code.
+            </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4">
-            <div className="p-4 bg-orange-50 dark:bg-orange-950/20 rounded-lg border border-orange-200 dark:border-orange-800">
-              <div className="flex items-start gap-3">
-                <AlertTriangle className="w-5 h-5 text-orange-600 dark:text-orange-400 mt-0.5 flex-shrink-0" />
-                <div className="space-y-2">
-                  <p className="text-sm font-medium text-orange-800 dark:text-orange-200">
-                    Conflict detected
-                  </p>
-                  <p className="text-xs text-orange-700 dark:text-orange-300">
-                    File: <span className="font-mono">{decodeName(conflictFilename)}</span>
-                  </p>
-                  <p className="text-xs text-orange-700 dark:text-orange-300">
-                    Suggested: <span className="font-mono">{decodeName(finalFilename)}</span>
-                  </p>
-                </div>
+            {/* QR Code */}
+            {qrCodeDataUrl && (
+              <div className="flex justify-center">
+                <img src={qrCodeDataUrl} alt="QR Code" className="w-32 h-32" />
+              </div>
+            )}
+
+            {/* Copy Link Section */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Direct Link</Label>
+              <div className="flex gap-2">
+                <Input
+                  value={`${config.data_url}/${userData.id}/${shareModal.itemPath}/${shareModal.itemId}`}
+                  readOnly
+                  className="text-xs"
+                />
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() =>
+                    copyToClipboard(
+                      `${config.data_url}/${userData.id}/${shareModal.itemPath}/${shareModal.itemId}`
+                    )
+                  }
+                >
+                  Copy
+                </Button>
               </div>
             </div>
 
-            <div className="flex gap-3">
-              <Button
-                variant="outline"
-                onClick={handleOverwriteConfirm}
-                className="flex-1 bg-red-50 hover:bg-red-100 dark:bg-red-950/20 dark:hover:bg-red-950/30 border-red-200 dark:border-red-800 text-red-700 dark:text-red-300"
-              >
-                <AlertTriangle className="w-4 h-4 mr-2" />
-                Overwrite
-              </Button>
-              <Button
-                onClick={handleNewFilenameConfirm}
-                className="flex-1 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700"
-              >
-                <Save className="w-4 h-4 mr-2" />
-                Use New Name
-              </Button>
+            {/* Social Media Share */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">
+                Share on Social Media
+              </Label>
+              <div className="flex gap-2 flex-wrap">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="flex items-center gap-2"
+                >
+                  <svg
+                    className="w-4 h-4 text-blue-400"
+                    fill="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z" />
+                  </svg>
+                  Twitter
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="flex items-center gap-2"
+                >
+                  <svg
+                    className="w-4 h-4 text-blue-600"
+                    fill="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+                  </svg>
+                  Facebook
+                </Button>
+              </div>
             </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() =>
+                setShareModal({ open: false, itemId: null, itemPath: null })
+              }
+            >
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Full Size Image Modal */}
+      <Dialog
+        open={fullSizeImageModal.isOpen}
+        onOpenChange={(open) =>
+          setFullSizeImageModal((prev) => ({ ...prev, isOpen: open }))
+        }
+      >
+        <DialogContent className="max-w-4xl max-h-[90vh] p-0">
+          <div className="relative">
+            <img
+              src={fullSizeImageModal.imageUrl}
+              alt={fullSizeImageModal.imageName}
+              className="w-full h-auto max-h-[90vh] object-contain"
+            />
+            <Button
+              size="sm"
+              variant="outline"
+              className="absolute top-4 right-4"
+              onClick={() =>
+                setFullSizeImageModal({
+                  isOpen: false,
+                  imageUrl: "",
+                  imageName: "",
+                })
+              }
+            >
+              <X className="w-4 h-4" />
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* Preset Details Modal */}
-      <Dialog open={showPresetDetails} onOpenChange={setShowPresetDetails}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <div className="p-2 bg-gradient-to-br from-amber-500 to-orange-600 rounded-lg">
-                <BookOpen className="w-5 h-5 text-white" />
-              </div>
-              Preset Details
-            </DialogTitle>
-            <p className="text-sm text-muted-foreground">
-              View detailed information about this preset
-            </p>
-          </DialogHeader>
+      {/* Zoom Modal for Generated Images */}
+      <Dialog
+        open={zoomModal.open}
+        onOpenChange={(open) => setZoomModal((prev) => ({ ...prev, open }))}
+      >
+        <DialogContent className="max-w-4xl max-h-[90vh] p-0 overflow-hidden">
+          <div className="relative">
+            <img
+              src={zoomModal.imageUrl}
+              alt={zoomModal.imageName}
+              className="w-full h-auto max-h-[85vh] object-contain"
+            />
+            <Button
+              className="absolute top-2 right-2 h-8 w-8 rounded-full bg-black/50 hover:bg-black/70 text-white"
+              size="sm"
+              onClick={() =>
+                setZoomModal({ open: false, imageUrl: "", imageName: "" })
+              }
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+          <div className="p-4 bg-gray-50 dark:bg-gray-800">
+            <p className="text-sm font-medium">{zoomModal.imageName}</p>
+          </div>
+        </DialogContent>
+      </Dialog>
 
-          {selectedPreset && (
-            <div className="space-y-6">
-              {/* Header Info */}
-              <div className="flex items-start justify-between">
+      {/* Info Modal for Generated Images */}
+      <Dialog
+        open={imageInfoModal.open}
+        onOpenChange={(open) => {
+          if (!open) {
+            setImageInfoModal({ open: false, image: null });
+            setEditingImageData(null);
+            setTempRating(0);
+            setNewTag("");
+          } else if (imageInfoModal.image) {
+            // Find the current image data from the generatedImages state (most up-to-date)
+            const currentImage =
+              generatedImages.find(
+                (img) => img.id === imageInfoModal.image.id
+              ) || imageInfoModal.image;
+
+            setEditingImageData({
+              user_filename: currentImage.user_filename || "",
+              user_notes: currentImage.user_notes || "",
+              user_tags: Array.isArray(currentImage.user_tags)
+                ? currentImage.user_tags.join(", ")
+                : currentImage.user_tags || "",
+              rating: currentImage.rating || 0,
+              favorite: currentImage.favorite || false,
+            });
+            setTempRating(currentImage.rating || 0);
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-5xl max-h-[90vh] overflow-y-auto">
+          {imageInfoModal.image && (
+            <div className="space-y-6 py-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xl font-semibold">Image Details</h3>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={`p-1 ${
+                      editingImageData?.favorite
+                        ? "text-red-500"
+                        : "text-gray-400"
+                    }`}
+                    onClick={() =>
+                      setEditingImageData((prev: any) => ({
+                        ...(prev || {}),
+                        favorite: !(prev?.favorite || false),
+                      }))
+                    }
+                  >
+                    <Heart
+                      className={`w-5 h-5 ${
+                        editingImageData?.favorite ? "fill-current" : ""
+                      }`}
+                    />
+                  </Button>
+                </div>
+              </div>
+
+              {/* Image Preview - Smaller */}
+              <div className="flex justify-center">
+                <img
+                  src={`${config.data_url}/${imageInfoModal.image.file_path}`}
+                  alt={imageInfoModal.image.system_filename}
+                  className="max-w-[150px] w-full h-auto rounded-lg shadow-lg"
+                />
+              </div>
+
+              {/* Editable Fields */}
+              <div className="space-y-4">
+                <h4 className="font-semibold text-lg border-b pb-2">
+                  Editable Information
+                </h4>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label
+                      htmlFor="user-filename"
+                      className="text-sm font-medium"
+                    >
+                      User Filename
+                    </Label>
+                    <Input
+                      id="user-filename"
+                      value={editingImageData?.user_filename || ""}
+                      onChange={(e) =>
+                        setEditingImageData((prev: any) => ({
+                          ...(prev || {}),
+                          user_filename: e.target.value,
+                        }))
+                      }
+                      placeholder="Enter custom filename"
+                      className="mt-1"
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="text-sm font-medium">Rating</Label>
+                    <div className="flex gap-1 mt-2">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <button
+                          key={star}
+                          type="button"
+                          onClick={() => {
+                            const newRating = tempRating === star ? 0 : star;
+                            setTempRating(newRating);
+                            setEditingImageData((prev: any) => ({
+                              ...(prev || {}),
+                              rating: newRating,
+                            }));
+                          }}
+                          className="focus:outline-none transition-colors"
+                        >
+                          <Star
+                            className={`w-6 h-6 ${
+                              star <= tempRating
+                                ? "fill-yellow-400 text-yellow-400"
+                                : "text-gray-300"
+                            }`}
+                          />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
                 <div>
-                  <h2 className="text-xl font-semibold mb-2">{selectedPreset.name}</h2>
-                  <p className="text-sm text-muted-foreground">
-                    Created on {new Date(selectedPreset.created_at).toLocaleDateString()}
-                  </p>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    onClick={() => handleApplyPreset(selectedPreset)}
-                    className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600"
-                  >
-                    <Wand2 className="w-4 h-4 mr-2" />
-                    Apply Preset
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => handleDeletePreset(selectedPreset)}
-                    className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300"
-                  >
-                    <Trash2 className="w-4 h-4 mr-2" />
-                    Delete
-                  </Button>
-                </div>
-              </div>
-
-              {/* Preset Image */}
-              {selectedPreset.image_name && (
-                <div className="relative w-full max-w-md mx-auto" style={{ paddingBottom: '75%' }}>
-                  <img
-                    src={`${config.data_url}/${userData.id}/presets/${selectedPreset.image_name}`}
-                    alt={selectedPreset.name}
-                    className="absolute inset-0 w-full h-full object-cover rounded-lg shadow-lg"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.style.display = 'none';
-                      const fallback = document.createElement('div');
-                      fallback.className = 'absolute inset-0 w-full h-full bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-900/20 dark:to-orange-900/20 rounded-lg flex items-center justify-center';
-                      fallback.innerHTML = `
-                        <div class="text-center">
-                          <BookOpen class="w-12 h-12 text-amber-500 mx-auto mb-3" />
-                          <p class="text-sm text-amber-600 dark:text-amber-400">Preset Image</p>
-                        </div>
-                      `;
-                      target.parentNode?.appendChild(fallback);
-                    }}
+                  <Label htmlFor="user-notes" className="text-sm font-medium">
+                    Notes
+                  </Label>
+                  <textarea
+                    id="user-notes"
+                    value={editingImageData?.user_notes || ""}
+                    onChange={(e) =>
+                      setEditingImageData((prev: any) => ({
+                        ...(prev || {}),
+                        user_notes: e.target.value,
+                      }))
+                    }
+                    placeholder="Add your notes..."
+                    className="mt-1 w-full min-h-[60px] px-3 py-2 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring resize-vertical bg-background text-foreground"
                   />
                 </div>
-              )}
 
-              {/* Preset Configuration */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Basic Settings */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Settings className="w-4 h-4" />
-                      Basic Settings
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    {selectedPreset.jsonjob?.task && (
-                      <div className="flex justify-between">
-                        <span className="text-sm text-muted-foreground">Task:</span>
-                        <span className="text-sm font-medium capitalize">{selectedPreset.jsonjob.task}</span>
+                <div>
+                  <Label className="text-sm font-medium">Tags</Label>
+                  <div className="mt-2 space-y-2">
+                    {/* Tag Input */}
+                    <div className="flex gap-2">
+                      <Input
+                        value={newTag}
+                        onChange={(e) => setNewTag(e.target.value)}
+                        placeholder="Add a tag"
+                        className="flex-1"
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            if (newTag.trim()) {
+                              setEditingImageData((prev: any) => ({
+                                ...(prev || {}),
+                                user_tags:
+                                  prev?.user_tags || ""
+                                    ? `${prev.user_tags}, ${newTag.trim()}`
+                                    : newTag.trim(),
+                              }));
+                              setNewTag("");
+                            }
+                          }
+                        }}
+                      />
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={() => {
+                          if (newTag.trim()) {
+                            setEditingImageData((prev: any) => ({
+                              ...(prev || {}),
+                              user_tags:
+                                prev?.user_tags || ""
+                                  ? `${prev.user_tags}, ${newTag.trim()}`
+                                  : newTag.trim(),
+                            }));
+                            setNewTag("");
+                          }
+                        }}
+                        className="px-3"
+                      >
+                        Add
+                      </Button>
+                    </div>
+                    {/* Tag Display */}
+                    {editingImageData?.user_tags && (
+                      <div className="flex flex-wrap gap-2">
+                        {editingImageData.user_tags
+                          .split(",")
+                          .map((tag: string) => tag.trim())
+                          .filter((tag: string) => tag)
+                          .map((tag: string, index: number) => (
+                            <Badge
+                              key={index}
+                              variant="secondary"
+                              className="flex items-center gap-1 px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 hover:bg-blue-200 dark:hover:bg-blue-800"
+                            >
+                              {tag}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (editingImageData?.user_tags) {
+                                    const tags = editingImageData.user_tags
+                                      .split(",")
+                                      .map((t: string) => t.trim())
+                                      .filter((t: string) => t !== tag);
+                                    setEditingImageData((prev: any) => ({
+                                      ...(prev || {}),
+                                      user_tags: tags.join(", "),
+                                    }));
+                                  }
+                                }}
+                                className="ml-1 text-blue-600 dark:text-blue-300 hover:text-blue-800 dark:hover:text-blue-100"
+                              >
+                                ×
+                              </button>
+                            </Badge>
+                          ))}
                       </div>
                     )}
-                    {selectedPreset.jsonjob?.engine && (
-                      <div className="flex justify-between">
-                        <span className="text-sm text-muted-foreground">Engine:</span>
-                        <span className="text-sm font-medium">{selectedPreset.jsonjob.engine}</span>
-                      </div>
-                    )}
-                    {selectedPreset.jsonjob?.quality && (
-                      <div className="flex justify-between">
-                        <span className="text-sm text-muted-foreground">Quality:</span>
-                        <span className="text-sm font-medium">{selectedPreset.jsonjob.quality}</span>
-                      </div>
-                    )}
-                    {selectedPreset.jsonjob?.format && (
-                      <div className="flex justify-between">
-                        <span className="text-sm text-muted-foreground">Format:</span>
-                        <span className="text-sm font-medium">{selectedPreset.jsonjob.format}</span>
-                      </div>
-                    )}
-                    {selectedPreset.jsonjob?.number_of_images && (
-                      <div className="flex justify-between">
-                        <span className="text-sm text-muted-foreground">Images:</span>
-                        <span className="text-sm font-medium">{selectedPreset.jsonjob.number_of_images}</span>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-
-                {/* Model Information */}
-                {selectedPreset.jsonjob?.model && (
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Image className="w-4 h-4" />
-                        Model Information
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      <div className="flex justify-between">
-                        <span className="text-sm text-muted-foreground">Name:</span>
-                        <span className="text-sm font-medium">
-                          {selectedPreset.jsonjob.model.name_first} {selectedPreset.jsonjob.model.name_last}
-                        </span>
-                      </div>
-                      {selectedPreset.jsonjob.model.influencer_type && (
-                        <div className="flex justify-between">
-                          <span className="text-sm text-muted-foreground">Type:</span>
-                          <span className="text-sm font-medium capitalize">{selectedPreset.jsonjob.model.influencer_type}</span>
-                        </div>
-                      )}
-                      {selectedPreset.jsonjob.model.age && (
-                        <div className="flex justify-between">
-                          <span className="text-sm text-muted-foreground">Age:</span>
-                          <span className="text-sm font-medium">{selectedPreset.jsonjob.model.age}</span>
-                        </div>
-                      )}
-                      {selectedPreset.jsonjob.model.cultural_background && (
-                        <div className="flex justify-between">
-                          <span className="text-sm text-muted-foreground">Background:</span>
-                          <span className="text-sm font-medium capitalize">{selectedPreset.jsonjob.model.cultural_background}</span>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                )}
-
-                {/* Scene Settings */}
-                {selectedPreset.jsonjob?.scene && (
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Camera className="w-4 h-4" />
-                        Scene Settings
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      {selectedPreset.jsonjob.scene.framing && (
-                        <div className="flex justify-between">
-                          <span className="text-sm text-muted-foreground">Framing:</span>
-                          <span className="text-sm font-medium capitalize">{selectedPreset.jsonjob.scene.framing}</span>
-                        </div>
-                      )}
-                      {selectedPreset.jsonjob.scene.lighting_preset && (
-                        <div className="flex justify-between">
-                          <span className="text-sm text-muted-foreground">Lighting:</span>
-                          <span className="text-sm font-medium capitalize">{selectedPreset.jsonjob.scene.lighting_preset}</span>
-                        </div>
-                      )}
-                      {selectedPreset.jsonjob.scene.scene_setting && (
-                        <div className="flex justify-between">
-                          <span className="text-sm text-muted-foreground">Setting:</span>
-                          <span className="text-sm font-medium capitalize">{selectedPreset.jsonjob.scene.scene_setting}</span>
-                        </div>
-                      )}
-                      {selectedPreset.jsonjob.scene.pose && (
-                        <div className="flex justify-between">
-                          <span className="text-sm text-muted-foreground">Pose:</span>
-                          <span className="text-sm font-medium capitalize">{selectedPreset.jsonjob.scene.pose}</span>
-                        </div>
-                      )}
-                      {selectedPreset.jsonjob.scene.clothes && (
-                        <div className="flex justify-between">
-                          <span className="text-sm text-muted-foreground">Clothes:</span>
-                          <span className="text-sm font-medium capitalize">{selectedPreset.jsonjob.scene.clothes}</span>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                )}
-
-                {/* Generation Parameters */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Wand2 className="w-4 h-4" />
-                      Generation Parameters
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    {selectedPreset.jsonjob?.guidance && (
-                      <div className="flex justify-between">
-                        <span className="text-sm text-muted-foreground">Guidance:</span>
-                        <span className="text-sm font-medium">{selectedPreset.jsonjob.guidance}</span>
-                      </div>
-                    )}
-                    {selectedPreset.jsonjob?.seed && selectedPreset.jsonjob.seed !== -1 && (
-                      <div className="flex justify-between">
-                        <span className="text-sm text-muted-foreground">Seed:</span>
-                        <span className="text-sm font-medium">{selectedPreset.jsonjob.seed}</span>
-                      </div>
-                    )}
-                    {selectedPreset.jsonjob?.nsfw_strength && (
-                      <div className="flex justify-between">
-                        <span className="text-sm text-muted-foreground">NSFW Strength:</span>
-                        <span className="text-sm font-medium">{selectedPreset.jsonjob.nsfw_strength}</span>
-                      </div>
-                    )}
-                    {selectedPreset.jsonjob?.lora_strength && (
-                      <div className="flex justify-between">
-                        <span className="text-sm text-muted-foreground">AI Consistency Strength:</span>
-                        <span className="text-sm font-medium">{selectedPreset.jsonjob.lora_strength}</span>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
               </div>
 
-              {/* Prompts */}
-              {(selectedPreset.jsonjob?.prompt || selectedPreset.jsonjob?.negative_prompt) && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Pencil className="w-4 h-4" />
-                      Prompts
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {selectedPreset.jsonjob.prompt && (
-                      <div>
-                        <Label className="text-sm font-medium">Positive Prompt</Label>
-                        <p className="text-sm text-muted-foreground mt-1 p-3 bg-muted rounded-md">
-                          {selectedPreset.jsonjob.prompt}
-                        </p>
-                      </div>
-                    )}
-                    {selectedPreset.jsonjob.negative_prompt && (
-                      <div>
-                        <Label className="text-sm font-medium">Negative Prompt</Label>
-                        <p className="text-sm text-muted-foreground mt-1 p-3 bg-muted rounded-md">
-                          {selectedPreset.jsonjob.negative_prompt}
-                        </p>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              )}
+              {/* Read-only Fields */}
+              <div className="space-y-4">
+                <h4 className="font-semibold text-lg border-b pb-2">
+                  System Information
+                </h4>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                      System Filename
+                    </Label>
+                    <p className="text-sm break-all bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 p-2 rounded mt-1">
+                      {imageInfoModal.image.system_filename}
+                    </p>
+                  </div>
+
+                  <div>
+                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                      Generation Status
+                    </Label>
+                    <div className="mt-1">
+                      <Badge
+                        variant={
+                          imageInfoModal.image.generation_status === "completed"
+                            ? "default"
+                            : "secondary"
+                        }
+                      >
+                        {imageInfoModal.image.generation_status}
+                      </Badge>
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                      Created
+                    </Label>
+                    <p className="text-sm bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 p-2 rounded mt-1">
+                      {new Date(
+                        imageInfoModal.image.created_at
+                      ).toLocaleString()}
+                    </p>
+                  </div>
+
+                  <div>
+                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                      Model Version
+                    </Label>
+                    <p className="text-sm bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 p-2 rounded mt-1">
+                      {imageInfoModal.image.model_version}
+                    </p>
+                  </div>
+
+                  <div>
+                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                      NSFW Strength
+                    </Label>
+                    <p className="text-sm bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 p-2 rounded mt-1">
+                      {imageInfoModal.image.nsfw_strength}
+                    </p>
+                  </div>
+
+                  <div>
+                    <Label className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                      LoRA Strength
+                    </Label>
+                    <p className="text-sm bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 p-2 rounded mt-1">
+                      {imageInfoModal.image.lora_strength}
+                    </p>
+                  </div>
+                </div>
+
+                <div>
+                  <Label className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                    Optimized Prompt
+                  </Label>
+                  <p className="text-sm bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 p-2 rounded mt-1 max-h-20 overflow-y-auto">
+                    {imageInfoModal.image.t5xxl_prompt || "No prompt available"}
+                  </p>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-3 pt-4 border-t">
+                <Button
+                  onClick={() => {
+                    setImageInfoModal({ open: false, image: null });
+                    setEditingImageData(null);
+                    setTempRating(0);
+                    setNewTag("");
+                  }}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={async () => {
+                    if (!editingImageData || !imageInfoModal.image) return;
+
+                    try {
+                      const updateData = {
+                        user_filename: editingImageData.user_filename || "",
+                        user_notes: editingImageData.user_notes || "",
+                        user_tags: editingImageData.user_tags
+                          ? editingImageData.user_tags
+                              .split(",")
+                              .map((tag: string) => tag.trim())
+                              .filter((tag: string) => tag)
+                          : [],
+                        rating: editingImageData.rating || 0,
+                        favorite: editingImageData.favorite || false,
+                      };
+
+                      const response = await fetch(
+                        `${config.supabase_server_url}/generated_images?id=eq.${imageInfoModal.image.id}`,
+                        {
+                          method: "PATCH",
+                          headers: {
+                            "Content-Type": "application/json",
+                            Authorization: "Bearer WeInfl3nc3withAI",
+                          },
+                          body: JSON.stringify(updateData),
+                        }
+                      );
+
+                      if (response.ok) {
+                        // Update local state with correct data structure
+                        setGeneratedImages((prev) =>
+                          prev.map((img) =>
+                            img.id === imageInfoModal.image.id
+                              ? {
+                                  ...img,
+                                  user_filename: updateData.user_filename,
+                                  user_notes: updateData.user_notes,
+                                  user_tags: updateData.user_tags,
+                                  rating: updateData.rating,
+                                  favorite: updateData.favorite,
+                                }
+                              : img
+                          )
+                        );
+
+                        toast.success("Image updated successfully");
+                        setImageInfoModal({ open: false, image: null });
+                        setEditingImageData(null);
+                        setTempRating(0);
+                        setNewTag("");
+                      } else {
+                        toast.error("Failed to update image");
+                      }
+                    } catch (error) {
+                      console.error("Error updating image:", error);
+                      toast.error("Failed to update image");
+                    }
+                  }}
+                  className="flex-1"
+                >
+                  Save Changes
+                </Button>
+              </div>
             </div>
           )}
         </DialogContent>
       </Dialog>
 
-      {/* PresetsManager Modal */}
-      {showPresetsManager && (
-        <PresetsManager
-          onClose={() => setShowPresetsManager(false)}
-          onApplyPreset={(preset) => {
-            try {
-              const jsonjob = preset.jsonjob;
+      {/* Preset Save Modal */}
+      <Dialog open={showPresetModal} onOpenChange={setShowPresetModal}>
+        <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-xl">
+              <Archive className="w-6 h-6" />
+              Save Current Settings as Preset
+            </DialogTitle>
+            <p className="text-sm text-muted-foreground">
+              Save your current configuration to reuse later. Organize presets
+              using folders.
+            </p>
+          </DialogHeader>
 
-              // Apply form data
-              if (jsonjob.task) setFormData(prev => ({ ...prev, task: jsonjob.task }));
-              if (jsonjob.lora !== undefined) setFormData(prev => ({ ...prev, lora: jsonjob.lora }));
-              if (jsonjob.noAI !== undefined) setFormData(prev => ({ ...prev, noAI: jsonjob.noAI }));
-              if (jsonjob.prompt) {
-                setFormData(prev => {
-                  const currentPrompt = prev.prompt || '';
-                  const presetPrompt = jsonjob.prompt || '';
-                  
-                  // Merge the prompts: current prompt + preset prompt
-                  const mergedPrompt = currentPrompt.trim() 
-                    ? `${currentPrompt.trim()}, ${presetPrompt.trim()}`
-                    : presetPrompt.trim();
-                  
-                  return { ...prev, prompt: mergedPrompt };
-                });
-              }
-              if (jsonjob.negative_prompt) setFormData(prev => ({ ...prev, negative_prompt: jsonjob.negative_prompt }));
-              if (jsonjob.nsfw_strength !== undefined) setFormData(prev => ({ ...prev, nsfw_strength: jsonjob.nsfw_strength }));
-              if (jsonjob.lora_strength !== undefined) setFormData(prev => ({ ...prev, lora_strength: jsonjob.lora_strength }));
-              if (jsonjob.quality) setFormData(prev => ({ ...prev, quality: jsonjob.quality }));
-              if (jsonjob.seed !== undefined) setFormData(prev => ({ ...prev, seed: jsonjob.seed.toString() }));
-              if (jsonjob.guidance !== undefined) setFormData(prev => ({ ...prev, guidance: jsonjob.guidance }));
-              if (jsonjob.number_of_images !== undefined) setFormData(prev => ({ ...prev, numberOfImages: jsonjob.number_of_images }));
-              if (jsonjob.format) setFormData(prev => ({ ...prev, format: jsonjob.format }));
-              if (jsonjob.engine) setFormData(prev => ({ ...prev, engine: jsonjob.engine }));
-              // if (jsonjob.usePromptOnly !== undefined) setFormData(prev => ({ ...prev, usePromptOnly: jsonjob.usePromptOnly }));
-
-              // Apply scene specifications
-              if (jsonjob.scene) {
-                setSceneSpecs({
-                  framing: jsonjob.scene.framing || '',
-                  rotation: jsonjob.scene.rotation || '',
-                  lighting_preset: jsonjob.scene.lighting_preset || '',
-                  scene_setting: jsonjob.scene.scene_setting || '',
-                  pose: jsonjob.scene.pose || '',
-                  clothes: jsonjob.scene.clothes || ''
-                });
-              }
-
-              // Apply model data if available - DISABLED to prevent changing influencer information
-              // if (jsonjob.model && jsonjob.model.id) {
-              //   // Find the influencer with the matching ID
-              //   const selectedInfluencer = influencers.find(inf => inf.id === jsonjob.model.id);
-
-              //   if (selectedInfluencer) {
-              //     // Set the model data to the found influencer
-              //     setModelData(selectedInfluencer);
-
-              //     // Update model description with influencer data
-              //     setModelDescription({
-              //       appearance: `${selectedInfluencer.name_first} ${selectedInfluencer.name_last}, ${selectedInfluencer.age || ''}`,
-              //       culturalBackground: selectedInfluencer.cultural_background || '',
-              //       bodyType: selectedInfluencer.body_type || '',
-              //       facialFeatures: selectedInfluencer.facial_features || '',
-              //       hairColor: selectedInfluencer.hair_color || '',
-              //       hairLength: selectedInfluencer.hair_length || '',
-              //       hairStyle: selectedInfluencer.hair_style || '',
-              //       skin: selectedInfluencer.skin_tone || '',
-              //       lips: selectedInfluencer.lip_style || '',
-              //       eyes: selectedInfluencer.eye_color || '',
-              //       nose: selectedInfluencer.nose_style || '',
-              //       makeup: jsonjob.model.makeup_style || 'Natural / No-Makeup Look',
-              //       clothing: `${selectedInfluencer.clothing_style_everyday || ''} ${selectedInfluencer.clothing_style_occasional || ''}`.trim(),
-              //       sex: selectedInfluencer.sex || '',
-              //       bust: selectedInfluencer.bust_size || '',
-              //       eyebrowStyle: selectedInfluencer.eyebrow_style || '',
-              //       faceShape: selectedInfluencer.face_shape || '',
-              //       colorPalette: selectedInfluencer.color_palette ? selectedInfluencer.color_palette.join(', ') : '',
-              //       age: selectedInfluencer.age || '',
-              //       lifestyle: selectedInfluencer.lifestyle || ''
-              //     });
-
-              //     // Generate the model description automatically
-              //     const parts = [];
-              //     if (selectedInfluencer.name_first && selectedInfluencer.name_last) {
-              //       parts.push(`${selectedInfluencer.name_first} ${selectedInfluencer.name_last}`);
-              //     }
-              //     if (selectedInfluencer.age) parts.push(selectedInfluencer.age);
-              //     if (selectedInfluencer.lifestyle) parts.push(selectedInfluencer.lifestyle);
-              //     if (selectedInfluencer.cultural_background) parts.push(`Cultural background: ${selectedInfluencer.cultural_background}`);
-              //     if (selectedInfluencer.body_type) parts.push(`Body type: ${selectedInfluencer.body_type}`);
-              //     if (selectedInfluencer.facial_features) parts.push(`Facial features: ${selectedInfluencer.facial_features}`);
-              //     if (selectedInfluencer.hair_color && selectedInfluencer.hair_length && selectedInfluencer.hair_style) {
-              //       parts.push(`${selectedInfluencer.hair_length} ${selectedInfluencer.hair_color} hair, ${selectedInfluencer.hair_style} style`);
-              //     }
-              //     if (selectedInfluencer.skin_tone) parts.push(`Skin: ${selectedInfluencer.skin_tone}`);
-              //     if (selectedInfluencer.lip_style) parts.push(`Lips: ${selectedInfluencer.lip_style}`);
-              //     if (selectedInfluencer.eye_color) parts.push(`Eyes: ${selectedInfluencer.eye_color}`);
-              //     if (selectedInfluencer.nose_style) parts.push(`Nose: ${selectedInfluencer.nose_style}`);
-              //     if (jsonjob.model.makeup_style) parts.push(`Makeup: ${jsonjob.model.makeup_style}`);
-              //     if (selectedInfluencer.clothing_style_everyday || selectedInfluencer.clothing_style_occasional) {
-              //       parts.push(`Clothing: ${selectedInfluencer.clothing_style_everyday || ''} ${selectedInfluencer.clothing_style_occasional || ''}`.trim());
-              //     }
-
-              //     const fullDescription = parts.join(', ');
-              //     setFormData(prev => ({
-              //       ...prev,
-              //       model: fullDescription,
-              //       prompt: selectedInfluencer.prompt || jsonjob.prompt || ''
-              //     }));
-              //   } else {
-              //     // If influencer not found, use the model data from preset
-              //     setModelData(jsonjob.model);
-              //     // Update model description with makeup style
-              //     if (jsonjob.model.makeup_style) {
-              //       setModelDescription(prev => ({
-              //         ...prev,
-              //         makeup: jsonjob.model.makeup_style
-              //       }));
-              //     }
-              //   }
-              // } else if (jsonjob.model) {
-              //   // If no model.id but model data exists, use it directly
-              //   setModelData(jsonjob.model);
-              //   // Update model description with makeup style
-              //   if (jsonjob.model.makeup_style) {
-              //     setModelDescription(prev => ({
-              //       ...prev,
-              //       makeup: jsonjob.model.makeup_style
-              //     }));
-              //   }
-              // }
-
-              toast.success(`Preset "${preset.name}" applied successfully`);
-              setShowPresetsManager(false);
-            } catch (error) {
-              console.error('Error applying preset:', error);
-              toast.error('Failed to apply preset');
-            }
-          }}
-        />
-      )}
-
-      {/* Status Bar Edit Popup */}
-      {statusEditPopup.isOpen && (
-        <div
-          className="fixed z-50 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl p-5 min-w-[320px] max-w-[360px] backdrop-blur-sm"
-          style={{
-            left: `${statusEditPopup.position.x}px`,
-            top: `${statusEditPopup.position.y}px`,
-            transform: 'translateX(-50%)'
-          }}
-        >
-          <div className="space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 pb-3">
-              <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                <Edit3 className="w-4 h-4 text-slate-500" />
-                Edit
-              </h3>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setStatusEditPopup(prev => ({ ...prev, isOpen: false }))}
-                className="h-6 w-6 p-0 hover:bg-slate-100 dark:hover:bg-slate-700"
-              >
-                <X className="w-3 h-3" />
-              </Button>
-            </div>
-
-            {statusEditPopup.fieldType === 'boolean' && (
+          <div className="space-y-6 py-4">
+            {/* Two-Column Layout: Form Left, Image Right */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Left Column - Form Content */}
               <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <Label className="text-sm font-medium text-slate-700 dark:text-slate-300">Status</Label>
-                  <div className="text-sm font-semibold text-slate-900 dark:text-slate-100 bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded">
-                    {statusEditPopup.currentValue ? 'Enabled' : 'Disabled'}
-                  </div>
-                </div>
-                <div className="flex items-center justify-center space-x-3">
-                  <Switch
-                    checked={statusEditPopup.currentValue}
-                    onCheckedChange={(checked) => {
-                      setFormData(prev => ({
+                <h3 className="text-lg font-semibold border-b pb-2">
+                  Preset Information
+                </h3>
+
+                {/* Preset Name */}
+                <div>
+                  <Label className="text-sm font-medium">Preset Name *</Label>
+                  <Input
+                    value={presetData.name}
+                    onChange={(e) =>
+                      setPresetData((prev) => ({
                         ...prev,
-                        [statusEditPopup.field]: checked
-                      }));
-                      setStatusEditPopup(prev => ({ ...prev, isOpen: false }));
-                    }}
-                    className="data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-purple-500 data-[state=checked]:to-blue-500 data-[state=unchecked]:bg-slate-200 data-[state=unchecked]:dark:bg-slate-700"
+                        name: e.target.value,
+                      }))
+                    }
+                    placeholder="Enter preset name"
+                    className="mt-1"
+                    maxLength={100}
                   />
-                  <span className="text-sm text-slate-600 dark:text-slate-400">
-                    {statusEditPopup.currentValue ? 'Enabled' : 'Disabled'}
-                  </span>
-                </div>
-              </div>
-            )}
-
-            {statusEditPopup.fieldType === 'slider' && (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <Label className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                    {statusEditPopup.field === 'numberOfImages' && 'Number of Images'}
-                    {statusEditPopup.field === 'guidance' && 'Guidance Scale'}
-                    {statusEditPopup.field === 'lora_strength' && 'AI Strength'}
-                    {statusEditPopup.field === 'aiconsistency_strength' && 'AI Consistency Strength'}
-                    {statusEditPopup.field === 'nsfw_strength' && 'NSFW Strength'}
-                  </Label>
-                  <div className="text-sm font-semibold text-slate-900 dark:text-slate-100 bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded">
-                    {statusEditPopup.currentValue}
-                  </div>
                 </div>
 
-                <div className="space-y-3">
-                  <Slider
-                    value={[statusEditPopup.currentValue]}
-                    onValueChange={([value]) => {
-                      setStatusEditPopup(prev => ({ ...prev, currentValue: value }));
-                    }}
-                    onValueCommit={([value]) => {
-                      setFormData(prev => ({
-                        ...prev,
-                        [statusEditPopup.field]: value
-                      }));
-                      setStatusEditPopup(prev => ({ ...prev, isOpen: false }));
-                    }}
-                    max={
-                      statusEditPopup.field === 'numberOfImages' ? 20 :
-                        statusEditPopup.field === 'guidance' ? 8.0 :
-                          statusEditPopup.field === 'lora_strength' ? 1.5 :
-                            statusEditPopup.field === 'aiconsistency_strength' ? 1.5 :
-                              statusEditPopup.field === 'nsfw_strength' ? 1 : 10
-                    }
-                    min={
-                      statusEditPopup.field === 'numberOfImages' ? 1 :
-                        statusEditPopup.field === 'guidance' ? 1.0 :
-                          statusEditPopup.field === 'lora_strength' ? -0.5 :
-                            statusEditPopup.field === 'aiconsistency_strength' ? -0.5 :
-                              statusEditPopup.field === 'nsfw_strength' ? -1 : 0
-                    }
-                    step={
-                      statusEditPopup.field === 'guidance' ? 0.1 :
-                        statusEditPopup.field === 'lora_strength' ? 0.1 :
-                          statusEditPopup.field === 'aiconsistency_strength' ? 0.1 :
-                            statusEditPopup.field === 'nsfw_strength' ? 0.1 : 1
-                    }
-                    className="w-full"
-                  />
-
-                  <div className="flex justify-between text-xs text-slate-500 dark:text-slate-400">
-                    {statusEditPopup.field === 'numberOfImages' && (
-                      <>
-                        <span className="font-medium">1</span>
-                        <span className="font-medium">20</span>
-                      </>
-                    )}
-                    {statusEditPopup.field === 'guidance' && (
-                      <>
-                        <span className="font-medium">1.0</span>
-                        <span className="font-medium">8.0</span>
-                      </>
-                    )}
-                    {statusEditPopup.field === 'lora_strength' && (
-                      <>
-                        <span className="font-medium">Weak (-0.5)</span>
-                        <span className="font-medium">Strong (+1.5)</span>
-                      </>
-                    )}
-                    {statusEditPopup.field === 'aiconsistency_strength' && (
-                      <>
-                        <span className="font-medium">Weak (-0.5)</span>
-                        <span className="font-medium">Strong (+1.5)</span>
-                      </>
-                    )}
-                    {statusEditPopup.field === 'nsfw_strength' && (
-                      <>
-                        <span className="font-medium">SFW (-1)</span>
-                        <span className="font-medium">NSFW (+1)</span>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {statusEditPopup.fieldType === 'number' && (
-              <div className="space-y-2">
-                <Label className="text-xs font-medium text-slate-600 dark:text-slate-400">Value</Label>
-                <Input
-                  type="number"
-                  value={statusEditPopup.currentValue}
-                  onChange={(e) => {
-                    const value = parseFloat(e.target.value);
-                    if (!isNaN(value)) {
-                      setStatusEditPopup(prev => ({ ...prev, currentValue: value }));
-                    }
-                  }}
-                  className="w-full h-8 text-sm"
-                  step={statusEditPopup.field === 'guidance' ? 0.1 : 1}
-                  min={statusEditPopup.field === 'numberOfImages' ? 1 : statusEditPopup.field === 'guidance' ? 1.0 : 0}
-                  max={statusEditPopup.field === 'numberOfImages' ? 20 : statusEditPopup.field === 'guidance' ? 8.0 : 10}
-                />
-                {statusEditPopup.field === 'guidance' && (
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Range: 1.0 - 8.0 (Recommended: 3.5)
-                  </p>
-                )}
-                {statusEditPopup.field === 'numberOfImages' && (
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Range: 1 - 20 images
-                  </p>
-                )}
-                {statusEditPopup.field === 'aiconsistency_strength' && (
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Range: 0.0 - 2.0 (Recommended: 1.0)
-                  </p>
-                )}
-              </div>
-            )}
-
-            {statusEditPopup.fieldType === 'text' && (
-              <div className="space-y-2">
-                <Label className="text-xs font-medium text-slate-600 dark:text-slate-400">Value</Label>
-                <Input
-                  type="text"
-                  value={statusEditPopup.currentValue}
-                  onChange={(e) => setStatusEditPopup(prev => ({ ...prev, currentValue: e.target.value }))}
-                  className="w-full h-8 text-sm"
-                  placeholder={`Enter ${statusEditPopup.field.toLowerCase()}`}
-                />
-              </div>
-            )}
-
-            {statusEditPopup.fieldType === 'select' && statusEditPopup.options && (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <Label className="text-sm font-medium text-slate-700 dark:text-slate-300">Select Option</Label>
-                  <div className="text-sm font-semibold text-slate-900 dark:text-slate-100 bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded">
-                    {statusEditPopup.currentValue}
-                  </div>
-                </div>
-                <Select
-                  value={statusEditPopup.currentValue}
-                  onValueChange={(value) => {
-                    setFormData(prev => ({
-                      ...prev,
-                      [statusEditPopup.field]: value
-                    }));
-                    setStatusEditPopup(prev => ({ ...prev, isOpen: false }));
-                  }}
-                >
-                  <SelectTrigger className="w-full h-9 text-sm">
-                    <SelectValue placeholder="Select an option" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {statusEditPopup.options.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Zoom Modal for Generated Images */}
-      <DialogZoom open={fullSizeImageModal.isOpen} onOpenChange={() => setFullSizeImageModal({ isOpen: false, imageUrl: '', imageName: '' })}>
-        <DialogContentZoom className="max-w-90vw] max-h-[900overflow-hidden">
-          <div className="relative w-full h-full flex items-center justify-center">
-            <img
-              src={fullSizeImageModal.imageUrl}
-              alt={fullSizeImageModal.imageName}
-              className="max-w-full max-h-full object-contain"
-              onError={(e) => {
-                const target = e.target as HTMLImageElement;
-                target.style.display = 'none';
-              }}
-            />
-          </div>
-        </DialogContentZoom>
-      </DialogZoom>
-
-      {/* Share Modal */}
-      <Dialog open={shareModal.open} onOpenChange={() => setShareModal({ open: false, itemId: null, itemPath: null })}>
-        <DialogContent className="max-w-md">
-          <div className="space-y-4">
-            <div className="text-center">
-              <h3 className="text-lg font-semibold">Share Content</h3>
-              <p className="text-sm text-muted-foreground">Choose how you'd like to share this content</p>
-            </div>
-
-            {shareModal.itemId && (
-              <>
-                {/* Copy Link Section */}
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">Direct Link</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      value={`${config.data_url}/${userData.id}/${shareModal.itemPath}/${shareModal.itemId}`}
-                      readOnly
-                      className="text-xs"
-                    />
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => copyToClipboard(`${config.data_url}/${userData.id}/${shareModal.itemPath}/${shareModal.itemId}`)}
-                    >
-                      Copy
-                    </Button>
-                  </div>
-                </div>
-
-                {/* QR Code Section */}
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">QR Code</Label>
-                  <div className="flex flex-col items-center space-y-3 p-4 bg-gray-50 rounded-lg border">
-                    {qrCodeDataUrl ? (
-                      <>
-                        <img 
-                          src={qrCodeDataUrl} 
-                          alt="QR Code" 
-                          className="w-32 h-32 border border-gray-200 rounded-lg"
-                        />
-                        <div className="text-xs text-gray-600 text-center">
-                          Scan to access content directly
-                        </div>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => {
-                            const link = document.createElement('a');
-                            link.href = qrCodeDataUrl;
-                            link.download = 'qr-code.png';
-                            link.click();
-                          }}
-                          className="flex items-center gap-2"
+                {/* Rating und Mark as Favorite in einer Zeile */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+                  <div>
+                    <Label className="text-sm font-medium">Rating</Label>
+                    <div className="flex gap-1 mt-2">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <button
+                          key={star}
+                          type="button"
+                          onClick={() =>
+                            setPresetData((prev) => ({
+                              ...prev,
+                              rating: prev.rating === star ? 0 : star,
+                            }))
+                          }
+                          className="focus:outline-none transition-colors"
                         >
-                          <Download className="w-4 h-4" />
-                          Download QR Code
-                        </Button>
-                      </>
-                    ) : (
-                      <div className="flex items-center justify-center w-32 h-32">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-400"></div>
-                      </div>
-                    )}
+                          <Star
+                            className={`w-5 h-5 ${
+                              star <= presetData.rating
+                                ? "fill-yellow-400 text-yellow-400"
+                                : "text-gray-300"
+                            }`}
+                          />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 mt-6 md:mt-8">
+                    <input
+                      type="checkbox"
+                      id="favorite-preset"
+                      checked={presetData.favorite}
+                      onChange={(e) =>
+                        setPresetData((prev) => ({
+                          ...prev,
+                          favorite: e.target.checked,
+                        }))
+                      }
+                      className="rounded border-gray-300"
+                    />
+                    <Label
+                      htmlFor="favorite-preset"
+                      className="text-sm font-medium cursor-pointer"
+                    >
+                      Mark as favorite
+                    </Label>
                   </div>
                 </div>
 
-                {/* Social Media Section */}
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">Share on Social Media</Label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="flex items-center gap-2"
-                      onClick={() => shareToSocialMedia('twitter', shareModal.itemId)}
-                    >
-                      <svg className="w-4 h-4 text-blue-400" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z" />
-                      </svg>
-                      Twitter
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="flex items-center gap-2"
-                      onClick={() => shareToSocialMedia('facebook', shareModal.itemId)}
-                    >
-                      <svg className="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-                      </svg>
-                      Facebook
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="flex items-center gap-2"
-                      onClick={() => shareToSocialMedia('linkedin', shareModal.itemId)}
-                    >
-                      <svg className="w-4 h-4 text-blue-700" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
-                      </svg>
-                      LinkedIn
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="flex items-center gap-2"
-                      onClick={() => shareToSocialMedia('pinterest', shareModal.itemId)}
-                    >
-                      <svg className="w-4 h-4 text-red-600" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M12.017 0C5.396 0 .029 5.367.029 11.987c0 5.079 3.158 9.417 7.618 11.174-.105-.949-.199-2.403.041-3.439.219-.937 1.406-5.957 1.406-5.957s-.359-.72-.359-1.781c0-1.663.967-2.911 2.168-2.911 1.024 0 1.518.769 1.518 1.688 0 1.029-.653 2.567-.992 3.992-.285 1.193.6 2.165 1.775 2.165 2.128 0 3.768-2.245 3.768-5.487 0-2.861-2.063-4.869-5.008-4.869-3.41 0-5.409 2.562-5.409 5.199 0 1.033.394 2.143.889 2.741.099.12.112.225.085.345-.09.375-.293 1.199-.334 1.363-.053.225-.172.271-.402.165-1.495-.69-2.433-2.878-2.433-4.646 0-3.776 2.748-7.252 7.92-7.252 4.158 0 7.392 2.967 7.392 6.923 0 4.135-2.607 7.462-6.233 7.462-1.214 0-2.357-.629-2.746-1.378l-.748 2.853c-.271 1.043-1.002 2.35-1.492 3.146C9.57 23.812 10.763 24.009 12.017 24.009c6.624 0 11.99-5.367 11.99-11.988C24.007 5.367 18.641.001 12.017.001z" />
-                      </svg>
-                      Pinterest
-                    </Button>
+                {/* Description */}
+                <div>
+                  <Label className="text-sm font-medium">Description</Label>
+                  <Textarea
+                    value={presetData.description}
+                    onChange={(e) =>
+                      setPresetData((prev) => ({
+                        ...prev,
+                        description: e.target.value,
+                      }))
+                    }
+                    placeholder="Describe this preset configuration..."
+                    className="mt-1"
+                    rows={3}
+                    maxLength={500}
+                  />
+                </div>
+
+                {/* Folder Structure */}
+                <div className="space-y-3">
+                  <Label className="text-sm font-medium">
+                    Folder Organization
+                  </Label>
+                  <div className="grid grid-cols-1 gap-3">
+                    <Input
+                      value={presetData.mainFolder}
+                      onChange={(e) =>
+                        setPresetData((prev) => ({
+                          ...prev,
+                          mainFolder: e.target.value,
+                        }))
+                      }
+                      placeholder="Main Folder (e.g. Portraits)"
+                      className="mt-1"
+                    />
+                    <Input
+                      value={presetData.subFolder}
+                      onChange={(e) =>
+                        setPresetData((prev) => ({
+                          ...prev,
+                          subFolder: e.target.value,
+                        }))
+                      }
+                      placeholder="Sub Folder (e.g. Casual)"
+                      className="mt-1"
+                    />
+                    <Input
+                      value={presetData.subSubFolder}
+                      onChange={(e) =>
+                        setPresetData((prev) => ({
+                          ...prev,
+                          subSubFolder: e.target.value,
+                        }))
+                      }
+                      placeholder="Sub-sub Folder (e.g. Indoor)"
+                      className="mt-1"
+                    />
                   </div>
                 </div>
-              </>
-            )}
+
+                {/* Tags */}
+                <div>
+                  <Label className="text-sm font-medium">Tags</Label>
+                  <div className="mt-1 space-y-2">
+                    <div className="flex flex-wrap gap-2">
+                      {presetData.tags.map((tag, index) => (
+                        <div
+                          key={index}
+                          className="flex items-center gap-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded-full text-xs"
+                        >
+                          <span>{tag}</span>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setPresetData((prev) => ({
+                                ...prev,
+                                tags: prev.tags.filter((_, i) => i !== index),
+                              }))
+                            }
+                            className="hover:bg-blue-200 dark:hover:bg-blue-800 rounded-full p-0.5"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Add a tag (e.g., portrait, landscape, art)"
+                        onKeyPress={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            const input = e.target as HTMLInputElement;
+                            const newTag = input.value.trim();
+                            if (newTag && !presetData.tags.includes(newTag)) {
+                              setPresetData((prev) => ({
+                                ...prev,
+                                tags: [...prev.tags, newTag],
+                              }));
+                              input.value = "";
+                            }
+                          }
+                        }}
+                        className="flex-1"
+                        maxLength={50}
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={(e) => {
+                          const input = (
+                            e.target as HTMLElement
+                          ).parentElement?.querySelector(
+                            "input"
+                          ) as HTMLInputElement;
+                          const newTag = input?.value.trim();
+                          if (newTag && !presetData.tags.includes(newTag)) {
+                            setPresetData((prev) => ({
+                              ...prev,
+                              tags: [...prev.tags, newTag],
+                            }));
+                            input.value = "";
+                          }
+                        }}
+                      >
+                        <Plus className="w-4 h-4" />
+                      </Button>
+                    </div>
+
+                    <p className="text-xs text-muted-foreground">
+                      Press Enter or click + to add tags.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Column - Image with Buttons */}
+              <div className="space-y-4">
+                <Label className="text-sm font-medium">Preset Image</Label>
+
+                {/* Image Display - 300px width */}
+                <div className="relative w-[300px] mx-auto">
+                  {presetData.selectedImage ? (
+                    <img
+                      src={presetData.selectedImage}
+                      alt="Preset image"
+                      className="w-full h-full object-cover rounded-lg border"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src =
+                          "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI2Y3ZjdmNyIvPjx0ZXh0IHg9IjUwIiB5PSI1MCIgZm9udC1zaXplPSIxNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iIGZpbGw9IiM5OTkiPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg==";
+                      }}
+                    />
+                  ) : (
+                    <div className="w-full h-[375px] bg-gray-100 dark:bg-gray-800 rounded-lg border flex items-center justify-center">
+                      <div className="text-center">
+                        <ImageIcon className="w-12 h-12 mx-auto mb-2 text-gray-400" />
+                        <p className="text-sm text-gray-500">
+                          No image selected
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Image Selection Buttons */}
+                <div className="space-y-2 w-[300px] mx-auto">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      if (generatedImages.length > 0) {
+                        const firstImage = generatedImages[0];
+                        const imageUrl = `${config.data_url}/${userData.id}/output/${firstImage.system_filename}`;
+                        setPresetData((prev) => ({
+                          ...prev,
+                          selectedImage: imageUrl,
+                        }));
+                        toast.success("Current image selected for preset");
+                      } else {
+                        toast.error("No current image available");
+                      }
+                    }}
+                    disabled={generatedImages.length === 0}
+                    className="w-full text-sm"
+                  >
+                    <Camera className="w-4 h-4 mr-2" />
+                    Use Current Image
+                  </Button>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setShowVaultSelector(true)}
+                    className="w-full text-sm"
+                  >
+                    <FolderOpen className="w-4 h-4 mr-2" />
+                    Browse Library
+                  </Button>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={triggerFileUpload}
+                    disabled={uploadingImage}
+                    className="w-full text-sm"
+                  >
+                    {uploadingImage ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Upload className="w-4 h-4 mr-2" />
+                    )}
+                    Upload Image
+                  </Button>
+
+                  {presetData.selectedImage && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() =>
+                        setPresetData((prev) => ({
+                          ...prev,
+                          selectedImage: null,
+                        }))
+                      }
+                      className="w-full text-sm text-red-600 hover:text-red-700"
+                    >
+                      <X className="w-4 h-4 mr-2" />
+                      Remove Image
+                    </Button>
+                  )}
+
+                  {/* Hidden file input */}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileUpload}
+                    className="hidden"
+                  />
+                </div>
+
+                <p className="text-xs text-muted-foreground text-center">
+                  Optional: Add an image to help identify this preset
+                </p>
+              </div>
+            </div>
+
+            {/* Current Settings Preview - Complete Overview */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold border-b pb-2">
+                Current Settings Preview
+              </h3>
+
+              <div className="bg-gray-50 dark:bg-gray-900 p-3 rounded-lg space-y-4">
+                {/* Basic Settings - Format to Seed - 2x3 Layout (6 Werte) */}
+                <div>
+                  <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Image Settings
+                  </h4>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div className="flex items-center gap-2">
+                      <Monitor className="w-4 h-4 text-green-500" />
+                      <span className="font-medium text-gray-600 dark:text-gray-400">
+                        Format:
+                      </span>
+                      <span className="text-gray-800 dark:text-gray-200">
+                        {imageSettings.format}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <Zap className="w-4 h-4 text-yellow-500" />
+                      <span className="font-medium text-gray-600 dark:text-gray-400">
+                        Engine:
+                      </span>
+                      <span className="text-gray-800 dark:text-gray-200">
+                        {imageSettings.engine}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <ImageIcon className="w-4 h-4 text-purple-500" />
+                      <span className="font-medium text-gray-600 dark:text-gray-400">
+                        Images:
+                      </span>
+                      <span className="text-gray-800 dark:text-gray-200">
+                        {imageSettings.images}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <Target className="w-4 h-4 text-orange-500" />
+                      <span className="font-medium text-gray-600 dark:text-gray-400">
+                        Adherence:
+                      </span>
+                      <span className="text-gray-800 dark:text-gray-200">
+                        {imageSettings.promptAdherence}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <Heart className="w-4 h-4 text-red-500" />
+                      <span className="font-medium text-gray-600 dark:text-gray-400">
+                        NSFW:
+                      </span>
+                      <span className="text-gray-800 dark:text-gray-200">
+                        {imageSettings.nsfwStrength}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <Star className="w-4 h-4 text-indigo-500" />
+                      <span className="font-medium text-gray-600 dark:text-gray-400">
+                        Seed:
+                      </span>
+                      <span className="text-gray-800 dark:text-gray-200">
+                        {imageSettings.seed || "Random"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* AI Consistency (LORA Settings) - Strength links, LORA 1 rechts */}
+                <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
+                  <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    AI Consistency
+                  </h4>
+                  <div className="grid grid-cols-2 gap-3 text-xs">
+                    <div className="flex items-center gap-2">
+                      <Zap className="w-3 h-3 text-cyan-400" />
+                      <span className="text-gray-600 dark:text-gray-400">
+                        Strength:
+                      </span>
+                      <span className="text-gray-800 dark:text-gray-200">
+                        {loraSettings.influencerStrength}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <Plus className="w-3 h-3 text-emerald-400" />
+                      <span className="text-gray-600 dark:text-gray-400">
+                        LORA 1:
+                      </span>
+                      <span className="text-gray-800 dark:text-gray-200 truncate">
+                        {loraSettings.optionalLora1} (
+                        {loraSettings.optionalLora1Strength})
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="w-3 h-3 text-cyan-400" />
+                      <span className="text-gray-600 dark:text-gray-400">
+                        Consistency:
+                      </span>
+                      <span className="text-gray-800 dark:text-gray-200">
+                        {loraSettings.influencerConsistency ? "ON" : "OFF"}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <Plus className="w-3 h-3 text-emerald-400" />
+                      <span className="text-gray-600 dark:text-gray-400">
+                        LORA 2:
+                      </span>
+                      <span className="text-gray-800 dark:text-gray-200 truncate">
+                        {loraSettings.optionalLora2} (
+                        {loraSettings.optionalLora2Strength})
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Component Picker - All 8 Options */}
+                <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
+                  <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Component Picker
+                  </h4>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="flex items-center gap-2">
+                      <Camera className="w-3 h-3 text-blue-400" />
+                      <span className="text-gray-600 dark:text-gray-400">
+                        Scene:
+                      </span>
+                      <span className="text-gray-800 dark:text-gray-200 truncate">
+                        {componentPicker.scene?.label || "None"}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <User className="w-3 h-3 text-green-400" />
+                      <span className="text-gray-600 dark:text-gray-400">
+                        Pose:
+                      </span>
+                      <span className="text-gray-800 dark:text-gray-200 truncate">
+                        {componentPicker.pose?.label || "None"}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <Shirt className="w-3 h-3 text-purple-400" />
+                      <span className="text-gray-600 dark:text-gray-400">
+                        Outfit:
+                      </span>
+                      <span className="text-gray-800 dark:text-gray-200 truncate">
+                        {componentPicker.outfit?.label || "None"}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <Monitor className="w-3 h-3 text-teal-400" />
+                      <span className="text-gray-600 dark:text-gray-400">
+                        Framing:
+                      </span>
+                      <span className="text-gray-800 dark:text-gray-200 truncate">
+                        {componentPicker.framing?.label || "None"}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <Sun className="w-3 h-3 text-yellow-400" />
+                      <span className="text-gray-600 dark:text-gray-400">
+                        Lighting:
+                      </span>
+                      <span className="text-gray-800 dark:text-gray-200 truncate">
+                        {componentPicker.lighting?.label || "None"}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <RotateCcw className="w-3 h-3 text-pink-400" />
+                      <span className="text-gray-600 dark:text-gray-400">
+                        Rotation:
+                      </span>
+                      <span className="text-gray-800 dark:text-gray-200 truncate">
+                        {componentPicker.rotation?.label || "None"}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="w-3 h-3 text-rose-400" />
+                      <span className="text-gray-600 dark:text-gray-400">
+                        Makeup:
+                      </span>
+                      <span className="text-gray-800 dark:text-gray-200 truncate">
+                        {componentPicker.makeup?.label || "None"}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <Star className="w-3 h-3 text-amber-400" />
+                      <span className="text-gray-600 dark:text-gray-400">
+                        Accessory:
+                      </span>
+                      <span className="text-gray-800 dark:text-gray-200 truncate">
+                        {componentPicker.accessory?.label || "None"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex gap-3 pt-4 border-t">
+            <Button
+              variant="outline"
+              onClick={() => setShowPresetModal(false)}
+              className="flex-1"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSavePresetWithImage}
+              disabled={isSavingPreset || !presetData.name.trim()}
+              className="flex-1"
+            >
+              {isSavingPreset ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Archive className="w-4 h-4 mr-2" />
+                  Save Preset
+                </>
+              )}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
 
-      {showHistory && <HistoryCard userId={userData.id} />}
+      {/* Preset Browser Modal */}
+      <Dialog
+        open={showPresetBrowserModal}
+        onOpenChange={(open) => {
+          setShowPresetBrowserModal(open);
+          if (!open) {
+            setBrowseFolderView("folders");
+            setSelectedFolder(null);
+            setSelectedFolderPresets([]);
+            setCurrentFolderPath([]);
+            setFolderHierarchy({});
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-6xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-xl">
+              {browseFolderView === "folders" ? (
+                <>
+                  <FolderOpen className="w-6 h-6" />
+                  Browse Presets - Folders
+                  {currentFolderPath.length > 0 && (
+                    <div className="flex items-center gap-1 text-sm text-muted-foreground ml-2">
+                      {currentFolderPath.map((folder, index) => (
+                        <span key={index}>
+                          {index > 0 && <span className="mx-1">/</span>}
+                          <button
+                            className="hover:text-purple-500 underline"
+                            onClick={() => {
+                              setCurrentFolderPath(
+                                currentFolderPath.slice(0, index + 1)
+                              );
+                            }}
+                          >
+                            {folder}
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  <ArrowLeft
+                    className="w-6 h-6 cursor-pointer hover:text-blue-500"
+                    onClick={() => {
+                      setBrowseFolderView("folders");
+                      setSelectedFolder(null);
+                      setSelectedFolderPresets([]);
+                    }}
+                  />
+                  <span>{selectedFolder}</span>
+                </>
+              )}
+            </DialogTitle>
+            <p className="text-sm text-muted-foreground">
+              {browseFolderView === "folders"
+                ? "Select a folder to browse presets"
+                : `Browse presets in ${selectedFolder}`}
+            </p>
+          </DialogHeader>
 
-      {/* Credit Confirmation Modal */}
-      <CreditConfirmationModal
-        isOpen={showGemWarning}
-        onClose={() => setShowGemWarning(false)}
-        onConfirm={proceedWithGeneration}
-        gemCostData={gemCostData}
-        userCredits={userData.credits}
-        userId={userData.id}
-        isProcessing={isGenerating}
-        processingText="Generating..."
-        numberOfItems={formData.numberOfImages}
-        itemType="image"
+          <div className="space-y-4 py-4">
+            {presetsLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="w-8 h-8 animate-spin" />
+                <span className="ml-2">Loading presets...</span>
+              </div>
+            ) : availablePresets.length === 0 ? (
+              <div className="text-center py-12">
+                <Archive className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold mb-2">No Presets Found</h3>
+                <p className="text-gray-500 mb-4">
+                  You haven't saved any presets yet.
+                </p>
+                <Button onClick={() => setShowPresetModal(true)}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create Your First Preset
+                </Button>
+              </div>
+            ) : browseFolderView === "folders" ? (
+              /* Hierarchical Folder Navigation View */
+              (() => {
+                // Build hierarchical folder structure
+                const buildFolderHierarchy = (presets: any[]) => {
+                  const hierarchy: any = {};
+
+                  presets.forEach((preset) => {
+                    const folders = [];
+                    if (preset.mainfolder) folders.push(preset.mainfolder);
+                    if (preset.subfolder) folders.push(preset.subfolder);
+                    if (preset.subsubfolder) folders.push(preset.subsubfolder);
+
+                    if (folders.length === 0) {
+                      folders.push("Uncategorized");
+                    }
+
+                    let current = hierarchy;
+                    folders.forEach((folder, index) => {
+                      if (!current[folder]) {
+                        current[folder] = {
+                          subfolders: {},
+                          presets: [],
+                          totalPresets: 0,
+                        };
+                      }
+
+                      if (index === folders.length - 1) {
+                        current[folder].presets.push(preset);
+                      }
+                      current[folder].totalPresets++;
+                      current = current[folder].subfolders;
+                    });
+                  });
+
+                  return hierarchy;
+                };
+
+                const fullHierarchy = buildFolderHierarchy(availablePresets);
+
+                // Navigate to current path
+                let currentLevel = fullHierarchy;
+                currentFolderPath.forEach((folder) => {
+                  if (currentLevel[folder]) {
+                    currentLevel = currentLevel[folder].subfolders;
+                  }
+                });
+
+                return (
+                  <div className="space-y-4">
+                    {/* Back button if we're in a subfolder */}
+                    {currentFolderPath.length > 0 && (
+                      <div className="flex items-center gap-2 mb-4">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setCurrentFolderPath(
+                              currentFolderPath.slice(0, -1)
+                            );
+                          }}
+                        >
+                          <ArrowLeft className="w-4 h-4 mr-2" />
+                          Back to{" "}
+                          {currentFolderPath.length === 1
+                            ? "Root"
+                            : currentFolderPath[currentFolderPath.length - 2]}
+                        </Button>
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {Object.entries(currentLevel).map(
+                        ([folderName, folderData]) => {
+                          const hasSubfolders =
+                            Object.keys(folderData.subfolders).length > 0;
+                          const hasPresets = folderData.presets.length > 0;
+
+                          return (
+                            <div
+                              key={folderName}
+                              className="border rounded-lg p-6 space-y-4 hover:shadow-md transition-all cursor-pointer hover:bg-purple-50/50 dark:hover:bg-purple-950/20 bg-card"
+                              onClick={() => {
+                                if (hasSubfolders) {
+                                  // Navigate into subfolder
+                                  setCurrentFolderPath([
+                                    ...currentFolderPath,
+                                    folderName,
+                                  ]);
+                                } else if (hasPresets) {
+                                  // Show presets in this folder
+                                  setSelectedFolder(
+                                    currentFolderPath.length > 0
+                                      ? `${currentFolderPath.join(
+                                          "/"
+                                        )}/${folderName}`
+                                      : folderName
+                                  );
+                                  setSelectedFolderPresets(folderData.presets);
+                                  setBrowseFolderView("details");
+                                }
+                              }}
+                            >
+                              <div className="flex items-center justify-center">
+                                {hasSubfolders ? (
+                                  <FolderOpen className="w-12 h-12 text-purple-500" />
+                                ) : (
+                                  <Folder className="w-12 h-12 text-blue-500" />
+                                )}
+                              </div>
+
+                              <div className="text-center">
+                                <h3 className="text-lg font-semibold mb-1">
+                                  {folderName}
+                                </h3>
+                                <p className="text-sm text-muted-foreground">
+                                  {folderData.totalPresets} preset
+                                  {folderData.totalPresets !== 1 ? "s" : ""}
+                                  {hasSubfolders && (
+                                    <span className="block text-xs">
+                                      {
+                                        Object.keys(folderData.subfolders)
+                                          .length
+                                      }{" "}
+                                      subfolder
+                                      {Object.keys(folderData.subfolders)
+                                        .length !== 1
+                                        ? "s"
+                                        : ""}
+                                    </span>
+                                  )}
+                                </p>
+                              </div>
+
+                              {/* Folder preview - show some images */}
+                              <div className="grid grid-cols-3 gap-1">
+                                {folderData.presets
+                                  .slice(0, 3)
+                                  .map((preset: any, index: number) => (
+                                    <div key={index} className="aspect-square">
+                                      {preset.imageUrl ? (
+                                        <img
+                                          src={preset.imageUrl}
+                                          alt="Preview"
+                                          className="w-full h-full object-cover rounded-sm"
+                                          onError={(e) => {
+                                            (e.target as HTMLImageElement).src =
+                                              "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjZjdmN2Y3Ii8+PC9zdmc+";
+                                          }}
+                                        />
+                                      ) : (
+                                        <div className="w-full h-full bg-gray-100 dark:bg-gray-800 rounded-sm flex items-center justify-center">
+                                          <ImageIcon className="w-4 h-4 text-gray-400" />
+                                        </div>
+                                      )}
+                                    </div>
+                                  ))}
+                                {folderData.presets.length < 3 &&
+                                  Array.from({
+                                    length: 3 - folderData.presets.length,
+                                  }).map((_, index) => (
+                                    <div
+                                      key={`empty-${index}`}
+                                      className="aspect-square bg-gray-100 dark:bg-gray-800 rounded-sm"
+                                    />
+                                  ))}
+                              </div>
+                            </div>
+                          );
+                        }
+                      )}
+                    </div>
+                  </div>
+                );
+              })()
+            ) : (
+              /* Details View for Selected Folder with 4:5 Images */
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {selectedFolderPresets.map((preset) => (
+                  <div
+                    key={preset.id}
+                    className="border rounded-lg p-4 space-y-3 hover:shadow-md transition-shadow bg-card"
+                  >
+                    {/* Preset Image in 4:5 format */}
+                    <div className="relative aspect-[4/5]">
+                      {preset.imageUrl ? (
+                        <img
+                          src={preset.imageUrl}
+                          alt={preset.name}
+                          className="w-full h-full object-cover rounded-md"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src =
+                              "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI2Y3ZjdmNyIvPjx0ZXh0IHg9IjUwIiB5PSI1MCIgZm9udC1zaXplPSIxNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iIGZpbGw9IiM5OTkiPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg==";
+                          }}
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gray-100 dark:bg-gray-800 rounded-md flex items-center justify-center">
+                          <ImageIcon className="w-8 h-8 text-gray-400" />
+                        </div>
+                      )}
+
+                      {/* Favorite indicator */}
+                      {preset.favorite && (
+                        <Heart className="absolute top-2 right-2 w-5 h-5 fill-red-500 text-red-500" />
+                      )}
+                    </div>
+
+                    {/* Preset Info */}
+                    <div className="space-y-2">
+                      <div className="flex items-start justify-between">
+                        <h4 className="font-semibold truncate text-sm">
+                          {preset.name}
+                        </h4>
+                        {preset.rating > 0 && (
+                          <div className="flex gap-0.5">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <Star
+                                key={star}
+                                className={`w-3 h-3 ${
+                                  star <= preset.rating
+                                    ? "fill-yellow-400 text-yellow-400"
+                                    : "text-gray-300"
+                                }`}
+                              />
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {preset.description && (
+                        <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2">
+                          {preset.description}
+                        </p>
+                      )}
+
+                      {/* Tags */}
+                      {preset.tags && preset.tags.length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                          {preset.tags
+                            .slice(0, 2)
+                            .map((tag: string, index: number) => (
+                              <span
+                                key={index}
+                                className="px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-full text-xs"
+                              >
+                                {tag}
+                              </span>
+                            ))}
+                          {preset.tags.length > 2 && (
+                            <span className="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-full text-xs">
+                              +{preset.tags.length - 2}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex gap-1 pt-2">
+                      <Button
+                        variant="default"
+                        size="sm"
+                        onClick={() => loadPreset(preset)}
+                        className="flex-1 text-xs"
+                      >
+                        <Play className="w-3 h-3 mr-1" />
+                        Load
+                      </Button>
+
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => editPreset(preset)}
+                        className="flex-1 text-xs"
+                      >
+                        <Edit className="w-3 h-3 mr-1" />
+                        Edit
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="flex gap-3 pt-4 border-t">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowPresetBrowserModal(false);
+                setBrowseFolderView("folders");
+                setSelectedFolder(null);
+                setSelectedFolderPresets([]);
+              }}
+              className="flex-1"
+            >
+              Close
+            </Button>
+            <Button
+              onClick={() => {
+                setShowPresetBrowserModal(false);
+                setShowPresetModal(true);
+              }}
+              className="flex-1"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Create New Preset
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Vault Selector Modal for Library Browsing */}
+      <VaultSelector
+        open={showVaultSelector}
+        onOpenChange={setShowVaultSelector}
+        onImageSelect={async (image) => {
+          try {
+            const filename = `preset_${Date.now()}.jpg`;
+            const copiedImageUrl = await copyImageToPresets(image, filename);
+            setPresetData((prev) => ({
+              ...prev,
+              selectedImage: copiedImageUrl,
+            }));
+            setShowVaultSelector(false);
+            toast.success("Image selected and copied to presets");
+          } catch (error) {
+            console.error("Error copying image:", error);
+            toast.error("Failed to copy image to presets");
+          }
+        }}
+        title="Select Image for Preset"
       />
+
+      {/* Upload Modal */}
+      <Dialog open={showUploadModal} onOpenChange={setShowUploadModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Upload Image for Preset</DialogTitle>
+            <p className="text-sm text-muted-foreground">
+              Select an image file to use with this preset.
+            </p>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleFileUpload}
+                disabled={uploading}
+                className="hidden"
+                id="preset-image-upload"
+              />
+              <label htmlFor="preset-image-upload" className="cursor-pointer">
+                <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
+                  {uploading ? "Uploading..." : "Click to select image"}
+                </p>
+                <p className="text-xs text-gray-500">JPG, PNG up to 10MB</p>
+              </label>
+            </div>
+          </div>
+          <div className="flex gap-3 pt-4 border-t">
+            <Button
+              variant="outline"
+              onClick={() => setShowUploadModal(false)}
+              className="flex-1"
+              disabled={uploading}
+            >
+              Cancel
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Credit Warning Modal */}
+      <CreditConfirmationModal
+        isOpen={showCreditWarning}
+        onClose={() => setShowCreditWarning(false)}
+        onConfirm={() => {
+          console.log(
+            "🚀 Continue Generation clicked - calling proceedWithGeneration()"
+          );
+          setShowCreditWarning(false);
+          proceedWithGeneration();
+        }}
+        gemCostData={(() => {
+          const pricePerImage = gemCostData?.gems || 0;
+          const totalCost = pricePerImage * imageSettings.images;
+          return {
+            id: 1,
+            item: imageSettings.engine,
+            description: `Generate ${imageSettings.images} image${
+              imageSettings.images > 1 ? "s" : ""
+            }`,
+            gems: totalCost,
+            originalGemsPerImage: pricePerImage,
+          };
+        })()}
+        userCredits={gemCostData?.user_gems || userData.credits || 0}
+        userId={userData.id}
+        numberOfItems={imageSettings.images}
+        itemType="image"
+        confirmButtonText="Continue Generation"
+      />
+
+      {/* Influencer Missing Dialog */}
+      <Dialog
+        open={showInfluencerDialog}
+        onOpenChange={setShowInfluencerDialog}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <User className="w-5 h-5 text-blue-500" />
+              Influencer Not Found
+            </DialogTitle>
+            <DialogDescription>
+              {influencerDialogData && (
+                <>
+                  Template{" "}
+                  <strong>"{influencerDialogData.templateName}"</strong> was
+                  created with influencer{" "}
+                  <strong>"{influencerDialogData.influencerName}"</strong>.
+                  <br />
+                  <br />
+                  You don't have an influencer with this name in your
+                  collection.
+                </>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setShowInfluencerDialog(false)}
+              className="flex-1"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                setShowInfluencerDialog(false);
+                if (influencerDialogData) {
+                  toast.info(
+                    `Continuing without influencer (template used "${influencerDialogData.influencerName}")`
+                  );
+                }
+              }}
+              className="flex-1"
+            >
+              Continue Without
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* LoRA Training Required Modal */}
+      <Dialog
+        open={showLoraTrainingModal}
+        onOpenChange={setShowLoraTrainingModal}
+      >
+        <DialogContent className="sm:max-w-[500px] bg-gradient-to-br from-gray-900 to-purple-900 border-purple-500/20">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-white flex items-center gap-2">
+              <Brain className="w-6 h-6 text-purple-400" />
+              AI Training Required
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-gray-300">
+              To enable{" "}
+              <span className="font-semibold text-purple-300">
+                Influencer AI Consistency
+              </span>
+              , you need to complete the AI training process first.
+            </p>
+            <div className="bg-purple-950/30 p-4 rounded-lg border border-purple-500/20">
+              <h4 className="font-medium text-purple-200 mb-2">
+                What happens next:
+              </h4>
+              <ul className="text-sm text-gray-300 space-y-1">
+                <li>
+                  • AI training runs automatically in the background (~30
+                  minutes)
+                </li>
+                <li>• You can continue working while training completes</li>
+                <li>• Once ready, AI Consistency will be available</li>
+              </ul>
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setShowLoraTrainingModal(false)}
+              className="flex-1"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                setShowLoraTrainingModal(false);
+                // Navigate to Start page for Phase 2 training
+                window.location.href = "/start";
+              }}
+              className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+            >
+              Start AI Training
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Failed Image Details Modal */}
+      <Dialog
+        open={failedImageModal.open}
+        onOpenChange={(open) =>
+          setFailedImageModal((prev) => ({ ...prev, open }))
+        }
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-xl">
+              <AlertTriangle className="w-6 h-6 text-red-500" />
+              Generation Failed
+            </DialogTitle>
+            <DialogDescription>
+              Task ID: {failedImageModal.taskId}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="bg-gradient-to-br from-red-50 to-orange-50 dark:from-red-950/20 dark:to-orange-950/20 rounded-lg p-4 border border-red-200 dark:border-red-800">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" />
+                <div className="space-y-2">
+                  <h4 className="font-medium text-red-900 dark:text-red-100">
+                    Error Details
+                  </h4>
+                  <p className="text-sm text-red-700 dark:text-red-300 leading-relaxed">
+                    {failedImageModal.userNotes}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-blue-50 dark:bg-blue-950/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+              <div className="flex items-start gap-3">
+                <Info className="w-5 h-5 text-blue-500 mt-0.5 flex-shrink-0" />
+                <div className="space-y-2">
+                  <h4 className="font-medium text-blue-900 dark:text-blue-100">
+                    What to do next?
+                  </h4>
+                  <ul className="text-sm text-blue-700 dark:text-blue-300 space-y-1">
+                    <li>• Check your prompt for any issues</li>
+                    <li>• Verify your model selection</li>
+                    <li>• Try adjusting the image settings</li>
+                    <li>• Contact support if the issue persists</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              onClick={() =>
+                setFailedImageModal((prev) => ({ ...prev, open: false }))
+              }
+              className="w-full"
+            >
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
 
-export default ContentCreateImage;
+function saveImageLocally(dataUrl: string, filename: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    try {
+      const link = document.createElement("a");
+      link.download = filename;
+      link.href = dataUrl;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      resolve();
+    } catch (error) {
+      reject(error);
+    }
+  });
+}
+
+export default ContentCreateImageNew;

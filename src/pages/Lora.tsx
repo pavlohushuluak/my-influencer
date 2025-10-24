@@ -1,14 +1,24 @@
-import { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { useSelector, useDispatch } from 'react-redux';
-import { RootState } from '@/store/store';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CreditConfirmationModal } from '@/components/CreditConfirmationModal';
+import { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { useSelector, useDispatch } from "react-redux";
+import { RootState } from "@/store/store";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { CreditConfirmationModal } from "@/components/CreditConfirmationModal";
 import {
   Brain,
   Image as ImageIcon,
@@ -25,14 +35,18 @@ import {
   Loader2,
   ChevronDown,
   Copy,
-  Cog
-} from 'lucide-react';
-import { toast } from 'sonner';
-import { setInfluencers, setLoading, setError } from '@/store/slices/influencersSlice';
-import { setUser } from '@/store/slices/userSlice';
-import { LoraStatusIndicator } from '@/components/Influencers/LoraStatusIndicator';
-import LoraManagement from '@/components/LoraManagement';
-import config from '@/config/config';
+  Cog,
+} from "lucide-react";
+import { toast } from "sonner";
+import {
+  setInfluencers,
+  setLoading,
+  setError,
+} from "@/store/slices/influencersSlice";
+import { setUser } from "@/store/slices/userSlice";
+
+import LoraManagement from "@/components/LoraManagement";
+import config from "@/config/config";
 
 interface Influencer {
   id: string;
@@ -97,13 +111,17 @@ export default function Lora() {
   const location = useLocation();
   const dispatch = useDispatch();
   const userData = useSelector((state: RootState) => state.user);
-  const influencers = useSelector((state: RootState) => state.influencers.influencers);
-  const isLoading = useSelector((state: RootState) => state.influencers.loading);
+  const influencers = useSelector(
+    (state: RootState) => state.influencers.influencers,
+  );
+  const isLoading = useSelector(
+    (state: RootState) => state.influencers.loading,
+  );
 
   // UI state
-  const [searchTerm, setSearchTerm] = useState('');
-  const [sortBy, setSortBy] = useState('newest');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [sortBy, setSortBy] = useState("newest");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [filterMenuOpen, setFilterMenuOpen] = useState(false);
   const [selectedFilters, setSelectedFilters] = useState({
     lorastatus: null as number | null,
@@ -112,17 +130,23 @@ export default function Lora() {
 
   // Modal state
   const [showWarningModal, setShowWarningModal] = useState(false);
-  const [selectedInfluencer, setSelectedInfluencer] = useState<Influencer | null>(null);
-  const [warningType, setWarningType] = useState<'not-trained' | 'training' | null>(null);
+  const [selectedInfluencer, setSelectedInfluencer] =
+    useState<Influencer | null>(null);
+  const [warningType, setWarningType] = useState<
+    "not-trained" | "training" | null
+  >(null);
   const [showLoraManagementModal, setShowLoraManagementModal] = useState(false);
-  
+
   // Character Consistency Modal state
-  const [showCharacterConsistencyModal, setShowCharacterConsistencyModal] = useState(false);
-  const [selectedProfileImage, setSelectedProfileImage] = useState<string | null>(null);
+  const [showCharacterConsistencyModal, setShowCharacterConsistencyModal] =
+    useState(false);
+  const [selectedProfileImage, setSelectedProfileImage] = useState<
+    string | null
+  >(null);
   const [isCopyingImage, setIsCopyingImage] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
-  
+
   // Credit checking state for LoRA training
   const [showGemWarning, setShowGemWarning] = useState(false);
   const [gemCostData, setGemCostData] = useState<{
@@ -132,30 +156,38 @@ export default function Lora() {
     gems: number;
   } | null>(null);
   const [isCheckingGems, setIsCheckingGems] = useState(false);
-  
+
   // Training Options Modal state
-  const [showTrainingOptionsModal, setShowTrainingOptionsModal] = useState(false);
-  const [trainingInfluencer, setTrainingInfluencer] = useState<Influencer | null>(null);
-
-
+  const [showTrainingOptionsModal, setShowTrainingOptionsModal] =
+    useState(false);
+  const [trainingInfluencer, setTrainingInfluencer] =
+    useState<Influencer | null>(null);
+  const [currentTrainingType, setCurrentTrainingType] = useState<
+    "basic" | "plus"
+  >("basic");
 
   const fetchInfluencers = async () => {
     try {
       dispatch(setLoading(true));
-      const response = await fetch(`${config.supabase_server_url}/influencer?user_id=eq.${userData.id}`, {
-        headers: {
-          'Authorization': 'Bearer WeInfl3nc3withAI'
-        }
-      });
+      const response = await fetch(
+        `${config.supabase_server_url}/influencer?user_id=eq.${userData.id}`,
+        {
+          headers: {
+            Authorization: "Bearer WeInfl3nc3withAI",
+          },
+        },
+      );
 
       if (!response.ok) {
-        throw new Error('Failed to fetch influencers');
+        throw new Error("Failed to fetch influencers");
       }
 
       const data = await response.json();
       dispatch(setInfluencers(data));
     } catch (error) {
-      dispatch(setError(error instanceof Error ? error.message : 'An error occurred'));
+      dispatch(
+        setError(error instanceof Error ? error.message : "An error occurred"),
+      );
     } finally {
       dispatch(setLoading(false));
     }
@@ -167,15 +199,25 @@ export default function Lora() {
 
   // Auto-trigger functionality when navigating from Quick Actions modal
   useEffect(() => {
-    if (location.state?.influencerData && location.state?.fromQuickActions && influencers.length > 0 && !isLoading) {
+    if (
+      location.state?.influencerData &&
+      location.state?.fromQuickActions &&
+      influencers.length > 0 &&
+      !isLoading
+    ) {
       const influencerData = location.state.influencerData;
-      const targetInfluencer = influencers.find(inf => inf.id === influencerData.id);
-      
+      const targetInfluencer = influencers.find(
+        (inf) => inf.id === influencerData.id,
+      );
+
       if (targetInfluencer) {
-        console.log('Auto-triggering AI Consistency for influencer:', targetInfluencer.name_first);
+        console.log(
+          "Auto-triggering AI Consistency for influencer:",
+          targetInfluencer.name_first,
+        );
         // Automatically trigger the manage/train action
         handleManageLora(targetInfluencer);
-        
+
         // Clear the location state to prevent re-triggering
         navigate(location.pathname, { replace: true });
       }
@@ -189,15 +231,16 @@ export default function Lora() {
   };
 
   // Handle start training with specific type
-  const handleStartTraining = async (trainingType: 'basic' | 'plus') => {
+  const handleStartTraining = async (trainingType: "basic" | "plus") => {
     if (!trainingInfluencer) return;
 
     // Check gem cost before proceeding
-    const gemData = await checkLoraGemCost();
+    setCurrentTrainingType(trainingType);
+    const gemData = await checkLoraGemCost(trainingType);
     if (gemData) {
       setGemCostData(gemData);
       setSelectedInfluencer(trainingInfluencer);
-      
+
       // Check if user has enough credits
       if (userData.credits < gemData.gems) {
         setShowGemWarning(true);
@@ -212,7 +255,7 @@ export default function Lora() {
     }
 
     // If no gem checking needed or failed, show error and don't proceed
-    toast.error('Unable to verify credit cost. Please try again.');
+    toast.error("Unable to verify credit cost. Please try again.");
   };
 
   // Handle Manage action - always opens management modal
@@ -220,8 +263,6 @@ export default function Lora() {
     setSelectedInfluencer(influencer);
     setShowLoraManagementModal(true);
   };
-
-
 
   const handleCharacterConsistency = (influencer?: Influencer) => {
     const targetInfluencer = influencer || selectedInfluencer;
@@ -240,18 +281,23 @@ export default function Lora() {
   };
 
   // Function to check gem cost for LoRA training
-  const checkLoraGemCost = async () => {
+  const checkLoraGemCost = async (trainingType?: "basic" | "plus") => {
     try {
       setIsCheckingGems(true);
-      const response = await fetch('https://api.nymia.ai/v1/getgems', {
-        method: 'POST',
+      const response = await fetch("https://api.nymia.ai/v1/getgems", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer WeInfl3nc3withAI'
+          "Content-Type": "application/json",
+          Authorization: "Bearer WeInfl3nc3withAI",
         },
         body: JSON.stringify({
-          item: 'lora_images_only'
-        })
+          item:
+            trainingType === "basic"
+              ? "nymia_lora"
+              : trainingType === "plus"
+                ? "nymia_lora_plus"
+                : "lora_images_only",
+        }),
       });
 
       if (!response.ok) {
@@ -261,8 +307,10 @@ export default function Lora() {
       const gemData = await response.json();
       return gemData;
     } catch (error) {
-      console.error('Error checking LoRA gem cost:', error);
-      toast.error('Failed to check training cost. Proceeding without verification.');
+      console.error("Error checking LoRA gem cost:", error);
+      toast.error(
+        "Failed to check training cost. Proceeding without verification.",
+      );
       return null;
     } finally {
       setIsCheckingGems(false);
@@ -273,11 +321,13 @@ export default function Lora() {
   const proceedWithLoraTraining = async () => {
     try {
       setShowGemWarning(false);
-      console.log('Starting AI consistency training after credit confirmation...');
+      console.log(
+        "Starting AI consistency training after credit confirmation...",
+      );
       await executeLoraTraining();
     } catch (error) {
-      console.error('Error in proceedWithLoraTraining:', error);
-              toast.error('Failed to start AI consistency training. Please try again.');
+      console.error("Error in proceedWithLoraTraining:", error);
+      toast.error("Failed to start AI consistency training. Please try again.");
       setIsCopyingImage(false);
     }
   };
@@ -287,10 +337,10 @@ export default function Lora() {
     if (!selectedInfluencer) return;
 
     // Check gem cost before proceeding
-    const gemData = await checkLoraGemCost();
+    const gemData = await checkLoraGemCost(currentTrainingType || "basic");
     if (gemData) {
       setGemCostData(gemData);
-      
+
       // Check if user has enough credits
       if (userData.credits < gemData.gems) {
         setShowGemWarning(true);
@@ -303,7 +353,7 @@ export default function Lora() {
     }
 
     // If no gem checking needed or failed, show error and don't proceed
-    toast.error('Unable to verify credit cost. Please try again.');
+    toast.error("Unable to verify credit cost. Please try again.");
     return;
   };
 
@@ -318,71 +368,90 @@ export default function Lora() {
         const loraFilePath = `models/${selectedInfluencer.id}/loratraining/${uploadedFile.name}`;
 
         // Upload file directly to LoRA folder
-        const uploadResponse = await fetch(`${config.backend_url}/uploadfile?user=${userData.id}&filename=${loraFilePath}`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/octet-stream',
-            'Authorization': 'Bearer WeInfl3nc3withAI'
+        const uploadResponse = await fetch(
+          `${config.backend_url}/uploadfile?user=${userData.id}&filename=${loraFilePath}`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/octet-stream",
+              Authorization: "Bearer WeInfl3nc3withAI",
+            },
+            body: uploadedFile,
           },
-          body: uploadedFile
-        });
+        );
 
         if (!uploadResponse.ok) {
-          throw new Error('Failed to upload image to LoRA folder');
+          throw new Error("Failed to upload image to LoRA folder");
         }
 
-        const useridResponse = await fetch(`${config.supabase_server_url}/user?uuid=eq.${userData.id}`, {
-          method: 'GET',
-          headers: {
-            'Authorization': 'Bearer WeInfl3nc3withAI'
-          }
-        });
-  
+        const useridResponse = await fetch(
+          `${config.supabase_server_url}/user?uuid=eq.${userData.id}`,
+          {
+            method: "GET",
+            headers: {
+              Authorization: "Bearer WeInfl3nc3withAI",
+            },
+          },
+        );
+
         const useridData = await useridResponse.json();
 
-        await fetch(`${config.backend_url}/createtask?userid=${useridData[0].userid}&type=createlora`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer WeInfl3nc3withAI'
+        await fetch(
+          `${config.backend_url}/createtask?userid=${useridData[0].userid}&type=createlora`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer WeInfl3nc3withAI",
+            },
+            body: JSON.stringify({
+              task: "createlora",
+              fromsingleimage: false,
+              modelid: selectedInfluencer.id,
+              inputimage: `/models/${selectedInfluencer.id}/loratraining/${uploadedFile.name}`,
+            }),
           },
-          body: JSON.stringify({
-            task: "createlora",
-            fromsingleimage: false,
-            modelid: selectedInfluencer.id,
-            inputimage: `/models/${selectedInfluencer.id}/loratraining/${uploadedFile.name}`,
-          })
-        });
+        );
 
-        toast.success('Image uploaded for AI consistency training successfully');
+        toast.success(
+          "Image uploaded for AI consistency training successfully",
+        );
       } else {
         // Copy existing profile picture to LoRA folder
         const latestImageNum = selectedInfluencer.image_num - 1;
 
-        const useridResponse = await fetch(`${config.supabase_server_url}/user?uuid=eq.${userData.id}`, {
-          method: 'GET',
-          headers: {
-            'Authorization': 'Bearer WeInfl3nc3withAI'
-          }
-        });
-  
+        const useridResponse = await fetch(
+          `${config.supabase_server_url}/user?uuid=eq.${userData.id}`,
+          {
+            method: "GET",
+            headers: {
+              Authorization: "Bearer WeInfl3nc3withAI",
+            },
+          },
+        );
+
         const useridData = await useridResponse.json();
 
-        await fetch(`${config.backend_url}/createtask?userid=${useridData[0].userid}&type=createlora`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer WeInfl3nc3withAI'
+        await fetch(
+          `${config.backend_url}/createtask?userid=${useridData[0].userid}&type=createlora`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer WeInfl3nc3withAI",
+            },
+            body: JSON.stringify({
+              task: "createlora",
+              fromsingleimage: true,
+              modelid: selectedInfluencer.id,
+              inputimage: `/models/${selectedInfluencer.id}/profilepic/profilepic${latestImageNum}.png`,
+            }),
           },
-          body: JSON.stringify({
-            task: "createlora",
-            fromsingleimage: true,
-            modelid: selectedInfluencer.id,
-            inputimage: `/models/${selectedInfluencer.id}/profilepic/profilepic${latestImageNum}.png`,
-          })
-        });
+        );
 
-        toast.success('Profile image selected successfully for AI consistency training');
+        toast.success(
+          "Profile image selected successfully for AI consistency training",
+        );
       }
 
       // Refresh influencer data to update lorastatus
@@ -391,19 +460,25 @@ export default function Lora() {
       // Update guide_step if it's currently 2
       if (userData.guide_step === 2) {
         try {
-          const guideStepResponse = await fetch(`${config.supabase_server_url}/user?uuid=eq.${userData.id}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer WeInfl3nc3withAI' },
-            body: JSON.stringify({ guide_step: 3 })
-          });
+          const guideStepResponse = await fetch(
+            `${config.supabase_server_url}/user?uuid=eq.${userData.id}`,
+            {
+              method: "PATCH",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: "Bearer WeInfl3nc3withAI",
+              },
+              body: JSON.stringify({ guide_step: 3 }),
+            },
+          );
           if (guideStepResponse.ok) {
             // Update Redux store
             dispatch(setUser({ guide_step: 3 }));
-            toast.success('Progress updated! Moving to Phase 3...');
-            navigate('/start');
+            toast.success("Progress updated! Moving to Phase 3...");
+            navigate("/start");
           }
         } catch (error) {
-          console.error('Failed to update guide_step:', error);
+          console.error("Failed to update guide_step:", error);
         }
       }
 
@@ -415,8 +490,8 @@ export default function Lora() {
       setUploadedFile(null);
       setUploadedImageUrl(null);
     } catch (error) {
-      console.error('Error uploading/copying image:', error);
-              toast.error('Failed to upload/copy image for AI consistency training');
+      console.error("Error uploading/copying image:", error);
+      toast.error("Failed to upload/copy image for AI consistency training");
     } finally {
       setIsCopyingImage(false);
     }
@@ -427,7 +502,7 @@ export default function Lora() {
   };
 
   const handleSearchClear = () => {
-    setSearchTerm('');
+    setSearchTerm("");
   };
 
   const clearFilters = () => {
@@ -441,14 +516,14 @@ export default function Lora() {
     const file = event.target.files?.[0];
     if (file) {
       // Validate file type
-      if (!file.type.startsWith('image/')) {
-        toast.error('Please select a valid image file');
+      if (!file.type.startsWith("image/")) {
+        toast.error("Please select a valid image file");
         return;
       }
 
       // Validate file size (max 10MB)
       if (file.size > 10 * 1024 * 1024) {
-        toast.error('File size must be less than 10MB');
+        toast.error("File size must be less than 10MB");
         return;
       }
 
@@ -476,16 +551,16 @@ export default function Lora() {
     const files = Array.from(e.dataTransfer.files);
     if (files.length > 0) {
       const file = files[0];
-      
+
       // Validate file type
-      if (!file.type.startsWith('image/')) {
-        toast.error('Please select a valid image file');
+      if (!file.type.startsWith("image/")) {
+        toast.error("Please select a valid image file");
         return;
       }
 
       // Validate file size (max 10MB)
       if (file.size > 10 * 1024 * 1024) {
-        toast.error('File size must be less than 10MB');
+        toast.error("File size must be less than 10MB");
         return;
       }
 
@@ -502,7 +577,7 @@ export default function Lora() {
     }
     setUploadedFile(null);
     setUploadedImageUrl(null);
-    
+
     // Reset to original profile image
     if (selectedInfluencer) {
       let latestImageNum = selectedInfluencer.image_num - 1;
@@ -515,13 +590,15 @@ export default function Lora() {
   };
 
   // Filter and sort influencers
-  const filteredInfluencers = influencers.filter(influencer => {
-    const matchesSearch = searchTerm === '' ||
+  const filteredInfluencers = influencers.filter((influencer) => {
+    const matchesSearch =
+      searchTerm === "" ||
       influencer.name_first.toLowerCase().includes(searchTerm.toLowerCase()) ||
       influencer.name_last.toLowerCase().includes(searchTerm.toLowerCase()) ||
       influencer.notes?.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesLoraStatus = selectedFilters.lorastatus === null ||
+    const matchesLoraStatus =
+      selectedFilters.lorastatus === null ||
       influencer.lorastatus === selectedFilters.lorastatus;
 
     return matchesSearch && matchesLoraStatus;
@@ -531,23 +608,27 @@ export default function Lora() {
     let comparison = 0;
 
     switch (sortBy) {
-      case 'newest':
-        comparison = new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      case "newest":
+        comparison =
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
         break;
-      case 'oldest':
-        comparison = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      case "oldest":
+        comparison =
+          new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
         break;
-      case 'name':
-        comparison = `${a.name_first} ${a.name_last}`.localeCompare(`${b.name_first} ${b.name_last}`);
+      case "name":
+        comparison = `${a.name_first} ${a.name_last}`.localeCompare(
+          `${b.name_first} ${b.name_last}`,
+        );
         break;
-      case 'lorastatus':
+      case "lorastatus":
         comparison = (a.lorastatus || 0) - (b.lorastatus || 0);
         break;
       default:
         comparison = 0;
     }
 
-    return sortOrder === 'desc' ? comparison : -comparison;
+    return sortOrder === "desc" ? comparison : -comparison;
   });
 
   if (isLoading) {
@@ -562,26 +643,20 @@ export default function Lora() {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="min-h-screen bg-[#0a0a0f] text-white">
       {/* Header */}
-      <div className="flex flex-col md:flex-row items-center justify-between gap-5">
-        <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate('/dashboard')}
-            className="text-muted-foreground hover:text-foreground"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back
-          </Button>
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight bg-ai-gradient bg-clip-text text-transparent">
-              AI Consistency
-            </h1>
-            <p className="text-muted-foreground">
-              Make sure your influencers look the same in every image and video
-            </p>
+      <div className="px-4 py-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 sm:p-6 border-b border-border/50 bg-gradient-to-r from-purple-50/50 to-blue-50/50 dark:from-purple-950/20 dark:to-blue-950/20 space-y-4 sm:space-y-0 mb-6">
+          <div className="flex items-center gap-4">
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+                AI Consistency
+              </h1>
+              <p className="text-muted-foreground mt-1 text-sm sm:text-base">
+                Train the AI so that your influencers look the same in every
+                image and video
+              </p>
+            </div>
           </div>
         </div>
       </div>
@@ -604,8 +679,7 @@ export default function Lora() {
               onClick={handleSearchClear}
               className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
             >
-              <span className="sr-only">Clear search</span>
-              ×
+              <span className="sr-only">Clear search</span>×
             </Button>
           )}
         </div>
@@ -614,41 +688,55 @@ export default function Lora() {
         <div className="flex items-center gap-2">
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="outline" size="sm" className="min-w-[120px] justify-between">
-                {sortBy === 'newest' && 'Newest'}
-                {sortBy === 'oldest' && 'Oldest'}
-                {sortBy === 'name' && 'Name'}
-                {sortBy === 'lorastatus' && 'AI Consistency Status'}
+              <Button
+                variant="outline"
+                size="sm"
+                className="min-w-[120px] justify-between"
+              >
+                {sortBy === "newest" && "Newest"}
+                {sortBy === "oldest" && "Oldest"}
+                {sortBy === "name" && "Name"}
+                {sortBy === "lorastatus" && "AI Consistency Status"}
                 <ChevronDown className="w-4 h-4 opacity-50" />
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-48 p-0" align="end">
               <div className="grid">
                 <button
-                  onClick={() => setSortBy('newest')}
-                  className={`flex items-center px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors ${sortBy === 'newest' ? 'bg-accent text-accent-foreground' : ''
-                    }`}
+                  onClick={() => setSortBy("newest")}
+                  className={`flex items-center px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors ${
+                    sortBy === "newest"
+                      ? "bg-accent text-accent-foreground"
+                      : ""
+                  }`}
                 >
                   Newest
                 </button>
                 <button
-                  onClick={() => setSortBy('oldest')}
-                  className={`flex items-center px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors ${sortBy === 'oldest' ? 'bg-accent text-accent-foreground' : ''
-                    }`}
+                  onClick={() => setSortBy("oldest")}
+                  className={`flex items-center px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors ${
+                    sortBy === "oldest"
+                      ? "bg-accent text-accent-foreground"
+                      : ""
+                  }`}
                 >
                   Oldest
                 </button>
                 <button
-                  onClick={() => setSortBy('name')}
-                  className={`flex items-center px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors ${sortBy === 'name' ? 'bg-accent text-accent-foreground' : ''
-                    }`}
+                  onClick={() => setSortBy("name")}
+                  className={`flex items-center px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors ${
+                    sortBy === "name" ? "bg-accent text-accent-foreground" : ""
+                  }`}
                 >
                   Name
                 </button>
                 <button
-                  onClick={() => setSortBy('lorastatus')}
-                  className={`flex items-center px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors ${sortBy === 'lorastatus' ? 'bg-accent text-accent-foreground' : ''
-                    }`}
+                  onClick={() => setSortBy("lorastatus")}
+                  className={`flex items-center px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors ${
+                    sortBy === "lorastatus"
+                      ? "bg-accent text-accent-foreground"
+                      : ""
+                  }`}
                 >
                   AI Consistency Status
                 </button>
@@ -659,9 +747,13 @@ export default function Lora() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc')}
+            onClick={() => setSortOrder(sortOrder === "desc" ? "asc" : "desc")}
           >
-            {sortOrder === 'desc' ? <SortDesc className="w-4 h-4" /> : <SortAsc className="w-4 h-4" />}
+            {sortOrder === "desc" ? (
+              <SortDesc className="w-4 h-4" />
+            ) : (
+              <SortAsc className="w-4 h-4" />
+            )}
           </Button>
 
           {/* Filter Menu Button */}
@@ -669,13 +761,17 @@ export default function Lora() {
             variant="outline"
             size="sm"
             onClick={() => setFilterMenuOpen(!filterMenuOpen)}
-            className={`${filterMenuOpen ? 'bg-blue-50 border-blue-200 dark:bg-blue-950/20 dark:border-blue-800' : ''}`}
+            className={`${filterMenuOpen ? "bg-blue-50 border-blue-200 dark:bg-blue-950/20 dark:border-blue-800" : ""}`}
           >
             <Filter className="w-4 h-4 mr-2" />
             Filters
-            {(selectedFilters.lorastatus !== null || selectedFilters.favorites !== null) && (
+            {(selectedFilters.lorastatus !== null ||
+              selectedFilters.favorites !== null) && (
               <Badge variant="secondary" className="ml-2 h-5 w-5 p-0 text-xs">
-                {[selectedFilters.lorastatus !== null ? 1 : 0, selectedFilters.favorites !== null ? 1 : 0].reduce((a, b) => a + b, 0)}
+                {[
+                  selectedFilters.lorastatus !== null ? 1 : 0,
+                  selectedFilters.favorites !== null ? 1 : 0,
+                ].reduce((a, b) => a + b, 0)}
               </Badge>
             )}
           </Button>
@@ -688,52 +784,94 @@ export default function Lora() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {/* LoRA Status Filter */}
             <div>
-              <label className="text-sm font-medium mb-2 block">AI Consistency Status</label>
+              <label className="text-sm font-medium mb-2 block">
+                AI Consistency Status
+              </label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button variant="outline" className="w-full justify-between">
-                    {selectedFilters.lorastatus === null && 'All Statuses'}
-                    {selectedFilters.lorastatus === 0 && 'Not Trained'}
-                    {selectedFilters.lorastatus === 1 && 'Training'}
-                    {selectedFilters.lorastatus === 2 && 'Trained'}
-                    {selectedFilters.lorastatus === 9 && 'Error'}
+                    {selectedFilters.lorastatus === null && "All Statuses"}
+                    {selectedFilters.lorastatus === 0 && "Not Trained"}
+                    {selectedFilters.lorastatus === 1 && "Training"}
+                    {selectedFilters.lorastatus === 2 && "Trained"}
+                    {selectedFilters.lorastatus === 9 && "Error"}
                     <ChevronDown className="w-4 h-4 opacity-50" />
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-48 p-0" align="start">
                   <div className="grid">
                     <button
-                      onClick={() => setSelectedFilters(prev => ({ ...prev, lorastatus: null }))}
-                      className={`flex items-center px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors ${selectedFilters.lorastatus === null ? 'bg-accent text-accent-foreground' : ''
-                        }`}
+                      onClick={() =>
+                        setSelectedFilters((prev) => ({
+                          ...prev,
+                          lorastatus: null,
+                        }))
+                      }
+                      className={`flex items-center px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors ${
+                        selectedFilters.lorastatus === null
+                          ? "bg-accent text-accent-foreground"
+                          : ""
+                      }`}
                     >
                       All Statuses
                     </button>
                     <button
-                      onClick={() => setSelectedFilters(prev => ({ ...prev, lorastatus: 0 }))}
-                      className={`flex items-center px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors ${selectedFilters.lorastatus === 0 ? 'bg-accent text-accent-foreground' : ''
-                        }`}
+                      onClick={() =>
+                        setSelectedFilters((prev) => ({
+                          ...prev,
+                          lorastatus: 0,
+                        }))
+                      }
+                      className={`flex items-center px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors ${
+                        selectedFilters.lorastatus === 0
+                          ? "bg-accent text-accent-foreground"
+                          : ""
+                      }`}
                     >
                       Not Trained
                     </button>
                     <button
-                      onClick={() => setSelectedFilters(prev => ({ ...prev, lorastatus: 1 }))}
-                      className={`flex items-center px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors ${selectedFilters.lorastatus === 1 ? 'bg-accent text-accent-foreground' : ''
-                        }`}
+                      onClick={() =>
+                        setSelectedFilters((prev) => ({
+                          ...prev,
+                          lorastatus: 1,
+                        }))
+                      }
+                      className={`flex items-center px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors ${
+                        selectedFilters.lorastatus === 1
+                          ? "bg-accent text-accent-foreground"
+                          : ""
+                      }`}
                     >
                       Training
                     </button>
                     <button
-                      onClick={() => setSelectedFilters(prev => ({ ...prev, lorastatus: 2 }))}
-                      className={`flex items-center px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors ${selectedFilters.lorastatus === 2 ? 'bg-accent text-accent-foreground' : ''
-                        }`}
+                      onClick={() =>
+                        setSelectedFilters((prev) => ({
+                          ...prev,
+                          lorastatus: 2,
+                        }))
+                      }
+                      className={`flex items-center px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors ${
+                        selectedFilters.lorastatus === 2
+                          ? "bg-accent text-accent-foreground"
+                          : ""
+                      }`}
                     >
                       Trained
                     </button>
                     <button
-                      onClick={() => setSelectedFilters(prev => ({ ...prev, lorastatus: 9 }))}
-                      className={`flex items-center px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors ${selectedFilters.lorastatus === 9 ? 'bg-accent text-accent-foreground' : ''
-                        }`}
+                      onClick={() =>
+                        setSelectedFilters((prev) => ({
+                          ...prev,
+                          lorastatus: 9,
+                        }))
+                      }
+                      className={`flex items-center px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors ${
+                        selectedFilters.lorastatus === 9
+                          ? "bg-accent text-accent-foreground"
+                          : ""
+                      }`}
                     >
                       Error
                     </button>
@@ -766,7 +904,9 @@ export default function Lora() {
                 <ImageIcon className="w-5 h-5 text-gray-600 dark:text-gray-400" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Total Influencers</p>
+                <p className="text-sm text-muted-foreground">
+                  Total Influencers
+                </p>
                 <p className="text-2xl font-bold">{influencers.length}</p>
               </div>
             </div>
@@ -781,7 +921,9 @@ export default function Lora() {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Training</p>
-                <p className="text-2xl font-bold">{influencers.filter(inf => inf.lorastatus === 1).length}</p>
+                <p className="text-2xl font-bold">
+                  {influencers.filter((inf) => inf.lorastatus === 1).length}
+                </p>
               </div>
             </div>
           </CardContent>
@@ -795,7 +937,9 @@ export default function Lora() {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Trained</p>
-                <p className="text-2xl font-bold">{influencers.filter(inf => inf.lorastatus === 2).length}</p>
+                <p className="text-2xl font-bold">
+                  {influencers.filter((inf) => inf.lorastatus === 2).length}
+                </p>
               </div>
             </div>
           </CardContent>
@@ -809,7 +953,9 @@ export default function Lora() {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Not Trained</p>
-                <p className="text-2xl font-bold">{influencers.filter(inf => inf.lorastatus === 0).length}</p>
+                <p className="text-2xl font-bold">
+                  {influencers.filter((inf) => inf.lorastatus === 0).length}
+                </p>
               </div>
             </div>
           </CardContent>
@@ -819,38 +965,44 @@ export default function Lora() {
       {/* Influencers Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-6">
         {sortedInfluencers.map((influencer) => (
-          <Card 
-            key={influencer.id} 
+          <Card
+            key={influencer.id}
             className="group transition-all duration-300 hover:shadow-xl border-2 transform hover:scale-105 border-gray-200 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-600"
           >
             <CardContent className="p-4 sm:p-6 h-full">
               <div className="flex flex-col justify-between h-full space-y-3 sm:space-y-4">
-                <div 
+                <div
                   className="relative w-full h-full bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg overflow-hidden cursor-pointer"
                   onDoubleClick={() => handleManageLora(influencer)}
                   title="Double-click to manage AI Consistency"
                 >
                   {/* LoraStatusIndicator positioned at top right */}
-                  <div className="absolute right-[-15px] top-[-15px] z-10">
-                    <LoraStatusIndicator
-                      status={influencer.lorastatus || 0}
-                      className="flex-shrink-0"
-                    />
-                  </div>
-                  {
-                    influencer.image_url ? (
-                      <img
-                        src={influencer.image_url}
-                        alt={`${influencer.name_first} ${influencer.name_last}`}
-                        className="w-full h-full object-cover"
-                      />
+                  <div className="absolute right-1 top-0.5 z-10">
+                    {(influencer.lorastatus || 0) === 2 ? (
+                      <Badge className="bg-green-600/50 text-white text-[10px] px-1.5 py-0.5 font-medium rounded-sm shadow-sm">
+                        Trained
+                      </Badge>
                     ) : (
-                      <div className="flex flex-col w-full h-full items-center justify-center max-h-48 min-h-40">
-                        <ImageIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                        <h3 className="text-lg font-semibold mb-2">No image found</h3>
-                      </div>
-                    )
-                  }
+                      <Badge className="bg-amber-500/50 text-white text-[10px] px-1.5 py-0.5 font-medium rounded-sm shadow-sm">
+                        Pending
+                      </Badge>
+                    )}
+                  </div>
+
+                  {influencer.image_url ? (
+                    <img
+                      src={influencer.image_url}
+                      alt={`${influencer.name_first} ${influencer.name_last}`}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex flex-col w-full h-full items-center justify-center max-h-48 min-h-40">
+                      <ImageIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold mb-2">
+                        No image found
+                      </h3>
+                    </div>
+                  )}
                 </div>
 
                 <div>
@@ -868,12 +1020,12 @@ export default function Lora() {
                         <span className="text-sm text-muted-foreground">
                           {influencer.notes.length > 50
                             ? `${influencer.notes.substring(0, 50)}...`
-                            : influencer.notes
-                          }
+                            : influencer.notes}
                         </span>
                       ) : (
                         <span className="text-sm text-muted-foreground">
-                          {influencer.lifestyle || 'No lifestyle'} • {influencer.origin_residence || 'No residence'}
+                          {influencer.lifestyle || "No lifestyle"} •{" "}
+                          {influencer.origin_residence || "No residence"}
                         </span>
                       )}
                     </div>
@@ -919,40 +1071,50 @@ export default function Lora() {
         <DialogContent className="max-w-md">
           <DialogHeader className="text-center pb-4">
             <div className="flex items-center justify-center gap-3 mb-2">
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center shadow-lg ${warningType === 'not-trained'
-                ? 'bg-gradient-to-br from-orange-500 to-red-500'
-                : 'bg-gradient-to-br from-blue-500 to-indigo-500'
-                }`}>
-                {warningType === 'not-trained' ? (
+              <div
+                className={`w-10 h-10 rounded-full flex items-center justify-center shadow-lg ${
+                  warningType === "not-trained"
+                    ? "bg-gradient-to-br from-orange-500 to-red-500"
+                    : "bg-gradient-to-br from-blue-500 to-indigo-500"
+                }`}
+              >
+                {warningType === "not-trained" ? (
                   <AlertTriangle className="w-5 h-5 text-white" />
                 ) : (
                   <Clock className="w-5 h-5 text-white" />
                 )}
               </div>
               <div>
-                <DialogTitle className={`text-xl font-bold bg-clip-text text-transparent ${warningType === 'not-trained'
-                  ? 'bg-gradient-to-r from-orange-600 to-red-600'
-                  : 'bg-gradient-to-r from-blue-600 to-indigo-600'
-                  }`}>
-                  {warningType === 'not-trained' ? 'AI Consistency Not Trained' : 'AI Consistency Training in Progress'}
+                <DialogTitle
+                  className={`text-xl font-bold bg-clip-text text-transparent ${
+                    warningType === "not-trained"
+                      ? "bg-gradient-to-r from-orange-600 to-red-600"
+                      : "bg-gradient-to-r from-blue-600 to-indigo-600"
+                  }`}
+                >
+                  {warningType === "not-trained"
+                    ? "AI Consistency Not Trained"
+                    : "AI Consistency Training in Progress"}
                 </DialogTitle>
                 <DialogDescription className="text-muted-foreground">
-                  {warningType === 'not-trained'
-                    ? 'This influencer needs AI consistency training'
-                    : 'AI consistency training is currently active'
-                  }
+                  {warningType === "not-trained"
+                    ? "This influencer needs AI consistency training"
+                    : "AI consistency training is currently active"}
                 </DialogDescription>
               </div>
             </div>
           </DialogHeader>
 
-          <Card className={`border-2 ${warningType === 'not-trained'
-            ? 'border-orange-200 bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-950/20 dark:to-red-950/20'
-            : 'border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20'
-            }`}>
+          <Card
+            className={`border-2 ${
+              warningType === "not-trained"
+                ? "border-orange-200 bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-950/20 dark:to-red-950/20"
+                : "border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20"
+            }`}
+          >
             <CardContent className="p-6">
               <div className="text-center space-y-4">
-                {warningType === 'not-trained' ? (
+                {warningType === "not-trained" ? (
                   <>
                     <div className="w-16 h-16 bg-gradient-to-br from-orange-500 to-red-500 rounded-full flex items-center justify-center mx-auto shadow-lg">
                       <AlertTriangle className="w-8 h-8 text-white" />
@@ -962,7 +1124,8 @@ export default function Lora() {
                         Training Required
                       </h3>
                       <p className="text-sm text-muted-foreground mb-4">
-                        {selectedInfluencer?.name_first} needs AI consistency training to look the same in every image and video.
+                        {selectedInfluencer?.name_first} needs AI consistency
+                        training to look the same in every image and video.
                       </p>
                     </div>
                     <div className="flex items-center justify-center gap-2 text-xs text-orange-600 dark:text-orange-400">
@@ -982,7 +1145,9 @@ export default function Lora() {
                         Training in Progress
                       </h3>
                       <p className="text-sm text-muted-foreground mb-4">
-                        {selectedInfluencer?.name_first}'s AI consistency is currently being trained. This process typically takes 5-15 minutes.
+                        {selectedInfluencer?.name_first}'s AI consistency is
+                        currently being trained. This process typically takes
+                        5-15 minutes.
                       </p>
                     </div>
                     <div className="flex items-center justify-center gap-2 text-xs text-blue-600 dark:text-blue-400">
@@ -1000,7 +1165,7 @@ export default function Lora() {
                   >
                     Close
                   </Button>
-                  {warningType === 'not-trained' && (
+                  {warningType === "not-trained" && (
                     <Button
                       onClick={(e) => {
                         e.preventDefault();
@@ -1024,14 +1189,18 @@ export default function Lora() {
       </Dialog>
 
       {/* LoRA Management Modal */}
-      <Dialog open={showLoraManagementModal} onOpenChange={setShowLoraManagementModal}>
+      <Dialog
+        open={showLoraManagementModal}
+        onOpenChange={setShowLoraManagementModal}
+      >
         <DialogContent className="max-w-7xl max-h-[90vh] p-0 overflow-y-auto">
           <DialogHeader className="p-6 pb-0">
             <DialogTitle className="text-2xl font-bold bg-ai-gradient bg-clip-text text-transparent">
               AI Consistency
             </DialogTitle>
-            <DialogDescription className='text-muted-foreground'>
-              Managing AI consistency files for {selectedInfluencer?.name_first} {selectedInfluencer?.name_last}
+            <DialogDescription className="text-muted-foreground">
+              Managing AI consistency files for {selectedInfluencer?.name_first}{" "}
+              {selectedInfluencer?.name_last}
             </DialogDescription>
           </DialogHeader>
           <div className="p-6 pt-0">
@@ -1062,7 +1231,8 @@ export default function Lora() {
                   Character Consistency
                 </DialogTitle>
                 <DialogDescription className="text-base text-gray-600 dark:text-gray-300 mt-1">
-                  Select the latest profile picture for enhanced character consistency training.
+                  Select the latest profile picture for enhanced character
+                  consistency training.
                 </DialogDescription>
               </div>
             </div>
@@ -1088,10 +1258,16 @@ export default function Lora() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-1">
-                        {selectedInfluencer.name_first} {selectedInfluencer.name_last}
+                        {selectedInfluencer.name_first}{" "}
+                        {selectedInfluencer.name_last}
                       </h3>
                       <p className="text-gray-600 dark:text-gray-300 mb-2">
-                        Latest profile picture • Version {selectedInfluencer.image_num === null || selectedInfluencer.image_num === undefined || isNaN(selectedInfluencer.image_num) ? 0 : selectedInfluencer.image_num - 1}
+                        Latest profile picture • Version{" "}
+                        {selectedInfluencer.image_num === null ||
+                        selectedInfluencer.image_num === undefined ||
+                        isNaN(selectedInfluencer.image_num)
+                          ? 0
+                          : selectedInfluencer.image_num - 1}
                       </p>
                       <div className="flex flex-wrap gap-2">
                         <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
@@ -1113,7 +1289,8 @@ export default function Lora() {
                     Profile Picture Selection
                   </h3>
                   <p className="text-gray-600 dark:text-gray-300">
-                    Choose the profile picture to copy for character consistency training
+                    Choose the profile picture to copy for character consistency
+                    training
                   </p>
                 </div>
 
@@ -1139,17 +1316,23 @@ export default function Lora() {
                             Latest Profile Picture
                           </h4>
                           <p className="text-sm text-gray-600 dark:text-gray-300">
-                            Version {selectedInfluencer.image_num === null || selectedInfluencer.image_num === undefined || isNaN(selectedInfluencer.image_num) || selectedInfluencer.image_num === 0 ? 0 : selectedInfluencer.image_num - 1} • High Quality
+                            Version{" "}
+                            {selectedInfluencer.image_num === null ||
+                            selectedInfluencer.image_num === undefined ||
+                            isNaN(selectedInfluencer.image_num) ||
+                            selectedInfluencer.image_num === 0
+                              ? 0
+                              : selectedInfluencer.image_num - 1}{" "}
+                            • High Quality
                           </p>
                           <div className="flex items-center justify-center gap-2 text-xs text-green-600 dark:text-green-400">
                             <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                                                          Ready for AI Consistency
+                            Ready for AI Consistency
                           </div>
                         </div>
                       </div>
                     </CardContent>
                   </Card>
-
                 </div>
               </div>
 
@@ -1158,7 +1341,11 @@ export default function Lora() {
                 <CardContent className="p-6">
                   <div className="flex items-start gap-4">
                     <div className="w-10 h-10 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 flex items-center justify-center flex-shrink-0">
-                      <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                      <svg
+                        className="w-5 h-5 text-white"
+                        fill="currentColor"
+                        viewBox="0 0 24 24"
+                      >
                         <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
                       </svg>
                     </div>
@@ -1166,11 +1353,13 @@ export default function Lora() {
                       <h4 className="font-semibold text-gray-900 dark:text-gray-100">
                         Character Consistency Training
                       </h4>
-                                              <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
-                          This action will copy the selected profile picture for AI consistency training,
-                          ensuring your influencer looks the same in every generated image and video. The image will be
-                          used as a reference for maintaining consistent visual characteristics.
-                        </p>
+                      <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
+                        This action will copy the selected profile picture for
+                        AI consistency training, ensuring your influencer looks
+                        the same in every generated image and video. The image
+                        will be used as a reference for maintaining consistent
+                        visual characteristics.
+                      </p>
                     </div>
                   </div>
                 </CardContent>
@@ -1195,7 +1384,11 @@ export default function Lora() {
                 </Button>
                 <Button
                   onClick={handleCopyProfileImage}
-                  disabled={isCopyingImage || isCheckingGems || (!selectedProfileImage && !uploadedFile)}
+                  disabled={
+                    isCopyingImage ||
+                    isCheckingGems ||
+                    (!selectedProfileImage && !uploadedFile)
+                  }
                   className="flex-1 h-12 text-base font-medium bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isCheckingGems ? (
@@ -1206,12 +1399,14 @@ export default function Lora() {
                   ) : isCopyingImage ? (
                     <>
                       <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-3" />
-                                              Setting up AI consistency training...
+                      Setting up AI consistency training...
                     </>
                   ) : (
                     <>
                       <Copy className="w-5 h-5 mr-3" />
-                                              {uploadedFile ? 'Upload for AI consistency training' : 'Select Profile Image for AI consistency training'}
+                      {uploadedFile
+                        ? "Upload for AI consistency training"
+                        : "Select Profile Image for AI consistency training"}
                     </>
                   )}
                 </Button>
@@ -1237,7 +1432,8 @@ export default function Lora() {
                   Choose Training Type
                 </DialogTitle>
                 <DialogDescription className="text-base text-gray-600 dark:text-gray-300 mt-1">
-                  Select the AI consistency training option that best fits your needs
+                  Select the AI consistency training option that best fits your
+                  needs
                 </DialogDescription>
               </div>
             </div>
@@ -1263,10 +1459,13 @@ export default function Lora() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-1">
-                        {trainingInfluencer.name_first} {trainingInfluencer.name_last}
+                        {trainingInfluencer.name_first}{" "}
+                        {trainingInfluencer.name_last}
                       </h3>
                       <p className="text-gray-600 dark:text-gray-300 mb-2">
-                        Training will be performed based on the current profile picture. Choose "Manage" instead for a more customizable approach.
+                        Training will be performed based on the current profile
+                        picture. Choose "Manage" instead for a more customizable
+                        approach.
                       </p>
                       <div className="flex flex-wrap gap-2">
                         <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
@@ -1294,18 +1493,20 @@ export default function Lora() {
                       Basic Character Consistency Training
                     </h3>
                     <p className="text-gray-600 dark:text-gray-300 mb-4 leading-relaxed">
-                      This will automatically create 10 images to Lock the Look and perform a normal training process. Good for creating normal, consistent Influencer images.
+                      This will automatically create 12 images to Lock the Look
+                      and perform a normal training process. Good for creating
+                      normal, consistent Influencer images.
                     </p>
                     <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-4">
                       <span className="inline-flex items-center px-2 py-1 rounded-full bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 text-xs font-medium">
-                        10 Images
+                        12 Images
                       </span>
                       <span className="inline-flex items-center px-2 py-1 rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 text-xs font-medium">
-                        ~30 minutes
+                        ~10 - 15 minutes
                       </span>
                     </div>
                     <Button
-                      onClick={() => handleStartTraining('basic')}
+                      onClick={() => handleStartTraining("basic")}
                       className="w-full h-12 text-base font-medium bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 shadow-lg hover:shadow-xl transition-all duration-300"
                     >
                       <Brain className="w-5 h-5 mr-3" />
@@ -1328,7 +1529,10 @@ export default function Lora() {
                       Character Consistency Training Plus
                     </h3>
                     <p className="text-gray-600 dark:text-gray-300 mb-4 leading-relaxed">
-                      This will automatically create 25 images to Lock the Look and will execute an enhanced training process with more steps. This is good for creating professional grade, consistent Influencer images.
+                      This will automatically create 25 images to Lock the Look
+                      and will execute an enhanced training process with 3x more
+                      steps. This is good for creating professional grade,
+                      consistent Influencer images.
                     </p>
                     <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-4">
                       <span className="inline-flex items-center px-2 py-1 rounded-full bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300 text-xs font-medium">
@@ -1338,11 +1542,11 @@ export default function Lora() {
                         Professional Grade
                       </span>
                       <span className="inline-flex items-center px-2 py-1 rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 text-xs font-medium">
-                        ~45 minutes
+                        ~20 - 25 minutes
                       </span>
                     </div>
                     <Button
-                      onClick={() => handleStartTraining('plus')}
+                      onClick={() => handleStartTraining("plus")}
                       className="w-full h-12 text-base font-medium bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 shadow-lg hover:shadow-xl transition-all duration-300"
                     >
                       <Brain className="w-5 h-5 mr-3" />
@@ -1376,12 +1580,11 @@ export default function Lora() {
         userCredits={userData.credits}
         userId={userData.id}
         isProcessing={isCopyingImage}
-                      processingText="Setting up AI consistency training..."
-              confirmButtonText="Start AI Consistency Training"
-              title="AI Consistency Training Cost"
+        processingText="Setting up AI consistency training..."
+        confirmButtonText="Start AI Consistency Training"
+        title="AI Consistency Training Cost"
         itemType="training"
       />
-
     </div>
   );
-} 
+}

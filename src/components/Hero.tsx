@@ -60,6 +60,7 @@ const Hero = () => {
         >
           Guided assistants, AI Consistency, and a studio for stunning images. 
           Post safely to Instagram and sell on Fanvue — without technical know‑how.
+          Join the public beta now
         </motion.p>
 
         <motion.div

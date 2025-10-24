@@ -1,24 +1,57 @@
-import { useState, useEffect, useRef } from 'react';
-import { useSelector } from 'react-redux';
-import { RootState } from '@/store/store';
-import config from '@/config/config';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { toast } from 'sonner';
-import { Mic, Upload, Play, Pause, Volume2, ArrowLeft, Wand2, Loader2, RotateCcw, Calendar, BookOpen, Save, FolderOpen, Star, User, Settings, Video, X, Search, Clock, Eye, Download, Share2, Sparkles, Square } from 'lucide-react';
-import VaultSelector from '@/components/VaultSelector';
-import VideoSelector from '@/components/VideoSelector';
-import { AudioPlayer } from '@/components/ui/audio-player';
-import LipsyncPresetsManager from '@/components/LipsyncPresetsManager';
-import LipsyncLibraryManager from '@/components/LipsyncLibraryManager';
-import { CreditConfirmationModal } from '@/components/CreditConfirmationModal';
+import { CreditConfirmationModal } from "@/components/CreditConfirmationModal";
+import LipsyncLibraryManager from "@/components/LipsyncLibraryManager";
+import LipsyncPresetsManager from "@/components/LipsyncPresetsManager";
+import VaultSelector from "@/components/VaultSelector";
+import VideoSelector from "@/components/VideoSelector";
+import { AudioPlayer } from "@/components/ui/audio-player";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import config from "@/config/config";
+import { setInfluencers } from "@/store/slices/influencersSlice";
+import { RootState } from "@/store/store";
+import {
+  ArrowLeft,
+  BookOpen,
+  Calendar,
+  Download,
+  FolderOpen,
+  Loader2,
+  Mic,
+  Play,
+  RotateCcw,
+  Save,
+  Search,
+  Share2,
+  Sparkles,
+  Square,
+  Upload,
+  User,
+  Video,
+  Wand2,
+  X,
+} from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { toast } from "sonner";
 
 interface ContentCreateLipSyncVideoProps {
   influencerData?: any;
@@ -51,14 +84,71 @@ interface GeneratedAudioData {
   voice_speed: number;
 }
 
-function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipSyncVideoProps) {
+function ContentCreateLipSyncVideo({
+  influencerData,
+  onBack,
+}: ContentCreateLipSyncVideoProps) {
   const userData = useSelector((state: RootState) => state.user);
+  const dispatch = useDispatch();
   const [isGenerating, setIsGenerating] = useState(false);
-  const [isGeneratingVoice, setIsGeneratingVoice] = useState<string | null>(null);
+  const [isGeneratingVoice, setIsGeneratingVoice] = useState<string | null>(
+    null
+  );
   const [isUploadingAudio, setIsUploadingAudio] = useState(false);
-  const [activePhase, setActivePhase] = useState<'upload' | 'elevenlabs' | 'individual'>('upload');
+  const [activePhase, setActivePhase] = useState<
+    "upload" | "elevenlabs" | "individual" | "ownvoice" | "influencer_voices"
+  >("upload");
+  const [ownVoiceSubOption, setOwnVoiceSubOption] = useState<
+    "upload" | "record"
+  >("upload");
+  const [influencers, setInfluencersLocal] = useState<any[]>([]);
+  const [selectedInfluencerForVoice, setSelectedInfluencerForVoice] = useState<
+    string | null
+  >(null);
+  const [isLoadingInfluencers, setIsLoadingInfluencers] = useState(false);
+
+  // Fetch influencers with ElevenLabs IDs
+  const fetchInfluencersWithElevenLabs = async () => {
+    if (!userData.id) return;
+
+    setIsLoadingInfluencers(true);
+    try {
+      const response = await fetch(
+        `${config.supabase_server_url}/influencer?user_id=eq.${userData.id}&elevenlabs_voiceid=not.is.null`,
+        {
+          headers: {
+            Authorization: "Bearer WeInfl3nc3withAI",
+          },
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        setInfluencersLocal(data);
+        dispatch(setInfluencers(data));
+      } else {
+        console.error("Failed to fetch influencers with ElevenLabs IDs");
+        toast.error("Failed to fetch influencers");
+      }
+    } catch (error) {
+      console.error("Error fetching influencers:", error);
+      toast.error("Error fetching influencers");
+    } finally {
+      setIsLoadingInfluencers(false);
+    }
+  };
 
   // Model data state to store influencer or selected video information
+
+  // Voice recording state
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordedAudioBlob, setRecordedAudioBlob] = useState<Blob | null>(null);
+  const [recordedAudioUrl, setRecordedAudioUrl] = useState<string | null>(null);
+  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(
+    null
+  );
+  const [recordingTime, setRecordingTime] = useState(0);
+  const recordingTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [modelData, setModelData] = useState<any>(null);
 
   // Video selection state
@@ -66,9 +156,9 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
   const [loadingVideos, setLoadingVideos] = useState(false);
   const [selectedVideo, setSelectedVideo] = useState<any>(null);
   const [showVideoSelector, setShowVideoSelector] = useState(false);
-  const [videoSearchTerm, setVideoSearchTerm] = useState('');
-  const [videoFilterStatus, setVideoFilterStatus] = useState<string>('all');
-  const [videoSortBy, setVideoSortBy] = useState<string>('newest');
+  const [videoSearchTerm, setVideoSearchTerm] = useState("");
+  const [videoFilterStatus, setVideoFilterStatus] = useState<string>("all");
+  const [videoSortBy, setVideoSortBy] = useState<string>("newest");
 
   // Validation state
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
@@ -76,21 +166,29 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
   // Audio playback state
   const [audioUrls, setAudioUrls] = useState<{ [key: string]: string }>({});
   const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
-  const [playingVoiceSample, setPlayingVoiceSample] = useState<string | null>(null);
-  const [voiceAudioElements, setVoiceAudioElements] = useState<{ [key: string]: HTMLAudioElement }>({});
+  const [playingVoiceSample, setPlayingVoiceSample] = useState<string | null>(
+    null
+  );
+  const [voiceAudioElements, setVoiceAudioElements] = useState<{
+    [key: string]: HTMLAudioElement;
+  }>({});
   const voiceAudioElementsRef = useRef<{ [key: string]: HTMLAudioElement }>({});
 
   // Generated audio data state
-  const [generatedAudioData, setGeneratedAudioData] = useState<GeneratedAudioData | null>(null);
-  const [generatedAudioUrl, setGeneratedAudioUrl] = useState<string | null>(null);
+  const [generatedAudioData, setGeneratedAudioData] =
+    useState<GeneratedAudioData | null>(null);
+  const [generatedAudioUrl, setGeneratedAudioUrl] = useState<string | null>(
+    null
+  );
   const [selectedAudioUrl, setSelectedAudioUrl] = useState<string | null>(null);
 
   // Voice states
   const [uploadedAudioFile, setUploadedAudioFile] = useState<File | null>(null);
   const [uploadedAudioUrl, setUploadedAudioUrl] = useState<string | null>(null);
-  const [selectedElevenLabsVoice, setSelectedElevenLabsVoice] = useState<VoiceOption | null>(null);
-  const [textToSpeak, setTextToSpeak] = useState('');
-  const [individualVoiceId, setIndividualVoiceId] = useState<string>('');
+  const [selectedElevenLabsVoice, setSelectedElevenLabsVoice] =
+    useState<VoiceOption | null>(null);
+  const [textToSpeak, setTextToSpeak] = useState("");
+  const [individualVoiceId, setIndividualVoiceId] = useState<string>("");
 
   // Modal states
   const [showHistory, setShowHistory] = useState(false);
@@ -104,40 +202,43 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
   const [showLipsyncPresetsModal, setShowLipsyncPresetsModal] = useState(false);
   const [showLipsyncLibraryModal, setShowLipsyncLibraryModal] = useState(false);
   const [showSavePresetModal, setShowSavePresetModal] = useState(false);
-  const [presetName, setPresetName] = useState('');
-  const [presetDescription, setPresetDescription] = useState('');
+  const [presetName, setPresetName] = useState("");
+  const [presetDescription, setPresetDescription] = useState("");
   const [selectedPresetImage, setSelectedPresetImage] = useState<any>(null);
-  const [presetImageSource, setPresetImageSource] = useState<'vault' | 'upload' | 'recent'>('vault');
-  const [showVaultSelectorForPreset, setShowVaultSelectorForPreset] = useState(false);
+  const [presetImageSource, setPresetImageSource] = useState<
+    "vault" | "upload" | "recent"
+  >("vault");
+  const [showVaultSelectorForPreset, setShowVaultSelectorForPreset] =
+    useState(false);
   const [isSavingPreset, setIsSavingPreset] = useState(false);
 
   // ElevenLabs voices (will be fetched from voice table)
   const [elevenLabsVoices, setElevenLabsVoices] = useState<VoiceOption[]>([]);
   const [loadingVoices, setLoadingVoices] = useState(true);
-  const [selectedAudioId, setSelectedAudioId] = useState<string>('');
+  const [selectedAudioId, setSelectedAudioId] = useState<string>("");
 
   // Individual voices per influencer (mock data)
   const [individualVoices, setIndividualVoices] = useState<VoiceOption[]>([
     {
       id: 1,
-      elevenlabs_id: 'ind_voice_1',
-      name: 'Custom Voice 1',
-      description: 'Personalized voice for influencer',
-      internal_hint: 'Custom voice option',
+      elevenlabs_id: "ind_voice_1",
+      name: "Custom Voice 1",
+      description: "Personalized voice for influencer",
+      internal_hint: "Custom voice option",
       speed: 1.0,
-      category: 'Custom',
-      preview_url: 'https://example.com/custom1.mp3'
+      category: "Custom",
+      preview_url: "https://example.com/custom1.mp3",
     },
     {
       id: 2,
-      elevenlabs_id: 'ind_voice_2',
-      name: 'Custom Voice 2',
-      description: 'Another personalized voice option',
-      internal_hint: 'Custom voice option',
+      elevenlabs_id: "ind_voice_2",
+      name: "Custom Voice 2",
+      description: "Another personalized voice option",
+      internal_hint: "Custom voice option",
       speed: 1.0,
-      category: 'Custom',
-      preview_url: 'https://example.com/custom2.mp3'
-    }
+      category: "Custom",
+      preview_url: "https://example.com/custom2.mp3",
+    },
   ]);
 
   // Credit check state for lipsync generation
@@ -157,23 +258,26 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
 
       try {
         setLoadingVideos(true);
-        const response = await fetch(`${config.supabase_server_url}/video?user_uuid=eq.${userData.id}&status=eq.completed&order=task_created_at.desc`, {
-          headers: {
-            'Authorization': 'Bearer WeInfl3nc3withAI',
-            'Content-Type': 'application/json'
+        const response = await fetch(
+          `${config.supabase_server_url}/video?user_uuid=eq.${userData.id}&status=eq.completed&order=task_created_at.desc`,
+          {
+            headers: {
+              Authorization: "Bearer WeInfl3nc3withAI",
+              "Content-Type": "application/json",
+            },
           }
-        });
+        );
 
         if (response.ok) {
           const data = await response.json();
-          console.log('Fetched videos for LipSync:', data);
+          console.log("Fetched videos for LipSync:", data);
           setVideos(data);
         } else {
-          throw new Error('Failed to fetch videos');
+          throw new Error("Failed to fetch videos");
         }
       } catch (error) {
-        console.error('Error fetching videos:', error);
-        toast.error('Failed to load videos');
+        console.error("Error fetching videos:", error);
+        toast.error("Failed to load videos");
       } finally {
         setLoadingVideos(false);
       }
@@ -183,13 +287,13 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
   }, [userData.id]);
 
   // Filter videos for lip sync history (lip_flag === true)
-  const lipSyncVideos = videos.filter(video => video.lip_flag === true);
+  const lipSyncVideos = videos.filter((video) => video.lip_flag === true);
 
   // Cleanup audio elements on unmount
   useEffect(() => {
     return () => {
       // Stop all playing audio when component unmounts
-      Object.values(voiceAudioElementsRef.current).forEach(audio => {
+      Object.values(voiceAudioElementsRef.current).forEach((audio) => {
         audio.pause();
         audio.currentTime = 0;
       });
@@ -205,7 +309,7 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
 
   // Debug selectedAudioUrl changes
   useEffect(() => {
-    console.log('selectedAudioUrl changed to:', selectedAudioUrl);
+    console.log("selectedAudioUrl changed to:", selectedAudioUrl);
   }, [selectedAudioUrl]);
 
   // Fetch voices from voice table
@@ -213,32 +317,35 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
     const fetchVoices = async () => {
       try {
         setLoadingVoices(true);
-        const response = await fetch(`${config.supabase_server_url}/voice?order=name.asc`, {
-          headers: {
-            'Authorization': 'Bearer WeInfl3nc3withAI',
-            'Content-Type': 'application/json'
+        const response = await fetch(
+          `${config.supabase_server_url}/voice?order=name.asc`,
+          {
+            headers: {
+              Authorization: "Bearer WeInfl3nc3withAI",
+              "Content-Type": "application/json",
+            },
           }
-        });
+        );
 
         if (response.ok) {
           const data = await response.json();
-          console.log('Fetched voices:', data);
+          console.log("Fetched voices:", data);
 
           // Transform the data to match our interface
           const transformedVoices = data.map((voice: any) => ({
             ...voice,
-            category: voice.internal_hint || 'General',
+            category: voice.internal_hint || "General",
             preview_url: undefined, // Will be added later if needed
-            isPlaying: false
+            isPlaying: false,
           }));
 
           setElevenLabsVoices(transformedVoices);
         } else {
-          throw new Error('Failed to fetch voices');
+          throw new Error("Failed to fetch voices");
         }
       } catch (error) {
-        console.error('Error fetching voices:', error);
-        toast.error('Failed to load voices');
+        console.error("Error fetching voices:", error);
+        toast.error("Failed to load voices");
       } finally {
         setLoadingVoices(false);
       }
@@ -250,22 +357,33 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
   useEffect(() => {
     if (influencerData) {
       setModelData(influencerData);
-      toast.success(`Using ${influencerData.name_first} ${influencerData.name_last} for lip sync video generation`);
+      toast.success(
+        `Using ${influencerData.name_first} ${influencerData.name_last} for lip sync video generation`
+      );
     }
   }, [influencerData]);
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  // Fetch influencers with ElevenLabs IDs on component mount
+  useEffect(() => {
+    if (userData.id) {
+      fetchInfluencersWithElevenLabs();
+    }
+  }, [userData.id]);
+
+  const handleFileUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const file = event.target.files?.[0];
     if (file) {
       // Validate file type
-      if (!file.type.startsWith('audio/')) {
-        toast.error('Please select an audio file');
+      if (!file.type.startsWith("audio/")) {
+        toast.error("Please select an audio file");
         return;
       }
 
       // Validate file size (max 10MB)
       if (file.size > 10 * 1024 * 1024) {
-        toast.error('File size must be less than 10MB');
+        toast.error("File size must be less than 10MB");
         return;
       }
 
@@ -274,34 +392,37 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
 
         // Create FormData for file upload
         const formData = new FormData();
-        formData.append('file', file);
+        formData.append("file", file);
 
         // Generate a unique filename
         const timestamp = Date.now();
-        const fileExtension = file.name.split('.').pop();
+        const fileExtension = file.name.split(".").pop();
         const filename = `uploaded_audio_${timestamp}.${fileExtension}`;
 
         // Upload file to the API
         const uploadUrl = `${config.backend_url}/uploadfile?user=${userData.id}&filename=audio/${filename}`;
 
-        console.log('Uploading file to:', uploadUrl);
-        console.log('Filename:', filename);
+        console.log("Uploading file to:", uploadUrl);
+        console.log("Filename:", filename);
 
         const response = await fetch(uploadUrl, {
-          method: 'POST',
+          method: "POST",
           headers: {
-            'Authorization': 'Bearer WeInfl3nc3withAI'
+            Authorization: "Bearer WeInfl3nc3withAI",
           },
-          body: formData
+          body: formData,
         });
 
         if (response.ok) {
           const result = await response.json();
-          console.log('File upload response:', result);
+          console.log("File upload response:", result);
 
           // Set the uploaded file and URL
           setUploadedAudioFile(file);
           setValidationErrors([]);
+
+          // Clear influencer selection when audio file is uploaded
+          setSelectedInfluencerForVoice(null);
 
           // Create the audio URL for the uploaded file
           const audioUrl = `${config.data_url}/${userData.id}/audio/${filename}`;
@@ -311,14 +432,18 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
           setSelectedAudioUrl(audioUrl);
           setSelectedAudioId(`uploaded_${timestamp}`);
 
-          toast.success('Audio file uploaded and saved successfully');
+          toast.success("Audio file uploaded and saved successfully");
         } else {
           const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.message || 'Failed to upload audio file');
+          throw new Error(errorData.message || "Failed to upload audio file");
         }
       } catch (error) {
-        console.error('Error uploading audio file:', error);
-        toast.error(`Failed to upload audio file: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        console.error("Error uploading audio file:", error);
+        toast.error(
+          `Failed to upload audio file: ${
+            error instanceof Error ? error.message : "Unknown error"
+          }`
+        );
       } finally {
         setIsUploadingAudio(false);
       }
@@ -327,7 +452,9 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
 
   const handleElevenLabsVoiceSelect = (voice: VoiceOption) => {
     setSelectedElevenLabsVoice(voice);
-    console.log('voice', voice);
+    console.log("voice", voice);
+    // Clear influencer selection when ElevenLabs voice is selected
+    setSelectedInfluencerForVoice(null);
     const selectedUrl = `${config.data_url}/wizard/mappings/${voice.elevenlabs_id}.mp3`;
     setSelectedAudioUrl(selectedUrl);
     setSelectedAudioId(voice.elevenlabs_id);
@@ -338,10 +465,99 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
   const handleIndividualVoiceSelect = (voiceId: number) => {
     setIndividualVoiceId(voiceId.toString());
     setValidationErrors([]);
-    const voice = individualVoices.find(v => v.id === voiceId);
+    // Clear influencer selection when individual voice is selected
+    setSelectedInfluencerForVoice(null);
+    const voice = individualVoices.find((v) => v.id === voiceId);
     if (voice) {
       toast.success(`Selected individual voice: ${voice.name}`);
     }
+  };
+
+  // Voice recording functions
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      const chunks: Blob[] = [];
+
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          chunks.push(event.data);
+        }
+      };
+
+      recorder.onstop = () => {
+        const blob = new Blob(chunks, { type: "audio/wav" });
+        setRecordedAudioBlob(blob);
+        const url = URL.createObjectURL(blob);
+        setRecordedAudioUrl(url);
+
+        // If we're in the ownvoice phase, automatically set the selected audio
+        if (activePhase === "ownvoice") {
+          setSelectedAudioUrl(url);
+          setSelectedAudioId("recorded_voice");
+        }
+
+        // Stop all tracks
+        stream.getTracks().forEach((track) => track.stop());
+      };
+
+      // Clear influencer selection when recording starts
+      setSelectedInfluencerForVoice(null);
+      setSelectedAudioUrl(null);
+      setSelectedAudioId("");
+
+      recorder.start();
+      setMediaRecorder(recorder);
+      setIsRecording(true);
+      setRecordingTime(0);
+
+      // Start recording timer
+      recordingTimerRef.current = setInterval(() => {
+        setRecordingTime((prev) => prev + 1);
+      }, 1000);
+
+      toast.success("Recording started");
+    } catch (error) {
+      console.error("Error starting recording:", error);
+      toast.error(
+        "Failed to start recording. Please check microphone permissions."
+      );
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorder && isRecording) {
+      mediaRecorder.stop();
+      setIsRecording(false);
+
+      if (recordingTimerRef.current) {
+        clearInterval(recordingTimerRef.current);
+        recordingTimerRef.current = null;
+      }
+
+      toast.success("Recording stopped");
+    }
+  };
+
+  const clearRecording = () => {
+    setRecordedAudioBlob(null);
+    if (recordedAudioUrl) {
+      URL.revokeObjectURL(recordedAudioUrl);
+      setRecordedAudioUrl(null);
+    }
+    setRecordingTime(0);
+    // Clear selected audio when recording is cleared
+    setSelectedAudioUrl(null);
+    setSelectedAudioId("");
+  };
+
+  const formatRecordingTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, "0")}:${secs
+      .toString()
+      .padStart(2, "0")}`;
   };
 
   const validateForm = () => {
@@ -349,42 +565,50 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
 
     // Check if video is selected
     if (!selectedVideo) {
-      errors.push('Please select a video to apply lip-sync to');
+      errors.push("Please select a video to apply lip-sync to");
     }
 
     // Phase-specific validation
-    if (activePhase === 'upload') {
+    if (activePhase === "upload") {
       if (!uploadedAudioFile || !selectedAudioUrl) {
-        errors.push('Please upload an audio file');
+        errors.push("Please upload an audio file");
       }
     } else {
       // Check if audio is selected for other phases
       if (!selectedAudioUrl || !selectedAudioId) {
-        errors.push('Please select an audio file for lip-sync video generation');
+        errors.push(
+          "Please select an audio file for lip-sync video generation"
+        );
       }
     }
 
-    if (activePhase === 'elevenlabs') {
+    if (activePhase === "elevenlabs") {
       if (!selectedElevenLabsVoice) {
-        errors.push('Please select a voice from the available options');
+        errors.push("Please select a voice from the available options");
       }
       if (!textToSpeak.trim()) {
-        errors.push('Please enter text for voice generation');
+        errors.push("Please enter text for voice generation");
       }
       if (textToSpeak.trim().length < 10) {
-        errors.push('Text should be at least 10 characters long');
+        errors.push("Text should be at least 10 characters long");
       }
       if (textToSpeak.trim().length > 500) {
-        errors.push('Text should be less than 500 characters');
+        errors.push("Text should be less than 500 characters");
       }
     }
 
-    if (activePhase === 'individual') {
+    if (activePhase === "individual") {
       if (!individualVoiceId) {
-        errors.push('Please select an individual voice');
+        errors.push("Please select an individual voice");
       }
       if (!textToSpeak.trim()) {
-        errors.push('Please enter text for voice generation');
+        errors.push("Please enter text for voice generation");
+      }
+    }
+
+    if (activePhase === "ownvoice") {
+      if (!recordedAudioUrl) {
+        errors.push("Please record your voice first");
       }
     }
 
@@ -404,20 +628,27 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
   const isFormValid = () => {
     if (!selectedVideo) return false;
 
-    if (activePhase === 'upload') {
-      if (!uploadedAudioFile || !selectedAudioUrl) return false;
+    if (activePhase === "upload") {
+      // For upload phase, require either uploaded audio OR selected influencer for voice
+      if (!uploadedAudioFile && !selectedInfluencerForVoice) return false;
+      if (!selectedAudioUrl) return false;
     } else {
       // For elevenlabs and individual phases, require selected audio
       if (!selectedAudioUrl || !selectedAudioId) return false;
     }
 
-    if (activePhase === 'elevenlabs') {
+    if (activePhase === "elevenlabs") {
       if (!selectedElevenLabsVoice || !textToSpeak.trim()) return false;
-      if (textToSpeak.trim().length < 10 || textToSpeak.trim().length > 500) return false;
+      if (textToSpeak.trim().length < 10 || textToSpeak.trim().length > 500)
+        return false;
     }
 
-    if (activePhase === 'individual') {
+    if (activePhase === "individual") {
       if (!individualVoiceId || !textToSpeak.trim()) return false;
+    }
+
+    if (activePhase === "ownvoice") {
+      if (!recordedAudioUrl) return false;
     }
 
     return true;
@@ -429,13 +660,13 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
     // Credit check for lipsync generation using item: kling_lipsync
     try {
       setIsCheckingGems(true);
-      const response = await fetch('https://api.nymia.ai/v1/getgems', {
-        method: 'POST',
+      const response = await fetch("https://api.nymia.ai/v1/getgems", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer WeInfl3nc3withAI'
+          "Content-Type": "application/json",
+          Authorization: "Bearer WeInfl3nc3withAI",
         },
-        body: JSON.stringify({ item: 'kling_lipsync' })
+        body: JSON.stringify({ item: "kling_lipsync" }),
       });
 
       if (!response.ok) {
@@ -447,8 +678,8 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
       setShowGemWarning(true);
       return; // Wait for user confirmation in modal
     } catch (error) {
-      console.error('Error checking gem cost for lipsync:', error);
-      toast.error('Unable to verify credit cost. Please try again.');
+      console.error("Error checking gem cost for lipsync:", error);
+      toast.error("Unable to verify credit cost. Please try again.");
       return;
     } finally {
       setIsCheckingGems(false);
@@ -462,12 +693,12 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
     try {
       // Validate required data
       if (!selectedVideo) {
-        toast.error('Please select a video for lip-sync');
+        toast.error("Please select a video for lip-sync");
         setIsGenerating(false);
         return;
       }
       if (!selectedAudioUrl || !selectedAudioId) {
-        toast.error('Please select or generate audio for lip-sync');
+        toast.error("Please select or generate audio for lip-sync");
         setIsGenerating(false);
         return;
       }
@@ -480,32 +711,43 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
         video_url: getVideoUrl(selectedVideo.video_id),
         audio: selectedAudioId,
         prompt: textToSpeak,
-        status: "new"
+        status: "new",
       };
 
-      const response = await fetch(`${config.backend_url}/generatelipsyncvideo`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer WeInfl3nc3withAI'
-        },
-        body: JSON.stringify(lipSyncData)
-      });
+      const response = await fetch(
+        `${config.backend_url}/generatelipsyncvideo`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: "Bearer WeInfl3nc3withAI",
+          },
+          body: JSON.stringify(lipSyncData),
+        }
+      );
 
       if (response.ok) {
         const result = await response.json();
-        console.log('Lip-sync generation response:', result);
-        toast.success('Lip-sync video generation started! Check your history for progress.');
+        console.log("Lip-sync generation response:", result);
+        toast.success(
+          "Lip-sync video generation started! Check your history for progress."
+        );
         // Keep selections so user sees context; do not clear entire form
         setIsGenerating(false);
         setShowHistory(true);
       } else {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || 'Failed to start lip-sync generation');
+        throw new Error(
+          errorData.message || "Failed to start lip-sync generation"
+        );
       }
     } catch (error) {
-      console.error('Error generating lip-sync video:', error);
-      toast.error(`Failed to generate lip-sync video: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error("Error generating lip-sync video:", error);
+      toast.error(
+        `Failed to generate lip-sync video: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
     } finally {
       setIsGenerating(false);
     }
@@ -515,11 +757,13 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
     setUploadedAudioFile(null);
     setUploadedAudioUrl(null);
     setSelectedElevenLabsVoice(null);
-    setTextToSpeak('');
-    setIndividualVoiceId('');
+    setTextToSpeak("");
+    setIndividualVoiceId("");
     setSelectedVideo(null);
     setValidationErrors([]);
     setIsUploadingAudio(false);
+    // Clear influencer selection
+    setSelectedInfluencerForVoice(null);
 
     // Stop and clean up any playing audio
     if (playingAudioId) {
@@ -531,7 +775,7 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
     setGeneratedAudioData(null);
     setGeneratedAudioUrl(null);
     setSelectedAudioUrl(null);
-    setSelectedAudioId('');
+    setSelectedAudioId("");
 
     if (uploadedAudioUrl) {
       URL.revokeObjectURL(uploadedAudioUrl);
@@ -540,7 +784,7 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
 
   const playVoicePreview = async (voice: VoiceOption) => {
     if (!textToSpeak.trim()) {
-      toast.error('Please enter some text to generate voice preview');
+      toast.error("Please enter some text to generate voice preview");
       return;
     }
 
@@ -551,25 +795,27 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
         user_uuid: userData.id,
         voice_id: voice.elevenlabs_id,
         speed: voice.speed,
-        prompt: textToSpeak
+        prompt: textToSpeak,
       };
 
-      console.log('Generating voice preview:', voiceGenerationData);
+      console.log("Generating voice preview:", voiceGenerationData);
 
       const response = await fetch(`${config.backend_url}/generateaudio`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer WeInfl3nc3withAI'
+          "Content-Type": "application/json",
+          Authorization: "Bearer WeInfl3nc3withAI",
         },
-        body: JSON.stringify(voiceGenerationData)
+        body: JSON.stringify(voiceGenerationData),
       });
 
       if (response.ok) {
         const result = await response.json();
-        console.log('Voice generation response:', result);
+        console.log("Voice generation response:", result);
 
-        toast.success(`Voice preview generated for ${voice.name}! Audio ID: ${result.audio_id}`);
+        toast.success(
+          `Voice preview generated for ${voice.name}! Audio ID: ${result.audio_id}`
+        );
 
         // Save the generated audio data
         const audioData: GeneratedAudioData = {
@@ -583,7 +829,7 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
           character_cost: result.character_cost,
           voice_name: voice.name,
           voice_description: voice.description,
-          voice_speed: voice.speed
+          voice_speed: voice.speed,
         };
 
         setGeneratedAudioData(audioData);
@@ -591,15 +837,20 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
         // Wait a moment for the audio file to be ready, then store the URL
         setTimeout(() => {
           const audioUrl = `${config.data_url}/${userData.id}/audio/${result.filename}`;
-          console.log('Setting audioUrl for audio_id:', result.audio_id, 'URL:', audioUrl);
+          console.log(
+            "Setting audioUrl for audio_id:",
+            result.audio_id,
+            "URL:",
+            audioUrl
+          );
 
           // Store the audio URL for the AudioPlayer component
-          setAudioUrls(prev => {
+          setAudioUrls((prev) => {
             const newAudioUrls = {
               ...prev,
-              [result.audio_id]: audioUrl
+              [result.audio_id]: audioUrl,
             };
-            console.log('Updated audioUrls state:', newAudioUrls);
+            console.log("Updated audioUrls state:", newAudioUrls);
             return newAudioUrls;
           });
 
@@ -612,16 +863,20 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
 
           // Set the generated audio URL for the persistent player
           setGeneratedAudioUrl(audioUrl);
-
         }, 2000); // Wait 2 seconds for the file to be ready
-
       } else {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || 'Failed to generate voice preview');
+        throw new Error(
+          errorData.message || "Failed to generate voice preview"
+        );
       }
     } catch (error) {
-      console.error('Error generating voice preview:', error);
-      toast.error(`Failed to generate voice preview: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error("Error generating voice preview:", error);
+      toast.error(
+        `Failed to generate voice preview: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
     } finally {
       setIsGeneratingVoice(null);
     }
@@ -632,29 +887,29 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
   };
 
   const handleAudioSelect = (audioId: string) => {
-    console.log('handleAudioSelect called with audioId:', audioId);
-    console.log('Current audioUrls state:', audioUrls);
-    console.log('Available audio IDs:', Object.keys(audioUrls));
+    console.log("handleAudioSelect called with audioId:", audioId);
+    console.log("Current audioUrls state:", audioUrls);
+    console.log("Available audio IDs:", Object.keys(audioUrls));
 
     const audioUrl = audioUrls[audioId];
-    console.log('Found audioUrl:', audioUrl);
+    console.log("Found audioUrl:", audioUrl);
 
     if (audioUrl) {
       // Toggle selection - if already selected, deselect it
       if (selectedAudioId === audioId) {
-        console.log('Deselecting audio:', audioId);
+        console.log("Deselecting audio:", audioId);
         setSelectedAudioUrl(null);
-        setSelectedAudioId('');
-        toast.success('Audio deselected');
+        setSelectedAudioId("");
+        toast.success("Audio deselected");
       } else {
-        console.log('Setting selectedAudioUrl to:', audioUrl);
+        console.log("Setting selectedAudioUrl to:", audioUrl);
         setSelectedAudioUrl(audioUrl);
         setSelectedAudioId(audioId);
-        toast.success('Audio selected for lip sync video generation');
+        toast.success("Audio selected for lip sync video generation");
       }
     } else {
-      console.log('No audioUrl found for audioId:', audioId);
-      toast.error('Audio not found. Please try again.');
+      console.log("No audioUrl found for audioId:", audioId);
+      toast.error("Audio not found. Please try again.");
     }
   };
 
@@ -671,50 +926,66 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
   };
 
   const formatVideoDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
   const getVideoStatusColor = (status: string) => {
     switch (status) {
-      case 'completed': return 'bg-green-500/20 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800';
-      case 'processing': return 'bg-blue-500/20 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800';
-      case 'failed': return 'bg-red-500/20 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800';
-      case 'pending': return 'bg-yellow-500/20 text-yellow-700 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800';
-      default: return 'bg-gray-500/20 text-gray-700 dark:text-gray-400 border-gray-200 dark:border-gray-800';
+      case "completed":
+        return "bg-green-500/20 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800";
+      case "processing":
+        return "bg-blue-500/20 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800";
+      case "failed":
+        return "bg-red-500/20 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800";
+      case "pending":
+        return "bg-yellow-500/20 text-yellow-700 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800";
+      default:
+        return "bg-gray-500/20 text-gray-700 dark:text-gray-400 border-gray-200 dark:border-gray-800";
     }
   };
 
   const getVideoModelDisplayName = (model: string) => {
     switch (model) {
-      case 'kling-v2.1': return 'Kling 2.1';
-      case 'wan-v2.1': return 'WAN 2.1';
-      default: return model;
+      case "kling-v2.1":
+        return "Kling 2.1";
+      case "wan-v2.1":
+        return "WAN 2.1";
+      default:
+        return model;
     }
   };
 
   // Filter and sort videos
   const filteredVideos = videos
-    .filter(video => {
-      const matchesStatus = videoFilterStatus === 'all' || video.status === videoFilterStatus;
-      const matchesSearch = video.prompt.toLowerCase().includes(videoSearchTerm.toLowerCase()) ||
+    .filter((video) => {
+      const matchesStatus =
+        videoFilterStatus === "all" || video.status === videoFilterStatus;
+      const matchesSearch =
+        video.prompt.toLowerCase().includes(videoSearchTerm.toLowerCase()) ||
         video.model.toLowerCase().includes(videoSearchTerm.toLowerCase());
       return matchesStatus && matchesSearch;
     })
     .sort((a, b) => {
       switch (videoSortBy) {
-        case 'newest':
-          return new Date(b.task_created_at).getTime() - new Date(a.task_created_at).getTime();
-        case 'oldest':
-          return new Date(a.task_created_at).getTime() - new Date(b.task_created_at).getTime();
-        case 'duration':
+        case "newest":
+          return (
+            new Date(b.task_created_at).getTime() -
+            new Date(a.task_created_at).getTime()
+          );
+        case "oldest":
+          return (
+            new Date(a.task_created_at).getTime() -
+            new Date(b.task_created_at).getTime()
+          );
+        case "duration":
           return b.duration - a.duration;
-        case 'model':
+        case "model":
           return a.model.localeCompare(b.model);
         default:
           return 0;
@@ -735,30 +1006,30 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
 
   const handleDownload = (video: any) => {
     const videoUrl = getVideoUrl(video.video_id);
-    const link = document.createElement('a');
+    const link = document.createElement("a");
     link.href = videoUrl;
     link.download = `lipsync-video-${video.video_id}.mp4`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    toast.success('Download started');
+    toast.success("Download started");
   };
 
   const handleShare = (video: any) => {
     const videoUrl = getVideoUrl(video.video_id);
     navigator.clipboard.writeText(videoUrl);
-    toast.success('Video URL copied to clipboard');
+    toast.success("Video URL copied to clipboard");
   };
 
   // Lipsync preset functions
   const handleSavePreset = async () => {
     if (!presetName.trim()) {
-      toast.error('Please enter a preset name');
+      toast.error("Please enter a preset name");
       return;
     }
 
     if (!selectedPresetImage) {
-      toast.error('Please select a preset image');
+      toast.error("Please select a preset image");
       return;
     }
 
@@ -766,34 +1037,38 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
       setIsSavingPreset(true);
 
       // Determine upload_flag based on active phase
-      const upload_flag = activePhase === 'upload';
+      const upload_flag = activePhase === "upload";
 
       // Get the appropriate URLs and voice name based on the active phase
-      let video_url = '';
-      let voice_url = '';
-      let voice_name = '';
+      let video_url = "";
+      let voice_url = "";
+      let voice_name = "";
 
-      if (activePhase === 'upload') {
-        voice_url = uploadedAudioUrl || '';
-      } else if (activePhase === 'elevenlabs') {
-        voice_url = selectedElevenLabsVoice?.preview_url || '';
-        voice_name = selectedElevenLabsVoice?.name || '';
+      if (activePhase === "upload") {
+        voice_url = uploadedAudioUrl || "";
+      } else if (activePhase === "elevenlabs") {
+        voice_url = selectedElevenLabsVoice?.preview_url || "";
+        voice_name = selectedElevenLabsVoice?.name || "";
       }
 
       // Get video URL from selected video
       if (selectedVideo) {
-        video_url = `${config.data_url}/${userData.id}/${selectedVideo.user_filename === "" ? "output" : "vault/" + selectedVideo.user_filename}/${selectedVideo.system_filename}`;
+        video_url = `${config.data_url}/${userData.id}/${
+          selectedVideo.user_filename === ""
+            ? "output"
+            : "vault/" + selectedVideo.user_filename
+        }/${selectedVideo.system_filename}`;
       }
 
       // Validate required fields
       if (!userData.id) {
-        throw new Error('User ID is required');
+        throw new Error("User ID is required");
       }
       if (!presetName.trim()) {
-        throw new Error('Preset name is required');
+        throw new Error("Preset name is required");
       }
       if (!textToSpeak.trim()) {
-        throw new Error('Prompt is required');
+        throw new Error("Prompt is required");
       }
 
       // Create preset data with voice_name if available
@@ -804,8 +1079,14 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
         prompt: textToSpeak.trim(),
         video_url: video_url || null, // Ensure null if empty
         voice_url: voice_url || null, // Ensure null if empty
-        preset_image: selectedPresetImage.preview_url || `${config.data_url}/${userData.id}/${selectedPresetImage.user_filename === "" ? "output" : "vault/" + selectedPresetImage.user_filename}/${selectedPresetImage.system_filename}`,
-        upload_flag: upload_flag
+        preset_image:
+          selectedPresetImage.preview_url ||
+          `${config.data_url}/${userData.id}/${
+            selectedPresetImage.user_filename === ""
+              ? "output"
+              : "vault/" + selectedPresetImage.user_filename
+          }/${selectedPresetImage.system_filename}`,
+        upload_flag: upload_flag,
       };
 
       // Add voice_name if we have it and it's not empty
@@ -813,51 +1094,63 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
         presetData.voice_name = voice_name.trim();
       }
 
-      console.log('Preset data:', presetData);
-      console.log('Preset data JSON:', JSON.stringify(presetData, null, 2));
+      console.log("Preset data:", presetData);
+      console.log("Preset data JSON:", JSON.stringify(presetData, null, 2));
 
       // Test database connection and table structure
       try {
-        const testResponse = await fetch(`${config.supabase_server_url}/lipsync_presets?select=id&limit=1`, {
-          headers: {
-            'Authorization': 'Bearer WeInfl3nc3withAI'
+        const testResponse = await fetch(
+          `${config.supabase_server_url}/lipsync_presets?select=id&limit=1`,
+          {
+            headers: {
+              Authorization: "Bearer WeInfl3nc3withAI",
+            },
           }
-        });
-        console.log('Database connection test:', testResponse.status, testResponse.statusText);
+        );
+        console.log(
+          "Database connection test:",
+          testResponse.status,
+          testResponse.statusText
+        );
       } catch (error) {
-        console.error('Database connection test failed:', error);
+        console.error("Database connection test failed:", error);
       }
 
       // Try to save the preset
       let response;
       try {
-        response = await fetch(`${config.supabase_server_url}/lipsync_presets`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer WeInfl3nc3withAI'
-          },
-          body: JSON.stringify(presetData)
-        });
+        response = await fetch(
+          `${config.supabase_server_url}/lipsync_presets`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer WeInfl3nc3withAI",
+            },
+            body: JSON.stringify(presetData),
+          }
+        );
       } catch (error) {
-        console.error('Network error:', error);
+        console.error("Network error:", error);
         throw new Error(`Network error: ${error}`);
       }
 
       if (response.ok) {
-        toast.success('Lipsync preset saved successfully!');
+        toast.success("Lipsync preset saved successfully!");
         setShowSavePresetModal(false);
-        setPresetName('');
-        setPresetDescription('');
+        setPresetName("");
+        setPresetDescription("");
         setSelectedPresetImage(null);
       } else {
         const errorText = await response.text();
-        console.error('Server response:', response.status, errorText);
-        throw new Error(`Failed to save lipsync preset: ${response.status} - ${errorText}`);
+        console.error("Server response:", response.status, errorText);
+        throw new Error(
+          `Failed to save lipsync preset: ${response.status} - ${errorText}`
+        );
       }
     } catch (error) {
-      console.error('Error saving lipsync preset:', error);
-      toast.error('Failed to save lipsync preset');
+      console.error("Error saving lipsync preset:", error);
+      toast.error("Failed to save lipsync preset");
     } finally {
       setIsSavingPreset(false);
     }
@@ -865,21 +1158,23 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
 
   const handleApplyLipsyncPreset = (preset: any) => {
     // Apply the preset data to the form
-    setTextToSpeak(preset.prompt || '');
+    setTextToSpeak(preset.prompt || "");
 
     // Set the appropriate phase based on upload_flag
     if (preset.upload_flag) {
-      setActivePhase('upload');
+      setActivePhase("upload");
       // For upload phase, set the voice URL
       if (preset.voice_url) {
         setUploadedAudioUrl(preset.voice_url);
         setSelectedAudioUrl(preset.voice_url);
       }
     } else {
-      setActivePhase('elevenlabs');
+      setActivePhase("elevenlabs");
       // For ElevenLabs phase, find and select the voice by name
       if (preset.voice_name) {
-        const voice = elevenLabsVoices.find(v => v.name === preset.voice_name);
+        const voice = elevenLabsVoices.find(
+          (v) => v.name === preset.voice_name
+        );
         if (voice) {
           setSelectedElevenLabsVoice(voice);
           const selectedUrl = `${config.data_url}/wizard/mappings/${voice.elevenlabs_id}.mp3`;
@@ -890,7 +1185,9 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
           // If voice not found, try to use the voice_url as fallback
           if (preset.voice_url) {
             setSelectedAudioUrl(preset.voice_url);
-            console.log(`Voice not found by name, using URL fallback: ${preset.voice_url}`);
+            console.log(
+              `Voice not found by name, using URL fallback: ${preset.voice_url}`
+            );
           }
         }
       } else if (preset.voice_url) {
@@ -910,33 +1207,47 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
   };
 
   // Helper functions for preset image selection
-  const handlePresetImageSelect = (image: any, source: 'vault' | 'upload' | 'recent') => {
+  const handlePresetImageSelect = (
+    image: any,
+    source: "vault" | "upload" | "recent"
+  ) => {
     setSelectedPresetImage(image);
     setPresetImageSource(source);
   };
 
-  const handlePresetFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePresetFileUpload = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const file = event.target.files?.[0];
     if (file) {
       // Create a mock image object for uploaded files
       const uploadedImage = {
         task_id: `upload_${Date.now()}`,
         system_filename: file.name,
-        user_filename: '',
+        user_filename: "",
         preview_url: URL.createObjectURL(file),
         created_at: new Date().toISOString(),
         rating: 0,
         favorite: false,
-        file_type: 'image'
+        file_type: "image",
       };
-      handlePresetImageSelect(uploadedImage, 'upload');
+      handlePresetImageSelect(uploadedImage, "upload");
     }
   };
 
+  // Cleanup effect for recorded audio URLs
+  useEffect(() => {
+    return () => {
+      if (recordedAudioUrl) {
+        URL.revokeObjectURL(recordedAudioUrl);
+      }
+    };
+  }, [recordedAudioUrl]);
+
   return (
-    <div className="px-6 space-y-4">
+    <div className="min-h-screen">
       {/* Header */}
-      <div className="flex flex-col md:flex-row items-center justify-between gap-5">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 sm:p-6 border-b border-border/50 bg-gradient-to-r from-purple-50/50 to-blue-50/50 dark:from-purple-950/20 dark:to-blue-950/20 space-y-4 sm:space-y-0">
         <div className="flex items-center gap-4">
           <Button
             onClick={onBack}
@@ -948,10 +1259,10 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
             Back
           </Button>
           <div>
-            <h1 className="text-3xl font-bold tracking-tight bg-ai-gradient bg-clip-text text-transparent">
-              Create LipSync Video
+            <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+              LipSync Video
             </h1>
-            <p className="text-muted-foreground">
+            <p className="text-muted-foreground mt-1 text-sm sm:text-base">
               Generate new content
             </p>
           </div>
@@ -997,7 +1308,9 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
             <div className="flex items-start gap-2">
               <div className="w-1.5 h-1.5 bg-red-500 rounded-full mt-2 flex-shrink-0"></div>
               <div className="text-sm text-red-700 dark:text-red-300">
-                <p className="font-medium mb-2">Please fix the following issues:</p>
+                <p className="font-medium mb-2">
+                  Please fix the following issues:
+                </p>
                 <ul className="list-disc list-inside space-y-1 text-xs">
                   {validationErrors.map((error, index) => (
                     <li key={index}>{error}</li>
@@ -1018,7 +1331,7 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
             {isGenerating || isCheckingGems ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                {isCheckingGems ? 'Checking Cost...' : 'Generating...'}
+                {isCheckingGems ? "Checking Cost..." : "Generating..."}
               </>
             ) : (
               <>
@@ -1038,58 +1351,83 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
         </div>
       </div>
 
-      {/* Professional Preset and Library Buttons */}
-      <div className="flex w-full items-center gap-3 xl:hidden">
-        <div className="items-center gap-2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 w-full">
-          <Button
-            onClick={() => setShowLipsyncLibraryModal(true)}
-            variant="outline"
-            className="h-10 px-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-blue-200 dark:border-blue-700 hover:from-blue-100 hover:to-indigo-100 dark:hover:from-blue-800/30 dark:hover:to-indigo-800/30 text-blue-700 dark:text-blue-300 font-medium shadow-sm hover:shadow-md transition-all duration-200"
-          >
-            <FolderOpen className="w-4 h-4 mr-2" />
-            Lipsync Library
-          </Button>
+      <div className="flex h-[calc(100vh-80px)]">
+        {/* Main Content */}
+        <div className="flex-1 px-6 space-y-4">
+          {/* Professional Preset and Library Buttons */}
+          <div className="flex w-full items-center gap-3 xl:hidden">
+            <div className="items-center gap-2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 w-full">
+              <Button
+                onClick={() => setShowLipsyncLibraryModal(true)}
+                variant="outline"
+                className="h-10 px-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-blue-200 dark:border-blue-700 hover:from-blue-100 hover:to-indigo-100 dark:hover:from-blue-800/30 dark:hover:to-indigo-800/30 text-blue-700 dark:text-blue-300 font-medium shadow-sm hover:shadow-md transition-all duration-200"
+              >
+                <FolderOpen className="w-4 h-4 mr-2" />
+                Lipsync Library
+              </Button>
 
-          <Button
-            onClick={() => setShowLipsyncPresetsModal(true)}
-            variant="outline"
-            className="w-full h-10 px-4 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border-amber-200 dark:border-amber-700 hover:from-amber-100 hover:to-orange-100 dark:hover:from-amber-800/30 dark:hover:to-orange-800/30 text-amber-700 dark:text-amber-300 font-medium shadow-sm hover:shadow-md transition-all duration-200"
-          >
-            <BookOpen className="w-4 h-4 mr-2" />
-            My Presets
-          </Button>
+              <Button
+                onClick={() => setShowLipsyncPresetsModal(true)}
+                variant="outline"
+                className="w-full h-10 px-4 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border-amber-200 dark:border-amber-700 hover:from-amber-100 hover:to-orange-100 dark:hover:from-amber-800/30 dark:hover:to-orange-800/30 text-amber-700 dark:text-amber-300 font-medium shadow-sm hover:shadow-md transition-all duration-200"
+              >
+                <BookOpen className="w-4 h-4 mr-2" />
+                My Presets
+              </Button>
 
-          <Button
-            onClick={() => setShowSavePresetModal(true)}
-            variant="outline"
-            className="h-10 px-4 bg-gradient-to-r from-emerald-50 to-green-50 dark:from-emerald-900/20 dark:to-green-900/20 border-emerald-200 dark:border-emerald-700 hover:from-emerald-100 hover:to-green-100 dark:hover:from-emerald-800/30 dark:hover:to-green-800/30 text-emerald-700 dark:text-emerald-300 font-medium shadow-sm hover:shadow-md transition-all duration-200"
-          >
-            <Save className="w-4 h-4 mr-2" />
-            Save as Preset
-          </Button>
-        </div>
-      </div>
+              <Button
+                onClick={() => setShowSavePresetModal(true)}
+                variant="outline"
+                className="h-10 px-4 bg-gradient-to-r from-emerald-50 to-green-50 dark:from-emerald-900/20 dark:to-green-900/20 border-emerald-200 dark:border-emerald-700 hover:from-emerald-100 hover:to-green-100 dark:hover:from-emerald-800/30 dark:hover:to-green-800/30 text-emerald-700 dark:text-emerald-300 font-medium shadow-sm hover:shadow-md transition-all duration-200"
+              >
+                <Save className="w-4 h-4 mr-2" />
+                Save as Preset
+              </Button>
+            </div>
+          </div>
 
-      {/* Phase Selection */}
-      <div className="bg-gradient-to-r from-slate-50 to-purple-50 dark:from-slate-900/50 dark:to-purple-900/20 rounded-xl p-6 shadow-sm border border-slate-200/50 dark:border-slate-700/50">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Button
-            onClick={() => setActivePhase('upload')}
-            variant={activePhase === 'upload' ? 'default' : 'outline'}
-            className={`h-12 ${activePhase === 'upload' ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white' : 'bg-white dark:bg-slate-800'}`}
-          >
-            <Upload className="w-4 h-4 mr-2" />
-            Bring your own audio
-          </Button>
-          <Button
-            onClick={() => setActivePhase('elevenlabs')}
-            variant={activePhase === 'elevenlabs' ? 'default' : 'outline'}
-            className={`h-12 ${activePhase === 'elevenlabs' ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white' : 'bg-white dark:bg-slate-800'}`}
-          >
-            <Mic className="w-4 h-4 mr-2" />
-            Use nymia voices
-          </Button>
-          {/* <Button
+          {/* Phase Selection */}
+          <div className="bg-gradient-to-r from-slate-50 to-purple-50 dark:from-slate-900/50 dark:to-purple-900/20 rounded-xl p-6 shadow-sm border border-slate-200/50 dark:border-slate-700/50">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Button
+                onClick={() => setActivePhase("upload")}
+                variant={activePhase === "upload" ? "default" : "outline"}
+                className={`h-12 ${
+                  activePhase === "upload"
+                    ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white"
+                    : "bg-white dark:bg-slate-800"
+                }`}
+              >
+                <Mic className="w-4 h-4 mr-2" />
+                Use your own voice
+              </Button>
+              <Button
+                onClick={() => setActivePhase("elevenlabs")}
+                variant={activePhase === "elevenlabs" ? "default" : "outline"}
+                className={`h-12 ${
+                  activePhase === "elevenlabs"
+                    ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white"
+                    : "bg-white dark:bg-slate-800"
+                }`}
+              >
+                <Sparkles className="w-4 h-4 mr-2" />
+                Use nymia voices
+              </Button>
+              <Button
+                onClick={() => setActivePhase("influencer_voices")}
+                variant={
+                  activePhase === "influencer_voices" ? "default" : "outline"
+                }
+                className={`h-12 ${
+                  activePhase === "influencer_voices"
+                    ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white"
+                    : "bg-white dark:bg-slate-800"
+                }`}
+              >
+                <User className="w-4 h-4 mr-2" />
+                Use influencer voices
+              </Button>
+              {/* <Button
             onClick={() => setActivePhase('individual')}
             variant={activePhase === 'individual' ? 'default' : 'outline'}
             className={`h-12 ${activePhase === 'individual' ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white' : 'bg-white dark:bg-slate-800'}`}
@@ -1097,1193 +1435,1876 @@ function ContentCreateLipSyncVideo({ influencerData, onBack }: ContentCreateLipS
             <User className="w-4 h-4 mr-2" />
             Individual Voices
           </Button> */}
-        </div>
-      </div>
+            </div>
+          </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column - Voice Configuration */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Phase 1: Upload Audio File */}
-          {activePhase === 'upload' && (
-            <Card className="bg-white/80 dark:bg-slate-800/80 border-0 shadow-xl">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Upload className="w-5 h-5 text-purple-500" />
-                  Upload Audio File
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="audio-upload" className="text-sm font-medium">
-                    Select audio file to lipsync
-                  </Label>
-                  <div className="border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-lg p-6 text-center">
-                    <input
-                      id="audio-upload"
-                      type="file"
-                      accept="audio/*"
-                      onChange={handleFileUpload}
-                      className="hidden"
-                    />
-                    <label htmlFor="audio-upload" className="cursor-pointer">
-                      <Upload className="w-12 h-12 text-slate-400 mx-auto mb-4" />
-                      <p className="text-slate-600 dark:text-slate-300 mb-2">
-                        Click to upload or drag and drop
-                      </p>
-                      <p className="text-sm text-slate-500">
-                        MP3, WAV, M4A up to 10MB
-                      </p>
-                    </label>
-                  </div>
-                </div>
-
-                {uploadedAudioFile && (
-                  <div className="bg-slate-50 dark:bg-slate-700 rounded-lg p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-medium text-slate-900 dark:text-slate-100">
-                          {uploadedAudioFile.name}
-                        </p>
-                        <p className="text-sm text-slate-500">
-                          {(uploadedAudioFile.size / 1024 / 1024).toFixed(2)} MB
-                        </p>
-                      </div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Left Column - Voice Configuration */}
+            <div className="lg:col-span-2 space-y-6">
+              {/* Phase 1: Upload Audio File */}
+              {activePhase === "upload" && (
+                <Card className="bg-white/80 dark:bg-slate-800/80 border-0 shadow-xl">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Mic className="w-5 h-5 text-purple-500" />
+                      Use Your Own Voice
+                    </CardTitle>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Upload an audio file or record your voice directly
+                    </p>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    {/* Sub-option Selection */}
+                    <div className="flex gap-2 p-1 bg-slate-100 dark:bg-slate-700 rounded-lg">
                       <Button
-                        onClick={() => {
-                          setUploadedAudioFile(null);
-                          if (uploadedAudioUrl) {
-                            URL.revokeObjectURL(uploadedAudioUrl);
-                            setUploadedAudioUrl(null);
-                          }
-                        }}
-                        variant="outline"
+                        onClick={() => setOwnVoiceSubOption("upload")}
+                        variant={
+                          ownVoiceSubOption === "upload" ? "default" : "ghost"
+                        }
                         size="sm"
+                        className="flex-1"
                       >
-                        Remove
+                        <Upload className="w-4 h-4 mr-2" />
+                        Upload Audio File
+                      </Button>
+                      <Button
+                        onClick={() => setOwnVoiceSubOption("record")}
+                        variant={
+                          ownVoiceSubOption === "record" ? "default" : "ghost"
+                        }
+                        size="sm"
+                        className="flex-1"
+                      >
+                        <Mic className="w-4 h-4 mr-2" />
+                        Record Voice
                       </Button>
                     </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
 
-          {/* Phase 2: ElevenLabs Voices */}
-          {activePhase === 'elevenlabs' && (
-            <Card className="bg-white/80 dark:bg-slate-800/80 border-0 shadow-xl">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Mic className="w-5 h-5 text-purple-500" />
-                  Nymia Voice Generation
-                </CardTitle>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Generate custom audio using our professional voice collection
-                </p>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {/* Text Input Section */}
-                <div className="space-y-3">
-                  <Label htmlFor="text-to-speak" className="text-sm font-medium">
-                    Text for Voice Generation
-                  </Label>
+                    {/* Upload Audio File Option */}
+                    {ownVoiceSubOption === "upload" && (
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <Label
+                            htmlFor="audio-upload"
+                            className="text-sm font-medium"
+                          >
+                            Select audio file to lipsync
+                          </Label>
+                          <div className="border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-lg p-6 text-center">
+                            <input
+                              id="audio-upload"
+                              type="file"
+                              accept="audio/*"
+                              onChange={handleFileUpload}
+                              className="hidden"
+                            />
+                            <label
+                              htmlFor="audio-upload"
+                              className="cursor-pointer"
+                            >
+                              <Upload className="w-12 h-12 text-slate-400 mx-auto mb-4" />
+                              <p className="text-slate-600 dark:text-slate-300 mb-2">
+                                Click to upload or drag and drop
+                              </p>
+                              <p className="text-sm text-slate-500">
+                                MP3, WAV, M4A up to 10MB
+                              </p>
+                            </label>
+                          </div>
+                        </div>
 
-                  {/* Professional Warning */}
-                  <div className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border border-amber-200 dark:border-amber-700 rounded-lg p-4">
-                    <div className="flex items-start gap-3">
-                      <div className="flex-shrink-0">
-                        <div className="w-6 h-6 bg-amber-500 rounded-full flex items-center justify-center">
-                          <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                          </svg>
+                        {uploadedAudioFile && (
+                          <div className="bg-slate-50 dark:bg-slate-700 rounded-lg p-4">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="font-medium text-slate-900 dark:text-slate-100">
+                                  {uploadedAudioFile.name}
+                                </p>
+                                <p className="text-sm text-slate-500">
+                                  {(
+                                    uploadedAudioFile.size /
+                                    1024 /
+                                    1024
+                                  ).toFixed(2)}{" "}
+                                  MB
+                                </p>
+                              </div>
+                              <Button
+                                onClick={() => {
+                                  setUploadedAudioFile(null);
+                                  if (uploadedAudioUrl) {
+                                    URL.revokeObjectURL(uploadedAudioUrl);
+                                    setUploadedAudioUrl(null);
+                                  }
+                                  setSelectedAudioUrl(null);
+                                  setSelectedAudioId("");
+                                }}
+                                variant="outline"
+                                size="sm"
+                              >
+                                Remove
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Record Voice Option */}
+                    {ownVoiceSubOption === "record" && (
+                      <div className="space-y-6">
+                        {/* Recording Controls */}
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-center gap-4">
+                            {!isRecording ? (
+                              <Button
+                                onClick={startRecording}
+                                disabled={isRecording}
+                                className="bg-red-500 hover:bg-red-600 text-white px-8 py-3 rounded-full shadow-lg hover:shadow-xl transition-all duration-300"
+                              >
+                                <Mic className="w-5 h-5 mr-2" />
+                                Start Recording
+                              </Button>
+                            ) : (
+                              <Button
+                                onClick={stopRecording}
+                                className="bg-gray-500 hover:bg-gray-600 text-white px-8 py-3 rounded-full shadow-lg hover:shadow-xl transition-all duration-300"
+                              >
+                                <Square className="w-5 h-5 mr-2" />
+                                Stop Recording
+                              </Button>
+                            )}
+                          </div>
+
+                          {/* Recording Timer */}
+                          {isRecording && (
+                            <div className="text-center">
+                              <div className="text-2xl font-mono font-bold text-red-500">
+                                {formatRecordingTime(recordingTime)}
+                              </div>
+                              <p className="text-sm text-muted-foreground">
+                                Recording in progress...
+                              </p>
+                            </div>
+                          )}
+
+                          {/* Recording Status */}
+                          {isRecording && (
+                            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 text-center">
+                              <div className="flex items-center justify-center gap-2 text-red-600 dark:text-red-400">
+                                <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
+                                <span className="font-medium">
+                                  Recording...
+                                </span>
+                              </div>
+                              <p className="text-sm text-red-500 dark:text-red-400 mt-1">
+                                Speak clearly into your microphone
+                              </p>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Recorded Audio Preview */}
+                        {recordedAudioUrl && (
+                          <div className="space-y-4">
+                            <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+                              <div className="flex items-center justify-between mb-3">
+                                <div className="flex items-center gap-2">
+                                  <Mic className="w-4 h-4 text-green-600" />
+                                  <span className="font-medium text-green-800 dark:text-green-200">
+                                    Recording Complete
+                                  </span>
+                                </div>
+                                <Button
+                                  onClick={clearRecording}
+                                  variant="outline"
+                                  size="sm"
+                                  className="text-red-600 border-red-300 hover:bg-red-50"
+                                >
+                                  <X className="w-4 h-4 mr-1" />
+                                  Clear
+                                </Button>
+                              </div>
+
+                              <div className="space-y-3">
+                                <AudioPlayer
+                                  src={recordedAudioUrl}
+                                  className="w-full"
+                                />
+                                <div className="text-sm text-green-700 dark:text-green-300">
+                                  <p>
+                                    Duration:{" "}
+                                    {formatRecordingTime(recordingTime)}
+                                  </p>
+                                  <p>
+                                    Size:{" "}
+                                    {recordedAudioBlob?.size
+                                      ? (
+                                          recordedAudioBlob.size /
+                                          1024 /
+                                          1024
+                                        ).toFixed(2)
+                                      : "0.00"}{" "}
+                                    MB
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Instructions */}
+                        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-4">
+                          <div className="flex items-start gap-3">
+                            <div className="flex-shrink-0">
+                              <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+                                <svg
+                                  className="w-4 h-4 text-white"
+                                  fill="currentColor"
+                                  viewBox="0 0 20 20"
+                                >
+                                  <path
+                                    fillRule="evenodd"
+                                    d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                                    clipRule="evenodd"
+                                  />
+                                </svg>
+                              </div>
+                            </div>
+                            <div className="flex-1">
+                              <h4 className="text-sm font-semibold text-blue-800 dark:text-blue-200">
+                                Recording Tips
+                              </h4>
+                              <ul className="text-sm text-blue-700 dark:text-blue-300 space-y-1">
+                                <li>• Speak clearly and at a normal pace</li>
+                                <li>• Minimize background noise</li>
+                                <li>
+                                  • Keep a consistent distance from your
+                                  microphone
+                                </li>
+                                <li>
+                                  • Record in a quiet environment for best
+                                  results
+                                </li>
+                              </ul>
+                            </div>
+                          </div>
                         </div>
                       </div>
-                      <div className="flex-1">
-                        <h4 className="text-sm font-semibold text-amber-800 dark:text-amber-200 mb-1">
-                          Character Requirement for Video Generation
-                        </h4>
-                        <p className="text-sm text-amber-700 dark:text-amber-300">
-                          To generate a lip-sync video, your text must be between <strong>10-500 characters</strong>.
-                          This ensures optimal audio quality and video synchronization.
-                        </p>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Phase 2: ElevenLabs Voices */}
+              {activePhase === "elevenlabs" && (
+                <Card className="bg-white/80 dark:bg-slate-800/80 border-0 shadow-xl">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Mic className="w-5 h-5 text-purple-500" />
+                      Nymia Voice Generation
+                    </CardTitle>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Generate custom audio using our professional voice
+                      collection
+                    </p>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    {/* Text Input Section */}
+                    <div className="space-y-3">
+                      <Label
+                        htmlFor="text-to-speak"
+                        className="text-sm font-medium"
+                      >
+                        Text for Voice Generation
+                      </Label>
+
+                      {/* Professional Warning */}
+                      <div className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border border-amber-200 dark:border-amber-700 rounded-lg p-4">
+                        <div className="flex items-start gap-3">
+                          <div className="flex-shrink-0">
+                            <div className="w-6 h-6 bg-amber-500 rounded-full flex items-center justify-center">
+                              <svg
+                                className="w-4 h-4 text-white"
+                                fill="currentColor"
+                                viewBox="0 0 20 20"
+                              >
+                                <path
+                                  fillRule="evenodd"
+                                  d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                                  clipRule="evenodd"
+                                />
+                              </svg>
+                            </div>
+                          </div>
+                          <div className="flex-1">
+                            <h4 className="text-sm font-semibold text-amber-800 dark:text-amber-200 mb-1">
+                              Character Requirement for Video Generation
+                            </h4>
+                            <p className="text-sm text-amber-700 dark:text-amber-300">
+                              To generate a lip-sync video, your text must be
+                              between <strong>10-500 characters</strong>. This
+                              ensures optimal audio quality and video
+                              synchronization.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <Textarea
+                        id="text-to-speak"
+                        placeholder="Enter the text you want the voice to speak... (e.g., 'Hello everyone, welcome to my channel!')"
+                        value={textToSpeak}
+                        onChange={(e) => {
+                          setTextToSpeak(e.target.value);
+                          setValidationErrors([]);
+                        }}
+                        rows={4}
+                        className="resize-none border-2 focus:border-purple-500 transition-colors"
+                      />
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <span>{textToSpeak.length} characters</span>
+                        <span>
+                          Required: 10-500 characters • Recommended: 50-200
+                          characters
+                        </span>
                       </div>
                     </div>
+
+                    {/* Voice Selection Section */}
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-sm font-medium">
+                          Select Voice & Generate Preview (
+                          {elevenLabsVoices.length})
+                        </Label>
+                        {loadingVoices && (
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-500"></div>
+                            Loading voices...
+                          </div>
+                        )}
+                      </div>
+
+                      {loadingVoices ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                          {Array.from({ length: 6 }).map((_, index) => (
+                            <Card key={index} className="animate-pulse">
+                              <CardContent className="p-4">
+                                <div className="space-y-3">
+                                  <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded"></div>
+                                  <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-3/4"></div>
+                                  <div className="h-6 bg-slate-200 dark:bg-slate-700 rounded w-1/2"></div>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          ))}
+                        </div>
+                      ) : (
+                        <ScrollArea>
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-5">
+                            {elevenLabsVoices.map((voice) => (
+                              <Card
+                                key={voice.id}
+                                className={`group cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-105 ${
+                                  selectedElevenLabsVoice?.id === voice.id
+                                    ? "ring-2 ring-purple-500 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 shadow-lg"
+                                    : playingAudioId
+                                    ? "ring-2 ring-blue-500 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 shadow-lg"
+                                    : "hover:ring-2 hover:ring-purple-200 dark:hover:ring-purple-800"
+                                }`}
+                                onClick={() =>
+                                  handleElevenLabsVoiceSelect(voice)
+                                }
+                              >
+                                <CardContent className="p-4">
+                                  <div className="space-y-3">
+                                    {/* Voice Header */}
+                                    <div className="flex items-start justify-between">
+                                      <div className="flex-1">
+                                        <div className="flex items-center gap-2">
+                                          <h4 className="font-semibold text-slate-900 dark:text-slate-100 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
+                                            {voice.name}
+                                          </h4>
+                                        </div>
+                                        <p className="text-sm text-slate-600 dark:text-slate-300 mt-1 line-clamp-2">
+                                          {voice.description}
+                                        </p>
+                                      </div>
+
+                                      {/* Play/Stop Button */}
+                                      <Button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+
+                                          // If this voice is currently playing, stop it
+                                          if (
+                                            playingVoiceSample ===
+                                            voice.id.toString()
+                                          ) {
+                                            console.log(
+                                              "Stopping voice:",
+                                              voice.id.toString()
+                                            );
+
+                                            const currentAudio =
+                                              voiceAudioElementsRef.current[
+                                                voice.id.toString()
+                                              ];
+                                            console.log(
+                                              "Found audio element:",
+                                              currentAudio
+                                            );
+
+                                            if (currentAudio) {
+                                              currentAudio.pause();
+                                              currentAudio.currentTime = 0;
+                                              console.log(
+                                                "Audio stopped successfully"
+                                              );
+                                            } else {
+                                              console.log(
+                                                "No audio element found, trying to stop all audio"
+                                              );
+                                              // Fallback: try to stop all audio elements
+                                              Object.values(
+                                                voiceAudioElementsRef.current
+                                              ).forEach((audio) => {
+                                                audio.pause();
+                                                audio.currentTime = 0;
+                                              });
+                                            }
+
+                                            setPlayingVoiceSample(null);
+                                            return;
+                                          }
+
+                                          // Stop any other currently playing voice sample
+                                          if (playingVoiceSample) {
+                                            const currentAudio =
+                                              voiceAudioElementsRef.current[
+                                                playingVoiceSample
+                                              ];
+                                            if (currentAudio) {
+                                              currentAudio.pause();
+                                              currentAudio.currentTime = 0;
+                                            }
+                                            setPlayingVoiceSample(null);
+                                          }
+
+                                          const audioUrl = `${config.data_url}/wizard/mappings/${voice.elevenlabs_id}.mp3`;
+                                          const audio = new Audio(audioUrl);
+
+                                          // Store the audio element reference
+                                          console.log(
+                                            "Storing audio element for voice:",
+                                            voice.id.toString()
+                                          );
+                                          voiceAudioElementsRef.current[
+                                            voice.id.toString()
+                                          ] = audio;
+                                          setVoiceAudioElements((prev) => {
+                                            const newElements = {
+                                              ...prev,
+                                              [voice.id.toString()]: audio,
+                                            };
+                                            console.log(
+                                              "Updated voiceAudioElements:",
+                                              newElements
+                                            );
+                                            return newElements;
+                                          });
+
+                                          // Set up audio event listeners
+                                          audio.addEventListener(
+                                            "ended",
+                                            () => {
+                                              setPlayingVoiceSample(null);
+                                              // Clean up the audio element reference
+                                              delete voiceAudioElementsRef
+                                                .current[voice.id.toString()];
+                                              setVoiceAudioElements((prev) => {
+                                                const newElements = { ...prev };
+                                                delete newElements[
+                                                  voice.id.toString()
+                                                ];
+                                                return newElements;
+                                              });
+                                            }
+                                          );
+                                          audio.addEventListener(
+                                            "error",
+                                            () => {
+                                              setPlayingVoiceSample(null);
+                                              // Clean up the audio element reference
+                                              delete voiceAudioElementsRef
+                                                .current[voice.id.toString()];
+                                              setVoiceAudioElements((prev) => {
+                                                const newElements = { ...prev };
+                                                delete newElements[
+                                                  voice.id.toString()
+                                                ];
+                                                return newElements;
+                                              });
+                                              toast.error(
+                                                "Failed to play voice sample"
+                                              );
+                                            }
+                                          );
+
+                                          // Play the audio
+                                          audio
+                                            .play()
+                                            .then(() => {
+                                              setPlayingVoiceSample(
+                                                voice.id.toString()
+                                              );
+                                            })
+                                            .catch((error) => {
+                                              console.error(
+                                                "Error playing audio:",
+                                                error
+                                              );
+                                              setPlayingVoiceSample(null);
+                                              // Clean up the audio element reference
+                                              delete voiceAudioElementsRef
+                                                .current[voice.id.toString()];
+                                              setVoiceAudioElements((prev) => {
+                                                const newElements = { ...prev };
+                                                delete newElements[
+                                                  voice.id.toString()
+                                                ];
+                                                return newElements;
+                                              });
+                                              toast.error(
+                                                "Failed to play voice sample"
+                                              );
+                                            });
+                                        }}
+                                        variant="outline"
+                                        size="sm"
+                                        className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-white/80 dark:bg-slate-800/80 hover:bg-purple-50 dark:hover:bg-purple-900/20"
+                                      >
+                                        {playingVoiceSample ===
+                                        voice.id.toString() ? (
+                                          <Square className="w-3 h-3" />
+                                        ) : (
+                                          <Play className="w-3 h-3" />
+                                        )}
+                                      </Button>
+                                    </div>
+
+                                    {/* Voice Details */}
+                                    <div className="space-y-2">
+                                      <div className="flex items-center gap-2">
+                                        <Badge
+                                          variant="secondary"
+                                          className="text-xs bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-blue-200 dark:border-blue-700"
+                                        >
+                                          {voice.category}
+                                        </Badge>
+                                        <Badge
+                                          variant="outline"
+                                          className="text-xs border-green-200 dark:border-green-700 text-green-700 dark:text-green-400"
+                                        >
+                                          Speed: {voice.speed}x
+                                        </Badge>
+                                      </div>
+
+                                      {voice.internal_hint && (
+                                        <p className="text-xs text-muted-foreground italic">
+                                          "{voice.internal_hint}"
+                                        </p>
+                                      )}
+                                    </div>
+
+                                    {/* Selection Indicator */}
+                                    {selectedElevenLabsVoice?.id ===
+                                      voice.id && (
+                                      <div className="flex items-center gap-2 text-sm text-purple-600 dark:text-purple-400">
+                                        <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse"></div>
+                                        <span className="font-medium">
+                                          Selected
+                                        </span>
+                                      </div>
+                                    )}
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            ))}
+                          </div>
+                        </ScrollArea>
+                      )}
+                    </div>
+
+                    {/* Generate Audio Button */}
+                    <div className="mt-6">
+                      <div
+                        className={`rounded-xl p-6 shadow-lg border transition-all duration-300 ${
+                          selectedElevenLabsVoice
+                            ? "bg-gradient-to-r from-purple-600 to-pink-600 border-purple-500/20"
+                            : "bg-gradient-to-r from-slate-400 to-slate-500 border-slate-300/20"
+                        }`}
+                      >
+                        <div className="text-center">
+                          <div className="flex items-center justify-center mb-4">
+                            <div
+                              className={`w-12 h-12 rounded-full flex items-center justify-center mr-3 ${
+                                selectedElevenLabsVoice
+                                  ? "bg-white/20"
+                                  : "bg-white/10"
+                              }`}
+                            >
+                              <Mic
+                                className={`w-6 h-6 ${
+                                  selectedElevenLabsVoice
+                                    ? "text-white"
+                                    : "text-white/70"
+                                }`}
+                              />
+                            </div>
+                            <div className="text-left">
+                              <h3
+                                className={`text-xl font-bold ${
+                                  selectedElevenLabsVoice
+                                    ? "text-white"
+                                    : "text-white/90"
+                                }`}
+                              >
+                                Generate Audio
+                              </h3>
+                              <p
+                                className={`text-sm ${
+                                  selectedElevenLabsVoice
+                                    ? "text-purple-100"
+                                    : "text-white/70"
+                                }`}
+                              >
+                                {selectedElevenLabsVoice
+                                  ? `${selectedElevenLabsVoice.name} • ${textToSpeak.length} characters`
+                                  : "Select a voice first • " +
+                                    textToSpeak.length +
+                                    " characters"}
+                              </p>
+                            </div>
+                          </div>
+
+                          <Button
+                            onClick={() =>
+                              selectedElevenLabsVoice &&
+                              playVoicePreview(selectedElevenLabsVoice)
+                            }
+                            disabled={
+                              !selectedElevenLabsVoice ||
+                              isGeneratingVoice ===
+                                selectedElevenLabsVoice?.elevenlabs_id
+                            }
+                            size="lg"
+                            className={`font-semibold px-8 py-3 text-base shadow-lg hover:shadow-xl transition-all duration-200 ${
+                              selectedElevenLabsVoice
+                                ? "bg-white text-purple-600 hover:bg-purple-50"
+                                : "bg-white/50 text-slate-500 cursor-not-allowed"
+                            }`}
+                          >
+                            {isGeneratingVoice ===
+                            selectedElevenLabsVoice?.elevenlabs_id ? (
+                              <>
+                                <Loader2 className="w-5 h-5 mr-3 animate-spin" />
+                                Generating Audio...
+                              </>
+                            ) : selectedElevenLabsVoice ? (
+                              <>
+                                <Wand2 className="w-5 h-5 mr-3" />
+                                Generate Audio Now
+                              </>
+                            ) : (
+                              <>
+                                <Mic className="w-5 h-5 mr-3" />
+                                Select a Voice First
+                              </>
+                            )}
+                          </Button>
+
+                          <p
+                            className={`text-xs mt-3 ${
+                              selectedElevenLabsVoice
+                                ? "text-purple-200"
+                                : "text-white/60"
+                            }`}
+                          >
+                            {selectedElevenLabsVoice
+                              ? `This will create a ${selectedElevenLabsVoice.speed}x speed audio using ${selectedElevenLabsVoice.name}`
+                              : "Please select a voice from the options above to generate audio"}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Phase 3: Individual Voice per Influencer */}
+              {activePhase === "individual" && (
+                <Card className="bg-white/80 dark:bg-slate-800/80 border-0 shadow-xl">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <User className="w-5 h-5 text-purple-500" />
+                      Individual Voice per Influencer
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                      <Label
+                        htmlFor="individual-text"
+                        className="text-sm font-medium"
+                      >
+                        Type text to say
+                      </Label>
+                      <Textarea
+                        id="individual-text"
+                        placeholder="Enter the text you want the voice to speak..."
+                        value={textToSpeak}
+                        onChange={(e) => setTextToSpeak(e.target.value)}
+                        rows={4}
+                        className="resize-none"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">
+                        Select Individual Voice
+                      </Label>
+                      <ScrollArea className="h-64">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {individualVoices.map((voice) => (
+                            <Card
+                              key={voice.id}
+                              className={`cursor-pointer transition-all duration-200 ${
+                                individualVoiceId === voice.id.toString()
+                                  ? "ring-2 ring-purple-500 bg-purple-50 dark:bg-purple-900/20"
+                                  : "hover:shadow-md"
+                              }`}
+                              onClick={() =>
+                                handleIndividualVoiceSelect(voice.id)
+                              }
+                            >
+                              <CardContent className="p-4">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex-1">
+                                    <h4 className="font-semibold text-slate-900 dark:text-slate-100">
+                                      {voice.name}
+                                    </h4>
+                                    <p className="text-sm text-slate-600 dark:text-slate-300">
+                                      {voice.description}
+                                    </p>
+                                    <Badge variant="secondary" className="mt-2">
+                                      {voice.category}
+                                    </Badge>
+                                  </div>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          ))}
+                        </div>
+                      </ScrollArea>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Phase 4: Use Influencer Voices */}
+              {activePhase === "influencer_voices" && (
+                <Card className="bg-white/80 dark:bg-slate-800/80 border-0 shadow-xl">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <User className="w-5 h-5 text-purple-500" />
+                      Use Influencer Voices
+                    </CardTitle>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Select an influencer with ElevenLabs voice to use for
+                      lip-sync
+                    </p>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    {/* Influencer Voice Selection */}
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <Label className="text-sm font-medium">
+                            Select Influencer for Voice
+                          </Label>
+                          <p className="text-sm text-slate-600 dark:text-slate-400">
+                            Choose an influencer with ElevenLabs voice to use
+                            for lip sync
+                          </p>
+                        </div>
+                        <Button
+                          onClick={fetchInfluencersWithElevenLabs}
+                          variant="outline"
+                          size="sm"
+                          disabled={isLoadingInfluencers}
+                          className="flex items-center gap-2"
+                        >
+                          <RotateCcw
+                            className={`w-4 h-4 ${
+                              isLoadingInfluencers ? "animate-spin" : ""
+                            }`}
+                          />
+                          Refresh
+                        </Button>
+                      </div>
+
+                      {isLoadingInfluencers ? (
+                        <div className="flex items-center justify-center py-8">
+                          <Loader2 className="w-6 h-6 animate-spin text-purple-500" />
+                          <span className="ml-2 text-sm text-slate-600 dark:text-slate-400">
+                            Loading influencers...
+                          </span>
+                        </div>
+                      ) : influencers.length > 0 ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          {influencers.map((influencer) => (
+                            <div
+                              key={influencer.id}
+                              onClick={() => {
+                                setSelectedInfluencerForVoice(influencer.id);
+                                // Set selectedAudioUrl to indicate influencer voice will be used
+                                setSelectedAudioUrl(
+                                  `influencer_voice_${influencer.id}`
+                                );
+                                // Also set selectedAudioId to the influencer's ElevenLabs voice ID
+                                setSelectedAudioId(
+                                  influencer.elevenlabs_voiceid || ""
+                                );
+                              }}
+                              className={`relative cursor-pointer rounded-lg border-2 transition-all duration-200 hover:shadow-md ${
+                                selectedInfluencerForVoice === influencer.id
+                                  ? "border-purple-500 bg-purple-50 dark:bg-purple-900/20"
+                                  : "border-slate-200 dark:border-slate-600 hover:border-purple-300 dark:hover:border-purple-600"
+                              }`}
+                            >
+                              <div className="p-4">
+                                <div className="flex items-center space-x-3">
+                                  <div className="flex-shrink-0">
+                                    {influencer.image_url ? (
+                                      <img
+                                        src={influencer.image_url}
+                                        alt={`${influencer.name_first} ${influencer.name_last}`}
+                                        className="w-12 h-12 rounded-full object-cover border-2 border-slate-200 dark:border-slate-600"
+                                      />
+                                    ) : (
+                                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center text-white font-semibold text-sm">
+                                        {influencer.name_first?.[0]}
+                                        {influencer.name_last?.[0]}
+                                      </div>
+                                    )}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">
+                                      {influencer.name_first}{" "}
+                                      {influencer.name_last}
+                                    </p>
+                                    <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                                      {influencer.influencer_type}
+                                    </p>
+                                    <div className="flex items-center mt-1 gap-2">
+                                      <Badge
+                                        variant="secondary"
+                                        className="text-xs"
+                                      >
+                                        ElevenLabs Voice
+                                      </Badge>
+                                      <span className="text-xs text-slate-500 dark:text-slate-400 font-mono">
+                                        ID:{" "}
+                                        {influencer.elevenlabs_voiceid?.slice(
+                                          0,
+                                          8
+                                        )}
+                                        ...
+                                      </span>
+                                    </div>
+                                  </div>
+                                  {selectedInfluencerForVoice ===
+                                    influencer.id && (
+                                    <div className="flex-shrink-0">
+                                      <div className="w-5 h-5 bg-purple-500 rounded-full flex items-center justify-center">
+                                        <svg
+                                          className="w-3 h-3 text-white"
+                                          fill="currentColor"
+                                          viewBox="0 0 20 20"
+                                        >
+                                          <path
+                                            fillRule="evenodd"
+                                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                            clipRule="evenodd"
+                                          />
+                                        </svg>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-8 border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-lg">
+                          <User className="w-12 h-12 text-slate-400 mx-auto mb-3" />
+                          <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">
+                            No influencers with ElevenLabs voices found
+                          </p>
+                          <p className="text-xs text-slate-500 dark:text-slate-500">
+                            Create or configure influencers with ElevenLabs
+                            voice IDs to use this feature
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Selection Confirmation */}
+                      {selectedInfluencerForVoice && (
+                        <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border border-green-200 dark:border-green-700 rounded-lg p-4">
+                          <div className="flex items-center gap-3">
+                            <div className="flex-shrink-0">
+                              <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
+                                <svg
+                                  className="w-4 h-4 text-white"
+                                  fill="currentColor"
+                                  viewBox="0 0 20 20"
+                                >
+                                  <path
+                                    fillRule="evenodd"
+                                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                    clipRule="evenodd"
+                                  />
+                                </svg>
+                              </div>
+                            </div>
+                            <div className="flex-1">
+                              <p className="text-sm font-medium text-green-800 dark:text-green-200">
+                                Voice Selected Successfully
+                              </p>
+                              <p className="text-xs text-green-600 dark:text-green-400">
+                                {
+                                  influencers.find(
+                                    (inf) =>
+                                      inf.id === selectedInfluencerForVoice
+                                  )?.name_first
+                                }{" "}
+                                {
+                                  influencers.find(
+                                    (inf) =>
+                                      inf.id === selectedInfluencerForVoice
+                                  )?.name_last
+                                }{" "}
+                                will be used for lip sync generation
+                              </p>
+                            </div>
+                            <Button
+                              onClick={() => {
+                                setSelectedInfluencerForVoice(null);
+                                // Clear audio-related state when influencer is deselected
+                                setSelectedAudioUrl(null);
+                                setSelectedAudioId("");
+                              }}
+                              variant="ghost"
+                              size="sm"
+                              className="text-green-600 hover:text-green-700 hover:bg-green-100 dark:text-green-400 dark:hover:text-green-300 dark:hover:bg-green-900/30"
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+
+            {/* Right Column - Video Selection */}
+            <div className="space-y-6">
+              {generatedAudioData && generatedAudioUrl && (
+                <div className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg p-6 border border-purple-200 dark:border-purple-800 shadow-sm">
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <h3 className="font-semibold text-purple-900 dark:text-purple-100 flex items-center gap-2">
+                        <Mic className="w-4 h-4" />
+                        Generated Audio Preview
+                      </h3>
+                      <p className="text-sm text-purple-700 dark:text-purple-300 mt-1">
+                        Voice: {generatedAudioData.voice_name} • Speed:{" "}
+                        {generatedAudioData.voice_speed}x • Cost:{" "}
+                        {generatedAudioData.character_cost} characters
+                      </p>
+                    </div>
+                    <Badge
+                      variant="outline"
+                      className="text-xs border-purple-300 dark:border-purple-700 text-purple-700 dark:text-purple-300"
+                    >
+                      {generatedAudioData.status}
+                    </Badge>
                   </div>
 
-                  <Textarea
-                    id="text-to-speak"
-                    placeholder="Enter the text you want the voice to speak... (e.g., 'Hello everyone, welcome to my channel!')"
-                    value={textToSpeak}
-                    onChange={(e) => {
-                      setTextToSpeak(e.target.value);
-                      setValidationErrors([]);
+                  <div className="mb-3">
+                    <p className="text-sm text-slate-600 dark:text-slate-400 italic">
+                      "{generatedAudioData.prompt}"
+                    </p>
+                  </div>
+                  <AudioPlayer
+                    src={generatedAudioUrl}
+                    onPlay={() =>
+                      setPlayingAudioId(generatedAudioData.audio_id)
+                    }
+                    onPause={() => setPlayingAudioId(null)}
+                    onEnded={() => setPlayingAudioId(null)}
+                    onError={(error) => {
+                      console.error("Generated audio player error:", error);
+                      setPlayingAudioId(null);
+                      toast.error("Failed to play generated audio");
                     }}
-                    rows={4}
-                    className="resize-none border-2 focus:border-purple-500 transition-colors"
+                    className="w-full"
                   />
-                  <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <span>{textToSpeak.length} characters</span>
-                    <span>Required: 10-500 characters • Recommended: 50-200 characters</span>
+
+                  <div className="flex items-center justify-between mt-3 text-xs text-slate-500 dark:text-slate-400">
+                    <span>
+                      Generated:{" "}
+                      {new Date(generatedAudioData.created_at).toLocaleString()}
+                    </span>
+                    <span>Audio ID: {generatedAudioData.audio_id}</span>
+                  </div>
+                </div>
+              )}
+
+              <Card className="bg-white/80 dark:bg-slate-800/80 border-0 shadow-xl">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Video className="w-5 h-5 text-blue-500" />
+                    Select Video for LipSync
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Choose a video to apply lip-sync to</Label>
+                    <div className="bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-600 rounded-lg border-2 border-dashed border-slate-300 dark:border-slate-600 flex items-center justify-center">
+                      {selectedVideo ? (
+                        <div className="w-full h-full relative">
+                          <video
+                            src={getVideoUrl(selectedVideo.video_id)}
+                            className="w-full h-full object-cover rounded-lg"
+                            muted
+                            loop
+                          />
+                        </div>
+                      ) : (
+                        <div className="text-center">
+                          <Video className="w-12 h-12 text-slate-400 mx-auto mb-2" />
+                          <p className="text-sm text-slate-500">
+                            No video selected
+                          </p>
+                          <p className="text-xs text-slate-400">
+                            Choose from your completed videos
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                    <Button
+                      onClick={() => setShowVideoSelector(true)}
+                      className="w-full"
+                      variant="outline"
+                      disabled={loadingVideos}
+                    >
+                      {loadingVideos ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Loading videos...
+                        </>
+                      ) : (
+                        <>
+                          <Video className="w-4 h-4 mr-2" />
+                          Select Video ({videos.length})
+                        </>
+                      )}
+                    </Button>
+                    {selectedVideo && (
+                      <Button
+                        onClick={() => setSelectedVideo(null)}
+                        variant="outline"
+                        size="sm"
+                        className="w-full text-red-600 dark:text-red-400 border-red-300 dark:border-red-700"
+                      >
+                        <X className="w-4 h-4 mr-2" />
+                        Clear Selection
+                      </Button>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Action Buttons */}
+              <Card className="bg-white/80 dark:bg-slate-800/80 border-0 shadow-xl">
+                <CardContent className="space-y-4 pt-6">
+                  <Button
+                    onClick={() => setShowHistory(true)}
+                    variant="outline"
+                    className="w-full h-10 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
+                  >
+                    Show history
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+
+          {/* Modals */}
+          {/* Video Selector Modal */}
+          <VideoSelector
+            open={showVideoSelector}
+            onOpenChange={setShowVideoSelector}
+            onVideoSelect={(video) => {
+              setSelectedVideo(video);
+              setShowVideoSelector(false);
+            }}
+            title="Select Video for LipSync"
+            description="Choose an existing video to apply lip-sync audio to"
+          />
+
+          {showHistory && (
+            <Dialog open={showHistory} onOpenChange={setShowHistory}>
+              <DialogContent className="max-w-6xl max-h-[80vh]">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    <Video className="w-5 h-5 text-purple-500" />
+                    LipSync Video History
+                  </DialogTitle>
+                  <DialogDescription>
+                    Your lip-sync video generation history. Showing{" "}
+                    {lipSyncVideos.length} videos.
+                  </DialogDescription>
+                </DialogHeader>
+
+                {/* Search and Filter Controls */}
+                <div className="space-y-4">
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <div className="flex-1">
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                        <Input
+                          placeholder="Search lip-sync videos by prompt or model..."
+                          value={videoSearchTerm}
+                          onChange={(e) => setVideoSearchTerm(e.target.value)}
+                          className="pl-10"
+                        />
+                      </div>
+                    </div>
+                    <Select
+                      value={videoFilterStatus}
+                      onValueChange={setVideoFilterStatus}
+                    >
+                      <SelectTrigger className="w-full sm:w-48">
+                        <SelectValue placeholder="Filter by status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Videos</SelectItem>
+                        <SelectItem value="completed">Completed</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Select value={videoSortBy} onValueChange={setVideoSortBy}>
+                      <SelectTrigger className="w-full sm:w-48">
+                        <SelectValue placeholder="Sort by" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="newest">Newest First</SelectItem>
+                        <SelectItem value="oldest">Oldest First</SelectItem>
+                        <SelectItem value="duration">Duration</SelectItem>
+                        <SelectItem value="model">Model</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
 
-                {/* Voice Selection Section */}
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-sm font-medium">
-                      Select Voice & Generate Preview ({elevenLabsVoices.length})
-                    </Label>
-                    {loadingVoices && (
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-500"></div>
-                        Loading voices...
-                      </div>
-                    )}
-                  </div>
-
-                  {loadingVoices ? (
+                {/* Video Grid */}
+                <ScrollArea className="h-[400px]">
+                  {loadingVideos ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {Array.from({ length: 6 }).map((_, index) => (
-                        <Card key={index} className="animate-pulse">
-                          <CardContent className="p-4">
-                            <div className="space-y-3">
-                              <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded"></div>
-                              <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-3/4"></div>
-                              <div className="h-6 bg-slate-200 dark:bg-slate-700 rounded w-1/2"></div>
-                            </div>
-                          </CardContent>
-                        </Card>
+                      {[...Array(6)].map((_, i) => (
+                        <div key={i} className="animate-pulse">
+                          <div className="aspect-video bg-slate-200 dark:bg-slate-700 rounded-lg mb-2"></div>
+                          <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded mb-2"></div>
+                          <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-2/3"></div>
+                        </div>
                       ))}
                     </div>
-                  ) : (
-                    <ScrollArea>
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-5">
-                        {elevenLabsVoices.map((voice) => (
+                  ) : lipSyncVideos.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {lipSyncVideos
+                        .filter((video) => {
+                          const matchesStatus =
+                            videoFilterStatus === "all" ||
+                            video.status === videoFilterStatus;
+                          const matchesSearch =
+                            video.prompt
+                              .toLowerCase()
+                              .includes(videoSearchTerm.toLowerCase()) ||
+                            video.model
+                              .toLowerCase()
+                              .includes(videoSearchTerm.toLowerCase());
+                          return matchesStatus && matchesSearch;
+                        })
+                        .sort((a, b) => {
+                          switch (videoSortBy) {
+                            case "newest":
+                              return (
+                                new Date(b.task_created_at).getTime() -
+                                new Date(a.task_created_at).getTime()
+                              );
+                            case "oldest":
+                              return (
+                                new Date(a.task_created_at).getTime() -
+                                new Date(b.task_created_at).getTime()
+                              );
+                            case "duration":
+                              return b.duration - a.duration;
+                            case "model":
+                              return a.model.localeCompare(b.model);
+                            default:
+                              return 0;
+                          }
+                        })
+                        .map((video) => (
                           <Card
-                            key={voice.id}
-                            className={`group cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-105 ${selectedElevenLabsVoice?.id === voice.id
-                              ? 'ring-2 ring-purple-500 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 shadow-lg'
-                              : playingAudioId
-                                ? 'ring-2 ring-blue-500 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 shadow-lg'
-                                : 'hover:ring-2 hover:ring-purple-200 dark:hover:ring-purple-800'
-                              }`}
-                            onClick={() => handleElevenLabsVoiceSelect(voice)}
+                            key={video.video_id}
+                            className="group cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-105"
+                            onClick={() => handleVideoClick(video)}
                           >
-                            <CardContent className="p-4">
-                              <div className="space-y-3">
-                                {/* Voice Header */}
-                                <div className="flex items-start justify-between">
-                                  <div className="flex-1">
-                                    <div className="flex items-center gap-2">
-                                      <h4 className="font-semibold text-slate-900 dark:text-slate-100 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
-                                        {voice.name}
-                                      </h4>
-                                    </div>
-                                    <p className="text-sm text-slate-600 dark:text-slate-300 mt-1 line-clamp-2">
-                                      {voice.description}
-                                    </p>
+                            <CardContent className="p-3">
+                              <div className="aspect-video bg-slate-100 dark:bg-slate-800 rounded-lg mb-3 relative overflow-hidden">
+                                <video
+                                  src={getVideoUrl(video.video_id)}
+                                  className="w-full h-full object-cover"
+                                  muted
+                                  loop
+                                />
+                                <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
+                                  <div className="bg-white/90 dark:bg-slate-800/90 rounded-lg p-2">
+                                    <Play className="w-6 h-6 text-purple-600" />
                                   </div>
-
-                                  {/* Play/Stop Button */}
-                                  <Button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-
-                                      // If this voice is currently playing, stop it
-                                      if (playingVoiceSample === voice.id.toString()) {
-                                        console.log('Stopping voice:', voice.id.toString());
-
-                                        const currentAudio = voiceAudioElementsRef.current[voice.id.toString()];
-                                        console.log('Found audio element:', currentAudio);
-
-                                        if (currentAudio) {
-                                          currentAudio.pause();
-                                          currentAudio.currentTime = 0;
-                                          console.log('Audio stopped successfully');
-                                        } else {
-                                          console.log('No audio element found, trying to stop all audio');
-                                          // Fallback: try to stop all audio elements
-                                          Object.values(voiceAudioElementsRef.current).forEach(audio => {
-                                            audio.pause();
-                                            audio.currentTime = 0;
-                                          });
-                                        }
-
-                                        setPlayingVoiceSample(null);
-                                        return;
-                                      }
-
-                                      // Stop any other currently playing voice sample
-                                      if (playingVoiceSample) {
-                                        const currentAudio = voiceAudioElementsRef.current[playingVoiceSample];
-                                        if (currentAudio) {
-                                          currentAudio.pause();
-                                          currentAudio.currentTime = 0;
-                                        }
-                                        setPlayingVoiceSample(null);
-                                      }
-
-                                      const audioUrl = `${config.data_url}/wizard/mappings/${voice.elevenlabs_id}.mp3`;
-                                      const audio = new Audio(audioUrl);
-
-                                      // Store the audio element reference
-                                      console.log('Storing audio element for voice:', voice.id.toString());
-                                      voiceAudioElementsRef.current[voice.id.toString()] = audio;
-                                      setVoiceAudioElements(prev => {
-                                        const newElements = {
-                                          ...prev,
-                                          [voice.id.toString()]: audio
-                                        };
-                                        console.log('Updated voiceAudioElements:', newElements);
-                                        return newElements;
-                                      });
-
-                                      // Set up audio event listeners
-                                      audio.addEventListener('ended', () => {
-                                        setPlayingVoiceSample(null);
-                                        // Clean up the audio element reference
-                                        delete voiceAudioElementsRef.current[voice.id.toString()];
-                                        setVoiceAudioElements(prev => {
-                                          const newElements = { ...prev };
-                                          delete newElements[voice.id.toString()];
-                                          return newElements;
-                                        });
-                                      });
-                                      audio.addEventListener('error', () => {
-                                        setPlayingVoiceSample(null);
-                                        // Clean up the audio element reference
-                                        delete voiceAudioElementsRef.current[voice.id.toString()];
-                                        setVoiceAudioElements(prev => {
-                                          const newElements = { ...prev };
-                                          delete newElements[voice.id.toString()];
-                                          return newElements;
-                                        });
-                                        toast.error('Failed to play voice sample');
-                                      });
-
-                                      // Play the audio
-                                      audio.play().then(() => {
-                                        setPlayingVoiceSample(voice.id.toString());
-                                      }).catch((error) => {
-                                        console.error('Error playing audio:', error);
-                                        setPlayingVoiceSample(null);
-                                        // Clean up the audio element reference
-                                        delete voiceAudioElementsRef.current[voice.id.toString()];
-                                        setVoiceAudioElements(prev => {
-                                          const newElements = { ...prev };
-                                          delete newElements[voice.id.toString()];
-                                          return newElements;
-                                        });
-                                        toast.error('Failed to play voice sample');
-                                      });
-                                    }}
-                                    variant="outline"
-                                    size="sm"
-                                    className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-white/80 dark:bg-slate-800/80 hover:bg-purple-50 dark:hover:bg-purple-900/20"
-                                  >
-                                    {playingVoiceSample === voice.id.toString() ? (
-                                      <Square className="w-3 h-3" />
-                                    ) : (
-                                      <Play className="w-3 h-3" />
-                                    )}
-                                  </Button>
                                 </div>
+                              </div>
 
-                                {/* Voice Details */}
-                                <div className="space-y-2">
-                                  <div className="flex items-center gap-2">
-                                    <Badge
-                                      variant="secondary"
-                                      className="text-xs bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-blue-200 dark:border-blue-700"
-                                    >
-                                      {voice.category}
-                                    </Badge>
+                              <div className="space-y-2">
+                                <div className="flex items-start justify-between">
+                                  <h4 className="font-medium text-sm line-clamp-2">
+                                    {video.prompt.substring(0, 60)}...
+                                  </h4>
+                                  <div className="flex items-center gap-1">
                                     <Badge
                                       variant="outline"
-                                      className="text-xs border-green-200 dark:border-green-700 text-green-700 dark:text-green-400"
+                                      className={`text-xs ${getVideoStatusColor(
+                                        video.status
+                                      )}`}
                                     >
-                                      Speed: {voice.speed}x
+                                      {video.status}
+                                    </Badge>
+                                    <Badge className="bg-gradient-to-r from-pink-500 to-purple-500 text-white border-0 shadow-sm text-xs">
+                                      <Sparkles className="w-2 h-2 mr-1" />
+                                      LipSync
                                     </Badge>
                                   </div>
-
-                                  {voice.internal_hint && (
-                                    <p className="text-xs text-muted-foreground italic">
-                                      "{voice.internal_hint}"
-                                    </p>
-                                  )}
                                 </div>
 
-                                {/* Selection Indicator */}
-                                {selectedElevenLabsVoice?.id === voice.id && (
-                                  <div className="flex items-center gap-2 text-sm text-purple-600 dark:text-purple-400">
-                                    <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse"></div>
-                                    <span className="font-medium">Selected</span>
-                                  </div>
-                                )}
+                                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                                  <span>
+                                    {getVideoModelDisplayName(video.model)}
+                                  </span>
+                                  <span>
+                                    {formatVideoDuration(video.duration)}
+                                  </span>
+                                </div>
+
+                                <div className="text-xs text-muted-foreground">
+                                  {formatVideoDate(video.task_created_at)}
+                                </div>
                               </div>
                             </CardContent>
                           </Card>
                         ))}
-                      </div>
-                    </ScrollArea>
-                  )}
-                </div>
-
-
-
-                {/* Generate Audio Button */}
-                <div className="mt-6">
-                  <div className={`rounded-xl p-6 shadow-lg border transition-all duration-300 ${selectedElevenLabsVoice
-                      ? 'bg-gradient-to-r from-purple-600 to-pink-600 border-purple-500/20'
-                      : 'bg-gradient-to-r from-slate-400 to-slate-500 border-slate-300/20'
-                    }`}>
-                    <div className="text-center">
-                      <div className="flex items-center justify-center mb-4">
-                        <div className={`w-12 h-12 rounded-full flex items-center justify-center mr-3 ${selectedElevenLabsVoice ? 'bg-white/20' : 'bg-white/10'
-                          }`}>
-                          <Mic className={`w-6 h-6 ${selectedElevenLabsVoice ? 'text-white' : 'text-white/70'}`} />
-                        </div>
-                        <div className="text-left">
-                          <h3 className={`text-xl font-bold ${selectedElevenLabsVoice ? 'text-white' : 'text-white/90'}`}>
-                            Generate Audio
-                          </h3>
-                          <p className={`text-sm ${selectedElevenLabsVoice ? 'text-purple-100' : 'text-white/70'}`}>
-                            {selectedElevenLabsVoice
-                              ? `${selectedElevenLabsVoice.name} • ${textToSpeak.length} characters`
-                              : 'Select a voice first • ' + textToSpeak.length + ' characters'
-                            }
-                          </p>
-                        </div>
-                      </div>
-
-                      <Button
-                        onClick={() => selectedElevenLabsVoice && playVoicePreview(selectedElevenLabsVoice)}
-                        disabled={!selectedElevenLabsVoice || isGeneratingVoice === selectedElevenLabsVoice?.elevenlabs_id}
-                        size="lg"
-                        className={`font-semibold px-8 py-3 text-base shadow-lg hover:shadow-xl transition-all duration-200 ${selectedElevenLabsVoice
-                            ? 'bg-white text-purple-600 hover:bg-purple-50'
-                            : 'bg-white/50 text-slate-500 cursor-not-allowed'
-                          }`}
-                      >
-                        {isGeneratingVoice === selectedElevenLabsVoice?.elevenlabs_id ? (
-                          <>
-                            <Loader2 className="w-5 h-5 mr-3 animate-spin" />
-                            Generating Audio...
-                          </>
-                        ) : selectedElevenLabsVoice ? (
-                          <>
-                            <Wand2 className="w-5 h-5 mr-3" />
-                            Generate Audio Now
-                          </>
-                        ) : (
-                          <>
-                            <Mic className="w-5 h-5 mr-3" />
-                            Select a Voice First
-                          </>
-                        )}
-                      </Button>
-
-                      <p className={`text-xs mt-3 ${selectedElevenLabsVoice ? 'text-purple-200' : 'text-white/60'}`}>
-                        {selectedElevenLabsVoice
-                          ? `This will create a ${selectedElevenLabsVoice.speed}x speed audio using ${selectedElevenLabsVoice.name}`
-                          : 'Please select a voice from the options above to generate audio'
-                        }
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <Video className="w-12 h-12 text-slate-400 mx-auto mb-4" />
+                      <h3 className="text-lg font-medium text-slate-900 dark:text-slate-100 mb-2">
+                        No lip-sync videos found
+                      </h3>
+                      <p className="text-sm text-slate-500 dark:text-slate-400">
+                        {videoSearchTerm || videoFilterStatus !== "all"
+                          ? "Try adjusting your search or filter criteria."
+                          : "Create your first lip-sync video to get started."}
                       </p>
                     </div>
+                  )}
+                </ScrollArea>
+
+                <div className="flex justify-between items-center pt-4 border-t">
+                  <div className="text-sm text-muted-foreground">
+                    {
+                      lipSyncVideos.filter((video) => {
+                        const matchesStatus =
+                          videoFilterStatus === "all" ||
+                          video.status === videoFilterStatus;
+                        const matchesSearch =
+                          video.prompt
+                            .toLowerCase()
+                            .includes(videoSearchTerm.toLowerCase()) ||
+                          video.model
+                            .toLowerCase()
+                            .includes(videoSearchTerm.toLowerCase());
+                        return matchesStatus && matchesSearch;
+                      }).length
+                    }{" "}
+                    of {lipSyncVideos.length} lip-sync videos
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowHistory(false)}
+                    >
+                      Close
+                    </Button>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+              </DialogContent>
+            </Dialog>
           )}
 
-          {/* Phase 3: Individual Voice per Influencer */}
-          {activePhase === 'individual' && (
-            <Card className="bg-white/80 dark:bg-slate-800/80 border-0 shadow-xl">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <User className="w-5 h-5 text-purple-500" />
-                  Individual Voice per Influencer
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
+          {showPresetModal && (
+            <Dialog open={showPresetModal} onOpenChange={setShowPresetModal}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>LipSync Video Presets</DialogTitle>
+                  <DialogDescription>
+                    Save and load lip-sync video generation presets.
+                  </DialogDescription>
+                </DialogHeader>
+              </DialogContent>
+            </Dialog>
+          )}
+
+          {showLibraryModal && (
+            <Dialog open={showLibraryModal} onOpenChange={setShowLibraryModal}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>LipSync Video Library</DialogTitle>
+                  <DialogDescription>
+                    Browse your lip-sync video library and templates.
+                  </DialogDescription>
+                </DialogHeader>
+              </DialogContent>
+            </Dialog>
+          )}
+
+          {/* Video Playback Modal */}
+          <Dialog open={showVideoModal} onOpenChange={setShowVideoModal}>
+            <DialogContent className="max-w-4xl w-[95vw] max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <Video className="w-5 h-5 text-purple-500" />
+                  LipSync Video Details
+                </DialogTitle>
+              </DialogHeader>
+
+              {selectedVideoForModal && (
+                <div className="space-y-6">
+                  {/* Video Player */}
+                  <div className="relative aspect-video bg-black rounded-lg overflow-hidden">
+                    <video
+                      src={getVideoUrl(selectedVideoForModal.video_id)}
+                      className="w-full h-full"
+                      controls
+                      autoPlay
+                    />
+                  </div>
+
+                  {/* Video Information */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                      <div>
+                        <Label className="text-sm font-medium text-muted-foreground">
+                          Prompt
+                        </Label>
+                        <p className="text-sm mt-1">
+                          {selectedVideoForModal.prompt}
+                        </p>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label className="text-sm font-medium text-muted-foreground">
+                            Model
+                          </Label>
+                          <p className="text-sm mt-1">
+                            {getVideoModelDisplayName(
+                              selectedVideoForModal.model
+                            )}
+                          </p>
+                        </div>
+                        <div>
+                          <Label className="text-sm font-medium text-muted-foreground">
+                            Duration
+                          </Label>
+                          <p className="text-sm mt-1">
+                            {formatVideoDuration(
+                              selectedVideoForModal.duration
+                            )}
+                          </p>
+                        </div>
+                        <div>
+                          <Label className="text-sm font-medium text-muted-foreground">
+                            Status
+                          </Label>
+                          <p className="text-sm mt-1">
+                            {selectedVideoForModal.status}
+                          </p>
+                        </div>
+                        <div>
+                          <Label className="text-sm font-medium text-muted-foreground">
+                            Type
+                          </Label>
+                          <p className="text-sm mt-1">LipSync Video</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div>
+                        <Label className="text-sm font-medium text-muted-foreground">
+                          Created
+                        </Label>
+                        <p className="text-sm mt-1">
+                          {formatVideoDate(
+                            selectedVideoForModal.task_created_at
+                          )}
+                        </p>
+                      </div>
+
+                      <div>
+                        <Label className="text-sm font-medium text-muted-foreground">
+                          Status
+                        </Label>
+                        <div className="flex items-center gap-2 mt-1">
+                          <Badge
+                            className={`${getVideoStatusColor(
+                              selectedVideoForModal.status
+                            )} border`}
+                          >
+                            {selectedVideoForModal.status}
+                          </Badge>
+                          <Badge className="bg-gradient-to-r from-pink-500 to-purple-500 text-white border-0 shadow-sm">
+                            <Sparkles className="w-3 h-3 mr-1" />
+                            LipSync
+                          </Badge>
+                        </div>
+                      </div>
+
+                      {selectedVideoForModal.audio && (
+                        <div>
+                          <Label className="text-sm font-medium text-muted-foreground">
+                            Audio Used
+                          </Label>
+                          <p className="text-sm mt-1">
+                            {selectedVideoForModal.audio}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex gap-3 pt-4 border-t">
+                    <Button
+                      onClick={() => handleDownload(selectedVideoForModal)}
+                      className="bg-gradient-to-r from-green-600 to-emerald-600"
+                    >
+                      <Download className="w-4 h-4 mr-2" />
+                      Download
+                    </Button>
+                    <Button
+                      onClick={() => handleShare(selectedVideoForModal)}
+                      variant="outline"
+                    >
+                      <Share2 className="w-4 h-4 mr-2" />
+                      Share
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </DialogContent>
+          </Dialog>
+
+          {/* Save Lipsync Preset Modal */}
+          <Dialog
+            open={showSavePresetModal}
+            onOpenChange={setShowSavePresetModal}
+          >
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <div className="p-2 bg-gradient-to-br from-emerald-500 to-green-600 rounded-lg">
+                    <Save className="w-5 h-5 text-white" />
+                  </div>
+                  Save as Lipsync Preset
+                </DialogTitle>
+                <p className="text-sm text-muted-foreground">
+                  Save your current lipsync generation settings as a reusable
+                  preset with an image
+                </p>
+              </DialogHeader>
+
+              <div className="space-y-6">
+                {/* Preset Name Input */}
                 <div className="space-y-2">
-                  <Label htmlFor="individual-text" className="text-sm font-medium">
-                    Type text to say
+                  <Label htmlFor="preset-name" className="text-sm font-medium">
+                    Preset Name
                   </Label>
-                  <Textarea
-                    id="individual-text"
-                    placeholder="Enter the text you want the voice to speak..."
-                    value={textToSpeak}
-                    onChange={(e) => setTextToSpeak(e.target.value)}
-                    rows={4}
-                    className="resize-none"
+                  <Input
+                    id="preset-name"
+                    value={presetName}
+                    onChange={(e) => setPresetName(e.target.value)}
+                    placeholder="Enter a descriptive name for your lipsync preset..."
+                    className="w-full"
                   />
                 </div>
 
+                {/* Preset Description Input */}
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium">
-                    Select Individual Voice
-                  </Label>
-                  <ScrollArea className="h-64">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {individualVoices.map((voice) => (
-                        <Card
-                          key={voice.id}
-                          className={`cursor-pointer transition-all duration-200 ${individualVoiceId === voice.id.toString()
-                            ? 'ring-2 ring-purple-500 bg-purple-50 dark:bg-purple-900/20'
-                            : 'hover:shadow-md'
-                            }`}
-                          onClick={() => handleIndividualVoiceSelect(voice.id)}
-                        >
-                          <CardContent className="p-4">
-                            <div className="flex items-center justify-between">
-                              <div className="flex-1">
-                                <h4 className="font-semibold text-slate-900 dark:text-slate-100">
-                                  {voice.name}
-                                </h4>
-                                <p className="text-sm text-slate-600 dark:text-slate-300">
-                                  {voice.description}
-                                </p>
-                                <Badge variant="secondary" className="mt-2">
-                                  {voice.category}
-                                </Badge>
-                              </div>
-
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
-                  </ScrollArea>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-        </div>
-
-        {/* Right Column - Video Selection */}
-        <div className="space-y-6">
-          {generatedAudioData && generatedAudioUrl && (
-            <div className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg p-6 border border-purple-200 dark:border-purple-800 shadow-sm">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h3 className="font-semibold text-purple-900 dark:text-purple-100 flex items-center gap-2">
-                    <Mic className="w-4 h-4" />
-                    Generated Audio Preview
-                  </h3>
-                  <p className="text-sm text-purple-700 dark:text-purple-300 mt-1">
-                    Voice: {generatedAudioData.voice_name} • Speed: {generatedAudioData.voice_speed}x • Cost: {generatedAudioData.character_cost} characters
-                  </p>
-                </div>
-                <Badge variant="outline" className="text-xs border-purple-300 dark:border-purple-700 text-purple-700 dark:text-purple-300">
-                  {generatedAudioData.status}
-                </Badge>
-              </div>
-
-              <div className="mb-3">
-                <p className="text-sm text-slate-600 dark:text-slate-400 italic">
-                  "{generatedAudioData.prompt}"
-                </p>
-              </div>
-              <AudioPlayer
-                src={generatedAudioUrl}
-                onPlay={() => setPlayingAudioId(generatedAudioData.audio_id)}
-                onPause={() => setPlayingAudioId(null)}
-                onEnded={() => setPlayingAudioId(null)}
-                onError={(error) => {
-                  console.error('Generated audio player error:', error);
-                  setPlayingAudioId(null);
-                  toast.error('Failed to play generated audio');
-                }}
-                className="w-full"
-              />
-
-              <div className="flex items-center justify-between mt-3 text-xs text-slate-500 dark:text-slate-400">
-                <span>Generated: {new Date(generatedAudioData.created_at).toLocaleString()}</span>
-                <span>Audio ID: {generatedAudioData.audio_id}</span>
-              </div>
-            </div>
-          )}
-
-          <Card className="bg-white/80 dark:bg-slate-800/80 border-0 shadow-xl">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Video className="w-5 h-5 text-blue-500" />
-                Select Video for LipSync
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label>Choose a video to apply lip-sync to</Label>
-                <div className="bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-600 rounded-lg border-2 border-dashed border-slate-300 dark:border-slate-600 flex items-center justify-center">
-                  {selectedVideo ? (
-                    <div className="w-full h-full relative">
-                      <video
-                        src={getVideoUrl(selectedVideo.video_id)}
-                        className="w-full h-full object-cover rounded-lg"
-                        muted
-                        loop
-                      />
-                    </div>
-                  ) : (
-                    <div className="text-center">
-                      <Video className="w-12 h-12 text-slate-400 mx-auto mb-2" />
-                      <p className="text-sm text-slate-500">No video selected</p>
-                      <p className="text-xs text-slate-400">Choose from your completed videos</p>
-                    </div>
-                  )}
-                </div>
-                <Button
-                  onClick={() => setShowVideoSelector(true)}
-                  className="w-full"
-                  variant="outline"
-                  disabled={loadingVideos}
-                >
-                  {loadingVideos ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Loading videos...
-                    </>
-                  ) : (
-                    <>
-                      <Video className="w-4 h-4 mr-2" />
-                      Select Video ({videos.length})
-                    </>
-                  )}
-                </Button>
-                {selectedVideo && (
-                  <Button
-                    onClick={() => setSelectedVideo(null)}
-                    variant="outline"
-                    size="sm"
-                    className="w-full text-red-600 dark:text-red-400 border-red-300 dark:border-red-700"
+                  <Label
+                    htmlFor="preset-description"
+                    className="text-sm font-medium flex items-center gap-2"
                   >
-                    <X className="w-4 h-4 mr-2" />
-                    Clear Selection
-                  </Button>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Action Buttons */}
-          <Card className="bg-white/80 dark:bg-slate-800/80 border-0 shadow-xl">
-            <CardContent className="space-y-4 pt-6">
-
-              <Button
-                onClick={() => setShowHistory(true)}
-                variant="outline"
-                className="w-full h-10 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
-              >
-                Show history
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-
-      {/* Modals */}
-      {/* Video Selector Modal */}
-      <VideoSelector
-        open={showVideoSelector}
-        onOpenChange={setShowVideoSelector}
-        onVideoSelect={(video) => {
-          setSelectedVideo(video);
-          setShowVideoSelector(false);
-        }}
-        title="Select Video for LipSync"
-        description="Choose an existing video to apply lip-sync audio to"
-      />
-
-      {showHistory && (
-        <Dialog open={showHistory} onOpenChange={setShowHistory}>
-          <DialogContent className="max-w-6xl max-h-[80vh]">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <Video className="w-5 h-5 text-purple-500" />
-                LipSync Video History
-              </DialogTitle>
-              <DialogDescription>
-                Your lip-sync video generation history. Showing {lipSyncVideos.length} videos.
-              </DialogDescription>
-            </DialogHeader>
-
-            {/* Search and Filter Controls */}
-            <div className="space-y-4">
-              <div className="flex flex-col sm:flex-row gap-3">
-                <div className="flex-1">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                    <Input
-                      placeholder="Search lip-sync videos by prompt or model..."
-                      value={videoSearchTerm}
-                      onChange={(e) => setVideoSearchTerm(e.target.value)}
-                      className="pl-10"
-                    />
+                    <div className="p-1 bg-gradient-to-br from-blue-500 to-purple-600 rounded-md">
+                      <svg
+                        className="w-3 h-3 text-white"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                        />
+                      </svg>
+                    </div>
+                    Preset Description
+                  </Label>
+                  <Textarea
+                    id="preset-description"
+                    value={presetDescription}
+                    onChange={(e) => setPresetDescription(e.target.value)}
+                    placeholder="Describe your lipsync preset's purpose, style, or any special notes..."
+                    className="w-full min-h-[80px] resize-none border-2 border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200"
+                    maxLength={500}
+                  />
+                  <div className="flex justify-between items-center text-xs text-muted-foreground">
+                    <span>
+                      Add context to help you remember what this preset is for
+                    </span>
+                    <span>{presetDescription.length}/500</span>
                   </div>
                 </div>
-                <Select value={videoFilterStatus} onValueChange={setVideoFilterStatus}>
-                  <SelectTrigger className="w-full sm:w-48">
-                    <SelectValue placeholder="Filter by status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Videos</SelectItem>
-                    <SelectItem value="completed">Completed</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select value={videoSortBy} onValueChange={setVideoSortBy}>
-                  <SelectTrigger className="w-full sm:w-48">
-                    <SelectValue placeholder="Sort by" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="newest">Newest First</SelectItem>
-                    <SelectItem value="oldest">Oldest First</SelectItem>
-                    <SelectItem value="duration">Duration</SelectItem>
-                    <SelectItem value="model">Model</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
 
-            {/* Video Grid */}
-            <ScrollArea className="h-[400px]">
-              {loadingVideos ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {[...Array(6)].map((_, i) => (
-                    <div key={i} className="animate-pulse">
-                      <div className="aspect-video bg-slate-200 dark:bg-slate-700 rounded-lg mb-2"></div>
-                      <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded mb-2"></div>
-                      <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-2/3"></div>
-                    </div>
-                  ))}
-                </div>
-              ) : lipSyncVideos.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {lipSyncVideos
-                    .filter(video => {
-                      const matchesStatus = videoFilterStatus === 'all' || video.status === videoFilterStatus;
-                      const matchesSearch = video.prompt.toLowerCase().includes(videoSearchTerm.toLowerCase()) ||
-                        video.model.toLowerCase().includes(videoSearchTerm.toLowerCase());
-                      return matchesStatus && matchesSearch;
-                    })
-                    .sort((a, b) => {
-                      switch (videoSortBy) {
-                        case 'newest':
-                          return new Date(b.task_created_at).getTime() - new Date(a.task_created_at).getTime();
-                        case 'oldest':
-                          return new Date(a.task_created_at).getTime() - new Date(b.task_created_at).getTime();
-                        case 'duration':
-                          return b.duration - a.duration;
-                        case 'model':
-                          return a.model.localeCompare(b.model);
-                        default:
-                          return 0;
-                      }
-                    })
-                    .map((video) => (
+                {/* Image Selection Section */}
+                <div className="space-y-4">
+                  <Label className="text-sm font-medium">Preset Image</Label>
+
+                  {/* Selected Image Display */}
+                  {selectedPresetImage && (
+                    <div className="relative">
                       <Card
-                        key={video.video_id}
-                        className="group cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-105"
-                        onClick={() => handleVideoClick(video)}
+                        className={`justify-center flex group hover:shadow-xl transition-all duration-300 border-border/50 hover:border-yellow-500/30 backdrop-blur-sm ${
+                          selectedPresetImage.task_id?.startsWith("upload_")
+                            ? "bg-gradient-to-br from-purple-50/20 to-pink-50/20 dark:from-purple-950/5 dark:to-pink-950/5 hover:border-purple-500/30"
+                            : "bg-gradient-to-br from-yellow-50/20 to-orange-50/20 dark:from-yellow-950/5 dark:to-orange-950/5"
+                        }`}
                       >
-                        <CardContent className="p-3">
-                          <div className="aspect-video bg-slate-100 dark:bg-slate-800 rounded-lg mb-3 relative overflow-hidden">
-                            <video
-                              src={getVideoUrl(video.video_id)}
-                              className="w-full h-full object-cover"
-                              muted
-                              loop
-                            />
-                            <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
-                              <div className="bg-white/90 dark:bg-slate-800/90 rounded-lg p-2">
-                                <Play className="w-6 h-6 text-purple-600" />
-                              </div>
+                        <CardContent className="p-4">
+                          {/* Top Row: File Type, Ratings, Favorite */}
+                          <div className="flex items-center justify-between mb-3">
+                            {/* File Type Icon */}
+                            <div
+                              className={`rounded-full w-8 h-8 flex items-center justify-center shadow-md ${
+                                selectedPresetImage.task_id?.startsWith(
+                                  "upload_"
+                                )
+                                  ? "bg-gradient-to-br from-purple-500 to-pink-600"
+                                  : "bg-gradient-to-br from-blue-500 to-purple-600"
+                              }`}
+                            >
+                              {selectedPresetImage.task_id?.startsWith(
+                                "upload_"
+                              ) ? (
+                                <Upload className="w-4 h-4 text-white" />
+                              ) : (
+                                <svg
+                                  className="w-4 h-4 text-white"
+                                  viewBox="0 0 24 24"
+                                  fill="currentColor"
+                                >
+                                  <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z" />
+                                  <circle
+                                    cx="8.5"
+                                    cy="8.5"
+                                    r="1.5"
+                                    opacity="0.8"
+                                  />
+                                </svg>
+                              )}
+                            </div>
+
+                            {/* Rating Stars */}
+                            <div className="flex gap-1">
+                              {[1, 2, 3, 4, 5].map((star) => (
+                                <svg
+                                  key={star}
+                                  className={`w-4 h-4 ${
+                                    star <= (selectedPresetImage.rating || 0)
+                                      ? "text-yellow-400 fill-current"
+                                      : "text-gray-300"
+                                  }`}
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                                </svg>
+                              ))}
+                            </div>
+
+                            {/* Favorite Heart */}
+                            <div>
+                              {selectedPresetImage.favorite ? (
+                                <div className="bg-red-500 rounded-full w-8 h-8 flex items-center justify-center">
+                                  <svg
+                                    className="w-4 h-4 text-white fill-current"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                                  </svg>
+                                </div>
+                              ) : (
+                                <div className="bg-black/50 rounded-full w-8 h-8 flex items-center justify-center">
+                                  <svg
+                                    className="w-4 h-4 text-white"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                  >
+                                    <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                                  </svg>
+                                </div>
+                              )}
                             </div>
                           </div>
 
+                          {/* Image */}
+                          <div
+                            className="relative w-full group mb-4"
+                            style={{ paddingBottom: "100%" }}
+                          >
+                            {/* Source Badge */}
+                            <div className="absolute top-2 left-2 z-10">
+                              <Badge
+                                variant="secondary"
+                                className="bg-black/70 text-white text-xs font-medium shadow-lg"
+                              >
+                                {presetImageSource}
+                              </Badge>
+                            </div>
+
+                            <img
+                              src={
+                                selectedPresetImage.preview_url ||
+                                `${config.data_url}/${userData.id}/${
+                                  selectedPresetImage.user_filename === ""
+                                    ? "output"
+                                    : "vault/" +
+                                      selectedPresetImage.user_filename
+                                }/${selectedPresetImage.system_filename}`
+                              }
+                              alt="Selected preset image"
+                              className="absolute inset-0 w-full h-full object-cover rounded-md shadow-sm cursor-pointer transition-all duration-200 hover:scale-105"
+                            />
+                          </div>
+
+                          {/* Filename and Date */}
                           <div className="space-y-2">
-                            <div className="flex items-start justify-between">
-                              <h4 className="font-medium text-sm line-clamp-2">
-                                {video.prompt.substring(0, 60)}...
-                              </h4>
-                              <div className="flex items-center gap-1">
-                                <Badge
-                                  variant="outline"
-                                  className={`text-xs ${getVideoStatusColor(video.status)}`}
-                                >
-                                  {video.status}
-                                </Badge>
-                                <Badge className="bg-gradient-to-r from-pink-500 to-purple-500 text-white border-0 shadow-sm text-xs">
-                                  <Sparkles className="w-2 h-2 mr-1" />
-                                  LipSync
-                                </Badge>
-                              </div>
+                            <h3 className="font-medium text-sm text-gray-800 dark:text-gray-200 truncate">
+                              {selectedPresetImage.system_filename}
+                            </h3>
+                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                              <Calendar className="w-3 h-3" />
+                              {new Date(
+                                selectedPresetImage.created_at
+                              ).toLocaleDateString()}
                             </div>
+                          </div>
 
-                            <div className="flex items-center justify-between text-xs text-muted-foreground">
-                              <span>{getVideoModelDisplayName(video.model)}</span>
-                              <span>{formatVideoDuration(video.duration)}</span>
-                            </div>
-
-                            <div className="text-xs text-muted-foreground">
-                              {formatVideoDate(video.task_created_at)}
-                            </div>
+                          {/* Action Button */}
+                          <div className="flex gap-1.5 mt-3">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="flex-1 h-8 text-xs font-medium"
+                              onClick={() => setSelectedPresetImage(null)}
+                            >
+                              <X className="w-3 h-3 mr-1.5" />
+                              Remove Image
+                            </Button>
                           </div>
                         </CardContent>
                       </Card>
-                    ))}
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <Video className="w-12 h-12 text-slate-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-slate-900 dark:text-slate-100 mb-2">
-                    No lip-sync videos found
-                  </h3>
-                  <p className="text-sm text-slate-500 dark:text-slate-400">
-                    {videoSearchTerm || videoFilterStatus !== 'all'
-                      ? 'Try adjusting your search or filter criteria.'
-                      : 'Create your first lip-sync video to get started.'
-                    }
-                  </p>
-                </div>
-              )}
-            </ScrollArea>
-
-            <div className="flex justify-between items-center pt-4 border-t">
-              <div className="text-sm text-muted-foreground">
-                {lipSyncVideos.filter(video => {
-                  const matchesStatus = videoFilterStatus === 'all' || video.status === videoFilterStatus;
-                  const matchesSearch = video.prompt.toLowerCase().includes(videoSearchTerm.toLowerCase()) ||
-                    video.model.toLowerCase().includes(videoSearchTerm.toLowerCase());
-                  return matchesStatus && matchesSearch;
-                }).length} of {lipSyncVideos.length} lip-sync videos
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => setShowHistory(false)}
-                >
-                  Close
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
-
-      {showPresetModal && (
-        <Dialog open={showPresetModal} onOpenChange={setShowPresetModal}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>LipSync Video Presets</DialogTitle>
-              <DialogDescription>
-                Save and load lip-sync video generation presets.
-              </DialogDescription>
-            </DialogHeader>
-          </DialogContent>
-        </Dialog>
-      )}
-
-      {showLibraryModal && (
-        <Dialog open={showLibraryModal} onOpenChange={setShowLibraryModal}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>LipSync Video Library</DialogTitle>
-              <DialogDescription>
-                Browse your lip-sync video library and templates.
-              </DialogDescription>
-            </DialogHeader>
-          </DialogContent>
-        </Dialog>
-      )}
-
-      {/* Video Playback Modal */}
-      <Dialog open={showVideoModal} onOpenChange={setShowVideoModal}>
-        <DialogContent className="max-w-4xl w-[95vw] max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Video className="w-5 h-5 text-purple-500" />
-              LipSync Video Details
-            </DialogTitle>
-          </DialogHeader>
-
-          {selectedVideoForModal && (
-            <div className="space-y-6">
-              {/* Video Player */}
-              <div className="relative aspect-video bg-black rounded-lg overflow-hidden">
-                <video
-                  src={getVideoUrl(selectedVideoForModal.video_id)}
-                  className="w-full h-full"
-                  controls
-                  autoPlay
-                />
-              </div>
-
-              {/* Video Information */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <div>
-                    <Label className="text-sm font-medium text-muted-foreground">Prompt</Label>
-                    <p className="text-sm mt-1">{selectedVideoForModal.prompt}</p>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label className="text-sm font-medium text-muted-foreground">Model</Label>
-                      <p className="text-sm mt-1">{getVideoModelDisplayName(selectedVideoForModal.model)}</p>
                     </div>
-                    <div>
-                      <Label className="text-sm font-medium text-muted-foreground">Duration</Label>
-                      <p className="text-sm mt-1">{formatVideoDuration(selectedVideoForModal.duration)}</p>
-                    </div>
-                    <div>
-                      <Label className="text-sm font-medium text-muted-foreground">Status</Label>
-                      <p className="text-sm mt-1">{selectedVideoForModal.status}</p>
-                    </div>
-                    <div>
-                      <Label className="text-sm font-medium text-muted-foreground">Type</Label>
-                      <p className="text-sm mt-1">LipSync Video</p>
-                    </div>
-                  </div>
-                </div>
+                  )}
 
-                <div className="space-y-4">
-                  <div>
-                    <Label className="text-sm font-medium text-muted-foreground">Created</Label>
-                    <p className="text-sm mt-1">{formatVideoDate(selectedVideoForModal.task_created_at)}</p>
-                  </div>
+                  {/* Image Source Selection */}
+                  {!selectedPresetImage && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <Card
+                        className="group hover:shadow-lg transition-all duration-300 cursor-pointer border-2 border-dashed border-gray-300 hover:border-emerald-500"
+                        onClick={() => setShowVaultSelectorForPreset(true)}
+                      >
+                        <CardContent className="p-6 text-center">
+                          <div className="p-3 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg w-12 h-12 mx-auto mb-3 flex items-center justify-center">
+                            <FolderOpen className="w-6 h-6 text-white" />
+                          </div>
+                          <h3 className="font-semibold mb-2">From Library</h3>
+                          <p className="text-sm text-muted-foreground">
+                            Select from your saved images
+                          </p>
+                        </CardContent>
+                      </Card>
 
-                  <div>
-                    <Label className="text-sm font-medium text-muted-foreground">Status</Label>
-                    <div className="flex items-center gap-2 mt-1">
-                      <Badge className={`${getVideoStatusColor(selectedVideoForModal.status)} border`}>
-                        {selectedVideoForModal.status}
-                      </Badge>
-                      <Badge className="bg-gradient-to-r from-pink-500 to-purple-500 text-white border-0 shadow-sm">
-                        <Sparkles className="w-3 h-3 mr-1" />
-                        LipSync
-                      </Badge>
-                    </div>
-                  </div>
-
-                  {selectedVideoForModal.audio && (
-                    <div>
-                      <Label className="text-sm font-medium text-muted-foreground">Audio Used</Label>
-                      <p className="text-sm mt-1">{selectedVideoForModal.audio}</p>
+                      <Card
+                        className="group hover:shadow-lg transition-all duration-300 cursor-pointer border-2 border-dashed border-gray-300 hover:border-emerald-500"
+                        onClick={() => {
+                          // Trigger file selection directly
+                          document
+                            .getElementById("preset-file-upload-direct")
+                            ?.click();
+                        }}
+                      >
+                        <CardContent className="p-6 text-center">
+                          <div className="p-3 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg w-12 h-12 mx-auto mb-3 flex items-center justify-center">
+                            <Upload className="w-6 h-6 text-white" />
+                          </div>
+                          <h3 className="font-semibold mb-2">Upload Image</h3>
+                          <p className="text-sm text-muted-foreground">
+                            Upload a new image
+                          </p>
+                        </CardContent>
+                      </Card>
                     </div>
                   )}
                 </div>
-              </div>
 
-              {/* Action Buttons */}
-              <div className="flex gap-3 pt-4 border-t">
-                <Button
-                  onClick={() => handleDownload(selectedVideoForModal)}
-                  className="bg-gradient-to-r from-green-600 to-emerald-600"
-                >
-                  <Download className="w-4 h-4 mr-2" />
-                  Download
-                </Button>
-                <Button
-                  onClick={() => handleShare(selectedVideoForModal)}
-                  variant="outline"
-                >
-                  <Share2 className="w-4 h-4 mr-2" />
-                  Share
-                </Button>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Save Lipsync Preset Modal */}
-      <Dialog open={showSavePresetModal} onOpenChange={setShowSavePresetModal}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <div className="p-2 bg-gradient-to-br from-emerald-500 to-green-600 rounded-lg">
-                <Save className="w-5 h-5 text-white" />
-              </div>
-              Save as Lipsync Preset
-            </DialogTitle>
-            <p className="text-sm text-muted-foreground">
-              Save your current lipsync generation settings as a reusable preset with an image
-            </p>
-          </DialogHeader>
-
-          <div className="space-y-6">
-            {/* Preset Name Input */}
-            <div className="space-y-2">
-              <Label htmlFor="preset-name" className="text-sm font-medium">
-                Preset Name
-              </Label>
-              <Input
-                id="preset-name"
-                value={presetName}
-                onChange={(e) => setPresetName(e.target.value)}
-                placeholder="Enter a descriptive name for your lipsync preset..."
-                className="w-full"
-              />
-            </div>
-
-            {/* Preset Description Input */}
-            <div className="space-y-2">
-              <Label htmlFor="preset-description" className="text-sm font-medium flex items-center gap-2">
-                <div className="p-1 bg-gradient-to-br from-blue-500 to-purple-600 rounded-md">
-                  <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                </div>
-                Preset Description
-              </Label>
-              <Textarea
-                id="preset-description"
-                value={presetDescription}
-                onChange={(e) => setPresetDescription(e.target.value)}
-                placeholder="Describe your lipsync preset's purpose, style, or any special notes..."
-                className="w-full min-h-[80px] resize-none border-2 border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200"
-                maxLength={500}
-              />
-              <div className="flex justify-between items-center text-xs text-muted-foreground">
-                <span>Add context to help you remember what this preset is for</span>
-                <span>{presetDescription.length}/500</span>
-              </div>
-            </div>
-
-            {/* Image Selection Section */}
-            <div className="space-y-4">
-              <Label className="text-sm font-medium">Preset Image</Label>
-
-              {/* Selected Image Display */}
-              {selectedPresetImage && (
-                <div className="relative">
-                  <Card className={`justify-center flex group hover:shadow-xl transition-all duration-300 border-border/50 hover:border-yellow-500/30 backdrop-blur-sm ${selectedPresetImage.task_id?.startsWith('upload_')
-                    ? 'bg-gradient-to-br from-purple-50/20 to-pink-50/20 dark:from-purple-950/5 dark:to-pink-950/5 hover:border-purple-500/30'
-                    : 'bg-gradient-to-br from-yellow-50/20 to-orange-50/20 dark:from-yellow-950/5 dark:to-orange-950/5'
-                    }`}>
-                    <CardContent className="p-4">
-                      {/* Top Row: File Type, Ratings, Favorite */}
-                      <div className="flex items-center justify-between mb-3">
-                        {/* File Type Icon */}
-                        <div className={`rounded-full w-8 h-8 flex items-center justify-center shadow-md ${selectedPresetImage.task_id?.startsWith('upload_')
-                          ? 'bg-gradient-to-br from-purple-500 to-pink-600'
-                          : 'bg-gradient-to-br from-blue-500 to-purple-600'
-                          }`}>
-                          {selectedPresetImage.task_id?.startsWith('upload_') ? (
-                            <Upload className="w-4 h-4 text-white" />
-                          ) : (
-                            <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="currentColor">
-                              <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z" />
-                              <circle cx="8.5" cy="8.5" r="1.5" opacity="0.8" />
-                            </svg>
-                          )}
-                        </div>
-
-                        {/* Rating Stars */}
-                        <div className="flex gap-1">
-                          {[1, 2, 3, 4, 5].map((star) => (
-                            <svg
-                              key={star}
-                              className={`w-4 h-4 ${star <= (selectedPresetImage.rating || 0) ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
-                              viewBox="0 0 24 24"
-                            >
-                              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                            </svg>
-                          ))}
-                        </div>
-
-                        {/* Favorite Heart */}
-                        <div>
-                          {selectedPresetImage.favorite ? (
-                            <div className="bg-red-500 rounded-full w-8 h-8 flex items-center justify-center">
-                              <svg className="w-4 h-4 text-white fill-current" viewBox="0 0 24 24">
-                                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-                              </svg>
-                            </div>
-                          ) : (
-                            <div className="bg-black/50 rounded-full w-8 h-8 flex items-center justify-center">
-                              <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-                              </svg>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Image */}
-                      <div className="relative w-full group mb-4" style={{ paddingBottom: '100%' }}>
-                        {/* Source Badge */}
-                        <div className="absolute top-2 left-2 z-10">
-                          <Badge variant="secondary" className="bg-black/70 text-white text-xs font-medium shadow-lg">
-                            {presetImageSource}
-                          </Badge>
-                        </div>
-
-                        <img
-                          src={selectedPresetImage.preview_url || `${config.data_url}/${userData.id}/${selectedPresetImage.user_filename === "" ? "output" : "vault/" + selectedPresetImage.user_filename}/${selectedPresetImage.system_filename}`}
-                          alt="Selected preset image"
-                          className="absolute inset-0 w-full h-full object-cover rounded-md shadow-sm cursor-pointer transition-all duration-200 hover:scale-105"
-                        />
-                      </div>
-
-                      {/* Filename and Date */}
-                      <div className="space-y-2">
-                        <h3 className="font-medium text-sm text-gray-800 dark:text-gray-200 truncate">
-                          {selectedPresetImage.system_filename}
-                        </h3>
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <Calendar className="w-3 h-3" />
-                          {new Date(selectedPresetImage.created_at).toLocaleDateString()}
-                        </div>
-                      </div>
-
-                      {/* Action Button */}
-                      <div className="flex gap-1.5 mt-3">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="flex-1 h-8 text-xs font-medium"
-                          onClick={() => setSelectedPresetImage(null)}
-                        >
-                          <X className="w-3 h-3 mr-1.5" />
-                          Remove Image
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              )}
-
-              {/* Image Source Selection */}
-              {!selectedPresetImage && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Card
-                    className="group hover:shadow-lg transition-all duration-300 cursor-pointer border-2 border-dashed border-gray-300 hover:border-emerald-500"
-                    onClick={() => setShowVaultSelectorForPreset(true)}
-                  >
-                    <CardContent className="p-6 text-center">
-                      <div className="p-3 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg w-12 h-12 mx-auto mb-3 flex items-center justify-center">
-                        <FolderOpen className="w-6 h-6 text-white" />
-                      </div>
-                      <h3 className="font-semibold mb-2">From Library</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Select from your saved images
-                      </p>
-                    </CardContent>
-                  </Card>
-
-                  <Card
-                    className="group hover:shadow-lg transition-all duration-300 cursor-pointer border-2 border-dashed border-gray-300 hover:border-emerald-500"
+                {/* Action Buttons */}
+                <div className="flex gap-3 pt-4">
+                  <Button
                     onClick={() => {
-                      // Trigger file selection directly
-                      document.getElementById('preset-file-upload-direct')?.click();
+                      setShowSavePresetModal(false);
+                      setPresetName("");
+                      setPresetDescription("");
+                      setSelectedPresetImage(null);
                     }}
+                    variant="outline"
+                    className="flex-1"
                   >
-                    <CardContent className="p-6 text-center">
-                      <div className="p-3 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg w-12 h-12 mx-auto mb-3 flex items-center justify-center">
-                        <Upload className="w-6 h-6 text-white" />
-                      </div>
-                      <h3 className="font-semibold mb-2">Upload Image</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Upload a new image
-                      </p>
-                    </CardContent>
-                  </Card>
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={handleSavePreset}
+                    disabled={
+                      !presetName.trim() ||
+                      !selectedPresetImage ||
+                      isSavingPreset
+                    }
+                    className="flex-1 bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600"
+                  >
+                    {isSavingPreset ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="w-4 h-4 mr-2" />
+                        Save Preset
+                      </>
+                    )}
+                  </Button>
                 </div>
-              )}
-            </div>
+              </div>
+            </DialogContent>
+          </Dialog>
 
-            {/* Action Buttons */}
-            <div className="flex gap-3 pt-4">
-              <Button
-                onClick={() => {
-                  setShowSavePresetModal(false);
-                  setPresetName('');
-                  setPresetDescription('');
-                  setSelectedPresetImage(null);
-                }}
-                variant="outline"
-                className="flex-1"
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={handleSavePreset}
-                disabled={!presetName.trim() || !selectedPresetImage || isSavingPreset}
-                className="flex-1 bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600"
-              >
-                {isSavingPreset ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  <>
-                    <Save className="w-4 h-4 mr-2" />
-                    Save Preset
-                  </>
-                )}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+          {/* Hidden file input for direct upload */}
+          <input
+            type="file"
+            id="preset-file-upload-direct"
+            accept="image/*"
+            onChange={handlePresetFileUpload}
+            className="hidden"
+          />
 
-      {/* Hidden file input for direct upload */}
-      <input
-        type="file"
-        id="preset-file-upload-direct"
-        accept="image/*"
-        onChange={handlePresetFileUpload}
-        className="hidden"
-      />
+          {/* Vault Selector for Preset */}
+          {showVaultSelectorForPreset && (
+            <VaultSelector
+              open={showVaultSelectorForPreset}
+              onOpenChange={setShowVaultSelectorForPreset}
+              onImageSelect={(image) => {
+                handlePresetImageSelect(image, "vault");
+                setShowVaultSelectorForPreset(false);
+              }}
+              title="Select Preset Image"
+              description="Choose an image to represent your lipsync preset"
+            />
+          )}
 
-      {/* Vault Selector for Preset */}
-      {showVaultSelectorForPreset && (
-        <VaultSelector
-          open={showVaultSelectorForPreset}
-          onOpenChange={setShowVaultSelectorForPreset}
-          onImageSelect={(image) => {
-            handlePresetImageSelect(image, 'vault');
-            setShowVaultSelectorForPreset(false);
-          }}
-          title="Select Preset Image"
-          description="Choose an image to represent your lipsync preset"
-        />
-      )}
+          {/* Lipsync Presets Manager Modal */}
+          {showLipsyncPresetsModal && (
+            <LipsyncPresetsManager
+              onClose={() => setShowLipsyncPresetsModal(false)}
+              onApplyPreset={handleApplyLipsyncPreset}
+            />
+          )}
 
-      {/* Lipsync Presets Manager Modal */}
-      {showLipsyncPresetsModal && (
-        <LipsyncPresetsManager
-          onClose={() => setShowLipsyncPresetsModal(false)}
-          onApplyPreset={handleApplyLipsyncPreset}
-        />
-      )}
+          {/* Lipsync Library Manager Modal */}
+          {showLipsyncLibraryModal && (
+            <LipsyncLibraryManager
+              onClose={() => setShowLipsyncLibraryModal(false)}
+              onApplyPreset={handleApplyLipsyncPreset}
+            />
+          )}
 
-      {/* Lipsync Library Manager Modal */}
-      {showLipsyncLibraryModal && (
-        <LipsyncLibraryManager
-          onClose={() => setShowLipsyncLibraryModal(false)}
-          onApplyPreset={handleApplyLipsyncPreset}
-        />
-      )}
-
-      {/* Credit Confirmation Modal */}
-      <CreditConfirmationModal
-        isOpen={showGemWarning}
-        onClose={() => setShowGemWarning(false)}
-        onConfirm={proceedWithLipSyncGeneration}
-        gemCostData={gemCostData}
-        userCredits={userData.credits}
-        userId={userData.id}
-        isProcessing={isGenerating}
-        processingText="Generating LipSync..."
-        title="LipSync Generation Cost"
-        confirmButtonText={gemCostData ? `Confirm & Use ${gemCostData.gems} Credits` : 'Confirm'}
-        itemType="video"
-      />
+          {/* Credit Confirmation Modal */}
+          <CreditConfirmationModal
+            isOpen={showGemWarning}
+            onClose={() => setShowGemWarning(false)}
+            onConfirm={proceedWithLipSyncGeneration}
+            gemCostData={gemCostData}
+            userCredits={userData.credits}
+            userId={userData.id}
+            isProcessing={isGenerating}
+            processingText="Generating LipSync..."
+            title="LipSync Generation Cost"
+            confirmButtonText={
+              gemCostData ? `Confirm & Use ${gemCostData.gems} Gems` : "Confirm"
+            }
+            itemType="video"
+          />
+        </div>
+      </div>
     </div>
   );
 }
 
-export default ContentCreateLipSyncVideo; 
+export default ContentCreateLipSyncVideo;

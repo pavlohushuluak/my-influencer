@@ -107,7 +107,7 @@ const ImageStudio = () => {
           <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-light text-white mb-4 sm:mb-6 leading-tight">
             Image Studio{' '}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400 font-medium">
-              (today's superpower)
+              - your creative superpower
             </span>
           </h2>
           

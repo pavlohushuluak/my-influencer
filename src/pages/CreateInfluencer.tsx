@@ -1,81 +1,81 @@
-import { useState } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { CreateInfluencerSteps } from '@/components/Influencers/CreateInfluencerSteps';
-import { useNavigate } from 'react-router-dom';
-import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { useSelector } from 'react-redux';
-import type { RootState } from '@/store/store';
-import { toast } from 'sonner';
+import { CreditConfirmationModal } from "@/components/CreditConfirmationModal";
+import { CreateInfluencerSteps } from "@/components/Influencers/CreateInfluencerSteps";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import type { RootState } from "@/store/store";
+import { useState } from "react";
+import { useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 export function CreateInfluencer() {
   const [showSteps, setShowSteps] = useState(false);
-  const [isCheckingCredits, setIsCheckingCredits] = useState(false);
-  const [showCreditWarning, setShowCreditWarning] = useState(false);
-  const [creditCostData, setCreditCostData] = useState<any>(null);
+  const [isCheckingGems, setIsCheckingGems] = useState(false);
+  const [showGemWarning, setShowGemWarning] = useState(false);
+  const [gemCostData, setGemCostData] = useState<any>(null);
   const navigate = useNavigate();
   const userData = useSelector((state: RootState) => state.user);
 
-  // Check credit cost for influencer wizard
-  const checkCreditCost = async (itemType: string) => {
+  // Check gem cost for influencer wizard
+  const checkGemCost = async (itemType: string) => {
     try {
-      setIsCheckingCredits(true);
-      const response = await fetch('https://api.nymia.ai/v1/getgems', {
-        method: 'POST',
+      setIsCheckingGems(true);
+      const response = await fetch("https://api.nymia.ai/v1/getgems", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer WeInfl3nc3withAI'
+          "Content-Type": "application/json",
+          Authorization: "Bearer WeInfl3nc3withAI",
         },
         body: JSON.stringify({
           user_id: userData.id,
-          item: itemType
-        })
+          item: itemType,
+        }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to check credit cost');
+        throw new Error("Failed to check credit cost");
       }
 
       const data = await response.json();
       return data;
     } catch (error) {
-      console.error('Error checking credit cost:', error);
-      toast.error('Failed to check credit cost. Please try again.');
+      console.error("Error checking gem cost:", error);
+      toast.error("Failed to check gem cost. Please try again.");
       return null;
     } finally {
-      setIsCheckingCredits(false);
+      setIsCheckingGems(false);
     }
   };
 
-  // Handle start wizard with credit check
+  // Handle start wizard with gem check
   const handleStartWizard = async () => {
-    const creditData = await checkCreditCost('nymia_image');
-    if (!creditData) return;
+    const gemData = await checkGemCost("nymia_image");
+    if (!gemData) return;
 
-    // Calculate total required credits for preview generation (3 images)
-    const totalRequiredCredits = creditData.gems * 3;
-    
-    setCreditCostData({
-      ...creditData,
-      gems: totalRequiredCredits,
-      originalGemsPerImage: creditData.gems
+    // Calculate total required gems for preview generation (3 images)
+    const totalRequiredGems = gemData.gems * 3;
+
+    setGemCostData({
+      ...gemData,
+      gems: totalRequiredGems,
+      originalGemsPerImage: gemData.gems,
     });
 
-    // Check if user has enough credits
-    if (userData.credits < totalRequiredCredits) {
-      setShowCreditWarning(true);
+    // Check if user has enough gems
+    if (userData.credits < totalRequiredGems) {
+      setShowGemWarning(true);
       return;
     } else {
-      // Show confirmation for credit cost
-      setShowCreditWarning(true);
+      // Show confirmation for gem cost
+      setShowGemWarning(true);
       return;
     }
   };
 
-  // Execute navigation after credit confirmation
+  // Execute navigation after gem confirmation
   const executeStartWizard = () => {
-    navigate('/influencers/wizard');
+    navigate("/influencers/wizard");
   };
 
   if (showSteps) {
@@ -84,21 +84,32 @@ export function CreateInfluencer() {
 
   return (
     <div className="container mx-auto py-8">
-      <h1 className="text-3xl font-bold tracking-tight bg-ai-gradient bg-clip-text text-transparent mb-12">Create New Influencer</h1>
+      <h1 className="text-3xl font-bold tracking-tight bg-ai-gradient bg-clip-text text-transparent mb-12">
+        Create New Influencer
+      </h1>
 
       {/* New Title and Description */}
       <div className="flex flex-col items-center justify-center mb-8">
-        <h2 className="text-2xl md:text-3xl font-bold text-center mb-2 text-white">How do you want to create your AI Influencer?</h2>
-        <p className="text-md md:text-lg text-muted-foreground text-center">Choose the path that fits your style - no wrong answer.</p>
+        <h2 className="text-2xl md:text-3xl font-bold text-center mb-2 text-white">
+          How do you want to create your AI Influencer?
+        </h2>
+        <p className="text-md md:text-lg text-muted-foreground text-center">
+          Choose the path that fits your style - no wrong answer.
+        </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <Card>
           <CardContent className="pt-6 text-center justify-center flex flex-col items-center">
-            <img src="/tool.png" alt="Create from Scratch" className="w-20 h-16 mb-8 mt-4" />
+            <img
+              src="/tool.png"
+              alt="Create from Scratch"
+              className="w-20 h-16 mb-8 mt-4"
+            />
             <h2 className="text-xl font-semibold mb-4">Build from Scratch</h2>
             <p className="text-muted-foreground mb-4">
-              Start with a blank slate and customize every aspect of your influencer.
+              Start with a blank slate and customize every aspect of your
+              influencer.
             </p>
             <Button onClick={() => setShowSteps(true)}>Get Started</Button>
           </CardContent>
@@ -107,84 +118,68 @@ export function CreateInfluencer() {
         <Card>
           <CardContent className="pt-6 text-center justify-center flex flex-col items-center relative">
             {/* Recommend Badge */}
-            <Badge className="absolute top-3 right-3 bg-blue-600 text-white z-10">RECOMMENDED</Badge>
-            <img src="/brain.png" alt="Create from Scratch" className="w-24 h-24 mb-4" />
+            <Badge className="absolute top-3 right-3 bg-blue-600 text-white z-10">
+              RECOMMENDED
+            </Badge>
+            <img
+              src="/brain.png"
+              alt="Create from Scratch"
+              className="w-24 h-24 mb-4"
+            />
             <h2 className="text-xl font-semibold mb-4">Guided Wizard</h2>
             <p className="text-muted-foreground mb-4">
-              Let us walk you through the process of creating your influencer profile.
+              Let us walk you through the process of creating your influencer
+              profile.
             </p>
-            <Button 
-              onClick={handleStartWizard}
-              disabled={isCheckingCredits}
-            >
-              {isCheckingCredits ? 'Checking Credits...' : 'Start Wizard'}
+            <Button onClick={handleStartWizard} disabled={isCheckingGems}>
+              {isCheckingGems ? "Checking Gems..." : "Start Wizard"}
             </Button>
           </CardContent>
         </Card>
 
         <Card>
           <CardContent className="pt-6 text-center justify-center flex flex-col items-center">
-            <img src="/template.png" alt="Create from Scratch" className="w-30 h-24 mb-4" />
+            <img
+              src="/template.png"
+              alt="Create from Scratch"
+              className="w-30 h-24 mb-4"
+            />
             <h2 className="text-xl font-semibold mb-4">Use a Template</h2>
             <p className="text-muted-foreground mb-4">
               Choose from pre-designed templates and customize as needed.
             </p>
-            <Button onClick={() => navigate('/influencers/templates')}>Select Template</Button>
+            <Button onClick={() => navigate("/influencers/templates")}>
+              Select Template
+            </Button>
           </CardContent>
         </Card>
       </div>
 
-      {/* Credit Warning Modal */}
-      <Dialog open={showCreditWarning} onOpenChange={setShowCreditWarning}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Credit Cost Information</DialogTitle>
-            <DialogDescription>
-              {userData.credits >= (creditCostData?.gems || 0) ? (
-                <>
-                  Using the wizard will generate preview images that cost <strong>{creditCostData?.gems} credits</strong> total.
-                  You currently have <strong>{userData.credits} credits</strong>.
-                  {creditCostData?.originalGemsPerImage && (
-                    <div className="mt-2 text-sm text-gray-600">
-                      ({creditCostData.originalGemsPerImage} credits per preview image)
-                    </div>
-                  )}
-                </>
-              ) : (
-                <>
-                  Insufficient credits! The wizard preview generation requires <strong>{creditCostData?.gems} credits</strong>,
-                  but you only have <strong>{userData.credits} credits</strong>.
-                  Please purchase more credits to continue.
-                </>
-              )}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setShowCreditWarning(false)}>
-              Cancel
-            </Button>
-            {userData.credits >= (creditCostData?.gems || 0) ? (
-              <Button 
-                onClick={() => {
-                  setShowCreditWarning(false);
-                  executeStartWizard();
-                }}
-              >
-                Continue to Wizard
-              </Button>
-            ) : (
-              <Button 
-                onClick={() => {
-                  setShowCreditWarning(false);
-                  toast.info('Please purchase credits to continue');
-                }}
-              >
-                Buy Credits
-              </Button>
-            )}
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Gem Warning Modal */}
+      <CreditConfirmationModal
+        isOpen={showGemWarning}
+        onClose={() => setShowGemWarning(false)}
+        onConfirm={() => {
+          setShowGemWarning(false);
+          executeStartWizard();
+        }}
+        gemCostData={
+          gemCostData
+            ? {
+                id: 1,
+                item: "nymia_image",
+                description: "Generate preview images for influencer wizard",
+                gems: gemCostData.gems,
+                originalGemsPerImage: gemCostData.originalGemsPerImage,
+              }
+            : null
+        }
+        userCredits={userData.credits}
+        userId={userData.id}
+        numberOfItems={3}
+        itemType="preview image"
+        confirmButtonText="Continue to Wizard"
+      />
     </div>
   );
 }

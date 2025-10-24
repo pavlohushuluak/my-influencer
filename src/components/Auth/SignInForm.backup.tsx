@@ -11,6 +11,7 @@ import { useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { setUser } from '@/store/slices/userSlice';
 import config from '@/config/config';
+import GoogleOAuthDebug from './GoogleOAuthDebug';
 import { ForgotPasswordForm } from './ForgotPasswordForm';
 
 interface SignInFormProps {
@@ -71,8 +72,10 @@ export function SignInForm({ onToggleMode }: SignInFormProps) {
       });
 
       const data = await response.json();
+      // console.log('Login response:', data);
 
       if (response.ok) {
+        // Save tokens to session storage
         sessionStorage.setItem('access_token', data.access_token);
         sessionStorage.setItem('refresh_token', data.refresh_token);
         const userResponse = await fetch(`${config.supabase_server_url}/user?uuid=eq.${data.user.id}`, {
@@ -85,6 +88,7 @@ export function SignInForm({ onToggleMode }: SignInFormProps) {
 
         const userData = await userResponse.json();
 
+        // Update user data in Redux store
         dispatch(setUser({
           id: userData[0].uuid,
           email: userData[0].email,
@@ -122,6 +126,7 @@ export function SignInForm({ onToggleMode }: SignInFormProps) {
         console.error('Google sign in error:', error);
         toast.error('Google sign in failed');
       }
+      // Success will be handled by AuthCallback component
     } catch (error) {
       console.error('Google sign in error:', error);
       toast.error('Google sign in failed');
@@ -129,11 +134,6 @@ export function SignInForm({ onToggleMode }: SignInFormProps) {
       setIsLoading(false);
     }
   };
-
-  // Show forgot password form if requested
-  if (showForgotPassword) {
-    return <ForgotPasswordForm onBack={() => setShowForgotPassword(false)} />;
-  }
 
   return (
     <div className="space-y-6">
@@ -199,13 +199,9 @@ export function SignInForm({ onToggleMode }: SignInFormProps) {
 
         <div className="flex items-center justify-between">
           <div className="text-sm">
-            <button 
-              type="button"
-              onClick={() => setShowForgotPassword(true)}
-              className="text-ai-purple-500 hover:text-ai-purple-600 underline bg-transparent border-none cursor-pointer"
-            >
+            <a href="#" className="text-ai-purple-500 hover:text-ai-purple-600 underline">
               Forgot your password?
-            </button>
+            </a>
           </div>
         </div>
 
